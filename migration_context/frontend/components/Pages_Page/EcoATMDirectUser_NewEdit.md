@@ -1,0 +1,114 @@
+# Page: EcoATMDirectUser_NewEdit
+
+**Allowed Roles:** AuctionUI.Administrator
+
+**Layout:** `AuctionUI.ecoATM_Popup_Layout`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 📝 **DatePicker**: datePicker1
+  - 📝 **DatePicker**: datePicker2
+  - 📝 **DatePicker**: datePicker3
+  - ⚡ **Button**: radioButtons9
+  - ⚡ **Button**: radioButtons8
+  - ⚡ **Button**: radioButtons1
+  - ⚡ **Button**: radioButtons2
+  - ⚡ **Button**: radioButtons3
+  - 📝 **DatePicker**: datePicker4
+  - ⚡ **Button**: radioButtons4
+  - 📝 **DatePicker**: datePicker5
+  - ⚡ **Button**: radioButtons5
+  - ⚡ **Button**: radioButtons6
+  - ⚡ **Button**: radioButtons7
+  - ⚡ **Button**: radioButtons10
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_BuyerManagement.Buyer.CompanyName]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_UserManagement.UserStatus.StatusText]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: System.Language.Code]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: System.TimeZone.Code]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+    ↳ [acti] → **Microflow**: `AuctionUI.ACT_EcoATMDIrectUser_UpdateByAdmin`
+    ↳ [acti] → **Cancel Changes**

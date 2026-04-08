@@ -1,0 +1,58 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Home --> EcoATM_PWS_NAV_DashboardNavigationLogic
+    AuctionUI_SUB_BuildAggregatedInventoryFilters["AuctionUI.SUB_BuildAggregatedInventoryFilters"]:::microflow
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_ResetAuctionFilters
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateBrandList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateBrandList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateCarrierList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateModelList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateModelNameList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateCarrierList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateModelList
+    AuctionUI_SUB_BuildAggregatedInventoryFilters --> AuctionUI_SUB_CreateModelNameList
+    EcoATM_PWS_PWSOrder_PE_Dashboard["EcoATM_PWS.PWSOrder_PE_Dashboard (Page)"]:::page
+    EcoATM_PWS_PWSOrder_PE_Dashboard --> EcoATM_PWS_PWS_DeviceView
+    EcoATM_PWS_PWSOrder_PE_Dashboard --> EcoATM_PWS_PWS_DeviceView
+    EcoATM_PWS_PWS_ResetConfirmation["EcoATM_PWS.PWS_ResetConfirmation (Page)"]:::page
+    EcoATM_PWS_PWSOrder_PE["EcoATM_PWS.PWSOrder_PE (Page)"]:::page
+    EcoATM_PWS_PWSOrder_PE --> EcoATM_PWS_PWS_MyOffer
+    EcoATM_PWS_PWSOrder_PE --> EcoATM_PWS_PWS_ResetConfirmation
+    AuctionUI_DS_GetOrCreateAggregatedInventoryTotalsByWeek["AuctionUI.DS_GetOrCreateAggregatedInventoryTotalsByWeek"]:::microflow
+    EcoATM_PWS_SUB_SelectFirstPWSBuyerCode["EcoATM_PWS.SUB_SelectFirstPWSBuyerCode"]:::microflow
+    EcoATM_PWS_SUB_SelectFirstPWSBuyerCode --> AuctionUI_ACT_GET_CurrentUser
+    AuctionUI_Buyer_Code_Select_Search["AuctionUI.Buyer_Code_Select_Search (Page)"]:::page
+    EcoATM_UserManagement_SUB_SendUserLoginToSnowflake["EcoATM_UserManagement.SUB_SendUserLoginToSnowflake"]:::microflow
+    AuctionUI_SUB_NavigateToAggregatedInventoryPage["AuctionUI.SUB_NavigateToAggregatedInventoryPage"]:::microflow
+    AuctionUI_SUB_NavigateToAggregatedInventoryPage --> AuctionUI_DS_GetOrCreateAggregatedInventoryHelper
+    AuctionUI_SUB_NavigateToAggregatedInventoryPage --> AuctionUI_PG_AggregatedInventory
+    AuctionUI_SUB_NavigateToAggregatedInventoryPage --> AuctionUI_SUB_LoadAggregatedInventoryTotals
+    AuctionUI_SUB_CreateCarrierList["AuctionUI.SUB_CreateCarrierList"]:::microflow
+    AuctionUI_DS_GetOrCreateAggregatedInventoryHelper["AuctionUI.DS_GetOrCreateAggregatedInventoryHelper"]:::microflow
+    AuctionUI_PG_AggregatedInventory["AuctionUI.PG_AggregatedInventory (Page)"]:::page
+    AuctionUI_SUB_CreateModelList["AuctionUI.SUB_CreateModelList"]:::microflow
+    EcoATM_PWS_NAV_DashboardNavigationLogic["EcoATM_PWS.NAV_DashboardNavigationLogic"]:::microflow
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> AuctionUI_Buyer_Code_Select_Search
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> EcoATM_PWS_PWSOrder_PE_Dashboard
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> AuctionUI_SUB_NavigateToAggregatedInventoryPage
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> EcoATM_UserManagement_SUB_SendUserLoginToSnowflake
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> EcoATM_PWS_PWSOrder_PE
+    EcoATM_PWS_NAV_DashboardNavigationLogic --> EcoATM_PWS_SUB_SelectFirstPWSBuyerCode
+    AuctionUI_SUB_GetOrCreateAgrregateTotals["AuctionUI.SUB_GetOrCreateAgrregateTotals"]:::microflow
+    AuctionUI_SUB_GetOrCreateAgrregateTotals --> AuctionUI_DS_GetOrCreateAggregatedInventoryTotalsByWeek
+    AuctionUI_ACT_GET_CurrentUser["AuctionUI.ACT_GET_CurrentUser"]:::microflow
+    AuctionUI_SUB_CreateModelNameList["AuctionUI.SUB_CreateModelNameList"]:::microflow
+    AuctionUI_SUB_LoadAggregatedInventory["AuctionUI.SUB_LoadAggregatedInventory"]:::microflow
+    EcoATM_PWS_PWS_MyOffer["EcoATM_PWS.PWS_MyOffer (Page)"]:::page
+    EcoATM_PWS_PWS_MyOffer --> EcoATM_PWS_PWSOrder_PE
+    EcoATM_PWS_PWS_MyOffer --> EcoATM_PWS_PWS_ResetConfirmation
+    AuctionUI_SUB_LoadAggregatedInventoryTotals["AuctionUI.SUB_LoadAggregatedInventoryTotals"]:::microflow
+    AuctionUI_SUB_LoadAggregatedInventoryTotals --> AuctionUI_SUB_LoadAggregatedInventory
+    AuctionUI_SUB_LoadAggregatedInventoryTotals --> AuctionUI_SUB_GetOrCreateAgrregateTotals
+    AuctionUI_SUB_LoadAggregatedInventoryTotals --> AuctionUI_SUB_BuildAggregatedInventoryFilters
+    EcoATM_PWS_PWS_DeviceView["EcoATM_PWS.PWS_DeviceView (Page)"]:::page
+    AuctionUI_SUB_CreateBrandList["AuctionUI.SUB_CreateBrandList"]:::microflow
+    AuctionUI_SUB_ResetAuctionFilters["AuctionUI.SUB_ResetAuctionFilters"]:::microflow
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

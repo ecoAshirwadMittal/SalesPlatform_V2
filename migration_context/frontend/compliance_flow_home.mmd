@@ -1,0 +1,15 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Home --> AuctionUI_Buyer_Overview
+    EcoATM_MDM_ACT_SendAllBuyerstoSnowflake["EcoATM_MDM.ACT_SendAllBuyerstoSnowflake"]:::microflow
+    EcoATM_MDM_ACT_Buyer_CreateNewFromBuyer["EcoATM_MDM.ACT_Buyer_CreateNewFromBuyer"]:::microflow
+    EcoATM_MDM_Buyer_Edit_Compliance["EcoATM_MDM.Buyer_Edit_Compliance (Page)"]:::page
+    AuctionUI_ACT_OpenBuyerEditPage["AuctionUI.ACT_OpenBuyerEditPage"]:::microflow
+    AuctionUI_ACT_OpenBuyerEditPage --> EcoATM_MDM_Buyer_Edit_Compliance
+    AuctionUI_Buyer_Overview["AuctionUI.Buyer_Overview (Page)"]:::page
+    AuctionUI_Buyer_Overview --> EcoATM_MDM_ACT_SendAllBuyerstoSnowflake
+    AuctionUI_Buyer_Overview --> EcoATM_MDM_ACT_Buyer_CreateNewFromBuyer
+    AuctionUI_Buyer_Overview --> AuctionUI_ACT_OpenBuyerEditPage
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

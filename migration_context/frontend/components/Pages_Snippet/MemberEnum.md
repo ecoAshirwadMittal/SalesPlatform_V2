@@ -1,0 +1,126 @@
+# Snippet: MemberEnum
+
+## Widget Tree
+
+- 🔤 **Text**: "Name"
+- 🔤 **Text**: "Type"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: enumeration
+    - attributeEnumeration: [Attr: MxModelReflection.MxObjectMember.AttributeTypeEnum]
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "/"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.ValueType.Name]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "/"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: expression
+    - optionsSourceAssociationCaptionExpression: `getCaption($currentObject/TypeEnum)`
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: checkbox
+    - itemSelectionMode: clear
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: MxModelReflection.MxObjectEnumValue.Name]
+        - header: Name
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 20
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: customContent
+        ➤ **content** (Widgets)
+          - 📦 **DataView** [MF: MxModelReflection.EnumValueCaptions]
+        - header: Captions
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 40
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: customContent
+        ➤ **content** (Widgets)
+          - 📦 **DataView** [MF: MxModelReflection.EnumValueLanguages]
+        - header: Languages
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 40
+        - alignment: left
+        - filterCaptionType: expression
+    - pageSize: 20
+    - pagination: buttons
+    - pagingPosition: bottom
+    - showPagingButtons: always
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: single
+    - configurationStorageType: attribute
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row
+    - loadingType: spinner

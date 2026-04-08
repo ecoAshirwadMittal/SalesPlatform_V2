@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OracleConfigController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.controller</a> &gt; <span class="el_source">OracleConfigController.java</span></div><h1>OracleConfigController.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.controller;
+
+import com.ecoatm.salesplatform.model.integration.OracleConfig;
+import com.ecoatm.salesplatform.repository.integration.OracleConfigRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.Map;
+
+/**
+ * Admin endpoint for Oracle ERP integration configuration.
+ * Mirrors Mendix PWSConfiguration_Edit page + ACT_PWSConfiguration_TestAuthentication.
+ */
+@RestController
+@RequestMapping(&quot;/api/v1/admin/oracle-config&quot;)
+<span class="fc" id="L27">@RequiredArgsConstructor</span>
+public class OracleConfigController {
+
+<span class="fc" id="L30">    private static final Logger log = LoggerFactory.getLogger(OracleConfigController.class);</span>
+<span class="fc" id="L31">    private final ObjectMapper objectMapper = new ObjectMapper();</span>
+
+    private final OracleConfigRepository oracleConfigRepository;
+
+    /**
+     * GET — Mendix: DS_PWSConfiguration / SUB_PWSConfiguration_GetOrCreate
+     * Returns the singleton config row, creating one with defaults if none exists.
+     */
+    @GetMapping
+    public ResponseEntity&lt;OracleConfigDto&gt; getConfig() {
+<span class="fc" id="L41">        OracleConfig config = getOrCreate();</span>
+<span class="fc" id="L42">        return ResponseEntity.ok(toDto(config));</span>
+    }
+
+    /**
+     * PUT — Save changes (Mendix: Save Changes action on PWSConfiguration_Edit)
+     */
+    @PutMapping
+    public ResponseEntity&lt;OracleConfigDto&gt; updateConfig(@RequestBody OracleConfigDto dto) {
+<span class="fc" id="L50">        OracleConfig config = getOrCreate();</span>
+
+<span class="fc" id="L52">        config.setUsername(dto.username);</span>
+<span class="pc bpc" id="L53" title="1 of 4 branches missed.">        if (dto.password != null &amp;&amp; !dto.password.isBlank()) {</span>
+<span class="fc" id="L54">            config.setPasswordHash(java.util.Base64.getEncoder().encodeToString(dto.password.getBytes()));</span>
+        }
+<span class="fc" id="L56">        config.setAuthPath(dto.authPath);</span>
+<span class="fc" id="L57">        config.setCreateOrderPath(dto.createOrderPath);</span>
+<span class="fc" id="L58">        config.setCreateRmaPath(dto.createRmaPath);</span>
+<span class="fc" id="L59">        config.setTimeoutMs(dto.timeoutMs);</span>
+<span class="fc" id="L60">        config.setIsActive(dto.isCreateOrderApiOn);</span>
+<span class="fc" id="L61">        config.setUpdatedDate(LocalDateTime.now());</span>
+
+<span class="fc" id="L63">        oracleConfigRepository.save(config);</span>
+<span class="fc" id="L64">        return ResponseEntity.ok(toDto(config));</span>
+    }
+
+    /**
+     * POST /test-auth — Mendix: ACT_PWSConfiguration_TestAuthentication
+     * Attempts to fetch an OAuth token from the configured auth endpoint.
+     */
+    @PostMapping(&quot;/test-auth&quot;)
+    public ResponseEntity&lt;Map&lt;String, Object&gt;&gt; testAuthentication() {
+<span class="fc" id="L73">        OracleConfig config = getOrCreate();</span>
+
+<span class="fc bfc" id="L75" title="All 4 branches covered.">        if (config.getAuthPath() == null || config.getAuthPath().isBlank()) {</span>
+<span class="fc" id="L76">            return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L77">                    &quot;success&quot;, false,</span>
+                    &quot;title&quot;, &quot;Unable to authenticate&quot;,
+                    &quot;message&quot;, &quot;Auth path is not configured.&quot;
+            ));
+        }
+
+<span class="fc bfc" id="L83" title="All 4 branches covered.">        if (config.getUsername() == null || config.getUsername().isBlank()) {</span>
+<span class="fc" id="L84">            return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L85">                    &quot;success&quot;, false,</span>
+                    &quot;title&quot;, &quot;Unable to authenticate&quot;,
+                    &quot;message&quot;, &quot;Username is not configured.&quot;
+            ));
+        }
+
+        try {
+<span class="fc bfc" id="L92" title="All 2 branches covered.">            int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 5000;</span>
+<span class="fc" id="L93">            HttpClient client = HttpClient.newBuilder()</span>
+<span class="fc" id="L94">                    .connectTimeout(Duration.ofMillis(timeout))</span>
+<span class="fc" id="L95">                    .build();</span>
+
+<span class="fc" id="L97">            String authBody = &quot;grant_type=client_credentials&quot;;</span>
+            String rawPassword;
+            try {
+<span class="fc" id="L100">                rawPassword = new String(java.util.Base64.getDecoder().decode(config.getPasswordHash()));</span>
+<span class="nc" id="L101">            } catch (Exception e) {</span>
+<span class="nc" id="L102">                rawPassword = config.getPasswordHash(); // fallback for legacy plaintext</span>
+<span class="fc" id="L103">            }</span>
+<span class="fc" id="L104">            String basicAuth = java.util.Base64.getEncoder().encodeToString(</span>
+<span class="fc" id="L105">                    (config.getUsername() + &quot;:&quot; + rawPassword).getBytes());</span>
+
+<span class="fc" id="L107">            HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="fc" id="L108">                    .uri(URI.create(config.getAuthPath()))</span>
+<span class="fc" id="L109">                    .timeout(Duration.ofMillis(timeout))</span>
+<span class="fc" id="L110">                    .header(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;)</span>
+<span class="fc" id="L111">                    .header(&quot;Authorization&quot;, &quot;Basic &quot; + basicAuth)</span>
+<span class="fc" id="L112">                    .POST(HttpRequest.BodyPublishers.ofString(authBody))</span>
+<span class="fc" id="L113">                    .build();</span>
+
+<span class="fc" id="L115">            log.info(&quot;Oracle test-auth → {}&quot;, config.getAuthPath());</span>
+<span class="nc" id="L116">            HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L117">            log.info(&quot;Oracle test-auth response HTTP {}&quot;, response.statusCode());</span>
+
+<span class="nc" id="L119">            JsonNode json = objectMapper.readTree(response.body());</span>
+<span class="nc bnc" id="L120" title="All 2 branches missed.">            String token = json.has(&quot;access_token&quot;) ? json.get(&quot;access_token&quot;).asText() : null;</span>
+
+<span class="nc bnc" id="L122" title="All 4 branches missed.">            if (token != null &amp;&amp; !token.isBlank()) {</span>
+<span class="nc" id="L123">                return ResponseEntity.ok(Map.of(</span>
+<span class="nc" id="L124">                        &quot;success&quot;, true,</span>
+                        &quot;title&quot;, &quot;Successfully authenticated&quot;,
+<span class="nc" id="L126">                        &quot;message&quot;, &quot;Token received (HTTP &quot; + response.statusCode() + &quot;).&quot;</span>
+                ));
+            } else {
+<span class="nc bnc" id="L129" title="All 2 branches missed.">                String errMsg = json.has(&quot;error_description&quot;) ? json.get(&quot;error_description&quot;).asText()</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">                        : json.has(&quot;error&quot;) ? json.get(&quot;error&quot;).asText()</span>
+<span class="nc" id="L131">                        : &quot;No access_token in response (HTTP &quot; + response.statusCode() + &quot;)&quot;;</span>
+<span class="nc" id="L132">                return ResponseEntity.ok(Map.of(</span>
+<span class="nc" id="L133">                        &quot;success&quot;, false,</span>
+                        &quot;title&quot;, &quot;Unable to authenticate&quot;,
+                        &quot;message&quot;, errMsg
+                ));
+            }
+<span class="fc" id="L138">        } catch (Exception e) {</span>
+<span class="fc" id="L139">            log.error(&quot;Oracle test-auth failed&quot;, e);</span>
+<span class="fc" id="L140">            return ResponseEntity.ok(Map.of(</span>
+<span class="fc" id="L141">                    &quot;success&quot;, false,</span>
+                    &quot;title&quot;, &quot;Unable to authenticate&quot;,
+<span class="fc" id="L143">                    &quot;message&quot;, &quot;Please check the logs for more details: &quot; + e.getMessage()</span>
+            ));
+        }
+    }
+
+    // --- Helpers ---
+
+    private OracleConfig getOrCreate() {
+<span class="fc" id="L151">        return oracleConfigRepository.findAll().stream().findFirst()</span>
+<span class="fc" id="L152">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L153">                    OracleConfig c = new OracleConfig();</span>
+<span class="fc" id="L154">                    c.setIsActive(false);</span>
+<span class="fc" id="L155">                    c.setTimeoutMs(5000);</span>
+<span class="fc" id="L156">                    c.setUpdatedDate(LocalDateTime.now());</span>
+<span class="fc" id="L157">                    return oracleConfigRepository.save(c);</span>
+                });
+    }
+
+    private OracleConfigDto toDto(OracleConfig config) {
+<span class="fc" id="L162">        OracleConfigDto dto = new OracleConfigDto();</span>
+<span class="fc" id="L163">        dto.id = config.getId();</span>
+<span class="fc" id="L164">        dto.username = config.getUsername();</span>
+<span class="fc" id="L165">        dto.password = null; // never expose password</span>
+<span class="fc bfc" id="L166" title="All 4 branches covered.">        dto.hasPassword = config.getPasswordHash() != null &amp;&amp; !config.getPasswordHash().isBlank();</span>
+<span class="fc" id="L167">        dto.authPath = config.getAuthPath();</span>
+<span class="fc" id="L168">        dto.createOrderPath = config.getCreateOrderPath();</span>
+<span class="fc" id="L169">        dto.createRmaPath = config.getCreateRmaPath();</span>
+<span class="fc" id="L170">        dto.timeoutMs = config.getTimeoutMs();</span>
+<span class="fc" id="L171">        dto.isCreateOrderApiOn = config.getIsActive();</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">        dto.updatedDate = config.getUpdatedDate() != null ? config.getUpdatedDate().toString() : null;</span>
+<span class="fc" id="L173">        return dto;</span>
+    }
+
+<span class="fc" id="L176">    public static class OracleConfigDto {</span>
+        public Long id;
+        public String username;
+        public String password;
+        public Boolean hasPassword;
+        public String authPath;
+        public String createOrderPath;
+        public String createRmaPath;
+        public Integer timeoutMs;
+        public Boolean isCreateOrderApiOn;
+        public String updatedDate;
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

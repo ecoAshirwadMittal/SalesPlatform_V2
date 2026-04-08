@@ -1,0 +1,627 @@
+# Page: PWS_OrderHistory
+
+**Allowed Roles:** EcoATM_PWS.Administrator, EcoATM_PWS.Bidder, EcoATM_PWS.SalesLeader, EcoATM_PWS.SalesOps, EcoATM_PWS.SalesRep
+
+**Layout:** `EcoATM_Direct_Theme.EcoATM_PWS_Bidder`
+
+## Widget Tree
+
+- 📦 **DataView** [NF: EcoATM_Direct_Theme.DS_GetBuyerCode_SessionAndTabHelper]
+  - 📦 **DataView** [MF: EcoATM_PWS.DS_GetCurrentUserBuyerCodes]
+    - 📦 **DataView** [MF: EcoATM_PWS.DS_GetOrCreateOrderHistoryHelper]
+        ↳ [acti] → **Microflow**: `EcoATM_PWS.ACT_OrderHistory_ExportExcel`
+        ↳ [Click] → **Nanoflow**: `EcoATM_PWS.ACT_UpdateOrderHistoryTabHelper`
+        ↳ [Click] → **Nanoflow**: `EcoATM_PWS.ACT_UpdateOrderHistoryTabHelper`
+        ↳ [Click] → **Nanoflow**: `EcoATM_PWS.ACT_UpdateOrderHistoryTabHelper`
+        ↳ [Click] → **Nanoflow**: `EcoATM_PWS.ACT_UpdateOrderHistoryTabHelper`
+      - 🧩 **Data grid 2** [Class: `pws-orderhistory-datagrid`] 👁️ (If CurrentTab is Recent/InProcess/Complete/All/(empty)) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OfferDate]
+              - dynamicText: {1}
+              - header: Offer Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderDate]
+              - dynamicText: {1}
+              - header: Order Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Buyer]
+              - header: Buyer
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Company]
+              - header: Company
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderStatus]
+              ➤ **content** (Widgets)
+              - header: Order Status
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipDate]
+              ➤ **content** (Widgets)
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipMethod]
+              ➤ **content** (Widgets)
+              - header: Ship Method
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.SKUCount]
+              - header: SKUs
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalQuantity]
+              - dynamicText: {1}
+              - header: Qty
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalPrice]
+              - dynamicText: ${1}
+              - header: Total Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: right
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: custom
+          ➤ **emptyPlaceholder** (Widgets)
+            - 🧩 **HTML Element** (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+                - tagName: div
+                - tagNameCustom: div
+                - tagContentMode: innerHTML
+                - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no orders in this stage.</h1> </div> </body>
+          - rowClass: `'pws-orderhistory-datagridhover'`
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** [Class: `pws-orderhistory-datagrid`] 👁️ (If CurrentTab is Recent/InProcess/Complete/All/(empty)) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OfferDate]
+              - header: Offer Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderDate]
+              - dynamicText: {1}
+              - header: Order Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Buyer]
+              - header: Buyer
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Company]
+              - header: Company
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderStatus]
+              ➤ **content** (Widgets)
+              - header: Order Status
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipDate]
+              ➤ **content** (Widgets)
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipMethod]
+              ➤ **content** (Widgets)
+              - header: Ship Method
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.SKUCount]
+              - header: SKUs
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalQuantity]
+              - dynamicText: {1}
+              - header: Qty
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalPrice]
+              - dynamicText: ${1}
+              - header: Total Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: right
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: custom
+          ➤ **emptyPlaceholder** (Widgets)
+            - 🧩 **HTML Element** (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+                - tagName: div
+                - tagNameCustom: div
+                - tagContentMode: innerHTML
+                - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no orders in this stage.</h1> </div> </body>
+          - rowClass: `'pws-orderhistory-datagridhover'`
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** [Class: `pws-orderhistory-datagrid`] 👁️ (If CurrentTab is Recent/InProcess/Complete/All/(empty)) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OfferDate]
+              - header: Offer Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderDate]
+              - dynamicText: {1}
+              - header: Order Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Buyer]
+              - header: Buyer
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Company]
+              - header: Company
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderStatus]
+              ➤ **content** (Widgets)
+              - header: Order Status
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipDate]
+              ➤ **content** (Widgets)
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipMethod]
+              ➤ **content** (Widgets)
+              - header: Ship Method
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.SKUCount]
+              - header: SKUs
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalQuantity]
+              - dynamicText: {1}
+              - header: Qty
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalPrice]
+              - dynamicText: ${1}
+              - header: Total Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: right
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: custom
+          ➤ **emptyPlaceholder** (Widgets)
+            - 🧩 **HTML Element** (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+                - tagName: div
+                - tagNameCustom: div
+                - tagContentMode: innerHTML
+                - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no orders in this stage.</h1> </div> </body>
+          - rowClass: `'pws-orderhistory-datagridhover'
+`
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** [Class: `pws-orderhistory-datagrid`] 👁️ (If CurrentTab is Recent/InProcess/Complete/All/(empty)) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OfferDate]
+              - header: Offer Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderDate]
+              - dynamicText: {1}
+              - header: Order Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Buyer]
+              - header: Buyer
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.Company]
+              - header: Company
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.OrderStatus]
+              ➤ **content** (Widgets)
+              - header: Order Status
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipDate]
+              ➤ **content** (Widgets)
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.ShipMethod]
+              ➤ **content** (Widgets)
+              - header: Ship Method
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.SKUCount]
+              - header: SKUs
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalQuantity]
+              - dynamicText: {1}
+              - header: Qty
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: center
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_PWS.OfferAndOrdersView.TotalPrice]
+              - dynamicText: ${1}
+              - header: Total Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: right
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: custom
+          ➤ **emptyPlaceholder** (Widgets)
+            - 🧩 **HTML Element** (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+                - tagName: div
+                - tagNameCustom: div
+                - tagContentMode: innerHTML
+                - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no orders in this stage.</h1> </div> </body>
+          - rowClass: `'pws-orderhistory-datagridhover'
+`
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+- 📦 **DataView** [NF: EcoATM_Direct_Theme.DS_CurrentPageName]
+  - 🧩 **Microflow Timer** (ID: `MicroflowTimer.widget.MicroflowTimer`)
+      - interval: 100
+      - callEvent: callNanoflow

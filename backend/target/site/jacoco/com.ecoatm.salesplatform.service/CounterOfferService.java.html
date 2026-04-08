@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CounterOfferService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">CounterOfferService.java</span></div><h1>CounterOfferService.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
+
+import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.model.pws.CaseLot;
+import com.ecoatm.salesplatform.model.pws.Offer;
+import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
+import com.ecoatm.salesplatform.repository.pws.OfferRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * Buyer-side counter-offer workflow.
+ * Clones Mendix microflows: NAV_PWSCounterOffers, ACT_Offer_BuyerAcceptAllCounters,
+ * ACT_Offer_BuyerSubmitCounterResponse, OCh_OfferItem_RecalculateFinalOffer.
+ */
+@Service
+public class CounterOfferService {
+
+<span class="fc" id="L31">    private static final Logger log = LoggerFactory.getLogger(CounterOfferService.class);</span>
+
+    private static final String STATUS_BUYER_ACCEPTANCE = &quot;Buyer_Acceptance&quot;;
+    private static final String STATUS_ORDERED = &quot;Ordered&quot;;
+    private static final String STATUS_DECLINED = &quot;Declined&quot;;
+    private static final String STATUS_CANCELED = &quot;Canceled&quot;;
+
+    private static final String ITEM_ACCEPT = &quot;Accept&quot;;
+    private static final String ITEM_COUNTER = &quot;Counter&quot;;
+    private static final String ITEM_DECLINE = &quot;Decline&quot;;
+
+    private static final String COUNTER_ACCEPT = &quot;Accept&quot;;
+    private static final String COUNTER_DECLINE = &quot;Decline&quot;;
+
+    private static final String DRAWER_ORDERED = &quot;Ordered&quot;;
+    private static final String DRAWER_BUYER_DECLINED = &quot;Buyer_Declined&quot;;
+
+    private final OfferRepository offerRepository;
+    private final DeviceRepository deviceRepository;
+    private final CaseLotRepository caseLotRepository;
+    private final OfferService offerService;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    public CounterOfferService(OfferRepository offerRepository,
+                               DeviceRepository deviceRepository,
+                               CaseLotRepository caseLotRepository,
+<span class="fc" id="L59">                               OfferService offerService) {</span>
+<span class="fc" id="L60">        this.offerRepository = offerRepository;</span>
+<span class="fc" id="L61">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L62">        this.caseLotRepository = caseLotRepository;</span>
+<span class="fc" id="L63">        this.offerService = offerService;</span>
+<span class="fc" id="L64">    }</span>
+
+    /**
+     * List counter offers for a buyer code (Buyer_Acceptance status).
+     * Clones NAV_PWSCounterOffers navigation logic.
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public List&lt;OfferListItem&gt; listCounterOffers(Long buyerCodeId) {
+<span class="fc" id="L72">        List&lt;Offer&gt; offers = offerRepository.findByStatusAndBuyerCodeIdOrderByUpdatedDateDesc(</span>
+                STATUS_BUYER_ACCEPTANCE, buyerCodeId);
+
+        // Load buyer code string
+<span class="fc" id="L76">        Map&lt;Long, String&gt; buyerCodeMap = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L77" title="All 2 branches covered.">        if (!offers.isEmpty()) {</span>
+            try {
+<span class="fc" id="L79">                List&lt;Object[]&gt; rows = em.createNativeQuery(</span>
+                        &quot;SELECT bc.id, bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id&quot;)
+<span class="fc" id="L81">                        .setParameter(&quot;id&quot;, buyerCodeId).getResultList();</span>
+<span class="fc bfc" id="L82" title="All 2 branches covered.">                for (Object[] row : rows) {</span>
+<span class="fc" id="L83">                    buyerCodeMap.put(((Number) row[0]).longValue(), (String) row[1]);</span>
+<span class="fc" id="L84">                }</span>
+<span class="nc" id="L85">            } catch (Exception e) {</span>
+<span class="nc" id="L86">                log.debug(&quot;Could not load buyer code: {}&quot;, e.getMessage());</span>
+<span class="fc" id="L87">            }</span>
+        }
+
+<span class="fc" id="L90">        return offers.stream().map(offer -&gt; {</span>
+<span class="fc" id="L91">            OfferListItem item = new OfferListItem();</span>
+<span class="fc" id="L92">            item.setOfferId(offer.getId());</span>
+<span class="fc" id="L93">            item.setOfferNumber(offer.getOfferNumber());</span>
+<span class="fc" id="L94">            item.setStatus(offer.getStatus());</span>
+<span class="fc" id="L95">            item.setBuyerCode(buyerCodeMap.get(offer.getBuyerCodeId()));</span>
+<span class="fc" id="L96">            item.setTotalQty(offer.getTotalQty());</span>
+<span class="fc" id="L97">            item.setTotalPrice(offer.getTotalPrice());</span>
+<span class="fc" id="L98">            int skuCount = (int) offer.getItems().stream()</span>
+<span class="pc bpc" id="L99" title="2 of 4 branches missed.">                    .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0).count();</span>
+<span class="fc" id="L100">            item.setTotalSkus(skuCount);</span>
+<span class="fc" id="L101">            item.setSubmissionDate(offer.getSubmissionDate());</span>
+<span class="fc" id="L102">            item.setUpdatedDate(offer.getUpdatedDate());</span>
+<span class="fc" id="L103">            return item;</span>
+<span class="fc" id="L104">        }).collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Get counter offer detail with items, device info, and summary card values.
+     * Clones DS_GetOriginalOfferForCounterOffers, DS_GetEcoATMCounterOffers, DS_GetFinalOfferForCounterOffers.
+     */
+    public OfferResponse getCounterOfferDetail(Long offerId) {
+<span class="fc" id="L112">        Offer offer = offerRepository.findById(offerId)</span>
+<span class="pc" id="L113">                .orElseThrow(() -&gt; new RuntimeException(&quot;Offer not found: &quot; + offerId));</span>
+
+<span class="fc" id="L115">        List&lt;OfferItem&gt; items = offer.getItems();</span>
+<span class="fc" id="L116">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L117">        Map&lt;Long, CaseLot&gt; caseLotMap = loadCaseLotMap(items);</span>
+
+<span class="fc" id="L119">        List&lt;OfferItemResponse&gt; itemResponses = items.stream()</span>
+<span class="fc" id="L120">                .map(item -&gt; OfferItemResponse.fromEntityFull(</span>
+                        item,
+<span class="fc" id="L122">                        deviceMap.get(item.getDeviceId()),</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                        item.getCaseLotId() != null ? caseLotMap.get(item.getCaseLotId()) : null))</span>
+<span class="fc" id="L124">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L126">        return OfferResponse.fromEntity(offer, itemResponses);</span>
+    }
+
+    /**
+     * Set buyer's Accept/Decline on a single countered item and recalculate finals.
+     * Clones OCh_OfferItem_RecalculateFinalOffer.
+     */
+    @Transactional
+    public OfferResponse setBuyerItemAction(Long offerId, Long itemId, String buyerCounterStatus) {
+<span class="fc" id="L135">        Offer offer = offerRepository.findById(offerId)</span>
+<span class="pc" id="L136">                .orElseThrow(() -&gt; new RuntimeException(&quot;Offer not found: &quot; + offerId));</span>
+
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        if (!STATUS_BUYER_ACCEPTANCE.equals(offer.getStatus())) {</span>
+<span class="fc" id="L139">            throw new RuntimeException(&quot;Offer is not in Buyer_Acceptance status&quot;);</span>
+        }
+
+<span class="fc" id="L142">        OfferItem item = offer.getItems().stream()</span>
+<span class="fc" id="L143">                .filter(i -&gt; i.getId().equals(itemId)).findFirst()</span>
+<span class="pc" id="L144">                .orElseThrow(() -&gt; new RuntimeException(&quot;Item not found: &quot; + itemId));</span>
+
+<span class="fc" id="L146">        item.setBuyerCounterStatus(buyerCounterStatus);</span>
+
+<span class="fc bfc" id="L148" title="All 2 branches covered.">        if (COUNTER_ACCEPT.equals(buyerCounterStatus)) {</span>
+<span class="fc" id="L149">            applyAcceptToItem(item);</span>
+<span class="pc bpc" id="L150" title="1 of 2 branches missed.">        } else if (COUNTER_DECLINE.equals(buyerCounterStatus)) {</span>
+<span class="fc" id="L151">            item.setFinalOfferPrice(BigDecimal.ZERO);</span>
+<span class="fc" id="L152">            item.setFinalOfferQuantity(0);</span>
+<span class="fc" id="L153">            item.setFinalOfferTotalPrice(BigDecimal.ZERO);</span>
+<span class="fc" id="L154">            item.setCounterCasePriceTotal(BigDecimal.ZERO);</span>
+        }
+
+<span class="fc" id="L157">        recalculateOfferFinals(offer);</span>
+<span class="fc" id="L158">        offerRepository.save(offer);</span>
+<span class="fc" id="L159">        return getCounterOfferDetail(offerId);</span>
+    }
+
+    /**
+     * Accept all Counter + Accept items.
+     * Clones ACT_Offer_BuyerAcceptAllCounters.
+     */
+    @Transactional
+    public OfferResponse acceptAllCounters(Long offerId) {
+<span class="fc" id="L168">        Offer offer = offerRepository.findById(offerId)</span>
+<span class="pc" id="L169">                .orElseThrow(() -&gt; new RuntimeException(&quot;Offer not found: &quot; + offerId));</span>
+
+<span class="fc bfc" id="L171" title="All 2 branches covered.">        if (!STATUS_BUYER_ACCEPTANCE.equals(offer.getStatus())) {</span>
+<span class="fc" id="L172">            throw new RuntimeException(&quot;Offer is not in Buyer_Acceptance status&quot;);</span>
+        }
+
+<span class="fc bfc" id="L175" title="All 2 branches covered.">        for (OfferItem item : offer.getItems()) {</span>
+<span class="fc" id="L176">            String status = item.getItemStatus();</span>
+<span class="fc bfc" id="L177" title="All 4 branches covered.">            if (ITEM_ACCEPT.equals(status) || ITEM_COUNTER.equals(status)) {</span>
+<span class="fc" id="L178">                item.setBuyerCounterStatus(COUNTER_ACCEPT);</span>
+<span class="fc" id="L179">                applyAcceptToItem(item);</span>
+            }
+<span class="fc" id="L181">        }</span>
+
+<span class="fc" id="L183">        recalculateOfferFinals(offer);</span>
+<span class="fc" id="L184">        offerRepository.save(offer);</span>
+<span class="fc" id="L185">        log.info(&quot;Accept All Counters: offerId={}&quot;, offerId);</span>
+<span class="fc" id="L186">        return getCounterOfferDetail(offerId);</span>
+    }
+
+    /**
+     * Submit buyer's counter response.
+     * Clones ACT_Offer_BuyerSubmitCounterResponse.
+     */
+    @Transactional
+    public SubmitResponse submitCounterResponse(Long offerId) {
+<span class="fc" id="L195">        Offer offer = offerRepository.findById(offerId)</span>
+<span class="pc" id="L196">                .orElseThrow(() -&gt; new RuntimeException(&quot;Offer not found: &quot; + offerId));</span>
+
+<span class="fc bfc" id="L198" title="All 2 branches covered.">        if (!STATUS_BUYER_ACCEPTANCE.equals(offer.getStatus())) {</span>
+<span class="fc" id="L199">            return SubmitResponse.error(List.of(&quot;Offer is not in Buyer_Acceptance status.&quot;));</span>
+        }
+
+        // Validate: all Counter items must have buyerCounterStatus
+<span class="fc" id="L203">        List&lt;OfferItem&gt; counterItems = offer.getItems().stream()</span>
+<span class="fc" id="L204">                .filter(i -&gt; ITEM_COUNTER.equals(i.getItemStatus()))</span>
+<span class="fc" id="L205">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L207">        boolean allResponded = counterItems.stream()</span>
+<span class="pc bpc" id="L208" title="1 of 4 branches missed.">                .allMatch(i -&gt; i.getBuyerCounterStatus() != null &amp;&amp; !i.getBuyerCounterStatus().isEmpty());</span>
+<span class="fc bfc" id="L209" title="All 2 branches covered.">        if (!allResponded) {</span>
+<span class="fc" id="L210">            return SubmitResponse.error(List.of(</span>
+                    &quot;All countered SKUs must be either Accepted or Rejected before submitting&quot;));
+        }
+
+<span class="fc" id="L214">        offer.setCounterResponseSubmittedOn(LocalDateTime.now());</span>
+
+        // Check if any items will be ordered
+<span class="fc" id="L217">        boolean hasAcceptedItems = offer.getItems().stream().anyMatch(i -&gt;</span>
+<span class="pc bpc" id="L218" title="1 of 2 branches missed.">                (ITEM_ACCEPT.equals(i.getItemStatus())) ||</span>
+<span class="fc bfc" id="L219" title="All 4 branches covered.">                (ITEM_COUNTER.equals(i.getItemStatus()) &amp;&amp; COUNTER_ACCEPT.equals(i.getBuyerCounterStatus())));</span>
+
+<span class="fc bfc" id="L221" title="All 2 branches covered.">        if (hasAcceptedItems) {</span>
+            // Update drawer statuses before submitting order
+<span class="fc bfc" id="L223" title="All 2 branches covered.">            for (OfferItem item : offer.getItems()) {</span>
+<span class="fc bfc" id="L224" title="All 2 branches covered.">                if (ITEM_ACCEPT.equals(item.getItemStatus())) {</span>
+<span class="fc" id="L225">                    item.setOfferDrawerStatus(DRAWER_ORDERED);</span>
+<span class="pc bpc" id="L226" title="1 of 2 branches missed.">                } else if (ITEM_COUNTER.equals(item.getItemStatus())) {</span>
+<span class="fc bfc" id="L227" title="All 2 branches covered.">                    if (COUNTER_ACCEPT.equals(item.getBuyerCounterStatus())) {</span>
+<span class="fc" id="L228">                        item.setOfferDrawerStatus(DRAWER_ORDERED);</span>
+                    } else {
+<span class="fc" id="L230">                        item.setOfferDrawerStatus(DRAWER_BUYER_DECLINED);</span>
+                    }
+<span class="nc bnc" id="L232" title="All 2 branches missed.">                } else if (ITEM_DECLINE.equals(item.getItemStatus())) {</span>
+                    // Already Seller_Declined from review phase
+                }
+<span class="fc" id="L235">            }</span>
+
+<span class="fc" id="L237">            offer.setFinalOfferSubmittedOn(LocalDateTime.now());</span>
+<span class="fc" id="L238">            offerRepository.save(offer);</span>
+
+<span class="fc" id="L240">            log.info(&quot;Counter response submitted → ordering: offerId={}&quot;, offerId);</span>
+<span class="fc" id="L241">            return offerService.submitOrder(offerId, null);</span>
+        } else {
+            // All counter items declined → decline the offer
+<span class="fc" id="L244">            offer.setStatus(STATUS_DECLINED);</span>
+<span class="fc bfc" id="L245" title="All 2 branches covered.">            for (OfferItem item : offer.getItems()) {</span>
+<span class="fc bfc" id="L246" title="All 2 branches covered.">                if (ITEM_COUNTER.equals(item.getItemStatus())) {</span>
+<span class="fc" id="L247">                    item.setOfferDrawerStatus(DRAWER_BUYER_DECLINED);</span>
+                }
+<span class="fc" id="L249">            }</span>
+<span class="fc" id="L250">            offerRepository.save(offer);</span>
+
+<span class="fc" id="L252">            log.info(&quot;Counter response submitted → all declined: offerId={}&quot;, offerId);</span>
+<span class="fc" id="L253">            return SubmitResponse.error(List.of(&quot;Offer has been declined since all counter items were rejected.&quot;));</span>
+        }
+    }
+
+    /**
+     * Cancel the offer.
+     * Clones ACT_Offer_BuyerCancelOffer.
+     */
+    @Transactional
+    public SubmitResponse cancelOffer(Long offerId) {
+<span class="fc" id="L263">        Offer offer = offerRepository.findById(offerId)</span>
+<span class="fc" id="L264">                .orElseThrow(() -&gt; new RuntimeException(&quot;Offer not found: &quot; + offerId));</span>
+
+<span class="fc" id="L266">        offer.setStatus(STATUS_CANCELED);</span>
+<span class="fc" id="L267">        offer.setCanceledOn(LocalDateTime.now());</span>
+<span class="fc" id="L268">        offerRepository.save(offer);</span>
+
+<span class="fc" id="L270">        log.info(&quot;Counter offer canceled: offerId={}&quot;, offerId);</span>
+<span class="fc" id="L271">        return SubmitResponse.offerSubmitted(offerId,</span>
+<span class="pc bpc" id="L272" title="1 of 2 branches missed.">                offer.getOfferNumber() != null ? offer.getOfferNumber() : String.valueOf(offerId));</span>
+    }
+
+    // --- Private helpers ---
+
+    private void applyAcceptToItem(OfferItem item) {
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        boolean isSPB = item.getCaseLotId() != null;</span>
+
+<span class="fc bfc" id="L280" title="All 2 branches covered.">        if (ITEM_COUNTER.equals(item.getItemStatus())) {</span>
+            // Counter item accepted by buyer → use counter values as final
+<span class="pc bpc" id="L282" title="1 of 2 branches missed.">            BigDecimal counterPrice = item.getCounterPrice() != null ? item.getCounterPrice() : BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L283" title="1 of 2 branches missed.">            int counterQty = item.getCounterQty() != null ? item.getCounterQty() : 0;</span>
+
+<span class="fc" id="L285">            item.setFinalOfferPrice(counterPrice);</span>
+
+<span class="fc bfc" id="L287" title="All 2 branches covered.">            if (isSPB) {</span>
+<span class="fc" id="L288">                CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">                int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
+<span class="fc" id="L290">                item.setFinalOfferQuantity(counterQty * caseLotSize);</span>
+<span class="fc" id="L291">                BigDecimal caseTotal = counterPrice.multiply(BigDecimal.valueOf(counterQty))</span>
+<span class="fc" id="L292">                        .multiply(BigDecimal.valueOf(caseLotSize));</span>
+<span class="fc" id="L293">                item.setCounterTotal(caseTotal);</span>
+<span class="fc" id="L294">                item.setCounterCasePriceTotal(caseTotal);</span>
+<span class="fc" id="L295">                item.setFinalOfferTotalPrice(caseTotal);</span>
+<span class="fc" id="L296">            } else {</span>
+<span class="fc" id="L297">                item.setFinalOfferQuantity(counterQty);</span>
+<span class="fc" id="L298">                BigDecimal total = counterPrice.multiply(BigDecimal.valueOf(counterQty));</span>
+<span class="fc" id="L299">                item.setCounterTotal(total);</span>
+<span class="fc" id="L300">                item.setFinalOfferTotalPrice(total);</span>
+            }
+<span class="pc bpc" id="L302" title="1 of 2 branches missed.">        } else if (ITEM_ACCEPT.equals(item.getItemStatus())) {</span>
+            // Accept item (sales accepted original values) → use original offer values
+<span class="pc bpc" id="L304" title="1 of 2 branches missed.">            BigDecimal offerPrice = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L305" title="1 of 2 branches missed.">            int offerQty = item.getQuantity() != null ? item.getQuantity() : 0;</span>
+
+<span class="fc" id="L307">            item.setFinalOfferPrice(offerPrice);</span>
+
+<span class="pc bpc" id="L309" title="1 of 2 branches missed.">            if (isSPB) {</span>
+<span class="nc" id="L310">                CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
+<span class="nc bnc" id="L311" title="All 2 branches missed.">                int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
+<span class="nc" id="L312">                item.setFinalOfferQuantity(offerQty * caseLotSize);</span>
+<span class="nc" id="L313">                BigDecimal total = offerPrice.multiply(BigDecimal.valueOf(offerQty))</span>
+<span class="nc" id="L314">                        .multiply(BigDecimal.valueOf(caseLotSize));</span>
+<span class="nc" id="L315">                item.setFinalOfferTotalPrice(total);</span>
+<span class="nc" id="L316">            } else {</span>
+<span class="fc" id="L317">                item.setFinalOfferQuantity(offerQty);</span>
+<span class="fc" id="L318">                BigDecimal total = offerPrice.multiply(BigDecimal.valueOf(offerQty));</span>
+<span class="fc" id="L319">                item.setFinalOfferTotalPrice(total);</span>
+            }
+        }
+<span class="fc" id="L322">    }</span>
+
+    /**
+     * Recalculate offer-level final totals from accepted items.
+     * Final = items where (itemStatus=Accept) OR (itemStatus=Counter AND buyerCounterStatus=Accept)
+     */
+    private void recalculateOfferFinals(Offer offer) {
+<span class="fc" id="L329">        List&lt;OfferItem&gt; acceptedItems = offer.getItems().stream()</span>
+<span class="fc bfc" id="L330" title="All 2 branches covered.">                .filter(i -&gt; (ITEM_ACCEPT.equals(i.getItemStatus())) ||</span>
+<span class="fc bfc" id="L331" title="All 4 branches covered.">                        (ITEM_COUNTER.equals(i.getItemStatus()) &amp;&amp; COUNTER_ACCEPT.equals(i.getBuyerCounterStatus())))</span>
+<span class="fc" id="L332">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L334">        int totalSku = acceptedItems.size();</span>
+<span class="fc" id="L335">        int totalQty = acceptedItems.stream()</span>
+<span class="pc bpc" id="L336" title="1 of 2 branches missed.">                .mapToInt(i -&gt; i.getFinalOfferQuantity() != null ? i.getFinalOfferQuantity() : 0).sum();</span>
+<span class="fc" id="L337">        BigDecimal totalPrice = acceptedItems.stream()</span>
+<span class="pc bpc" id="L338" title="1 of 2 branches missed.">                .map(i -&gt; i.getFinalOfferTotalPrice() != null ? i.getFinalOfferTotalPrice() : BigDecimal.ZERO)</span>
+<span class="fc" id="L339">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+
+<span class="fc" id="L341">        offer.setFinalOfferTotalSku(totalSku);</span>
+<span class="fc" id="L342">        offer.setFinalOfferTotalQty(totalQty);</span>
+<span class="fc" id="L343">        offer.setFinalOfferTotalPrice(totalPrice);</span>
+<span class="fc" id="L344">    }</span>
+
+    private Map&lt;Long, Device&gt; loadDeviceMap(List&lt;OfferItem&gt; items) {
+<span class="fc" id="L347">        Set&lt;Long&gt; deviceIds = items.stream()</span>
+<span class="fc" id="L348">                .map(OfferItem::getDeviceId).filter(Objects::nonNull).collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L349" title="1 of 2 branches missed.">        if (deviceIds.isEmpty()) return Map.of();</span>
+<span class="fc" id="L350">        return deviceRepository.findAllById(deviceIds).stream()</span>
+<span class="pc" id="L351">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
+    }
+
+    private Map&lt;Long, CaseLot&gt; loadCaseLotMap(List&lt;OfferItem&gt; items) {
+<span class="fc" id="L355">        Set&lt;Long&gt; caseLotIds = items.stream()</span>
+<span class="fc" id="L356">                .map(OfferItem::getCaseLotId).filter(Objects::nonNull).collect(Collectors.toSet());</span>
+<span class="fc bfc" id="L357" title="All 2 branches covered.">        if (caseLotIds.isEmpty()) return Map.of();</span>
+<span class="fc" id="L358">        return caseLotRepository.findAllById(caseLotIds).stream()</span>
+<span class="pc" id="L359">                .collect(Collectors.toMap(CaseLot::getId, c -&gt; c));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

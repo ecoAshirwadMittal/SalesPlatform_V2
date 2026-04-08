@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* Founders Grotesk — primary font for PWS pages (from QA: buy-qa.ecoatmdirect.com) */
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Brandon Grotesque — matches Mendix $font-family-base */
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/Brandon_light.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/Brandon_reg.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/Brandon_med.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/Brandon_bld.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --background: #F7F7F7;
+  --foreground: #3C3C3C;
+  --border-color: #D0D0D0;
+  --brand-primary: #14AC36;
+  --brand-primary-brown: #713800;
+  --brand-success: #00969F;
+  --brand-warning: #FBB438;
+  --brand-danger: #EB3300;
+  --gray-darker: #3C3C3C;
+  --gray-dark: #666766;
+  --gray-primary: #898787;
+  --gray-lighter: #f8f8f8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 16px;
+}

@@ -1,0 +1,388 @@
+# Page: BidData_Overview_QA_Testing
+
+**Allowed Roles:** AuctionUI.Administrator
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+  ↳ [acti] → **Page**: `AuctionUI.Business_Auctions_ControlCenter`
+- 📦 **DataView** [MF: AuctionUI.DS_BidDataQueryHelper]
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: AuctionUI.Auction.AuctionTitle]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: AuctionUI.SchedulingAuction.Name]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_BuyerManagement.BuyerCode.Code]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+      - refreshInterval: 0
+      - itemSelectionMethod: checkbox
+      - itemSelectionMode: clear
+      - loadingType: spinner
+      ➤ **columns**
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.BuyerCode.Code]
+          - header: Buyer Code
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.BidRound]
+          - header: Bid Round
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.isSpecialTreatment]
+          - header: Special Treatment
+          - tooltip: is Special Treatment for this round
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.EcoID]
+          - header: EcoID
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.Merged_Grade]
+          - header: Merged Grade
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.BidQuantity]
+          - header: Bid Quantity
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.BidAmount]
+          - header: Bid Amount
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.SubmittedBidQuantity]
+          - header: Submitted Bid Quantity
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.SubmittedBidAmount]
+          - header: Submitted Bid Amount
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: dynamicText
+          - attribute: [Attr: AuctionUI.BidData.createdDate]
+          - dynamicText: {1}
+          - header: Created Date
+          ➤ **filter** (Widgets)
+            - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+                - defaultFilter: equal
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: System.User.Name]
+          - header: Created By
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: dynamicText
+          - attribute: [Attr: AuctionUI.BidData.changedDate]
+          - dynamicText: {1}
+          - header: ChangedDate
+          ➤ **filter** (Widgets)
+            - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+                - defaultFilter: equal
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: System.User.Name]
+          - header: Changed By
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.Round2BidRank]
+          - header: Round2BidRank
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.DisplayRound2BidRank]
+          - header: DisplayRound2BidRank
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.Round3BidRank]
+          - header: Round3BidRank
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.DisplayRound3BidRank]
+          - header: DisplayRound3BidRank
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidData.TargetPrice]
+          - header: TargetPrice
+          ➤ **filter** (Widgets)
+            - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                - defaultFilter: equal
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: customContent
+          - attribute: [Attr: AuctionUI.BidData.BidDataId]
+          ➤ **content** (Widgets)
+              ↳ [acti] → **Page**: `AuctionUI.BidData_NewEdit`
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: no
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+      - pageSize: 20
+      - pagination: buttons
+      - showPagingButtons: always
+      - pagingPosition: bottom
+      - loadMoreButtonCaption: Load More
+      - showEmptyPlaceholder: none
+      - onClickTrigger: double
+      - configurationStorageType: localStorage
+      ➤ **filtersPlaceholder** (Widgets)
+          ↳ [acti] → **Microflow**: `AuctionUI.ACT_BidDataDeleteSelected`
+          ↳ [acti] → **Nanoflow**: `AuctionUI.NAN_Generic_ExportToExcel`
+      - exportDialogLabel: Export progress
+      - cancelExportLabel: Cancel data export
+      - selectRowLabel: Select row
+- 📦 **DataView** [NF: AuctionUI.DS_CurrentPageName]
+  - 🧩 **Microflow Timer** (ID: `MicroflowTimer.widget.MicroflowTimer`)
+      - interval: 100
+      - callEvent: callNanoflow

@@ -1,0 +1,37 @@
+# Import Mapping: IM_MasterDeviceInventory
+
+**JSON Structure:** `EcoATM_MDM.JSON_MasterDeviceInventory`
+
+## Mapping Structure
+
+- **JsonObject** (Object) → `EcoATM_MDM.MasterDeviceInventory`
+  - **ECOATM_CODE** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.ECOATM_CODE`
+  - **DEVICE_ID** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_ID`
+  - **NAME** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.NAME`
+  - **DEVICE_BRAND** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_BRAND`
+  - **DEVICE_CATEGORY** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_CATEGORY`
+  - **DEVICE_FAMILY** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_FAMILY`
+  - **DEVICE_CARRIER** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_CARRIER`
+  - **CARRIER_DISPLAY_NAME** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.CARRIER_DISPLAY_NAME`
+  - **CATEGORY_DISPLAY_NAME** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.CATEGORY_DISPLAY_NAME`
+  - **DEVICE_MODEL** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DEVICE_MODEL`
+  - **DESCRIPTION** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DESCRIPTION`
+  - **RELEASE_DATE** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.RELEASE_DATE`
+  - **DB_CREATE_TIME** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DB_CREATE_DATE`
+  - **DB_UPDATE_TIME** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.DB_UPDATE_DATE`
+  - **CREATED_AT** (Value)
+    - Attribute: `EcoATM_MDM.MasterDeviceInventory.CREATED_AT`

@@ -1,0 +1,410 @@
+# Page: OfferItem_Overview
+
+**Allowed Roles:** EcoATM_PWS.Administrator
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: rowClick
+    - itemSelectionMode: clear
+    - loadingType: spinner
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.Offer.OfferID]
+        - header: OfferID
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.Offer.OfferStatus]
+        - header: OfferStatus
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.OfferQuantity]
+        - header: Offer quantity
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.OfferPrice]
+        - header: Offer price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.OfferTotalPrice]
+        - header: Offer total price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.SalesOfferItemStatus]
+        - header: Sales offer item status
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.CounterPrice]
+        - header: Counter price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.CounterQuantity]
+        - header: Counter quantity
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.CounterTotal]
+        - header: Counter total
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.FinalOfferPrice]
+        - header: Final offer price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.FinalOfferQuantity]
+        - header: Final offer quantity
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.FinalOfferTotalPrice]
+        - header: Final offer total price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.BuyerCounterStatus]
+        - header: Buyer counter status
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.MinPercentage]
+        - header: Min percentage
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.ListPercentage]
+        - header: List percentage
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.SameSKUOfferAvailable]
+        - header: Same SKU offer available
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWSMDM.Device.SKU]
+        - header: SKU
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.ShippedQty]
+        - header: ShippedQty
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.Reserved]
+        - header: Reserved
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.ReservedOn]
+        - header: ReservedOn
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: dynamicText
+        - attribute: [Attr: EcoATM_PWS.OfferItem.changedDate]
+        - dynamicText: {1}
+        - header: changedDate
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: dynamicText
+        - attribute: [Attr: EcoATM_PWS.OfferItem.createdDate]
+        - dynamicText: {1}
+        - header: createdDate
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWS.OfferItem.SortOrder]
+        - header: Sort Order
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_PWSMDM.Device.ItemType]
+        - header: Item Type
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: customContent
+        - attribute: [Attr: EcoATM_PWS.Offer.OfferID]
+        ➤ **content** (Widgets)
+            ↳ [acti] → **Page**: `EcoATM_PWS.OfferItem_NewEdit`
+            ↳ [acti] → **Delete**
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: no
+        - width: autoFit
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+    - pageSize: 20
+    - pagination: buttons
+    - showPagingButtons: always
+    - pagingPosition: bottom
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: double
+    - configurationStorageType: localStorage
+    ➤ **filtersPlaceholder** (Widgets)
+        ↳ [acti] → **Page**: `EcoATM_PWS.OfferItem_NewEdit`
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row
+- 📦 **DataView** [NF: AuctionUI.DS_CurrentPageName]
+  - 🧩 **Microflow Timer** (ID: `MicroflowTimer.widget.MicroflowTimer`)
+      - interval: 100
+      - callEvent: callNanoflow

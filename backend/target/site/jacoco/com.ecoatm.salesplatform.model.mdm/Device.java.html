@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Device.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.mdm</a> &gt; <span class="el_source">Device.java</span></div><h1>Device.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.mdm;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;device&quot;, schema = &quot;mdm&quot;)
+<span class="fc" id="L9">public class Device {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;legacy_id&quot;, unique = true)
+    private Long legacyId;
+
+    @Column(unique = true)
+    private String sku;
+
+    @Column(name = &quot;device_code&quot;)
+    private String deviceCode;
+
+    private String description;
+
+    // Pricing
+    @Column(name = &quot;list_price&quot;)
+    private BigDecimal listPrice;
+
+    @Column(name = &quot;min_price&quot;)
+    private BigDecimal minPrice;
+
+    @Column(name = &quot;future_list_price&quot;)
+    private BigDecimal futureListPrice;
+
+    @Column(name = &quot;future_min_price&quot;)
+    private BigDecimal futureMinPrice;
+
+    // Inventory
+    @Column(name = &quot;available_qty&quot;)
+    private Integer availableQty;
+
+    @Column(name = &quot;reserved_qty&quot;)
+    private Integer reservedQty;
+
+    @Column(name = &quot;atp_qty&quot;)
+    private Integer atpQty;
+
+    private BigDecimal weight;
+
+    @Column(name = &quot;item_type&quot;)
+    private String itemType;
+
+<span class="fc" id="L54">    @Column(name = &quot;is_active&quot;)</span>
+<span class="fc" id="L55">    private Boolean isActive = true;</span>
+
+    // Flattened FKs to lookup tables
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;brand_id&quot;)
+    private Brand brand;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;category_id&quot;)
+    private Category category;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;model_id&quot;)
+    private Model model;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;condition_id&quot;)
+    private Condition condition;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;capacity_id&quot;)
+    private Capacity capacity;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;carrier_id&quot;)
+    private Carrier carrier;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;color_id&quot;)
+    private Color color;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;grade_id&quot;)
+    private Grade grade;
+
+    @Column(name = &quot;last_sync_time&quot;)
+    private LocalDateTime lastSyncTime;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L101">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L102">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L103">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L107">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L108">    }</span>
+
+    // Getters and Setters
+<span class="fc" id="L111">    public Long getId() { return id; }</span>
+<span class="fc" id="L112">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="nc" id="L114">    public Long getLegacyId() { return legacyId; }</span>
+<span class="nc" id="L115">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+
+<span class="fc" id="L117">    public String getSku() { return sku; }</span>
+<span class="fc" id="L118">    public void setSku(String sku) { this.sku = sku; }</span>
+
+<span class="fc" id="L120">    public String getDeviceCode() { return deviceCode; }</span>
+<span class="fc" id="L121">    public void setDeviceCode(String deviceCode) { this.deviceCode = deviceCode; }</span>
+
+<span class="fc" id="L123">    public String getDescription() { return description; }</span>
+<span class="fc" id="L124">    public void setDescription(String description) { this.description = description; }</span>
+
+<span class="fc" id="L126">    public BigDecimal getListPrice() { return listPrice; }</span>
+<span class="fc" id="L127">    public void setListPrice(BigDecimal listPrice) { this.listPrice = listPrice; }</span>
+
+<span class="fc" id="L129">    public BigDecimal getMinPrice() { return minPrice; }</span>
+<span class="fc" id="L130">    public void setMinPrice(BigDecimal minPrice) { this.minPrice = minPrice; }</span>
+
+<span class="nc" id="L132">    public BigDecimal getFutureListPrice() { return futureListPrice; }</span>
+<span class="fc" id="L133">    public void setFutureListPrice(BigDecimal futureListPrice) { this.futureListPrice = futureListPrice; }</span>
+
+<span class="nc" id="L135">    public BigDecimal getFutureMinPrice() { return futureMinPrice; }</span>
+<span class="fc" id="L136">    public void setFutureMinPrice(BigDecimal futureMinPrice) { this.futureMinPrice = futureMinPrice; }</span>
+
+<span class="fc" id="L138">    public Integer getAvailableQty() { return availableQty; }</span>
+<span class="fc" id="L139">    public void setAvailableQty(Integer availableQty) { this.availableQty = availableQty; }</span>
+
+<span class="fc" id="L141">    public Integer getReservedQty() { return reservedQty; }</span>
+<span class="fc" id="L142">    public void setReservedQty(Integer reservedQty) { this.reservedQty = reservedQty; }</span>
+
+<span class="fc" id="L144">    public Integer getAtpQty() { return atpQty; }</span>
+<span class="fc" id="L145">    public void setAtpQty(Integer atpQty) { this.atpQty = atpQty; }</span>
+
+<span class="fc" id="L147">    public BigDecimal getWeight() { return weight; }</span>
+<span class="fc" id="L148">    public void setWeight(BigDecimal weight) { this.weight = weight; }</span>
+
+<span class="fc" id="L150">    public String getItemType() { return itemType; }</span>
+<span class="fc" id="L151">    public void setItemType(String itemType) { this.itemType = itemType; }</span>
+
+<span class="fc" id="L153">    public Boolean getIsActive() { return isActive; }</span>
+<span class="fc" id="L154">    public void setIsActive(Boolean isActive) { this.isActive = isActive; }</span>
+
+<span class="fc" id="L156">    public Brand getBrand() { return brand; }</span>
+<span class="fc" id="L157">    public void setBrand(Brand brand) { this.brand = brand; }</span>
+
+<span class="fc" id="L159">    public Category getCategory() { return category; }</span>
+<span class="fc" id="L160">    public void setCategory(Category category) { this.category = category; }</span>
+
+<span class="fc" id="L162">    public Model getModel() { return model; }</span>
+<span class="fc" id="L163">    public void setModel(Model model) { this.model = model; }</span>
+
+<span class="fc" id="L165">    public Condition getCondition() { return condition; }</span>
+<span class="fc" id="L166">    public void setCondition(Condition condition) { this.condition = condition; }</span>
+
+<span class="fc" id="L168">    public Capacity getCapacity() { return capacity; }</span>
+<span class="fc" id="L169">    public void setCapacity(Capacity capacity) { this.capacity = capacity; }</span>
+
+<span class="fc" id="L171">    public Carrier getCarrier() { return carrier; }</span>
+<span class="fc" id="L172">    public void setCarrier(Carrier carrier) { this.carrier = carrier; }</span>
+
+<span class="fc" id="L174">    public Color getColor() { return color; }</span>
+<span class="fc" id="L175">    public void setColor(Color color) { this.color = color; }</span>
+
+<span class="fc" id="L177">    public Grade getGrade() { return grade; }</span>
+<span class="fc" id="L178">    public void setGrade(Grade grade) { this.grade = grade; }</span>
+
+<span class="fc" id="L180">    public LocalDateTime getLastSyncTime() { return lastSyncTime; }</span>
+<span class="fc" id="L181">    public void setLastSyncTime(LocalDateTime lastSyncTime) { this.lastSyncTime = lastSyncTime; }</span>
+
+<span class="fc" id="L183">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L184">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

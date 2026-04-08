@@ -1,0 +1,570 @@
+/* ===================================================================
+   PWSBuyerCounterOffers — pixel-matched to QA buy-qa.ecoatmdirect.com
+   Exact values extracted via Playwright getComputedStyle from offer-review
+   Font: "Founders Grotesk" throughout
+   Grid bg: #EFEBE4 (warm beige)
+   Grid cell border: 1px solid #CED0D3
+   =================================================================== */
+
+/* QA: content region bg #EFEBE4 */
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+  font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
+  color: #3c3c3c;
+}
+
+/* ---- Page header ---- */
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* QA: 36px, weight 300, #3c3c3c */
+.pageTitle {
+  font-size: 36px;
+  font-weight: 300;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  margin: 0;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: auto;
+}
+
+/* QA: status badge — 8px 24px padding, 20px radius, 16px 400 */
+.statusBadge {
+  display: inline-block;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.statusBuyerAcceptance { background: rgba(230,168,23,0.12); color: #b7860e; }
+.statusOrdered { background: rgba(46,125,50,0.12); color: #2e7d32; }
+.statusDeclined { background: rgba(198,40,40,0.12); color: #c62828; }
+.statusCanceled { background: rgba(120,120,120,0.12); color: #666; }
+
+/* QA: Submit button — bg #102E33, color white, border 1px solid #102E33, border-radius 50px, font 18px 400, padding ~11px 18px */
+.submitBtn {
+  padding: 11px 28px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.submitBtn:hover {
+  background: #1a4a51;
+}
+
+.submitBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* QA: More actions (...) — 40px circle, border 2px solid #D2CDCD, transparent bg */
+.moreMenuWrapper {
+  position: relative;
+}
+
+.moreMenuButton {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #d2cdcd;
+  border-radius: 50%;
+  background: transparent;
+  color: #3c3c3c;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moreMenuButton:hover {
+  border-color: #407874;
+  color: #407874;
+}
+
+.moreMenuDropdown {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.moreMenuDropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreMenuDropdown button:hover {
+  background: #efebe4;
+  color: #102e33;
+}
+
+/* ---- Summary Cards Row ---- */
+/* QA: 3 boxes side by side, each with border 2px solid #D2CDCD, border-radius 6px */
+.summaryCardsRow {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.summaryCard {
+  flex: 1;
+  border: 2px solid #d2cdcd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  min-width: 200px;
+}
+
+/* QA: title — 14px, #3c3c3c, 400, underline */
+.summaryCardTitle {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #3c3c3c;
+  text-decoration: underline;
+  margin: 0 0 4px 0;
+}
+
+/* QA: stats use a small table layout matching offerSummaryTable */
+.summaryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+/* QA: header labels — #407874, 600, 13px, center-aligned */
+.summaryTable thead td {
+  color: #407874;
+  font-weight: 600;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 13px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* QA: values — #3c3c3c, 700, 14px, center-aligned */
+.summaryTable tbody td {
+  color: #3c3c3c;
+  font-weight: 700;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* ---- Grid sections ---- */
+.gridSection {
+  margin-bottom: 16px;
+}
+
+/* QA: section label — 16px, 600, #3c3c3c, padding 8px 12px */
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin: 16px 0 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border-radius: 0;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.gridContainer {
+  overflow-x: auto;
+}
+
+/* QA: grid bg #F7F7F7 */
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f7f7f7;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, no text-transform, padding 6px 6px 6px 15px */
+.dataGrid th {
+  background: #efebe4;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ced0d3;
+  white-space: nowrap;
+}
+
+/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, border-bottom 1px solid #CED0D3, padding 6px 6px 5px 19px */
+.dataGrid td {
+  padding: 6px 6px 5px 19px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  vertical-align: middle;
+  background: #efebe4;
+}
+
+.dataGrid tbody tr:hover td {
+  background: #e5e1da;
+}
+
+/* ---- Item status icons (from offer-review) ---- */
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.iconAccept { background: #2e7d32; color: #fff; }
+.iconCounter { background: #407874; color: #fff; }
+.iconDecline { background: #c62828; color: #fff; }
+
+/* Status text in cells */
+.statusText {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.statusTextAccept { color: #2e7d32; }
+.statusTextCounter { color: #407874; }
+.statusTextDecline { color: #c62828; }
+
+/* QA: Counter columns — light teal background rgba(64, 120, 116, 0.08) */
+.counterCell {
+  background: rgba(64, 120, 116, 0.08) !important;
+}
+
+/* Accept cells — normal */
+.acceptCell {
+  background: transparent;
+}
+
+/* Decline cells — muted */
+.declineCell {
+  background: rgba(198, 40, 40, 0.04) !important;
+  color: #999;
+}
+
+/* QA: action dropdown — border 1px solid #D2CDCD, radius 4px, bg #fff, font 14px */
+.itemActionSelect {
+  padding: 4px 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  color: #3c3c3c;
+}
+
+/* Action display (non-editable) */
+.actionDisplay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.actionAccepted { color: #2e7d32; }
+.actionDeclined { color: #c62828; }
+
+/* ---- Pagination (matches offer-review) ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.paginationBtn {
+  padding: 4px 10px;
+  border: 1px solid #d2cdcd;
+  border-radius: 3px;
+  background: #fff;
+  color: #3c3c3c;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: #efebe4;
+  border-color: #b0abab;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  font-size: 13px;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  padding: 0 8px;
+}
+
+/* ---- Modal (matches offer-review) ---- */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 420px;
+  max-width: 90vw;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.modalHeader {
+  padding: 16px 20px;
+  background: #efebe4;
+  color: #3c3c3c;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalBody {
+  padding: 20px;
+  font-size: 14px;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalFooter {
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #ced0d3;
+}
+
+.modalCancel {
+  padding: 8px 20px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modalCancel:hover {
+  background: #efebe4;
+}
+
+.modalOk {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modalOk:hover {
+  background: #1a4a51;
+}
+
+/* ---- Message banner ---- */
+.messageBanner {
+  padding: 10px 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  margin-bottom: 16px;
+  border-radius: 4px;
+}
+
+.messageBannerSuccess {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.messageBannerError {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* ---- Back link (matches offer-review) ---- */
+.backLink {
+  font-size: 16px;
+  color: #3c3c3c;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  background: none;
+  border: none;
+  padding: 0;
+  display: inline-block;
+}
+
+.backLink:hover {
+  color: #407874;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  color: #888;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.emptyState h2 {
+  font-size: 18px;
+  font-weight: 400;
+  color: #3c3c3c;
+  margin: 0 0 12px;
+}
+
+.emptyState p {
+  font-size: 14px;
+  color: #888;
+  margin: 0 0 24px;
+}
+
+/* QA: link button — bg #102E33, color white, border-radius 50px, font 18px 400 */
+.shopLink {
+  display: inline-block;
+  padding: 11px 28px;
+  background: #102e33;
+  color: #fff;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.shopLink:hover {
+  background: #1a4a51;
+}
+
+/* ---- Offer list grid (multiple counter offers) ---- */
+.offerListGrid {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f7f7f7;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.offerListGrid th {
+  background: #efebe4;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ced0d3;
+  white-space: nowrap;
+}
+
+.offerListGrid td {
+  padding: 6px 6px 5px 19px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  vertical-align: middle;
+  background: #efebe4;
+  cursor: pointer;
+}
+
+.offerListGrid tbody tr:hover td {
+  background: #e5e1da;
+}
+
+/* QA: offer ID link — black #000, 500, underline, 14px */
+.offerIdLink {
+  color: #000;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.offerIdLink:hover {
+  color: #407874;
+}
+
+/* ---- Loading ---- */
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: #888;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* ---- Price formatting ---- */
+.priceCell {
+  text-align: right;
+  white-space: nowrap;
+}

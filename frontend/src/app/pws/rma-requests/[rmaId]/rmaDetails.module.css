@@ -1,0 +1,283 @@
+/* ===================================================================
+   RMA Details — Buyer Detail page
+   Pixel-matched to QA buy-qa.ecoatmdirect.com RMA Details
+   ================================================================= */
+
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+}
+
+/* ---- Back nav ---- */
+.backNav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  cursor: pointer;
+  color: #407874;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.backNav:hover {
+  text-decoration: underline;
+}
+
+.backArrow {
+  font-size: 18px;
+}
+
+/* ---- RMA header info ---- */
+.rmaHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.rmaInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rmaNumber {
+  font-size: 28px;
+  font-weight: 300;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  margin: 0;
+}
+
+.rmaMeta {
+  font-size: 14px;
+  color: #666;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.rmaSummaryCards {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.summaryCard {
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  padding: 12px 20px;
+  text-align: center;
+  min-width: 100px;
+}
+
+.summaryLabel {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.summaryValue {
+  font-size: 20px;
+  font-weight: 600;
+  color: #3c3c3c;
+}
+
+/* ---- Actions ---- */
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.actionBtn {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionBtn:hover {
+  background: #f5f5f5;
+  border-color: #b0abab;
+}
+
+.moreActionsContainer {
+  position: relative;
+}
+
+.moreActionsBtn {
+  composes: actionBtn;
+  padding: 0 8px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.moreActionsMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 10;
+  min-width: 200px;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+}
+
+.menuItem:hover {
+  background: #f5f5f5;
+}
+
+/* ---- Filter tabs ---- */
+.filterTabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.filterTab {
+  padding: 6px 16px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+}
+
+.filterTab:hover {
+  background: #f5f5f5;
+}
+
+.filterTabActive {
+  background: #407874;
+  color: #fff;
+  border-color: #407874;
+}
+
+/* ---- Section heading ---- */
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin: 24px 0 12px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* ---- Data Grid ---- */
+.tableContainer {
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.dataGrid th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #d2cdcd;
+  color: #3c3c3c;
+  font-weight: 600;
+  white-space: nowrap;
+  background: #fafafa;
+}
+
+.dataGrid td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8e4de;
+  color: #3c3c3c;
+  vertical-align: middle;
+}
+
+.dataGrid tr:hover td {
+  background: #f5f3ef;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+/* ---- Status badge ---- */
+.statusBadge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.statusApproved { background: #d4edda; color: #155724; }
+.statusDeclined { background: #f8d7da; color: #721c24; }
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 4px;
+  border-top: 1px solid #e8e4de;
+}
+
+.pageBtn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+}
+
+.pageBtn:hover { background: #f5f5f5; }
+.pageBtn:disabled { opacity: 0.5; cursor: default; }
+.pageBtnActive { background: #407874; color: #fff; border-color: #407874; }
+
+.loadingOverlay {
+  text-align: center;
+  padding: 60px;
+  font-size: 16px;
+  color: #666;
+}

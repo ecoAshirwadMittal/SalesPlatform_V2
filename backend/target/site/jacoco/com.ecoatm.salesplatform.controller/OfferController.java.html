@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.controller</a> &gt; <span class="el_source">OfferController.java</span></div><h1>OfferController.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.controller;
+
+import com.ecoatm.salesplatform.dto.CartItemRequest;
+import com.ecoatm.salesplatform.dto.OfferResponse;
+import com.ecoatm.salesplatform.dto.SubmitResponse;
+import com.ecoatm.salesplatform.service.BuyerCodeService;
+import com.ecoatm.salesplatform.service.OfferService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping(&quot;/api/v1/pws/offers&quot;)
+public class OfferController {
+
+<span class="fc" id="L21">    private static final Logger log = LoggerFactory.getLogger(OfferController.class);</span>
+    private final OfferService offerService;
+    private final BuyerCodeService buyerCodeService;
+
+<span class="fc" id="L25">    public OfferController(OfferService offerService, BuyerCodeService buyerCodeService) {</span>
+<span class="fc" id="L26">        this.offerService = offerService;</span>
+<span class="fc" id="L27">        this.buyerCodeService = buyerCodeService;</span>
+<span class="fc" id="L28">    }</span>
+
+    /** Get or create the active DRAFT cart for a buyer code. */
+    @GetMapping(&quot;/cart&quot;)
+    public ResponseEntity&lt;OfferResponse&gt; getCart(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId) {
+<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="fc" id="L36">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+<span class="fc" id="L38">        return ResponseEntity.ok(offerService.getOrCreateCart(buyerCodeId));</span>
+    }
+
+    /** Add or update a single item in the cart. qty=0 removes the item. */
+    @PutMapping(&quot;/cart/items&quot;)
+    public ResponseEntity&lt;OfferResponse&gt; upsertItem(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId,
+            @Valid @RequestBody CartItemRequest request) {
+<span class="pc bpc" id="L47" title="1 of 2 branches missed.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="nc" id="L48">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+<span class="fc" id="L50">        return ResponseEntity.ok(offerService.upsertCartItem(buyerCodeId, request));</span>
+    }
+
+    /** Remove a single item from the cart by SKU. */
+    @DeleteMapping(&quot;/cart/items/{sku}&quot;)
+    public ResponseEntity&lt;OfferResponse&gt; removeItem(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId,
+            @PathVariable String sku) {
+<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="nc" id="L60">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+<span class="fc" id="L62">        return ResponseEntity.ok(offerService.removeItem(buyerCodeId, sku));</span>
+    }
+
+    /** Reset the cart — clear all items, zero totals. */
+    @DeleteMapping(&quot;/cart&quot;)
+    public ResponseEntity&lt;OfferResponse&gt; resetCart(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId) {
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="nc" id="L71">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+<span class="fc" id="L73">        return ResponseEntity.ok(offerService.resetCart(buyerCodeId));</span>
+    }
+
+    /**
+     * Validate and submit the cart.
+     * Returns one of 4 outcomes: alreadySubmitted, exceedingQty, salesReview, or submitted.
+     */
+    @PostMapping(&quot;/cart/submit&quot;)
+    public ResponseEntity&lt;SubmitResponse&gt; submitCart(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId) {
+<span class="pc bpc" id="L84" title="1 of 2 branches missed.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="nc" id="L85">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+        try {
+<span class="fc" id="L88">            return ResponseEntity.ok(offerService.submitCart(buyerCodeId, userId));</span>
+<span class="fc" id="L89">        } catch (Exception e) {</span>
+<span class="fc" id="L90">            log.error(&quot;Cart submit failed for buyerCodeId={}&quot;, buyerCodeId, e);</span>
+<span class="fc" id="L91">            return ResponseEntity.ok(SubmitResponse.error(java.util.List.of(&quot;Submit failed: &quot; + e.getMessage())));</span>
+        }
+    }
+
+    /**
+     * Submit offer for sales review — called from &quot;Almost Done&quot; modal.
+     * Sets the offer status to SALES_REVIEW so a sales rep can review below-list-price items.
+     */
+    @PostMapping(&quot;/{offerId}/submit-offer&quot;)
+    public ResponseEntity&lt;SubmitResponse&gt; submitOffer(
+            @PathVariable Long offerId,
+            @RequestParam(required = false) Long userId) {
+<span class="fc" id="L103">        return ResponseEntity.ok(offerService.submitOffer(offerId));</span>
+    }
+
+    /**
+     * Submit order from a finalized offer — called after sales review is complete.
+     * Clones Mendix ACT_Offer_SubmitOrder: creates Order, sends to Oracle, handles response.
+     * Only processes accepted items (Accept, Counter+BuyerAccept, Finalize).
+     */
+    @PostMapping(&quot;/{offerId}/submit-order&quot;)
+    public ResponseEntity&lt;SubmitResponse&gt; submitOrder(
+            @PathVariable Long offerId,
+            @RequestParam(required = false) Long userId) {
+<span class="fc" id="L115">        return ResponseEntity.ok(offerService.submitOrder(offerId, userId));</span>
+    }
+
+    /** Export cart items as CSV download. */
+    @GetMapping(&quot;/cart/export&quot;)
+    public ResponseEntity&lt;byte[]&gt; exportCart(
+            @RequestParam Long buyerCodeId,
+            @RequestParam(required = false) Long userId) {
+<span class="pc bpc" id="L123" title="1 of 2 branches missed.">        if (!authorize(userId, buyerCodeId)) {</span>
+<span class="nc" id="L124">            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();</span>
+        }
+<span class="fc" id="L126">        String csv = offerService.exportCartCsv(buyerCodeId);</span>
+<span class="fc" id="L127">        byte[] bytes = csv.getBytes();</span>
+<span class="fc" id="L128">        return ResponseEntity.ok()</span>
+<span class="fc" id="L129">                .header(HttpHeaders.CONTENT_DISPOSITION, &quot;attachment; filename=cart_export.csv&quot;)</span>
+<span class="fc" id="L130">                .contentType(MediaType.parseMediaType(&quot;text/csv&quot;))</span>
+<span class="fc" id="L131">                .contentLength(bytes.length)</span>
+<span class="fc" id="L132">                .body(bytes);</span>
+    }
+
+    /**
+     * Authorization check: validate user owns the buyer code.
+     * When userId is null (no JWT yet), skip the check for backwards compatibility.
+     * Once JWT auth is implemented, userId will come from the token and this will be mandatory.
+     */
+    private boolean authorize(Long userId, Long buyerCodeId) {
+<span class="fc bfc" id="L141" title="All 2 branches covered.">        if (userId == null) return true;</span>
+<span class="fc" id="L142">        return buyerCodeService.isUserAuthorizedForBuyerCode(userId, buyerCodeId);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferItemResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">OfferItemResponse.java</span></div><h1>OfferItemResponse.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
+
+import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.model.pws.CaseLot;
+import com.ecoatm.salesplatform.model.pws.OfferItem;
+
+import java.math.BigDecimal;
+
+<span class="fc" id="L9">public class OfferItemResponse {</span>
+
+    private Long id;
+    private String sku;
+    private Long deviceId;
+    private Integer quantity;
+    private BigDecimal price;
+    private BigDecimal totalPrice;
+    private String itemStatus;
+    private String offerDrawerStatus;
+    private String buyerCounterStatus;
+
+    // Counter offer fields (set by sales rep)
+    private Integer counterQty;
+    private BigDecimal counterPrice;
+    private BigDecimal counterTotal;
+
+    // Final offer fields (buyer's counter response)
+    private BigDecimal finalOfferPrice;
+    private Integer finalOfferQuantity;
+    private BigDecimal finalOfferTotalPrice;
+    private BigDecimal counterCasePriceTotal;
+
+    // Device item type for grid grouping (PWS vs SPB)
+    private String itemType;
+    // Case lot size for SPB items
+    private Integer caseLotSize;
+
+    // Flattened device details for display
+    private String categoryName;
+    private String brandName;
+    private String modelName;
+    private String carrierName;
+    private String capacityName;
+    private String colorName;
+    private String gradeName;
+    private BigDecimal listPrice;
+    private BigDecimal minPrice;
+    private Integer availableQty;
+
+    public static OfferItemResponse fromEntity(OfferItem item, Device device) {
+<span class="fc" id="L50">        return fromEntityFull(item, device, null);</span>
+    }
+
+    public static OfferItemResponse fromEntityFull(OfferItem item, Device device, CaseLot caseLot) {
+<span class="fc" id="L54">        OfferItemResponse r = new OfferItemResponse();</span>
+<span class="fc" id="L55">        r.id = item.getId();</span>
+<span class="fc" id="L56">        r.sku = item.getSku();</span>
+<span class="fc" id="L57">        r.deviceId = item.getDeviceId();</span>
+<span class="fc" id="L58">        r.quantity = item.getQuantity();</span>
+<span class="fc" id="L59">        r.price = item.getPrice();</span>
+<span class="fc" id="L60">        r.totalPrice = item.getTotalPrice();</span>
+<span class="fc" id="L61">        r.itemStatus = item.getItemStatus();</span>
+<span class="fc" id="L62">        r.offerDrawerStatus = item.getOfferDrawerStatus();</span>
+<span class="fc" id="L63">        r.buyerCounterStatus = item.getBuyerCounterStatus();</span>
+<span class="fc" id="L64">        r.counterQty = item.getCounterQty();</span>
+<span class="fc" id="L65">        r.counterPrice = item.getCounterPrice();</span>
+<span class="fc" id="L66">        r.counterTotal = item.getCounterTotal();</span>
+<span class="fc" id="L67">        r.finalOfferPrice = item.getFinalOfferPrice();</span>
+<span class="fc" id="L68">        r.finalOfferQuantity = item.getFinalOfferQuantity();</span>
+<span class="fc" id="L69">        r.finalOfferTotalPrice = item.getFinalOfferTotalPrice();</span>
+<span class="fc" id="L70">        r.counterCasePriceTotal = item.getCounterCasePriceTotal();</span>
+
+<span class="fc bfc" id="L72" title="All 2 branches covered.">        if (device != null) {</span>
+<span class="pc bpc" id="L73" title="1 of 2 branches missed.">            r.categoryName = device.getCategory() != null ? device.getCategory().getDisplayName() : null;</span>
+<span class="pc bpc" id="L74" title="1 of 2 branches missed.">            r.brandName = device.getBrand() != null ? device.getBrand().getDisplayName() : null;</span>
+<span class="pc bpc" id="L75" title="1 of 2 branches missed.">            r.modelName = device.getModel() != null ? device.getModel().getDisplayName() : null;</span>
+<span class="pc bpc" id="L76" title="1 of 2 branches missed.">            r.carrierName = device.getCarrier() != null ? device.getCarrier().getDisplayName() : null;</span>
+<span class="pc bpc" id="L77" title="1 of 2 branches missed.">            r.capacityName = device.getCapacity() != null ? device.getCapacity().getDisplayName() : null;</span>
+<span class="pc bpc" id="L78" title="1 of 2 branches missed.">            r.colorName = device.getColor() != null ? device.getColor().getDisplayName() : null;</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">            r.gradeName = device.getGrade() != null ? device.getGrade().getDisplayName() : null;</span>
+<span class="fc" id="L80">            r.listPrice = device.getListPrice();</span>
+<span class="fc" id="L81">            r.minPrice = device.getMinPrice();</span>
+<span class="fc" id="L82">            r.availableQty = device.getAvailableQty();</span>
+<span class="fc" id="L83">            r.itemType = device.getItemType();</span>
+        }
+
+<span class="fc bfc" id="L86" title="All 2 branches covered.">        if (caseLot != null) {</span>
+<span class="fc" id="L87">            r.caseLotSize = caseLot.getCaseLotSize();</span>
+        }
+
+<span class="fc" id="L90">        return r;</span>
+    }
+
+    // Getters
+<span class="fc" id="L94">    public Long getId() { return id; }</span>
+<span class="fc" id="L95">    public String getSku() { return sku; }</span>
+<span class="fc" id="L96">    public Long getDeviceId() { return deviceId; }</span>
+<span class="fc" id="L97">    public Integer getQuantity() { return quantity; }</span>
+<span class="fc" id="L98">    public BigDecimal getPrice() { return price; }</span>
+<span class="fc" id="L99">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
+<span class="fc" id="L100">    public String getItemStatus() { return itemStatus; }</span>
+<span class="fc" id="L101">    public String getOfferDrawerStatus() { return offerDrawerStatus; }</span>
+<span class="fc" id="L102">    public String getBuyerCounterStatus() { return buyerCounterStatus; }</span>
+<span class="fc" id="L103">    public Integer getCounterQty() { return counterQty; }</span>
+<span class="fc" id="L104">    public BigDecimal getCounterPrice() { return counterPrice; }</span>
+<span class="fc" id="L105">    public BigDecimal getCounterTotal() { return counterTotal; }</span>
+<span class="fc" id="L106">    public String getCategoryName() { return categoryName; }</span>
+<span class="nc" id="L107">    public String getBrandName() { return brandName; }</span>
+<span class="nc" id="L108">    public String getModelName() { return modelName; }</span>
+<span class="nc" id="L109">    public String getCarrierName() { return carrierName; }</span>
+<span class="nc" id="L110">    public String getCapacityName() { return capacityName; }</span>
+<span class="nc" id="L111">    public String getColorName() { return colorName; }</span>
+<span class="nc" id="L112">    public String getGradeName() { return gradeName; }</span>
+<span class="fc" id="L113">    public BigDecimal getListPrice() { return listPrice; }</span>
+<span class="fc" id="L114">    public BigDecimal getMinPrice() { return minPrice; }</span>
+<span class="fc" id="L115">    public Integer getAvailableQty() { return availableQty; }</span>
+<span class="fc" id="L116">    public BigDecimal getFinalOfferPrice() { return finalOfferPrice; }</span>
+<span class="fc" id="L117">    public Integer getFinalOfferQuantity() { return finalOfferQuantity; }</span>
+<span class="fc" id="L118">    public BigDecimal getFinalOfferTotalPrice() { return finalOfferTotalPrice; }</span>
+<span class="fc" id="L119">    public BigDecimal getCounterCasePriceTotal() { return counterCasePriceTotal; }</span>
+<span class="fc" id="L120">    public String getItemType() { return itemType; }</span>
+<span class="fc" id="L121">    public Integer getCaseLotSize() { return caseLotSize; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

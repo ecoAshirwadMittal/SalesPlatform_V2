@@ -1,0 +1,463 @@
+/* ===================================================================
+   Shared Admin Sub-Page Styles — Data grids + forms
+   Used by all PWS Control Center sub-pages
+   ================================================================= */
+
+.pageContainer {
+  width: 100%;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 300;
+  color: #3c3c3c;
+  margin: 0;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.backLink {
+  font-size: 14px;
+  color: #407874;
+  text-decoration: none;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+/* ---- Banner ---- */
+.banner {
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  margin-bottom: 20px;
+}
+
+.bannerSuccess {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.bannerError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ---- Card container ---- */
+.card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 24px;
+}
+
+/* ---- Toolbar (Add + search) ---- */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.addBtn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 44px;
+  background: #14ac36;
+  color: #fff;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.addBtn:hover {
+  background: #0e8f2b;
+}
+
+/* ---- Data table ---- */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #ddd;
+  font-weight: 600;
+  color: #3c3c3c;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  color: #3c3c3c;
+  vertical-align: middle;
+}
+
+.table tr:hover {
+  background: #f9f9f9;
+}
+
+/* ---- Inline edit input ---- */
+.cellInput {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 13px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cellInput:focus {
+  outline: none;
+  border-color: #407874;
+}
+
+.cellTextarea {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 13px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 32px;
+}
+
+.cellTextarea:focus {
+  outline: none;
+  border-color: #407874;
+}
+
+.cellInputShort {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 13px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+}
+
+.cellInputShort:focus {
+  outline: none;
+  border-color: #407874;
+}
+
+/* ---- Toggle switch (small, for table cells) ---- */
+.toggle {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background: #ccc;
+  border-radius: 10px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggleOn {
+  background: #14ac36;
+}
+
+.toggleOn::after {
+  transform: translateX(16px);
+}
+
+/* ---- Action buttons in table rows ---- */
+.actionBtn {
+  padding: 4px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 3px;
+  background: #fff;
+  color: #3c3c3c;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background 0.15s;
+}
+
+.actionBtn:hover {
+  background: #f0f0f0;
+}
+
+.saveRowBtn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 3px;
+  background: #14ac36;
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background 0.15s;
+}
+
+.saveRowBtn:hover {
+  background: #0e8f2b;
+}
+
+.deleteBtn {
+  padding: 4px 12px;
+  border: 1px solid #dc3545;
+  border-radius: 3px;
+  background: #fff;
+  color: #dc3545;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background 0.15s;
+}
+
+.deleteBtn:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+/* ---- Form styles (for singleton config pages) ---- */
+.formCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 24px 32px;
+  max-width: 700px;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin-bottom: 6px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.formInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+.formInputShort {
+  width: 160px;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.formInputShort:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+.formTextarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color 0.15s;
+}
+
+.formTextarea:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+.formHint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.toggleLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggleSwitch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggleSwitchOn {
+  background: #14ac36;
+}
+
+.toggleSwitchOn::after {
+  transform: translateX(20px);
+}
+
+.toggleStatusText {
+  font-size: 13px;
+  color: #888;
+}
+
+.actionsRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.saveBtn {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 44px;
+  background: #14ac36;
+  color: #fff;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.saveBtn:hover {
+  background: #0e8f2b;
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Section headers within form ---- */
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin: 24px 0 16px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+.sectionTitle:first-child {
+  margin-top: 0;
+}
+
+/* ---- Loading state ---- */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #888;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+}

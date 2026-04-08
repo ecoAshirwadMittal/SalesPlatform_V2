@@ -1,0 +1,10 @@
+[     229ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://designatory-scrawnier-rocco.ngrok-free.dev/login:0
+[     605ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/forgot-password?_rsc=17yrj:0
+[   10073ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/reports?_rsc=1857c:0
+[   10074ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/bid-as-bidder?_rsc=1857c:0
+[   10074ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/auction?_rsc=1857c:0
+[   10075ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/auction-scheduling?_rsc=1857c:0
+[   10165ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/reserved-bids?_rsc=1857c:0
+[   10166ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/purchase-order?_rsc=1857c:0
+[   10166ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/inventory?_rsc=1857c:0
+[   10170ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/buyers?_rsc=1857c:0

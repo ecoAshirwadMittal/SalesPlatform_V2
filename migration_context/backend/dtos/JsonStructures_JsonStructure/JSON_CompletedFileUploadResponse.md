@@ -1,0 +1,12 @@
+# JSON Structure: JSON_CompletedFileUploadResponse
+
+## Sample JSON
+
+```json
+{
+  "id": "912310013A123",
+  "name": "largefile.vhd",
+  "size": 128,
+  "file": { }
+}
+```

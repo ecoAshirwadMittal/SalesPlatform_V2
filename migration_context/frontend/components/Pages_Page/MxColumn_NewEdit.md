@@ -1,0 +1,183 @@
+# Page: MxColumn_NewEdit
+
+**Allowed Roles:** XLSReport.Configurator
+
+**Layout:** `Atlas_Core.PopupLayout`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 🔤 **Text**: "Column number"
+  - 🔤 **Text**: "Style"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: XLSReport.MxCellStyle.Name]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: rowclick
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "Name"
+  - 📦 **DataView** [Context]
+    - 🔤 **Text**: "Retrieve type"
+    - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+        - source: context
+        - optionsSourceType: enumeration
+        - attributeEnumeration: [Attr: XLSReport.MxXPath.RetrieveType]
+        - optionsSourceAssociationCaptionType: attribute
+        - optionsSourceDatabaseCaptionType: attribute
+        - filterType: contains
+        - optionsSourceAssociationCustomContentType: no
+        - optionsSourceDatabaseCustomContentType: no
+        - staticDataSourceCustomContentType: no
+        - selectionMethod: checkbox
+        - selectedItemsStyle: text
+        - selectAllButtonCaption: Select all
+        - readOnlyStyle: text
+        - ariaRequired: `false`
+        - clearButtonAriaLabel: Clear selection
+        - removeValueAriaLabel: Remove value
+        - a11ySelectedValue: Selected value:
+        - a11yOptionsAvailable: Number of options available:
+        - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+        - loadingType: spinner
+        - selectedItemsSorting: none
+    - 🔤 **Text**: "Select attribute"
+    - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+        - source: context
+        - optionsSourceType: association
+        - optionsSourceAssociationCaptionType: attribute
+        - optionsSourceDatabaseCaptionType: attribute
+        - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectMember.AttributeName]
+        - filterType: contains
+        - optionsSourceAssociationCustomContentType: no
+        - optionsSourceDatabaseCustomContentType: no
+        - staticDataSourceCustomContentType: no
+        - selectionMethod: rowclick
+        - selectedItemsStyle: text
+        - selectAllButtonCaption: Select all
+        - readOnlyStyle: text
+        - ariaRequired: `false`
+        - clearButtonAriaLabel: Clear selection
+        - removeValueAriaLabel: Remove value
+        - a11ySelectedValue: Selected value:
+        - a11yOptionsAvailable: Number of options available:
+        - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+        - loadingType: spinner
+        - selectedItemsSorting: none
+    - 🔤 **Text**: "Select reference"
+    - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+        - source: context
+        - optionsSourceType: association
+        - optionsSourceAssociationCaptionType: attribute
+        - optionsSourceDatabaseCaptionType: attribute
+        - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectReference.CompleteName]
+        - filterType: contains
+        - optionsSourceAssociationCustomContentType: no
+        - optionsSourceDatabaseCustomContentType: no
+        - staticDataSourceCustomContentType: no
+        - selectionMethod: rowclick
+        - selectedItemsStyle: text
+        - selectAllButtonCaption: Select all
+        - readOnlyStyle: text
+        - ariaRequired: `false`
+        - clearButtonAriaLabel: Clear selection
+        - removeValueAriaLabel: Remove value
+        - a11ySelectedValue: Selected value:
+        - a11yOptionsAvailable: Number of options available:
+        - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+        - loadingType: spinner
+        - selectedItemsSorting: none
+    - 🔤 **Text**: "Select object"
+    - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+        - source: context
+        - optionsSourceType: association
+        - optionsSourceAssociationCaptionType: attribute
+        - optionsSourceDatabaseCaptionType: attribute
+        - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+        - filterType: contains
+        - optionsSourceAssociationCustomContentType: no
+        - optionsSourceDatabaseCustomContentType: no
+        - staticDataSourceCustomContentType: no
+        - selectionMethod: rowclick
+        - selectedItemsStyle: text
+        - selectAllButtonCaption: Select all
+        - readOnlyStyle: text
+        - ariaRequired: `false`
+        - clearButtonAriaLabel: Clear selection
+        - removeValueAriaLabel: Remove value
+        - a11ySelectedValue: Selected value:
+        - a11yOptionsAvailable: Number of options available:
+        - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+        - loadingType: spinner
+        - selectedItemsSorting: none
+    - 📦 **DataView** [Context]
+  - 🔤 **Text**: "Aggregate on attribute"
+  - 📝 **CheckBox**: checkBox3
+  - 🔤 **Text**: "Aggregate type"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: enumeration
+      - attributeEnumeration: [Attr: XLSReport.MxColumn.DataAggregateFunction]
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "The aggregate will be added in the query"
+  - 🔤 **Text**: "End column with aggregate"
+  - 📝 **CheckBox**: checkBox2
+  - 🔤 **Text**: "Aggregate type"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: enumeration
+      - attributeEnumeration: [Attr: XLSReport.MxColumn.ResultAggregateFunction]
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "The value of the aggregate will on the bottom of the results"
+  - ⚡ **Button**: Save [Style: Default]
+    ↳ [acti] → **Microflow**: `XLSReport.IVK_Column_Save`
+    ↳ [acti] → **Cancel Changes**

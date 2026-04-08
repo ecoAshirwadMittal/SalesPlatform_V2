@@ -1,0 +1,63 @@
+# Import Mapping: Import_WellKnownConfiguration
+
+**JSON Structure:** `MicrosoftGraph.JSON_WellKnownConfiguration`
+
+## Mapping Structure
+
+- **Root** (Object) → `MicrosoftGraph.Authentication`
+  - **Token_endpoint** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Token_Endpoint`
+  - **Token_endpoint_auth_methods_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Jwks_uri** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Jwks_uri`
+  - **Response_modes_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_2** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Subject_types_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_3** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Id_token_signing_alg_values_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_4** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Response_types_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_5** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Scopes_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_6** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Issuer** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Issuer`
+  - **Request_uri_parameter_supported** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Request_uri_parameter_supported`
+  - **Userinfo_endpoint** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Userinfo_Endpoint`
+  - **Authorization_endpoint** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Authorization_Endpoint`
+  - **Device_authorization_endpoint** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Device_Authorization_Endpoint`
+  - **Http_logout_supported** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Http_Logout_Supported`
+  - **Frontchannel_logout_supported** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Frontchannel_Logout_Supported`
+  - **End_session_endpoint** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.End_Session_Endpoint`
+  - **Claims_supported** (Array) → `MicrosoftGraph.StringArray`
+    - **Wrapper_7** (Wrapper) → `MicrosoftGraph.StringArrayWrapper`
+      - **Value** (Value)
+        - Attribute: `MicrosoftGraph.StringArrayWrapper.Value`
+  - **Cloud_instance_name** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Cloud_instance_name`
+  - **Cloud_graph_host_name** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Cloud_graph_host_name`
+  - **Msgraph_host** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Msgraph_host`
+  - **Rbac_url** (Value)
+    - Attribute: `MicrosoftGraph.Authentication.Rbac_url`

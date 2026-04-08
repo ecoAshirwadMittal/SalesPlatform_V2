@@ -1,0 +1,580 @@
+/* =================================================================
+   PWS My Offer / Cart Page — pixel-matched to QA theme.compiled.css
+   Key QA classes replicated:
+     .pws-my-offer-card         → .offerCard
+     .pws-my-offer-card-bg      → .offerCard (combined)
+     .pws-my-offer-datagrid     → .datagrid wrapper
+     .pws-myoffer-datagrid-background-color → data cells bg
+     .pws-no-bg-color           → editable cells bg
+     .pws-my-offer-removeofferItem → remove column
+     .pws-emptygrid-message     → empty state
+     .pws-cart-submit           → submit button
+     .pws-font-animation        → heartbeat on update
+   ================================================================= */
+
+.pageWrapper {
+  font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
+  color: #3c3c3c;
+}
+
+.contentArea {
+  padding: 0;
+  background: #efebe4;
+  min-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Header ---- */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 48px;
+  background: #efebe4;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #102e33;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  text-decoration: underline;
+  text-decoration-style: solid;
+}
+
+.backBtn:hover {
+  background: rgba(16, 46, 51, 0.08);
+}
+
+.pageTitle {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 40px;
+  font-weight: 500;
+  color: #1c1b1c;
+  margin: 0;
+  white-space: nowrap;
+  line-height: 47px;
+}
+
+/* Cart summary pill — QA: pws-secondary-background-color + pws-cart-summary-* */
+.cartSummary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  background: #d8e5d9;
+  border-radius: 33px 0 0 33px;
+  padding: 0 8px;
+  height: 42px;
+}
+
+.cartStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 36px;
+  padding: 0 4px 0 4px;
+}
+
+/* QA: .pws-cart-summary-headerfont */
+.cartStatLabel {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  color: #102e33;
+}
+
+/* QA: .pws-cart-summary-detailsfont */
+.cartStatValue {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #102e33;
+}
+
+/* QA: .pws-cart-submit */
+.submitBtnHeader {
+  background: #407874;
+  color: #fffbdf;
+  border: none;
+  border-top-right-radius: 33px;
+  border-bottom-right-radius: 33px;
+  padding: 0 24px;
+  height: 42px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.submitBtnHeader:hover {
+  background-color: rgba(4, 174, 165, 0.93);
+}
+
+.submitBtnHeader:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* More actions (three dots) */
+.moreActionsBtn {
+  background: #d8e5d9;
+  border: none;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  cursor: pointer;
+  font-size: 20px;
+  color: #102e33;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moreActionsBtn:hover {
+  background: #c5d8c6;
+}
+
+.moreActionsDropdown {
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 180px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  z-index: 100;
+}
+
+.moreActionsItem {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  text-align: left;
+  color: #1c1b1c;
+  background: #fff;
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  cursor: pointer;
+}
+
+.moreActionsItem:first-child {
+  border-top: none;
+}
+
+.moreActionsItem:hover {
+  background: #f5f5f5;
+}
+
+/* ---- Error banner ---- */
+.errorBanner {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  margin: 0 48px 12px;
+  padding: 12px 16px;
+  color: #991b1b;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+}
+
+/* ---- Offer card — QA: .pws-my-offer-card + .pws-my-offer-card-bg ---- */
+.offerCard {
+  margin: 0 48px;
+  border-radius: 8px;
+  background-color: #f3f0eb;
+  box-shadow: 0 2px 6px 0 rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  flex: 1;
+}
+
+/* ---- Grid wrapper ---- */
+.gridWrapper {
+  flex: 1;
+  padding: 0;
+}
+
+.gridContainer {
+  overflow-x: auto;
+}
+
+/* ---- Empty cart — QA: .pws-myoffer-emptycart + .pws-emptygrid-message ---- */
+.emptyCart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 50vh;
+  text-align: center;
+  padding: 0 24px;
+}
+
+.emptyCart h3 {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 24px;
+  font-weight: 500;
+  color: #1c1b1c;
+  margin: 0 0 8px;
+}
+
+.emptyCart p {
+  font-size: 16px;
+  color: #1c1b1c;
+  margin: 0 0 24px;
+}
+
+.shopBtn {
+  background: #102e33;
+  color: #fff;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  padding: 10px 32px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.shopBtn:hover {
+  background: #417974;
+  border-color: #417974;
+}
+
+/* ---- Data grid — QA: .pws-my-offer-datagrid ---- */
+.datagrid {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  background-color: #f3f0eb;
+}
+
+/* Column headers — QA: bg #f3f0eb, font-weight 500, no border-left/top */
+.datagrid thead th {
+  background-color: #f3f0eb;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 6px 6px 6px 15px;
+  white-space: nowrap;
+  border-bottom: 1px solid #ced0d3;
+  border-left: none;
+  border-top: none;
+}
+
+/* Offer Price / Qty / Total headers — QA: bg #d8e5d9 (green tint) */
+.thEditable {
+  background-color: #d8e5d9 !important;
+}
+
+/* Remove column header — QA: .pws-my-offer-removeofferItem border-left only */
+.thRemove {
+  border-width: 0 0 0 1px !important;
+  border-style: solid !important;
+  background-color: #f3f0eb !important;
+  padding-left: 6px !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Data cells — QA: .pws-myoffer-datagrid-background-color = #f3f0eb (same as card bg) */
+.datagrid td {
+  background-color: #f3f0eb;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  padding: 6px 6px 5px 19px;
+  border-bottom: 1px solid #ced0d3;
+  border-left: none;
+  line-height: 23px;
+}
+
+/* Last row — no bottom border (QA behavior) */
+.datagrid tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.datagrid tbody tr:hover td {
+  background-color: #ece7df;
+}
+
+/* Editable cells (Offer Price, Qty, Total) — QA: .pws-no-bg-color = #f7f7f7 */
+.tdEditable {
+  background-color: #f7f7f7 !important;
+}
+
+.datagrid tbody tr:hover .tdEditable {
+  background-color: #f0f0f0 !important;
+}
+
+/* Below-list-price row highlight */
+.belowListPrice td {
+  background-color: #fff8e1 !important;
+}
+
+/* Exceeding ATP qty row highlight — QA: red-tinted for quantity validation failures */
+.exceedQtyRow td {
+  background-color: #fef2f2 !important;
+}
+
+.exceedQtyRow:hover td {
+  background-color: #fee2e2 !important;
+}
+
+/* Input border highlight for exceeding qty */
+.inputExceeding {
+  border-color: #dc2626 !important;
+  background-color: #fef2f2 !important;
+}
+
+/* Remove column cell — QA: .pws-my-offer-removeofferItem */
+.tdRemove {
+  border-width: 0 0 1px 1px !important;
+  border-style: solid !important;
+  border-color: #ced0d3 !important;
+  background-color: #f3f0eb !important;
+  padding-left: 6px !important;
+  padding-right: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Input fields — QA: width:75px inline style on DataView */
+.numberInput {
+  width: 75px;
+  height: 30px;
+  padding: 2px 4px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  background: #f7f7f7;
+}
+
+.removeBtn {
+  background: transparent;
+  border: none;
+  color: #991b1b;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.removeBtn:hover {
+  background: rgba(153, 27, 27, 0.1);
+}
+
+/* ---- Footer actions — QA: .pws-myoffer-submit-wrapper ---- */
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 14px 24px;
+  background: #efebe4;
+}
+
+/* QA: .pws-button-default */
+.resetBtn {
+  padding: 10px 28px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #efebe4;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #102e33;
+  cursor: pointer;
+}
+
+.resetBtn:hover {
+  background: #e3ded6;
+}
+
+/* QA: .pws-button-primary */
+.submitBtn {
+  padding: 10px 32px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+}
+
+.submitBtn:hover {
+  background: #417974;
+  border-color: #417974;
+}
+
+.submitBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- Heartbeat animation — QA: .pws-font-animation ---- */
+.fontAnimation {
+  display: flex;
+  animation: heartbeat 0.6s ease-out 1;
+  transform-origin: center;
+}
+
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.15); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* ---- Modal — QA confirmation dialogs ---- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.modalDialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 32px;
+  width: 440px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalDialog h3 {
+  margin: 0 0 12px;
+  font-size: 22px;
+  font-weight: 500;
+  color: #1c1b1c;
+}
+
+.modalDialog p {
+  margin: 0 0 24px;
+  font-size: 16px;
+  color: #3c3c3c;
+  line-height: 1.5;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* QA: .pws-button-default for cancel */
+.modalCancel {
+  padding: 8px 24px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #efebe4;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #102e33;
+  cursor: pointer;
+}
+
+.modalCancel:hover {
+  background: #e3ded6;
+}
+
+/* QA: .pws-button-primary for confirm */
+.modalOk {
+  padding: 8px 24px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #fff;
+  cursor: pointer;
+}
+
+.modalOk:hover {
+  background: #417974;
+  border-color: #417974;
+}
+
+.modalOk:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---- Modal header variants — QA: pws-background, pws-file-upload-success, pws-file-upload-error ---- */
+
+/* "Almost Done" / PWS teal background header */
+.modalHeaderPws {
+  margin: -32px -32px 16px;
+  padding: 20px 32px;
+  background: #407874;
+  border-radius: 12px 12px 0 0;
+}
+
+.modalHeaderPws h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: #fffbdf;
+}
+
+/* Success header — QA: .pws-file-upload-success */
+.modalHeaderSuccess {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -32px -32px 16px;
+  padding: 20px 32px;
+  background: #dcfce7;
+  border-radius: 12px 12px 0 0;
+}
+
+.modalHeaderSuccess h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: #166534;
+}
+
+/* Error header — QA: .pws-file-upload-error */
+.modalHeaderError {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: -32px -32px 16px;
+  padding: 20px 32px;
+  background: #fef2f2;
+  border-radius: 12px 12px 0 0;
+}
+
+.modalHeaderError h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: #991b1b;
+}

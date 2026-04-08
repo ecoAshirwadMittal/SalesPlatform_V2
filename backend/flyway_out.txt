@@ -1,0 +1,265 @@
+[INFO] Error stacktraces are turned on.
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------------< com.ecoatm:salesplatform >----------------------
+[INFO] Building salesplatform 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- flyway:9.22.3:clean (default-cli) @ salesplatform ---
+[INFO] Flyway Community Edition 9.22.3 by Redgate
+[INFO] See release notes here: https://rd.gt/416ObMi
+[INFO] 
+[INFO] Database: jdbc:postgresql://localhost:5432/salesplatform_dev (PostgreSQL 15.13)
+[INFO] Successfully dropped pre-schema database level objects (execution time 00:00.002s)
+[INFO] Successfully cleaned schema "identity" (execution time 00:00.051s)
+[INFO] Successfully cleaned schema "user_mgmt" (execution time 00:00.015s)
+[INFO] Successfully cleaned schema "buyer_mgmt" (execution time 00:00.033s)
+[INFO] Successfully cleaned schema "sso" (execution time 00:00.025s)
+[INFO] Successfully cleaned schema "sso" (execution time 00:00.008s)
+[INFO] Successfully cleaned schema "buyer_mgmt" (execution time 00:00.004s)
+[INFO] Successfully cleaned schema "user_mgmt" (execution time 00:00.004s)
+[INFO] Successfully cleaned schema "identity" (execution time 00:00.004s)
+[INFO] Successfully dropped post-schema database level objects (execution time 00:00.000s)
+[INFO] 
+[INFO] --- flyway:9.22.3:migrate (default-cli) @ salesplatform ---
+[INFO] Database: jdbc:postgresql://localhost:5432/salesplatform_dev (PostgreSQL 15.13)
+[INFO] Schema history table "identity"."flyway_schema_history" does not exist yet
+[INFO] Successfully validated 15 migrations (execution time 00:00.045s)
+[INFO] Creating Schema History table "identity"."flyway_schema_history" ...
+[INFO] Current version of schema "identity": << Empty Schema >>
+[INFO] Migrating schema "identity" to version "1 - create schemas"
+[WARNING] DB: schema "identity" already exists, skipping (SQL State: 42P06 - Error Code: 0)
+[WARNING] DB: schema "user_mgmt" already exists, skipping (SQL State: 42P06 - Error Code: 0)
+[WARNING] DB: schema "buyer_mgmt" already exists, skipping (SQL State: 42P06 - Error Code: 0)
+[WARNING] DB: schema "sso" already exists, skipping (SQL State: 42P06 - Error Code: 0)
+[INFO] Migrating schema "identity" to version "2 - identity users and roles"
+[INFO] Migrating schema "identity" to version "3 - identity accounts"
+[INFO] Migrating schema "identity" to version "4 - sso configuration"
+[INFO] Migrating schema "identity" to version "5 - sso saml requests logs"
+[INFO] Migrating schema "identity" to version "6 - forgot password"
+[INFO] Migrating schema "identity" to version "7 - user mgmt ecoatm direct users"
+[INFO] Migrating schema "identity" to version "8 - buyer mgmt core"
+[INFO] Migrating schema "identity" to version "9 - buyer mgmt qualified codes"
+[INFO] Migrating schema "identity" to version "10 - buyer mgmt helpers"
+[INFO] Migrating schema "identity" to version "11 - indexes and constraints"
+[INFO] Migrating schema "identity" to version "12 - create pws schema"
+[WARNING] DB: schema "pws" already exists, skipping (SQL State: 42P06 - Error Code: 0)
+[ERROR] Migration of schema "identity" to version "12 - create pws schema" failed! Changes successfully rolled back.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  3.026 s
+[INFO] Finished at: 2026-04-04T00:38:10-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.flywaydb:flyway-maven-plugin:9.22.3:migrate (default-cli) on project salesplatform: org.flywaydb.core.internal.command.DbMigrate$FlywayMigrateException: Migration V12__create_pws_schema.sql failed
+[ERROR] -------------------------------------------
+[ERROR] SQL State  : 42P07
+[ERROR] Error Code : 0
+[ERROR] Message    : ERROR: relation "offer" already exists
+[ERROR] Location   : db/migration/V12__create_pws_schema.sql (C:\Users\Ashirwad.Mittal\mendix-extractor\SalesPlatform_Modern\backend\target\classes\db\migration\V12__create_pws_schema.sql)
+[ERROR] Line       : 14
+[ERROR] Statement  : -- ---------------------------------------------------------
+[ERROR] -- 1. Unified Offer Table
+[ERROR] -- Replaces: ecoatm_pws$offer, ecoatm_pws$buyeroffer
+[ERROR] -- ---------------------------------------------------------
+[ERROR] CREATE TABLE pws.offer (
+[ERROR]     id BIGSERIAL PRIMARY KEY,
+[ERROR]     legacy_id BIGINT UNIQUE,           -- Retained Mendix BigInt for smooth data import referencing
+[ERROR]     offer_type VARCHAR(50) NOT NULL,   -- 'SYSTEM' or 'BUYER'
+[ERROR]     status VARCHAR(50) NOT NULL,       -- E.g., 'Pending_Order', 'Sales_Review', 'Declined'
+[ERROR]     
+[ERROR]     total_qty INTEGER DEFAULT 0,
+[ERROR]     total_price NUMERIC(10, 2) DEFAULT 0.00,
+[ERROR]     
+[ERROR]     buyer_code_id BIGINT,              -- FK conceptually linked to buyer management module
+[ERROR]     sales_rep_id BIGINT,               -- FK conceptually linked to administration/reps
+[ERROR]     
+[ERROR]     submission_date TIMESTAMP,
+[ERROR]     sales_review_completed_on TIMESTAMP,
+[ERROR]     canceled_on TIMESTAMP,
+[ERROR]     
+[ERROR]     created_date TIMESTAMP DEFAULT NOW(),
+[ERROR]     updated_date TIMESTAMP DEFAULT NOW()
+[ERROR] )
+[ERROR] 
+[ERROR] -> [Help 1]
+org.apache.maven.lifecycle.LifecycleExecutionException: Failed to execute goal org.flywaydb:flyway-maven-plugin:9.22.3:migrate (default-cli) on project salesplatform: org.flywaydb.core.internal.command.DbMigrate$FlywayMigrateException: Migration V12__create_pws_schema.sql failed
+-------------------------------------------
+SQL State  : 42P07
+Error Code : 0
+Message    : ERROR: relation "offer" already exists
+Location   : db/migration/V12__create_pws_schema.sql (C:\Users\Ashirwad.Mittal\mendix-extractor\SalesPlatform_Modern\backend\target\classes\db\migration\V12__create_pws_schema.sql)
+Line       : 14
+Statement  : -- ---------------------------------------------------------
+-- 1. Unified Offer Table
+-- Replaces: ecoatm_pws$offer, ecoatm_pws$buyeroffer
+-- ---------------------------------------------------------
+CREATE TABLE pws.offer (
+    id BIGSERIAL PRIMARY KEY,
+    legacy_id BIGINT UNIQUE,           -- Retained Mendix BigInt for smooth data import referencing
+    offer_type VARCHAR(50) NOT NULL,   -- 'SYSTEM' or 'BUYER'
+    status VARCHAR(50) NOT NULL,       -- E.g., 'Pending_Order', 'Sales_Review', 'Declined'
+    
+    total_qty INTEGER DEFAULT 0,
+    total_price NUMERIC(10, 2) DEFAULT 0.00,
+    
+    buyer_code_id BIGINT,              -- FK conceptually linked to buyer management module
+    sales_rep_id BIGINT,               -- FK conceptually linked to administration/reps
+    
+    submission_date TIMESTAMP,
+    sales_review_completed_on TIMESTAMP,
+    canceled_on TIMESTAMP,
+    
+    created_date TIMESTAMP DEFAULT NOW(),
+    updated_date TIMESTAMP DEFAULT NOW()
+)
+
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2 (MojoExecutor.java:333)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute (MojoExecutor.java:316)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:212)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:174)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.access$000 (MojoExecutor.java:75)
+    at org.apache.maven.lifecycle.internal.MojoExecutor$1.run (MojoExecutor.java:162)
+    at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute (DefaultMojosExecutionStrategy.java:39)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:159)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:105)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:73)
+    at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build (SingleThreadedBuilder.java:53)
+    at org.apache.maven.lifecycle.internal.LifecycleStarter.execute (LifecycleStarter.java:118)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:261)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:173)
+    at org.apache.maven.DefaultMaven.execute (DefaultMaven.java:101)
+    at org.apache.maven.cli.MavenCli.execute (MavenCli.java:906)
+    at org.apache.maven.cli.MavenCli.doMain (MavenCli.java:283)
+    at org.apache.maven.cli.MavenCli.main (MavenCli.java:206)
+    at jdk.internal.reflect.DirectMethodHandleAccessor.invoke (DirectMethodHandleAccessor.java:103)
+    at java.lang.reflect.Method.invoke (Method.java:580)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:283)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:226)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:407)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:348)
+Caused by: org.apache.maven.plugin.MojoExecutionException: org.flywaydb.core.internal.command.DbMigrate$FlywayMigrateException: Migration V12__create_pws_schema.sql failed
+-------------------------------------------
+SQL State  : 42P07
+Error Code : 0
+Message    : ERROR: relation "offer" already exists
+Location   : db/migration/V12__create_pws_schema.sql (C:\Users\Ashirwad.Mittal\mendix-extractor\SalesPlatform_Modern\backend\target\classes\db\migration\V12__create_pws_schema.sql)
+Line       : 14
+Statement  : -- ---------------------------------------------------------
+-- 1. Unified Offer Table
+-- Replaces: ecoatm_pws$offer, ecoatm_pws$buyeroffer
+-- ---------------------------------------------------------
+CREATE TABLE pws.offer (
+    id BIGSERIAL PRIMARY KEY,
+    legacy_id BIGINT UNIQUE,           -- Retained Mendix BigInt for smooth data import referencing
+    offer_type VARCHAR(50) NOT NULL,   -- 'SYSTEM' or 'BUYER'
+    status VARCHAR(50) NOT NULL,       -- E.g., 'Pending_Order', 'Sales_Review', 'Declined'
+    
+    total_qty INTEGER DEFAULT 0,
+    total_price NUMERIC(10, 2) DEFAULT 0.00,
+    
+    buyer_code_id BIGINT,              -- FK conceptually linked to buyer management module
+    sales_rep_id BIGINT,               -- FK conceptually linked to administration/reps
+    
+    submission_date TIMESTAMP,
+    sales_review_completed_on TIMESTAMP,
+    canceled_on TIMESTAMP,
+    
+    created_date TIMESTAMP DEFAULT NOW(),
+    updated_date TIMESTAMP DEFAULT NOW()
+)
+
+    at org.flywaydb.maven.AbstractFlywayMojo.execute (AbstractFlywayMojo.java:849)
+    at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo (DefaultBuildPluginManager.java:126)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2 (MojoExecutor.java:328)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute (MojoExecutor.java:316)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:212)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:174)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.access$000 (MojoExecutor.java:75)
+    at org.apache.maven.lifecycle.internal.MojoExecutor$1.run (MojoExecutor.java:162)
+    at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute (DefaultMojosExecutionStrategy.java:39)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:159)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:105)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:73)
+    at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build (SingleThreadedBuilder.java:53)
+    at org.apache.maven.lifecycle.internal.LifecycleStarter.execute (LifecycleStarter.java:118)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:261)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:173)
+    at org.apache.maven.DefaultMaven.execute (DefaultMaven.java:101)
+    at org.apache.maven.cli.MavenCli.execute (MavenCli.java:906)
+    at org.apache.maven.cli.MavenCli.doMain (MavenCli.java:283)
+    at org.apache.maven.cli.MavenCli.main (MavenCli.java:206)
+    at jdk.internal.reflect.DirectMethodHandleAccessor.invoke (DirectMethodHandleAccessor.java:103)
+    at java.lang.reflect.Method.invoke (Method.java:580)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:283)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:226)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:407)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:348)
+Caused by: org.postgresql.util.PSQLException: ERROR: relation "offer" already exists
+    at org.postgresql.core.v3.QueryExecutorImpl.receiveErrorResponse (QueryExecutorImpl.java:2713)
+    at org.postgresql.core.v3.QueryExecutorImpl.processResults (QueryExecutorImpl.java:2401)
+    at org.postgresql.core.v3.QueryExecutorImpl.execute (QueryExecutorImpl.java:368)
+    at org.postgresql.jdbc.PgStatement.executeInternal (PgStatement.java:498)
+    at org.postgresql.jdbc.PgStatement.execute (PgStatement.java:415)
+    at org.postgresql.jdbc.PgStatement.executeWithFlags (PgStatement.java:335)
+    at org.postgresql.jdbc.PgStatement.executeCachedSql (PgStatement.java:321)
+    at org.postgresql.jdbc.PgStatement.executeWithFlags (PgStatement.java:297)
+    at org.postgresql.jdbc.PgStatement.execute (PgStatement.java:292)
+    at org.flywaydb.core.internal.jdbc.JdbcTemplate.executeStatement (JdbcTemplate.java:201)
+    at org.flywaydb.core.internal.sqlscript.ParsedSqlStatement.execute (ParsedSqlStatement.java:95)
+    at org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor.executeStatement (DefaultSqlScriptExecutor.java:210)
+    at org.flywaydb.core.internal.sqlscript.DefaultSqlScriptExecutor.execute (DefaultSqlScriptExecutor.java:126)
+    at org.flywaydb.core.internal.resolver.sql.SqlMigrationExecutor.executeOnce (SqlMigrationExecutor.java:68)
+    at org.flywaydb.core.internal.resolver.sql.SqlMigrationExecutor.lambda$execute$0 (SqlMigrationExecutor.java:57)
+    at org.flywaydb.core.internal.database.DefaultExecutionStrategy.execute (DefaultExecutionStrategy.java:27)
+    at org.flywaydb.core.internal.resolver.sql.SqlMigrationExecutor.execute (SqlMigrationExecutor.java:56)
+    at org.flywaydb.core.internal.command.DbMigrate.doMigrateGroup (DbMigrate.java:374)
+    at org.flywaydb.core.internal.command.DbMigrate.lambda$applyMigrations$1 (DbMigrate.java:272)
+    at org.flywaydb.core.internal.jdbc.TransactionalExecutionTemplate.execute (TransactionalExecutionTemplate.java:55)
+    at org.flywaydb.core.internal.command.DbMigrate.applyMigrations (DbMigrate.java:271)
+    at org.flywaydb.core.internal.command.DbMigrate.migrateGroup (DbMigrate.java:244)
+    at org.flywaydb.core.internal.command.DbMigrate.lambda$migrateAll$0 (DbMigrate.java:139)
+    at org.flywaydb.core.internal.database.postgresql.PostgreSQLAdvisoryLockTemplate.execute (PostgreSQLAdvisoryLockTemplate.java:73)
+    at org.flywaydb.core.internal.database.postgresql.PostgreSQLAdvisoryLockTemplate.lambda$execute$0 (PostgreSQLAdvisoryLockTemplate.java:56)
+    at org.flywaydb.core.internal.jdbc.TransactionalExecutionTemplate.execute (TransactionalExecutionTemplate.java:55)
+    at org.flywaydb.core.internal.database.postgresql.PostgreSQLAdvisoryLockTemplate.execute (PostgreSQLAdvisoryLockTemplate.java:56)
+    at org.flywaydb.core.internal.database.postgresql.PostgreSQLConnection.lock (PostgreSQLConnection.java:96)
+    at org.flywaydb.core.internal.schemahistory.JdbcTableSchemaHistory.lock (JdbcTableSchemaHistory.java:144)
+    at org.flywaydb.core.internal.command.DbMigrate.migrateAll (DbMigrate.java:139)
+    at org.flywaydb.core.internal.command.DbMigrate.migrate (DbMigrate.java:97)
+    at org.flywaydb.core.Flyway.lambda$migrate$0 (Flyway.java:188)
+    at org.flywaydb.core.FlywayExecutor.execute (FlywayExecutor.java:213)
+    at org.flywaydb.core.Flyway.migrate (Flyway.java:140)
+    at org.flywaydb.maven.MigrateMojo.doExecute (MigrateMojo.java:35)
+    at org.flywaydb.maven.AbstractFlywayMojo.execute (AbstractFlywayMojo.java:847)
+    at org.apache.maven.plugin.DefaultBuildPluginManager.executeMojo (DefaultBuildPluginManager.java:126)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute2 (MojoExecutor.java:328)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.doExecute (MojoExecutor.java:316)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:212)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:174)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.access$000 (MojoExecutor.java:75)
+    at org.apache.maven.lifecycle.internal.MojoExecutor$1.run (MojoExecutor.java:162)
+    at org.apache.maven.plugin.DefaultMojosExecutionStrategy.execute (DefaultMojosExecutionStrategy.java:39)
+    at org.apache.maven.lifecycle.internal.MojoExecutor.execute (MojoExecutor.java:159)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:105)
+    at org.apache.maven.lifecycle.internal.LifecycleModuleBuilder.buildProject (LifecycleModuleBuilder.java:73)
+    at org.apache.maven.lifecycle.internal.builder.singlethreaded.SingleThreadedBuilder.build (SingleThreadedBuilder.java:53)
+    at org.apache.maven.lifecycle.internal.LifecycleStarter.execute (LifecycleStarter.java:118)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:261)
+    at org.apache.maven.DefaultMaven.doExecute (DefaultMaven.java:173)
+    at org.apache.maven.DefaultMaven.execute (DefaultMaven.java:101)
+    at org.apache.maven.cli.MavenCli.execute (MavenCli.java:906)
+    at org.apache.maven.cli.MavenCli.doMain (MavenCli.java:283)
+    at org.apache.maven.cli.MavenCli.main (MavenCli.java:206)
+    at jdk.internal.reflect.DirectMethodHandleAccessor.invoke (DirectMethodHandleAccessor.java:103)
+    at java.lang.reflect.Method.invoke (Method.java:580)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launchEnhanced (Launcher.java:283)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.launch (Launcher.java:226)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.mainWithExitCode (Launcher.java:407)
+    at org.codehaus.plexus.classworlds.launcher.Launcher.main (Launcher.java:348)
+[ERROR] 
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException

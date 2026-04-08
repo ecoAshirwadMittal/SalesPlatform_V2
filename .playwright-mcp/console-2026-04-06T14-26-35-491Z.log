@@ -1,0 +1,41 @@
+[     110ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[     183ms] [LOG] [Fast Refresh] done in 175ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[     218ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[     236ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[     271ms] [WARNING] Image with src "http://localhost:3000/images/ecoatm_logo.svg" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio. @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  915965ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  915999ms] [LOG] [Fast Refresh] done in 37ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  922835ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  922849ms] [LOG] [Fast Refresh] done in 54ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  928370ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  928401ms] [LOG] [Fast Refresh] done in 57ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  936458ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  936489ms] [LOG] [Fast Refresh] done in 43ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  942939ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[  943127ms] [LOG] [Fast Refresh] done in 118ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1259304ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1259330ms] [LOG] [Fast Refresh] done in 37ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1400071ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1400157ms] [LOG] [Fast Refresh] done in 196ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1983544ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1983581ms] [LOG] [Fast Refresh] done in 39ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1991456ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 1991488ms] [LOG] [Fast Refresh] done in 29ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2008078ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2008078ms] [LOG] [Fast Refresh] done in 105ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2020850ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2020979ms] [LOG] [Fast Refresh] done in 196ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2021086ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2021090ms] [LOG] [Fast Refresh] done in 108ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2035247ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2035278ms] [LOG] [Fast Refresh] done in 29ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2040032ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2040063ms] [LOG] [Fast Refresh] done in 45ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2060743ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2060781ms] [LOG] [Fast Refresh] done in 60ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2459225ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2459251ms] [LOG] [Fast Refresh] done in 49ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2466759ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2466790ms] [LOG] [Fast Refresh] done in 30ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2476214ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431
+[ 2476248ms] [LOG] [Fast Refresh] done in 26ms @ http://localhost:3000/_next/static/chunks/04jr_next_dist_04nh14m._.js:2431

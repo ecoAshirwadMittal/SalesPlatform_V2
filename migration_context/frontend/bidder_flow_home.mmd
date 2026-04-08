@@ -1,0 +1,120 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Home --> AuctionUI_NAV_DashboardNavigationLogic_Bidder
+    AuctionUI_ACT_CreateBidDataHelper_AggregatedList["AuctionUI.ACT_CreateBidDataHelper_AggregatedList"]:::microflow
+    AuctionUI_ACT_CreateBidDataHelper_AggregatedList --> AuctionUI_ACT_Round2AggregatedInventory
+    EcoATM_PWS_ACT_Open_PWS_Order["EcoATM_PWS.ACT_Open_PWS_Order"]:::microflow
+    EcoATM_PWS_ACT_Open_PWS_Order --> Eco_Core_ACT_FeatureFlag_RetrieveOrCreate
+    EcoATM_PWS_ACT_Open_PWS_Order --> EcoATM_PWS_SUB_CheckForBidder
+    EcoATM_PWS_ACT_Open_PWS_Order --> EcoATM_PWS_PWSOrder_PE
+    EcoATM_PWS_ACT_Open_PWS_Order --> EcoATM_PWS_SUB_NavigateToCounterOffers
+    EcoATM_PWS_ACT_Open_PWS_Order --> AuctionUI_ACT_CreateBuyerCodeSelectHelper
+    EcoATM_BuyerManagement_ACT_GetSubmittedBidRounds["EcoATM_BuyerManagement.ACT_GetSubmittedBidRounds"]:::microflow
+    EcoATM_BuyerManagement_ACT_GetSubmittedBidRounds --> AuctionUI_ACT_GetMostRecentAuction
+    EcoATM_PWS_SUB_CheckForBidder["EcoATM_PWS.SUB_CheckForBidder"]:::microflow
+    EcoATM_PWS_PWS_ResetConfirmation["EcoATM_PWS.PWS_ResetConfirmation (Page)"]:::page
+    AuctionUI_SUB_HasWholesaleBuyerCodesAssigned["AuctionUI.SUB_HasWholesaleBuyerCodesAssigned"]:::microflow
+    EcoATM_PWS_PWSOrder_PE["EcoATM_PWS.PWSOrder_PE (Page)"]:::page
+    EcoATM_PWS_PWSOrder_PE --> EcoATM_PWS_PWS_MyOffer
+    EcoATM_PWS_PWSOrder_PE --> EcoATM_PWS_PWS_ResetConfirmation
+    AuctionUI_ACT_GetCurrentUser["AuctionUI.ACT_GetCurrentUser"]:::microflow
+    AuctionUI_ACT_HandleSingleBuyerCodeLogin["AuctionUI.ACT_HandleSingleBuyerCodeLogin"]:::microflow
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper["AuctionUI.ACT_CreateBuyerCodeSelectHelper"]:::microflow
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper --> AuctionUI_SUB_CreateBuyerCodeSelectHelper
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper --> AuctionUI_SUB_CreateBuyerCodeSelectHelper
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper --> AuctionUI_ACT_HandleSingleBuyerCodeLogin
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper --> AuctionUI_ACT_GetActiveSchedulingAuction
+    AuctionUI_ACT_CreateBuyerCodeSelectHelper --> AuctionUI_ACT_GetMostRecentAuction
+    EcoATM_BuyerManagement_PG_Bidder_Dashboard_HOT["EcoATM_BuyerManagement.PG_Bidder_Dashboard_HOT (Page)"]:::page
+    AuctionUI_GetCurrentBidRoundBuyerCodeSelect["AuctionUI.GetCurrentBidRoundBuyerCodeSelect"]:::microflow
+    AuctionUI_GetCurrentBidRoundBuyerCodeSelect --> AuctionUI_SUB_GetBidRoundByCodeWeek
+    AuctionUI_SUB_GetBidRoundByCodeWeek["AuctionUI.SUB_GetBidRoundByCodeWeek"]:::microflow
+    EcoATM_PWS_SUB_SelectFirstPWSBuyerCode["EcoATM_PWS.SUB_SelectFirstPWSBuyerCode"]:::microflow
+    EcoATM_PWS_SUB_SelectFirstPWSBuyerCode --> AuctionUI_ACT_GET_CurrentUser
+    EcoATM_UserManagement_SUB_SendUserLoginToSnowflake["EcoATM_UserManagement.SUB_SendUserLoginToSnowflake"]:::microflow
+    EcoATM_PWS_NAV_PWSCounterOffers["EcoATM_PWS.NAV_PWSCounterOffers"]:::microflow
+    EcoATM_PWS_NAV_PWSCounterOffers --> EcoATM_PWS_DS_BuyerCodeBySession
+    EcoATM_PWS_NAV_PWSCounterOffers --> EcoATM_PWS_PWSBuyerCounterOffer_Overview
+    EcoATM_PWS_NAV_PWSCounterOffers --> EcoATM_PWS_PWSBuyerCounterOffers
+    EcoATM_PWS_NAV_PWSCounterOffers --> EcoATM_PWS_PWS_OfferAndCounterOffer_Review_Buyer
+    AuctionUI_SUB_CreateBuyerCodeSelectHelper["AuctionUI.SUB_CreateBuyerCodeSelectHelper"]:::microflow
+    AuctionUI_SUB_CreateBuyerCodeSelectHelper --> AuctionUI_ACT_NavigateToBidderDashboardOneBuyerCode
+    AuctionUI_SUB_CreateBuyerCodeSelectHelper --> AuctionUI_Buyer_Code_Select
+    EcoATM_PWS_PWS_OfferAndCounterOffer_Review_Buyer["EcoATM_PWS.PWS_OfferAndCounterOffer_Review_Buyer (Page)"]:::page
+    EcoATM_PWS_PWS_OfferAndCounterOffer_Review_Buyer --> EcoATM_PWS_PWSBuyerCounterOffer_Overview
+    EcoATM_PWS_PWS_OfferAndCounterOffer_Review_Buyer --> EcoATM_PWS_PWSBuyerCounterOffer_Overview
+    AuctionUI_NAV_DashboardNavigationLogic_Bidder["AuctionUI.NAV_DashboardNavigationLogic_Bidder"]:::microflow
+    AuctionUI_NAV_DashboardNavigationLogic_Bidder --> AuctionUI_ACT_CreateBuyerCodeSelectHelper
+    AuctionUI_NAV_DashboardNavigationLogic_Bidder --> EcoATM_UserManagement_SUB_SendUserLoginToSnowflake
+    AuctionUI_NAV_DashboardNavigationLogic_Bidder --> AuctionUI_PG_UserAgreement
+    AuctionUI_NAV_DashboardNavigationLogic_Bidder --> AuctionUI_SUB_HasWholesaleBuyerCodesAssigned
+    AuctionUI_SUB_GetCurrentWeek["AuctionUI.SUB_GetCurrentWeek"]:::microflow
+    AuctionUI_SUB_GetCurrentWeek --> AuctionUI_ACT_GetMostRecentAuction
+    AuctionUI_PG_UserAgreement["AuctionUI.PG_UserAgreement (Page)"]:::page
+    AuctionUI_ACT_BidderDashboardNavigationHelper["AuctionUI.ACT_BidderDashboardNavigationHelper"]:::microflow
+    AuctionUI_ACT_BidderDashboardNavigationHelper --> AuctionUI_ACT_OpenBidderDashboard
+    AuctionUI_ACT_BidderDashboardNavigationHelper --> EcoATM_PWS_ACT_Open_PWS_Order
+    AuctionUI_ACT_GetMostRecentAuction["AuctionUI.ACT_GetMostRecentAuction"]:::microflow
+    EcoATM_BuyerManagement_PG_Bidder_Dashboard_DG2["EcoATM_BuyerManagement.PG_Bidder_Dashboard_DG2 (Page)"]:::page
+    AuctionUI_ACT_CreateBidData["AuctionUI.ACT_CreateBidData"]:::microflow
+    AuctionUI_ACT_CreateBidData --> AuctionUI_SUB_GetCurrentWeek
+    AuctionUI_ACT_CreateBidData --> AuctionUI_ACT_BidDataDoc_GetOrCreate
+    AuctionUI_ACT_CreateBidData --> EcoATM_BuyerManagement_SUB_ListSpecialTreatmentBuyerBidData
+    AuctionUI_ACT_CreateBidData --> EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect
+    AuctionUI_ACT_CreateBidData --> AuctionUI_ACT_CreateBidDataHelper_AggregatedList
+    AuctionUI_ACT_CreateBidData --> EcoATM_BuyerManagement_ACT_GetSubmittedBidRounds
+    EcoATM_PWS_PWSBuyerCounterOffer_Overview["EcoATM_PWS.PWSBuyerCounterOffer_Overview (Page)"]:::page
+    AuctionUI_ACT_GetActiveSchedulingAuction["AuctionUI.ACT_GetActiveSchedulingAuction"]:::microflow
+    AuctionUI_ACT_GetTimeOffset["AuctionUI.ACT_GetTimeOffset"]:::microflow
+    AuctionUI_ACT_BidDataDoc_GetOrCreate["AuctionUI.ACT_BidDataDoc_GetOrCreate"]:::microflow
+    AuctionUI_ACT_GET_CurrentUser["AuctionUI.ACT_GET_CurrentUser"]:::microflow
+    AuctionUI_ACT_NavigateToBidderDashboardOneBuyerCode["AuctionUI.ACT_NavigateToBidderDashboardOneBuyerCode"]:::microflow
+    AuctionUI_ACT_NavigateToBidderDashboardOneBuyerCode --> AuctionUI_ACT_BidderDashboardNavigationHelper
+    AuctionUI_ACT_Round2AggregatedInventory["AuctionUI.ACT_Round2AggregatedInventory"]:::microflow
+    AuctionUI_ACT_Round2AggregatedInventory --> AuctionUI_SUB_ListBuyerCodeAggregatedInventory
+    EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect["EcoATM_BuyerManagement.BidDownloadOnBuyerCodeSelect (Page)"]:::page
+    EcoATM_PWS_PWS_MyOffer["EcoATM_PWS.PWS_MyOffer (Page)"]:::page
+    EcoATM_PWS_PWS_MyOffer --> EcoATM_PWS_PWSOrder_PE
+    EcoATM_PWS_PWS_MyOffer --> EcoATM_PWS_PWS_ResetConfirmation
+    EcoATM_BuyerManagement_Act_GetOrCreateBuyerCodeSubmitConfig["EcoATM_BuyerManagement.Act_GetOrCreateBuyerCodeSubmitConfig"]:::microflow
+    EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE["EcoATM_BuyerManagement.SUB_CreateBidDataForAllAE"]:::microflow
+    EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE --> AuctionUI_ACT_BidDataDoc_GetOrCreate
+    EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE --> EcoATM_BuyerManagement_SUB_ListAggregateInventoryByBuyerCodeType
+    EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE --> EcoATM_BuyerManagement_SUB_UpdateBlankBidDataWithProrRoundBidData
+    EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE --> EcoATM_BuyerManagement_SUB_GetBidRoundBySAandCode
+    AuctionUI_Buyer_Code_Select["AuctionUI.Buyer_Code_Select (Page)"]:::page
+    Eco_Core_ACT_FeatureFlag_RetrieveOrCreate["Eco_Core.ACT_FeatureFlag_RetrieveOrCreate"]:::microflow
+    EcoATM_PWS_SUB_NavigateToCounterOffers["EcoATM_PWS.SUB_NavigateToCounterOffers"]:::microflow
+    EcoATM_PWS_SUB_NavigateToCounterOffers --> EcoATM_PWS_PWSOrder_PE
+    EcoATM_PWS_SUB_NavigateToCounterOffers --> EcoATM_PWS_NAV_PWSCounterOffers
+    AuctionUI_SUB_ListBuyerCodeAggregatedInventory["AuctionUI.SUB_ListBuyerCodeAggregatedInventory"]:::microflow
+    EcoATM_BuyerManagement_SUB_ListSpecialTreatmentBuyerBidData["EcoATM_BuyerManagement.SUB_ListSpecialTreatmentBuyerBidData"]:::microflow
+    EcoATM_BuyerManagement_SUB_ListSpecialTreatmentBuyerBidData --> EcoATM_BuyerManagement_SUB_CreateBidDataForAllAE
+    AuctionUI_SUB_AuctionTimerHelper["AuctionUI.SUB_AuctionTimerHelper"]:::microflow
+    AuctionUI_SUB_AuctionTimerHelper --> AuctionUI_ACT_GetTimeOffset
+    EcoATM_BuyerManagement_SUB_GetBidRoundBySAandCode["EcoATM_BuyerManagement.SUB_GetBidRoundBySAandCode"]:::microflow
+    AuctionUI_SUB_CheckRoundIncluded["AuctionUI.SUB_CheckRoundIncluded"]:::microflow
+    EcoATM_PWS_PWSBuyerCounterOffers["EcoATM_PWS.PWSBuyerCounterOffers (Page)"]:::page
+    AuctionUI_ACT_OpenBidderDashboard["AuctionUI.ACT_OpenBidderDashboard"]:::microflow
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_PG_Bidder_Dashboard_HOT
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_GetCurrentBidRoundBuyerCodeSelect
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_ACT_GetSubmittedBidRounds
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_SUB_AuctionTimerHelper
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_SUB_CheckRoundIncluded
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_Act_GetOrCreateBuyerCodeSubmitConfig
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_ACT_GetActiveSchedulingAuction
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_ACT_GetMostRecentAuction
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_PG_Bidder_Dashboard_DG2
+    AuctionUI_ACT_OpenBidderDashboard --> AuctionUI_ACT_CreateBidData
+    AuctionUI_ACT_OpenBidderDashboard --> EcoATM_BuyerManagement_BidDownloadOnBuyerCodeSelect
+    EcoATM_PWS_DS_BuyerCodeBySession["EcoATM_PWS.DS_BuyerCodeBySession"]:::microflow
+    EcoATM_PWS_DS_BuyerCodeBySession --> AuctionUI_ACT_GetCurrentUser
+    EcoATM_PWS_DS_BuyerCodeBySession --> EcoATM_PWS_SUB_SelectFirstPWSBuyerCode
+    EcoATM_BuyerManagement_SUB_UpdateBlankBidDataWithProrRoundBidData["EcoATM_BuyerManagement.SUB_UpdateBlankBidDataWithProrRoundBidData"]:::microflow
+    EcoATM_BuyerManagement_SUB_ListAggregateInventoryByBuyerCodeType["EcoATM_BuyerManagement.SUB_ListAggregateInventoryByBuyerCodeType"]:::microflow
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

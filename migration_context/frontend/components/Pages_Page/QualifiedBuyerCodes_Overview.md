@@ -1,0 +1,242 @@
+# Page: QualifiedBuyerCodes_Overview
+
+**Allowed Roles:** EcoATM_BuyerManagement.Administrator, EcoATM_BuyerManagement.SalesOps, EcoATM_BuyerManagement.SalesRep
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+  ↳ [acti] → **Page**: `AuctionUI.Business_Auctions_ControlCenter`
+- 📦 **DataView** [MF: EcoATM_BuyerManagement.DS_QualifiedBuyerCodesQueryHelper]
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: AuctionUI.Auction.AuctionTitle]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: AuctionUI.SchedulingAuction.Name]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - staticDataSourceCustomContentType: no
+      - readOnlyStyle: text
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+      - refreshInterval: 0
+      - itemSelectionMethod: rowClick
+      - itemSelectionMode: clear
+      - loadingType: spinner
+      ➤ **columns**
+          - showContentAs: customContent
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.Included]
+          ➤ **content** (Widgets)
+            - 📝 **CheckBox**: checkBox1 ✏️ (Editable if OpenedDashboard)
+              ↳ [Change] → **Nanoflow**: `EcoATM_BuyerManagement.NF_OnIncludedChanged`
+          - header: Included
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFit
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.Buyer.CompanyName]
+          - header: Company
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.BuyerCode.Code]
+          - header: Code
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.Buyer.isSpecialBuyer]
+          - header: Special Buyer
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.isSpecialTreatment]
+          - header: isSpecialTreatment for Current Round
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.OpenedDashboard]
+          - header: Opened
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: dynamicText
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.OpenedDashboardDateTime]
+          - dynamicText: {1}
+          - header: Opened On
+          ➤ **filter** (Widgets)
+            - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+                - defaultFilter: equal
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: EcoATM_BuyerManagement.QualifiedBuyerCodes.Qualificationtype]
+          - header: Qualification Type
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: AuctionUI.BidRound.Submitted]
+          - header: Submitted
+          ➤ **filter** (Widgets)
+            - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                - selectedItemsStyle: text
+                - selectionMethod: checkbox
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: attribute
+          - attribute: [Attr: System.User.Name]
+          - header: Submitted By
+          ➤ **filter** (Widgets)
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - delay: 500
+                - screenReaderInputCaption: Search
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+          - showContentAs: dynamicText
+          - attribute: [Attr: AuctionUI.BidRound.SubmittedDatatime]
+          - dynamicText: {1}
+          - header: Submitted On
+          ➤ **filter** (Widgets)
+            - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+                - defaultFilter: equal
+          - visible: `true`
+          - filterCaptionType: expression
+          - hidable: yes
+          - width: autoFill
+          - minWidth: auto
+          - minWidthLimit: 100
+          - size: 1
+          - alignment: left
+      - pageSize: 15
+      - pagination: buttons
+      - showPagingButtons: always
+      - pagingPosition: bottom
+      - loadMoreButtonCaption: Load More
+      - showEmptyPlaceholder: none
+      - onClickTrigger: double
+      - configurationStorageType: attribute
+      - exportDialogLabel: Export progress
+      - cancelExportLabel: Cancel data export
+      - selectRowLabel: Select row

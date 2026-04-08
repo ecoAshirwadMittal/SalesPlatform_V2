@@ -1,0 +1,332 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AtpSyncService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">AtpSyncService.java</span></div><h1>AtpSyncService.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
+
+import com.ecoatm.salesplatform.dto.AtpSyncResult;
+import com.ecoatm.salesplatform.dto.DeposcoInventoryDto;
+import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.FacilityInventory;
+import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.InventoryPage;
+import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.ItemInventory;
+import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.*;
+
+/**
+ * Replaces the legacy Mendix ACT_FullInventorySync + SUB_LoadPWSInventory_Deposco flow.
+ *
+ * Flow:
+ *   1. Authenticate with Deposco to obtain an access token
+ *   2. Fetch paginated facility inventory from Deposco Inventory API
+ *   3. For each item: sum ATP across facilities, match to Device by SKU
+ *   4. Update Device.availableQty and Device.atpQty where deltas exist
+ *   5. Recalculate reserved quantities based on active ordered offer items
+ *   6. Log sync statistics
+ */
+@Service
+public class AtpSyncService {
+
+<span class="fc" id="L37">    private static final Logger log = LoggerFactory.getLogger(AtpSyncService.class);</span>
+
+    private final DeviceRepository deviceRepository;
+    private final RestTemplate restTemplate;
+
+    @Value(&quot;${deposco.base-url:https://api.deposco.com}&quot;)
+    private String deposcoBaseUrl;
+
+    @Value(&quot;${deposco.username:api.user}&quot;)
+    private String deposcoUsername;
+
+    @Value(&quot;${deposco.password:}&quot;)
+    private String deposcoPassword;
+
+    @Value(&quot;${deposco.page-size:1000}&quot;)
+    private int pageSize;
+
+<span class="fc" id="L54">    public AtpSyncService(DeviceRepository deviceRepository) {</span>
+<span class="fc" id="L55">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L56">        this.restTemplate = new RestTemplate();</span>
+<span class="fc" id="L57">    }</span>
+
+    /**
+     * Execute a full ATP inventory sync.
+     * Mirrors the legacy ACT_FullInventorySync microflow (ignoring feature flags).
+     */
+    @Transactional
+    public AtpSyncResult fullInventorySync() {
+<span class="nc" id="L65">        LocalDateTime syncBeginTime = LocalDateTime.now();</span>
+<span class="nc" id="L66">        log.info(&quot;PWS Full Inventory Sync started at {}&quot;, syncBeginTime);</span>
+
+        // Step 1: Fetch all inventory data from Deposco (paginated)
+<span class="nc" id="L69">        Map&lt;String, Integer&gt; deposcoAtpBySku = fetchAllDeposcoInventory();</span>
+
+        // Step 2: Load all active devices into a lookup map
+<span class="nc" id="L72">        List&lt;Device&gt; allDevices = deviceRepository.findByIsActiveTrue();</span>
+<span class="nc" id="L73">        Map&lt;String, Device&gt; deviceBySku = new HashMap&lt;&gt;();</span>
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        for (Device d : allDevices) {</span>
+<span class="nc bnc" id="L75" title="All 2 branches missed.">            if (d.getSku() != null) {</span>
+<span class="nc" id="L76">                deviceBySku.put(d.getSku(), d);</span>
+            }
+<span class="nc" id="L78">        }</span>
+
+        // Step 3: Walk Deposco items and apply ATP deltas
+<span class="nc" id="L81">        int devicesUpdated = 0;</span>
+<span class="nc" id="L82">        List&lt;String&gt; missingSkus = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L83">        List&lt;Device&gt; updatedDevices = new ArrayList&lt;&gt;();</span>
+
+<span class="nc bnc" id="L85" title="All 2 branches missed.">        for (Map.Entry&lt;String, Integer&gt; entry : deposcoAtpBySku.entrySet()) {</span>
+<span class="nc" id="L86">            String itemNumber = entry.getKey();</span>
+<span class="nc" id="L87">            int newAtp = entry.getValue();</span>
+
+<span class="nc" id="L89">            Device device = deviceBySku.get(itemNumber);</span>
+<span class="nc bnc" id="L90" title="All 2 branches missed.">            if (device == null) {</span>
+<span class="nc" id="L91">                missingSkus.add(itemNumber);</span>
+<span class="nc" id="L92">                continue;</span>
+            }
+
+<span class="nc bnc" id="L95" title="All 2 branches missed.">            int currentQty = device.getAvailableQty() != null ? device.getAvailableQty() : 0;</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">            if (currentQty != newAtp) {</span>
+<span class="nc" id="L97">                log.debug(&quot;Updating ATP for SKU:{} Current:{} New:{}&quot;, itemNumber, currentQty, newAtp);</span>
+<span class="nc" id="L98">                device.setAvailableQty(newAtp);</span>
+<span class="nc" id="L99">                device.setAtpQty(newAtp);</span>
+<span class="nc" id="L100">                device.setLastSyncTime(syncBeginTime);</span>
+<span class="nc" id="L101">                updatedDevices.add(device);</span>
+<span class="nc" id="L102">                devicesUpdated++;</span>
+            }
+<span class="nc" id="L104">        }</span>
+
+        // Step 4: Batch-save updated devices
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        if (!updatedDevices.isEmpty()) {</span>
+<span class="nc" id="L108">            deviceRepository.saveAll(updatedDevices);</span>
+<span class="nc" id="L109">            log.info(&quot;Saved {} device ATP updates&quot;, updatedDevices.size());</span>
+        }
+
+        // Step 5: Recalculate reserved quantities
+        // (Legacy: SUB_UpdateReservedQuanityPerDevice)
+<span class="nc" id="L114">        updateReservedQuantities(updatedDevices);</span>
+
+<span class="nc bnc" id="L116" title="All 2 branches missed.">        if (!missingSkus.isEmpty()) {</span>
+<span class="nc" id="L117">            log.warn(&quot;Deposco items not found in MDM: {}&quot;, missingSkus.size());</span>
+        }
+
+<span class="nc" id="L120">        LocalDateTime syncEndTime = LocalDateTime.now();</span>
+<span class="nc" id="L121">        log.info(&quot;PWS Full Inventory Sync completed at {}. Updated {} devices, {} missing SKUs.&quot;,</span>
+<span class="nc" id="L122">                syncEndTime, devicesUpdated, missingSkus.size());</span>
+
+        // Build result
+<span class="nc" id="L125">        AtpSyncResult result = new AtpSyncResult();</span>
+<span class="nc" id="L126">        result.setSyncStartTime(syncBeginTime);</span>
+<span class="nc" id="L127">        result.setSyncEndTime(syncEndTime);</span>
+<span class="nc" id="L128">        result.setTotalItemsReceived(deposcoAtpBySku.size());</span>
+<span class="nc" id="L129">        result.setDevicesUpdated(devicesUpdated);</span>
+<span class="nc" id="L130">        result.setDevicesMissing(missingSkus.size());</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">        result.setMissingSkus(missingSkus.size() &gt; 50 ? missingSkus.subList(0, 50) : missingSkus);</span>
+<span class="nc" id="L132">        return result;</span>
+    }
+
+    /**
+     * Simulate the full Deposco inventory fetch for development/testing.
+     * In production, replace this with the real Deposco HTTP calls.
+     */
+    public AtpSyncResult simulateSync(List&lt;DeposcoInventoryDto.ItemInventory&gt; items) {
+<span class="fc" id="L140">        LocalDateTime syncBeginTime = LocalDateTime.now();</span>
+<span class="fc" id="L141">        log.info(&quot;Simulated ATP sync started with {} items&quot;, items.size());</span>
+
+<span class="fc" id="L143">        Map&lt;String, Integer&gt; atpBySku = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L144" title="All 2 branches covered.">        for (ItemInventory item : items) {</span>
+<span class="fc" id="L145">            int totalAtp = 0;</span>
+<span class="fc bfc" id="L146" title="All 2 branches covered.">            if (item.getFacilities() != null) {</span>
+<span class="fc bfc" id="L147" title="All 2 branches covered.">                for (FacilityInventory f : item.getFacilities()) {</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">                    if (f.getAvailableToPromise() != null) {</span>
+<span class="fc" id="L149">                        totalAtp += f.getAvailableToPromise().setScale(0, RoundingMode.FLOOR).intValue();</span>
+                    }
+<span class="fc" id="L151">                }</span>
+            }
+<span class="fc" id="L153">            atpBySku.put(item.getItemNumber(), totalAtp);</span>
+<span class="fc" id="L154">        }</span>
+
+<span class="fc" id="L156">        return applyAtpUpdates(atpBySku, syncBeginTime);</span>
+    }
+
+    // ── Private helpers ─────────────────────────────────────────────
+
+    /**
+     * Fetch all Deposco inventory pages and aggregate ATP per SKU.
+     * Mirrors the paginated loop in ACT_FullInventorySync.
+     */
+    private Map&lt;String, Integer&gt; fetchAllDeposcoInventory() {
+<span class="nc" id="L166">        Map&lt;String, Integer&gt; atpBySku = new HashMap&lt;&gt;();</span>
+
+        try {
+            // Step 1: Get access token
+<span class="nc" id="L170">            String accessToken = obtainDeposcoToken();</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">            if (accessToken == null) {</span>
+<span class="nc" id="L172">                log.error(&quot;Failed to obtain Deposco access token. Skipping external sync.&quot;);</span>
+<span class="nc" id="L173">                return atpBySku;</span>
+            }
+
+            // Step 2: Calculate page count
+<span class="nc" id="L177">            int deviceCount = (int) deviceRepository.count();</span>
+<span class="nc" id="L178">            int pageCount = Math.max(1, (int) Math.ceil((double) deviceCount / pageSize)) + 1;</span>
+<span class="nc" id="L179">            log.info(&quot;Fetching Deposco inventory: estimated {} pages for {} devices&quot;, pageCount, deviceCount);</span>
+
+            // Step 3: Paginated fetch
+<span class="nc" id="L182">            int totalPagesProcessed = 0;</span>
+<span class="nc bnc" id="L183" title="All 2 branches missed.">            for (int pageNo = 1; pageNo &lt;= pageCount; pageNo++) {</span>
+                try {
+<span class="nc" id="L185">                    log.info(&quot;PWS Inventory Sync Deposco API. PageNum: {}&quot;, pageNo);</span>
+
+<span class="nc" id="L187">                    HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L188">                    headers.setBearerAuth(accessToken);</span>
+<span class="nc" id="L189">                    headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L190">                    HttpEntity&lt;Void&gt; request = new HttpEntity&lt;&gt;(headers);</span>
+
+<span class="nc" id="L192">                    String url = deposcoBaseUrl + &quot;/inventory?page=&quot; + pageNo + &quot;&amp;pageSize=&quot; + pageSize;</span>
+<span class="nc" id="L193">                    ResponseEntity&lt;InventoryPage&gt; response = restTemplate.exchange(</span>
+                            url, HttpMethod.GET, request, InventoryPage.class);
+
+<span class="nc bnc" id="L196" title="All 4 branches missed.">                    if (response.getStatusCode().is2xxSuccessful() &amp;&amp; response.getBody() != null) {</span>
+<span class="nc" id="L197">                        InventoryPage page = response.getBody();</span>
+<span class="nc bnc" id="L198" title="All 2 branches missed.">                        if (page.getItems() != null) {</span>
+<span class="nc bnc" id="L199" title="All 2 branches missed.">                            for (ItemInventory item : page.getItems()) {</span>
+<span class="nc" id="L200">                                int totalAtp = 0;</span>
+<span class="nc bnc" id="L201" title="All 2 branches missed.">                                if (item.getFacilities() != null) {</span>
+<span class="nc bnc" id="L202" title="All 2 branches missed.">                                    for (FacilityInventory f : item.getFacilities()) {</span>
+<span class="nc bnc" id="L203" title="All 2 branches missed.">                                        if (f.getAvailableToPromise() != null) {</span>
+<span class="nc" id="L204">                                            totalAtp += f.getAvailableToPromise()</span>
+<span class="nc" id="L205">                                                    .setScale(0, RoundingMode.FLOOR).intValue();</span>
+                                        }
+<span class="nc" id="L207">                                    }</span>
+                                }
+<span class="nc" id="L209">                                atpBySku.put(item.getItemNumber(), totalAtp);</span>
+<span class="nc" id="L210">                            }</span>
+                        }
+<span class="nc" id="L212">                        totalPagesProcessed++;</span>
+
+                        // Break early if we've exhausted pages
+<span class="nc bnc" id="L215" title="All 4 branches missed.">                        if (page.getItems() == null || page.getItems().isEmpty()) {</span>
+<span class="nc" id="L216">                            break;</span>
+                        }
+                    }
+<span class="nc" id="L219">                } catch (Exception e) {</span>
+<span class="nc" id="L220">                    log.error(&quot;Deposco API error on page {}: {}&quot;, pageNo, e.getMessage());</span>
+<span class="nc" id="L221">                }</span>
+            }
+
+<span class="nc" id="L224">            log.info(&quot;Deposco fetch complete: {} pages, {} unique SKUs&quot;, totalPagesProcessed, atpBySku.size());</span>
+<span class="nc" id="L225">        } catch (Exception e) {</span>
+<span class="nc" id="L226">            log.error(&quot;Failed to fetch Deposco inventory: {}&quot;, e.getMessage(), e);</span>
+<span class="nc" id="L227">        }</span>
+
+<span class="nc" id="L229">        return atpBySku;</span>
+    }
+
+    /**
+     * Authenticate with Deposco and return the bearer token.
+     */
+    private String obtainDeposcoToken() {
+        try {
+<span class="nc" id="L237">            HttpHeaders headers = new HttpHeaders();</span>
+<span class="nc" id="L238">            headers.setContentType(MediaType.APPLICATION_JSON);</span>
+<span class="nc" id="L239">            Map&lt;String, String&gt; body = Map.of(&quot;username&quot;, deposcoUsername, &quot;password&quot;, deposcoPassword);</span>
+<span class="nc" id="L240">            HttpEntity&lt;Map&lt;String, String&gt;&gt; request = new HttpEntity&lt;&gt;(body, headers);</span>
+
+<span class="nc" id="L242">            ResponseEntity&lt;Map&gt; response = restTemplate.postForEntity(</span>
+                    deposcoBaseUrl + &quot;/auth/token&quot;, request, Map.class);
+
+<span class="nc bnc" id="L245" title="All 4 branches missed.">            if (response.getStatusCode().is2xxSuccessful() &amp;&amp; response.getBody() != null) {</span>
+<span class="nc" id="L246">                return (String) response.getBody().get(&quot;access_token&quot;);</span>
+            }
+<span class="nc" id="L248">        } catch (Exception e) {</span>
+<span class="nc" id="L249">            log.error(&quot;Deposco authentication failed: {}&quot;, e.getMessage());</span>
+<span class="nc" id="L250">        }</span>
+<span class="nc" id="L251">        return null;</span>
+    }
+
+    /**
+     * Apply ATP updates and reserved qty recalculation (shared between real and simulated sync).
+     */
+    @Transactional
+    public AtpSyncResult applyAtpUpdates(Map&lt;String, Integer&gt; atpBySku, LocalDateTime syncBeginTime) {
+<span class="fc" id="L259">        List&lt;Device&gt; allDevices = deviceRepository.findByIsActiveTrue();</span>
+<span class="fc" id="L260">        Map&lt;String, Device&gt; deviceBySku = new HashMap&lt;&gt;();</span>
+<span class="fc bfc" id="L261" title="All 2 branches covered.">        for (Device d : allDevices) {</span>
+<span class="pc bpc" id="L262" title="1 of 2 branches missed.">            if (d.getSku() != null) deviceBySku.put(d.getSku(), d);</span>
+<span class="fc" id="L263">        }</span>
+
+<span class="fc" id="L265">        int devicesUpdated = 0;</span>
+<span class="fc" id="L266">        List&lt;String&gt; missingSkus = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L267">        List&lt;Device&gt; updatedDevices = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L269" title="All 2 branches covered.">        for (Map.Entry&lt;String, Integer&gt; entry : atpBySku.entrySet()) {</span>
+<span class="fc" id="L270">            Device device = deviceBySku.get(entry.getKey());</span>
+<span class="fc bfc" id="L271" title="All 2 branches covered.">            if (device == null) {</span>
+<span class="fc" id="L272">                missingSkus.add(entry.getKey());</span>
+<span class="fc" id="L273">                continue;</span>
+            }
+
+<span class="fc bfc" id="L276" title="All 2 branches covered.">            int currentQty = device.getAvailableQty() != null ? device.getAvailableQty() : 0;</span>
+<span class="fc" id="L277">            int newAtp = entry.getValue();</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">            if (currentQty != newAtp) {</span>
+<span class="fc" id="L279">                device.setAvailableQty(newAtp);</span>
+<span class="fc" id="L280">                device.setAtpQty(newAtp);</span>
+<span class="fc" id="L281">                device.setLastSyncTime(syncBeginTime);</span>
+<span class="fc" id="L282">                updatedDevices.add(device);</span>
+<span class="fc" id="L283">                devicesUpdated++;</span>
+            }
+<span class="fc" id="L285">        }</span>
+
+<span class="fc bfc" id="L287" title="All 2 branches covered.">        if (!updatedDevices.isEmpty()) {</span>
+<span class="fc" id="L288">            deviceRepository.saveAll(updatedDevices);</span>
+        }
+
+<span class="fc" id="L291">        updateReservedQuantities(updatedDevices);</span>
+
+<span class="fc" id="L293">        AtpSyncResult result = new AtpSyncResult();</span>
+<span class="fc" id="L294">        result.setSyncStartTime(syncBeginTime);</span>
+<span class="fc" id="L295">        result.setSyncEndTime(LocalDateTime.now());</span>
+<span class="fc" id="L296">        result.setTotalItemsReceived(atpBySku.size());</span>
+<span class="fc" id="L297">        result.setDevicesUpdated(devicesUpdated);</span>
+<span class="fc" id="L298">        result.setDevicesMissing(missingSkus.size());</span>
+<span class="fc bfc" id="L299" title="All 2 branches covered.">        result.setMissingSkus(missingSkus.size() &gt; 50 ? missingSkus.subList(0, 50) : missingSkus);</span>
+<span class="fc" id="L300">        return result;</span>
+    }
+
+    /**
+     * Recalculate reserved and ATP quantities per device.
+     * Mirrors legacy SUB_UpdateReservedQuanityPerDevice:
+     *   - reservedQty = min(sum of ordered-offer-item quantities, availableQty)
+     *   - atpQty = availableQty - reservedQty
+     *
+     * TODO: Wire to OfferItem repository once offer flow is active.
+     * For now, sets reservedQty = 0 and atpQty = availableQty.
+     */
+    private void updateReservedQuantities(List&lt;Device&gt; devices) {
+<span class="fc bfc" id="L313" title="All 2 branches covered.">        for (Device device : devices) {</span>
+<span class="pc bpc" id="L314" title="1 of 2 branches missed.">            int available = device.getAvailableQty() != null ? device.getAvailableQty() : 0;</span>
+
+            // TODO: Replace with actual offer-item reservation query:
+            // int totalReserved = offerItemRepository.sumReservedQtyByDevice(device.getId());
+<span class="fc" id="L318">            int totalReserved = 0;</span>
+
+<span class="fc" id="L320">            int reservedQty = Math.min(totalReserved, available);</span>
+<span class="fc" id="L321">            int atpQty = available - reservedQty;</span>
+
+<span class="fc" id="L323">            device.setReservedQty(reservedQty);</span>
+<span class="fc" id="L324">            device.setAtpQty(atpQty);</span>
+<span class="fc" id="L325">        }</span>
+
+<span class="fc bfc" id="L327" title="All 2 branches covered.">        if (!devices.isEmpty()) {</span>
+<span class="fc" id="L328">            deviceRepository.saveAll(devices);</span>
+        }
+<span class="fc" id="L330">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

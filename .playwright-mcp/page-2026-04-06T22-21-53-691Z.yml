@@ -1,0 +1,60 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - img "ecoATM" [ref=e5]
+      - navigation [ref=e6]:
+        - link "Users" [ref=e7] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e9]
+          - generic [ref=e14]: Users
+        - link "Buyers" [ref=e15] [cursor=pointer]:
+          - /url: /buyers
+          - img [ref=e17]
+          - generic [ref=e20]: Buyers
+        - link "Inventory" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e23]
+          - generic [ref=e26]: Inventory
+        - link "PO Purchase Order" [ref=e27] [cursor=pointer]:
+          - /url: /purchase-order
+          - generic [ref=e29]: PO
+          - generic [ref=e30]: Purchase Order
+        - link "RB Reserved Bids (EB)" [ref=e31] [cursor=pointer]:
+          - /url: /reserved-bids
+          - generic [ref=e33]: RB
+          - generic [ref=e34]: Reserved Bids (EB)
+        - link "Auction Scheduling" [ref=e35] [cursor=pointer]:
+          - /url: /auction-scheduling
+          - img [ref=e37]
+          - generic [ref=e40]: Auction Scheduling
+        - link "Bid as Bidder" [ref=e41] [cursor=pointer]:
+          - /url: /bid-as-bidder
+          - img [ref=e43]
+          - generic [ref=e45]: Bid as Bidder
+        - link "Auction" [ref=e46] [cursor=pointer]:
+          - /url: /auction
+          - img [ref=e48]
+          - generic [ref=e51]: Auction
+        - link "Reports" [ref=e52] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e54]
+          - generic [ref=e55]: Reports
+          - img [ref=e57]
+        - link "Settings" [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e61]
+          - generic [ref=e64]: Settings
+          - img [ref=e66]
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e70]:
+          - generic [ref=e71]: Bidder User
+          - button "User menu" [ref=e72] [cursor=pointer]:
+            - generic [ref=e73]: BU
+      - main [ref=e74]:
+        - generic [ref=e75]:
+          - img "ecoATM" [ref=e77]
+          - paragraph [ref=e79]: Loading...
+  - button "Open Next.js Dev Tools" [ref=e85] [cursor=pointer]:
+    - img [ref=e86]
+  - alert [ref=e89]

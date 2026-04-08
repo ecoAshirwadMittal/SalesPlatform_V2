@@ -1,0 +1,332 @@
+# Page: PWS_RMADetails_Bidder
+
+**Allowed Roles:** EcoATM_RMA.Administrator, EcoATM_RMA.Bidder, EcoATM_RMA.SalesLeader, EcoATM_RMA.SalesOps, EcoATM_RMA.SalesRep
+
+**Layout:** `EcoATM_Direct_Theme.EcoATM_PWS_Bidder`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+    ↳ [Click] → **Page**: `EcoATM_RMA.RMA_RequestsOverview_Buyer`
+    - 🧩 **Image** [Class: `pws-orderdetails-navfont`] (ID: `com.mendix.widget.web.image.Image`)
+        - datasource: icon
+        - onClickType: action
+        - widthUnit: auto
+        - width: 100
+        - heightUnit: auto
+        - height: 100
+        - iconSize: 14
+        - displayAs: fullImage
+  - 📦 **DataView** [Context]
+  - 📦 **DataView** [Context]
+  - 📦 **DataView** [Context]
+  - 📦 **DataView** [Context]
+      ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_RMADetailsBidder_Export`
+    - 🧩 **Data grid 2** [Class: `pws-rmadetails-datagrid`] (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: checkbox
+        - itemSelectionMode: clear
+        - loadingType: spinner
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMAItem.IMEI]
+            - header: IMEI/Serial
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMAItem.OrderNumber]
+            - header: Order Number
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMAItem.ShipDate]
+            - dynamicText: {1}
+            - header: Ship Date
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_PWSMDM.Device.SKU]
+            - header: SKU
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_PWSMDM.Device.DeviceDescription]
+            ➤ **content** (Widgets)
+            - header: Description
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMAItem.SalePrice]
+            - dynamicText: ${1}
+            - header: Original Price
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMAItem.ReturnReason]
+            - header: Return Reason
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFit
+            - minWidth: minContent
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+        - pageSize: 20
+        - pagination: buttons
+        - showPagingButtons: always
+        - pagingPosition: bottom
+        - loadMoreButtonCaption: Load More
+        - showEmptyPlaceholder: none
+        - onClickTrigger: single
+        - configurationStorageType: attribute
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row
+    - 📦 **DataView** [MF: EcoATM_RMA.DS_RMAFilterHelper]
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_ChangeFilterStatusToApproved`
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_ChangeFilterStatusToDeclined`
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_DownloadRMALabel`
+      - 🔤 **Text**: "More Actions" [Class: `pws-usericon_settings_title`]
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_RMADetailsBidder_Export`
+        ↳ [acti] → **Page**: `EcoATM_RMA.RMA_Instructions`
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_DownloadRMALabel`
+      - 🔤 **Text**: "More Actions" [Class: `pws-usericon_settings_title`]
+        ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_RMADetailsBidder_Export`
+        ↳ [acti] → **Page**: `EcoATM_RMA.RMA_Instructions`
+      - 🧩 **Data grid 2** [Class: `pws-rmadetails-datagrid`] 👁️ (If: `$RMA/DeclinedCount>0`) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.IMEI]
+              - header: IMEI/Serial
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_RMA.RMAItem.ShipDate]
+              - dynamicText: {1}
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWSMDM.Device.SKU]
+              - header: SKU
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWSMDM.Device.DeviceDescription]
+              ➤ **content** (Widgets)
+              - exportValue: {1}
+              - header: Description
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_RMA.RMAItem.SalePrice]
+              - dynamicText: ${1}
+              - header: Original Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.ReturnReason]
+              - header: Return Reason
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** [Class: `pws-rmadetails-datagrid`] 👁️ (If: `$RMA/DeclinedCount=0`) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: checkbox
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.IMEI]
+              - header: IMEI/Serial
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.OrderNumber]
+              - header: Order Number
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_RMA.RMAItem.ShipDate]
+              - dynamicText: {1}
+              - header: Ship Date
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_PWSMDM.Device.SKU]
+              - header: SKU
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: customContent
+              - attribute: [Attr: EcoATM_PWSMDM.Device.DeviceDescription]
+              ➤ **content** (Widgets)
+              - exportValue: {1}
+              - header: Description
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: dynamicText
+              - attribute: [Attr: EcoATM_RMA.RMAItem.SalePrice]
+              - dynamicText: ${1}
+              - header: Original Price
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_RMA.RMAItem.ReturnReason]
+              - header: Return Reason
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: single
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+- 📦 **DataView** [NF: EcoATM_Direct_Theme.DS_CurrentPageName]
+  - 🧩 **Microflow Timer** (ID: `MicroflowTimer.widget.MicroflowTimer`)
+      - interval: 100
+      - callEvent: callNanoflow

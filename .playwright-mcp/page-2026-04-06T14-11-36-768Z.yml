@@ -1,0 +1,89 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - img "ecoATM" [ref=e5]
+      - navigation [ref=e6]:
+        - link "👥 Users" [ref=e7] [cursor=pointer]:
+          - /url: /users
+          - generic [ref=e8]: 👥
+          - generic [ref=e9]: Users
+        - link "🏢 Buyers" [ref=e10] [cursor=pointer]:
+          - /url: /buyers
+          - generic [ref=e11]: 🏢
+          - generic [ref=e12]: Buyers
+        - link "📦 Inventory" [ref=e13] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e14]: 📦
+          - generic [ref=e15]: Inventory
+        - link "🔨 Auction" [ref=e16] [cursor=pointer]:
+          - /url: /auction
+          - generic [ref=e17]: 🔨
+          - generic [ref=e18]: Auction
+        - link "📊 Reports" [ref=e19] [cursor=pointer]:
+          - /url: /reports
+          - generic [ref=e20]: 📊
+          - generic [ref=e21]: Reports
+        - link "⚙️ Settings" [ref=e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e23]: ⚙️
+          - generic [ref=e24]: Settings
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - generic [ref=e29]: 👤
+      - main [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - heading "User Management" [level=2] [ref=e33]
+            - button "Create" [ref=e34] [cursor=pointer]:
+              - text: Create
+              - img [ref=e35]
+          - table [ref=e39]:
+            - rowgroup [ref=e40]:
+              - row "Name ▲ ▼ Buyer ▲ ▼ Roles ▲ ▼ Email ▲ ▼ Status ▲ ▼ Select" [ref=e41]:
+                - columnheader "Name ▲ ▼" [ref=e42]:
+                  - button "Name ▲ ▼" [ref=e44] [cursor=pointer]:
+                    - generic [ref=e45]: Name
+                    - generic [ref=e46]:
+                      - generic [ref=e47]: ▲
+                      - generic [ref=e48]: ▼
+                  - textbox "Ab" [ref=e49]
+                - columnheader "Buyer ▲ ▼" [ref=e50]:
+                  - button "Buyer ▲ ▼" [ref=e52] [cursor=pointer]:
+                    - generic [ref=e53]: Buyer
+                    - generic [ref=e54]:
+                      - generic [ref=e55]: ▲
+                      - generic [ref=e56]: ▼
+                  - textbox "Ab" [ref=e57]
+                - columnheader "Roles ▲ ▼" [ref=e58]:
+                  - button "Roles ▲ ▼" [ref=e60] [cursor=pointer]:
+                    - generic [ref=e61]: Roles
+                    - generic [ref=e62]:
+                      - generic [ref=e63]: ▲
+                      - generic [ref=e64]: ▼
+                  - textbox "Ab" [ref=e65]
+                - columnheader "Email ▲ ▼" [ref=e66]:
+                  - button "Email ▲ ▼" [ref=e68] [cursor=pointer]:
+                    - generic [ref=e69]: Email
+                    - generic [ref=e70]:
+                      - generic [ref=e71]: ▲
+                      - generic [ref=e72]: ▼
+                  - textbox "Ab" [ref=e73]
+                - columnheader "Status ▲ ▼ Select" [ref=e74]:
+                  - button "Status ▲ ▼" [ref=e76] [cursor=pointer]:
+                    - generic [ref=e77]: Status
+                    - generic [ref=e78]:
+                      - generic [ref=e79]: ▲
+                      - generic [ref=e80]: ▼
+                  - combobox [ref=e81] [cursor=pointer]:
+                    - option "Select" [selected]
+                    - option "Active"
+                    - option "Inactive"
+                    - option "Disabled"
+                - columnheader [ref=e82]:
+                  - button "Column selector" [ref=e83] [cursor=pointer]:
+                    - img [ref=e84]
+            - rowgroup [ref=e87]:
+              - row "Loading..." [ref=e88]:
+                - cell "Loading..." [ref=e89]
+  - button "Open Next.js Dev Tools" [ref=e95] [cursor=pointer]:
+    - img [ref=e96]

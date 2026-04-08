@@ -1,0 +1,262 @@
+# Page: RMA_RequestsOverview_Sales
+
+**Allowed Roles:** EcoATM_RMA.Administrator, EcoATM_RMA.SalesOps, EcoATM_RMA.SalesRep
+
+**Layout:** `EcoATM_Direct_Theme.EcoATM_PWS_Sales`
+
+## Widget Tree
+
+- 📦 **DataView** [MF: EcoATM_RMA.DS_CreateRMAMasterHelper]
+  - 📦 **ListView** [MF: EcoATM_RMA.DS_GetRMASummaryByStatus] [Class: `rma-status-list` | DP: {Style: No Styling}]
+      ↳ [Click] → **Microflow**: `EcoATM_RMA.ACT_ChangRMAStatus`
+  - 📦 **DataView** [Context]
+    - 🧩 **Data grid 2** [Class: `pws-rma-returns-datagrid`] 👁️ (If: `$currentObject/HeaderLabel != empty`) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: checkbox
+        - itemSelectionMode: clear
+        - loadingType: spinner
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMA.Number]
+            - header: RMA Number
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_RMA.RMAStatus.InternalStatusText]
+            ➤ **content** (Widgets)
+              - 📦 **DataView** [Context]
+            - header: RMA Status
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMA.SubmittedDate]
+            - header: Request Date
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: Administration.Account.FullName]
+            - header: Buyer
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_BuyerManagement.Buyer.CompanyName]
+            - header: Company
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestSKUs]
+            - dynamicText: {1}
+            - header: SKUs
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: center
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestQty]
+            - dynamicText: {1}
+            - header: Qty
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: center
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestSalesTotal]
+            ➤ **content** (Widgets)
+            - header: Request Total
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: right
+        - pageSize: 20
+        - pagination: buttons
+        - showPagingButtons: always
+        - pagingPosition: bottom
+        - loadMoreButtonCaption: Load More
+        - showEmptyPlaceholder: custom
+        ➤ **emptyPlaceholder** (Widgets)
+          - 🧩 **HTML Element** [DP: {Spacing top: Outer large}] (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+              - tagName: span
+              - tagNameCustom: div
+              - tagContentMode: innerHTML
+              - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no open RMA's</h1> </div> </body>
+        - rowClass: `$dataView4/DataGridHoverCSSClass + '-rma-datagridhover'`
+        - onClickTrigger: single
+        - configurationStorageType: attribute
+        ➤ **filterList**
+            - filter: [Attr: EcoATM_RMA.RMA.Number]
+            - filter: [Attr: EcoATM_RMA.RMA.RequestSKUs]
+            - filter: [Attr: EcoATM_RMA.RMAStatus.SystemStatus]
+        ➤ **filtersPlaceholder** (Widgets)
+            ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_DownloadRMAFile`
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row
+    - 🧩 **Data grid 2** [Class: `pws-rma-returns-datagrid`] 👁️ (If: `$currentObject/RMASystemStatus = 'Total'`) (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: checkbox
+        - itemSelectionMode: clear
+        - loadingType: spinner
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMA.Number]
+            - header: RMA Number
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_RMA.RMAStatus.InternalStatusText]
+            ➤ **content** (Widgets)
+              - 📦 **DataView** [Context]
+            - header: RMA Status
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_RMA.RMA.SubmittedDate]
+            - header: Request Date
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: Administration.Account.FullName]
+            - header: Buyer
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_BuyerManagement.Buyer.CompanyName]
+            - header: Company
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestSKUs]
+            - dynamicText: {1}
+            - header: SKUs
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: center
+            - showContentAs: dynamicText
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestQty]
+            - dynamicText: {1}
+            - header: Qty
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: center
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_RMA.RMA.RequestSalesTotal]
+            ➤ **content** (Widgets)
+            - header: Request Total
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: right
+        - pageSize: 20
+        - pagination: buttons
+        - showPagingButtons: always
+        - pagingPosition: bottom
+        - loadMoreButtonCaption: Load More
+        - showEmptyPlaceholder: custom
+        ➤ **emptyPlaceholder** (Widgets)
+          - 🧩 **HTML Element** [DP: {Spacing top: Outer large}] (ID: `com.mendix.widget.web.htmlelement.HTMLElement`)
+              - tagName: span
+              - tagNameCustom: div
+              - tagContentMode: innerHTML
+              - tagContentHTML: <body class="body-container"> <div class="message-container"> <h1>There are currently no open RMA's</h1> </div> </body>
+        - rowClass: `$dataView4/DataGridHoverCSSClass + '-rma-datagridhover'`
+        - onClickTrigger: single
+        - configurationStorageType: attribute
+        ➤ **filterList**
+            - filter: [Attr: EcoATM_RMA.RMA.Number]
+            - filter: [Attr: EcoATM_RMA.RMA.RequestSKUs]
+            - filter: [Attr: EcoATM_RMA.RMAStatus.SystemStatus]
+        ➤ **filtersPlaceholder** (Widgets)
+            ↳ [acti] → **Microflow**: `EcoATM_RMA.ACT_DownloadRMAFile`
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row
+- 📦 **DataView** [NF: EcoATM_Direct_Theme.DS_CurrentPageName]
+  - 🧩 **Microflow Timer** (ID: `MicroflowTimer.widget.MicroflowTimer`)
+      - interval: 100
+      - callEvent: callNanoflow

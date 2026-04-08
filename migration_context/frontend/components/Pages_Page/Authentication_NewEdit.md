@@ -1,0 +1,283 @@
+# Page: Authentication_NewEdit
+
+**Allowed Roles:** MicrosoftGraph.Administrator
+
+**Layout:** `Atlas_Core.Atlas_Default`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 📑 **TabContainer**
+    - 📑 **Tab**: "Authentication"
+      - ⚡ **Button**: radioButtons2
+        ↳ [Change] → **Microflow**: `MicrosoftGraph.OCH_Authentication_GetWellKnownConfiguration`
+        ↳ [acti] → **Microflow**: `MicrosoftGraph.OCH_Authentication_GetWellKnownConfiguration`
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: MicrosoftGraph.StringArrayWrapper.Value]
+          - emptyOptionText: Select one or more scopes
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: listItem
+          ➤ **optionsSourceAssociationCustomContent** (Widgets)
+              ↳ [acti] → **Page**: `MicrosoftGraph.StringArrayWrapper_NewEdit`
+          - optionsSourceDatabaseCustomContentType: no
+          ➤ **menuFooterContent** (Widgets)
+              ↳ [acti] → **Nanoflow**: `MicrosoftGraph.ACT_StringArrayWrapper_AddSelectedScope`
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: MicrosoftGraph.StringArrayWrapper.Value]
+          - emptyOptionText: Select Response Type
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: MicrosoftGraph.StringArrayWrapper.Value]
+          - emptyOptionText: Select Response Mode
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: enumeration
+          - attributeEnumeration: [Attr: MicrosoftGraph.Authentication.Prompt]
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - emptyOptionText: Prompt
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - ⚡ **Button**: radioButtons1
+        ↳ [Change] → **Nanoflow**: `MicrosoftGraph.ACT_Authentication_ToggleActive`
+      - ⚡ **Button**: radioButtons3
+        ↳ [acti] → **OpenLink**
+    - 📑 **Tab**: "Authorizations"
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.Authentication.DisplayName]
+              - header: Authentication
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - emptyOptionCaption: Select
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - filterAssociationOptionLabel: `$currentObject/DisplayName`
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: System.User.Name]
+              - header: User
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - emptyOptionCaption: Select
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - filterAssociationOptionLabel: `$currentObject/Name`
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.UserInfo.Name]
+              - header: Name
+              - filterAssociationOptionLabel: `$currentObject/Name`
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.UserInfo.Email]
+              - header: Email
+              - filterAssociationOptionLabel: `$currentObject/Email`
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.Authorization.Expires_In]
+              - header: Expires in
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.Authorization.Successful]
+              - header: Successful
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.Authorization.AdminConsent]
+              - header: Admin Consent
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MicrosoftGraph.Authorization.GrantFlow]
+              - header: Grant Flow
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: dynamicText
+              - attribute: [Attr: MicrosoftGraph.Authorization.changedDate]
+              - dynamicText: {1}
+              - header: Changed Date
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: dynamicText
+              - attribute: [Attr: MicrosoftGraph.Authorization.createdDate]
+              - dynamicText: {1}
+              - header: Created Date
+              - visible: `true`
+              - hidable: yes
+              - width: autoFill
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: customContent
+              - attribute: [Attr: MicrosoftGraph.Authorization.Token_type]
+              ➤ **content** (Widgets)
+                  ↳ [acti] → **Page**: `MicrosoftGraph.Authorization_Resources_View`
+                  ↳ [acti] → **Delete**
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 20
+          - pagination: virtualScrolling
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - showEmptyPlaceholder: none
+          - onClickTrigger: single
+          ➤ **filterList**
+              - filter: [Attr: System.User.Name]
+              - filter: [Attr: MicrosoftGraph.UserInfo.Name]
+              - filter: [Attr: MicrosoftGraph.UserInfo.Email]
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Microflow**: `MicrosoftGraph.ACT_Authorization_Reauthorize`
+            - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                - defaultFilter: contains
+                - placeholder: Search
+                - delay: 500
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+          - itemSelectionMode: clear
+          - loadMoreButtonCaption: Load More
+          - configurationStorageType: attribute
+          - loadingType: spinner
+    ↳ [acti] → **Nanoflow**: `MicrosoftGraph.ACT_Authentication_Save`
+    ↳ [acti] → **Cancel Changes**

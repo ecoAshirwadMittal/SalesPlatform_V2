@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RmaSubmitResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">RmaSubmitResponse.java</span></div><h1>RmaSubmitResponse.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
+
+import java.util.List;
+
+public class RmaSubmitResponse {
+
+    private boolean success;
+    private String rmaNumber;
+    private Long rmaId;
+    private int itemCount;
+    private String message;
+    private List&lt;String&gt; errors;
+
+<span class="nc" id="L14">    public RmaSubmitResponse() {}</span>
+
+    public static RmaSubmitResponse success(Long rmaId, String rmaNumber, int itemCount) {
+<span class="nc" id="L17">        RmaSubmitResponse r = new RmaSubmitResponse();</span>
+<span class="nc" id="L18">        r.success = true;</span>
+<span class="nc" id="L19">        r.rmaId = rmaId;</span>
+<span class="nc" id="L20">        r.rmaNumber = rmaNumber;</span>
+<span class="nc" id="L21">        r.itemCount = itemCount;</span>
+<span class="nc" id="L22">        r.message = &quot;RMA &quot; + rmaNumber + &quot; submitted successfully with &quot; + itemCount + &quot; item(s).&quot;;</span>
+<span class="nc" id="L23">        return r;</span>
+    }
+
+    public static RmaSubmitResponse failure(List&lt;String&gt; errors) {
+<span class="nc" id="L27">        RmaSubmitResponse r = new RmaSubmitResponse();</span>
+<span class="nc" id="L28">        r.success = false;</span>
+<span class="nc" id="L29">        r.errors = errors;</span>
+<span class="nc" id="L30">        r.message = &quot;RMA submission failed with &quot; + errors.size() + &quot; validation error(s).&quot;;</span>
+<span class="nc" id="L31">        return r;</span>
+    }
+
+<span class="nc" id="L34">    public boolean isSuccess() { return success; }</span>
+<span class="nc" id="L35">    public void setSuccess(boolean success) { this.success = success; }</span>
+
+<span class="nc" id="L37">    public String getRmaNumber() { return rmaNumber; }</span>
+<span class="nc" id="L38">    public void setRmaNumber(String rmaNumber) { this.rmaNumber = rmaNumber; }</span>
+
+<span class="nc" id="L40">    public Long getRmaId() { return rmaId; }</span>
+<span class="nc" id="L41">    public void setRmaId(Long rmaId) { this.rmaId = rmaId; }</span>
+
+<span class="nc" id="L43">    public int getItemCount() { return itemCount; }</span>
+<span class="nc" id="L44">    public void setItemCount(int itemCount) { this.itemCount = itemCount; }</span>
+
+<span class="nc" id="L46">    public String getMessage() { return message; }</span>
+<span class="nc" id="L47">    public void setMessage(String message) { this.message = message; }</span>
+
+<span class="nc" id="L49">    public List&lt;String&gt; getErrors() { return errors; }</span>
+<span class="nc" id="L50">    public void setErrors(List&lt;String&gt; errors) { this.errors = errors; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

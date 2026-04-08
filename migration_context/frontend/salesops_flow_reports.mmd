@@ -1,0 +1,15 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Reports --> EcoATM_Reports_BidDetailReport_BuyerCodeSelect
+    Navigation_Menu -- Reports --> AuctionUI_PG_AggInventory_TargetPriceView
+    Navigation_Menu -- Reports --> AuctionUI_BidRound_Overview
+    Navigation_Menu -- Reports --> AuctionUI_RoundTwoSelectedBuyers
+    Navigation_Menu -- Reports --> AuctionUI_PG_Round3DataFiles
+    AuctionUI_BidRound_Overview["AuctionUI.BidRound_Overview (Page)"]:::page
+    AuctionUI_RoundTwoSelectedBuyers["AuctionUI.RoundTwoSelectedBuyers (Page)"]:::page
+    AuctionUI_PG_Round3DataFiles["AuctionUI.PG_Round3DataFiles (Page)"]:::page
+    EcoATM_Reports_BidDetailReport_BuyerCodeSelect["EcoATM_Reports.BidDetailReport_BuyerCodeSelect (Page)"]:::page
+    AuctionUI_PG_AggInventory_TargetPriceView["AuctionUI.PG_AggInventory_TargetPriceView (Page)"]:::page
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

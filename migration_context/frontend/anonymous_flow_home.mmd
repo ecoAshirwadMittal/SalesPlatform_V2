@@ -1,0 +1,11 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Home --> AuctionUI_Nav_AnonymousHomePage
+    DeepLink_DeepLinkHome["DeepLink.DeepLinkHome"]:::microflow
+    EcoATM_UserManagement_Login_New["EcoATM_UserManagement.Login_New (Page)"]:::page
+    AuctionUI_Nav_AnonymousHomePage["AuctionUI.Nav_AnonymousHomePage"]:::microflow
+    AuctionUI_Nav_AnonymousHomePage --> DeepLink_DeepLinkHome
+    AuctionUI_Nav_AnonymousHomePage --> EcoATM_UserManagement_Login_New
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>CaseLot.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">CaseLot.java</span></div><h1>CaseLot.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import com.ecoatm.salesplatform.model.mdm.Device;
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;case_lot&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L10">public class CaseLot {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;device_id&quot;, nullable = false)
+    private Device device;
+
+    @Column(name = &quot;case_lot_id&quot;, nullable = false, unique = true)
+    private String caseLotId;
+
+    @Column(name = &quot;case_lot_size&quot;, nullable = false)
+    private Integer caseLotSize;
+
+    @Column(name = &quot;case_lot_price&quot;)
+    private BigDecimal caseLotPrice;
+
+    @Column(name = &quot;case_lot_avl_qty&quot;)
+    private Integer caseLotAvlQty;
+
+    @Column(name = &quot;case_lot_reserved_qty&quot;)
+    private Integer caseLotReservedQty;
+
+    @Column(name = &quot;case_lot_atp_qty&quot;)
+    private Integer caseLotAtpQty;
+
+    @Column(name = &quot;is_active&quot;)
+    private Boolean isActive;
+
+    @Column(name = &quot;created_by&quot;)
+    private String createdBy;
+
+    @Column(name = &quot;updated_by&quot;)
+    private String updatedBy;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @PrePersist
+<span class="nc" id="L54">    protected void onCreate() { createdDate = updatedDate = LocalDateTime.now(); }</span>
+
+    @PreUpdate
+<span class="nc" id="L57">    protected void onUpdate() { updatedDate = LocalDateTime.now(); }</span>
+
+    // Getters and Setters
+<span class="fc" id="L60">    public Long getId() { return id; }</span>
+<span class="fc" id="L61">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="fc" id="L63">    public Device getDevice() { return device; }</span>
+<span class="fc" id="L64">    public void setDevice(Device device) { this.device = device; }</span>
+
+<span class="fc" id="L66">    public String getCaseLotId() { return caseLotId; }</span>
+<span class="fc" id="L67">    public void setCaseLotId(String caseLotId) { this.caseLotId = caseLotId; }</span>
+
+<span class="fc" id="L69">    public Integer getCaseLotSize() { return caseLotSize; }</span>
+<span class="fc" id="L70">    public void setCaseLotSize(Integer caseLotSize) { this.caseLotSize = caseLotSize; }</span>
+
+<span class="fc" id="L72">    public BigDecimal getCaseLotPrice() { return caseLotPrice; }</span>
+<span class="fc" id="L73">    public void setCaseLotPrice(BigDecimal caseLotPrice) { this.caseLotPrice = caseLotPrice; }</span>
+
+<span class="fc" id="L75">    public Integer getCaseLotAvlQty() { return caseLotAvlQty; }</span>
+<span class="fc" id="L76">    public void setCaseLotAvlQty(Integer caseLotAvlQty) { this.caseLotAvlQty = caseLotAvlQty; }</span>
+
+<span class="fc" id="L78">    public Integer getCaseLotReservedQty() { return caseLotReservedQty; }</span>
+<span class="fc" id="L79">    public void setCaseLotReservedQty(Integer caseLotReservedQty) { this.caseLotReservedQty = caseLotReservedQty; }</span>
+
+<span class="fc" id="L81">    public Integer getCaseLotAtpQty() { return caseLotAtpQty; }</span>
+<span class="fc" id="L82">    public void setCaseLotAtpQty(Integer caseLotAtpQty) { this.caseLotAtpQty = caseLotAtpQty; }</span>
+
+<span class="fc" id="L84">    public Boolean getIsActive() { return isActive; }</span>
+<span class="fc" id="L85">    public void setIsActive(Boolean isActive) { this.isActive = isActive; }</span>
+
+<span class="fc" id="L87">    public String getCreatedBy() { return createdBy; }</span>
+<span class="fc" id="L88">    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }</span>
+
+<span class="fc" id="L90">    public String getUpdatedBy() { return updatedBy; }</span>
+<span class="fc" id="L91">    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }</span>
+
+<span class="nc" id="L93">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="nc" id="L94">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,18 @@
+# Microflow Analysis: SUB_ClearQualifiedBuyerList
+
+### Requirements (Inputs):
+- **$SchedulingAuction** (A record of type: AuctionUI.SchedulingAuction)
+
+### Execution Steps:
+1. **Create Variable**
+2. **Create Variable**
+3. **Run another process: "Custom_Logging.SUB_Log_StartTimer"
+      - Store the result in a new variable called **$Log****
+4. **Retrieve
+      - Store the result in a new variable called **$QualifiedBuyerCodeList****
+5. **Delete**
+6. **Run another process: "Custom_Logging.SUB_Log_EndTimer"
+      - Store the result in a new variable called **$Log****
+7. **Process successfully completed.**
+
+**Conclusion:** This process sends back a [Void] result.

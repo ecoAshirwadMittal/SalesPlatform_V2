@@ -1,0 +1,114 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]: Sales
+      - link "Inventory" [ref=e5] [cursor=pointer]:
+        - /url: /pws/inventory
+        - img [ref=e7]
+        - generic [ref=e10]: Inventory
+      - link "Offer Review" [ref=e11] [cursor=pointer]:
+        - /url: /pws/offer-review
+        - img [ref=e13]
+        - generic [ref=e16]: Offer Review
+      - link "RMA Review" [ref=e17] [cursor=pointer]:
+        - /url: /pws/rma-review
+        - img [ref=e19]
+        - generic [ref=e23]: RMA Review
+      - link "Pricing" [ref=e24] [cursor=pointer]:
+        - /url: /pws/pricing
+        - img [ref=e26]
+        - generic [ref=e28]: Pricing
+      - generic [ref=e29]: Buyers
+      - link "Shop" [ref=e30] [cursor=pointer]:
+        - /url: /pws/order
+        - img [ref=e32]
+        - generic [ref=e36]: Shop
+      - link "Counters" [ref=e37] [cursor=pointer]:
+        - /url: /pws/counters
+        - img [ref=e39]
+        - generic [ref=e44]: Counters
+      - link "Orders" [ref=e45] [cursor=pointer]:
+        - /url: /pws/orders
+        - img [ref=e47]
+        - generic [ref=e50]: Orders
+      - link "RMAs" [ref=e51] [cursor=pointer]:
+        - /url: /pws/rmas
+        - img [ref=e53]
+        - generic [ref=e56]: RMAs
+      - link "FAQ's" [ref=e57] [cursor=pointer]:
+        - /url: /pws/faqs
+        - img [ref=e59]
+        - generic [ref=e62]: FAQ's
+      - link "Grading" [ref=e63] [cursor=pointer]:
+        - /url: /pws/grading
+        - img [ref=e65]
+        - generic [ref=e67]: Grading
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e70]:
+          - img "ecoATM" [ref=e71]
+          - generic [ref=e72]: Premium Wholesale
+          - generic [ref=e73]: "22379"
+        - button "User menu" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+      - main [ref=e79]:
+        - generic [ref=e81]:
+          - generic [ref=e82]:
+            - button "Back to Shop" [ref=e83] [cursor=pointer]:
+              - img [ref=e84]
+              - text: Back to Shop
+            - heading "My Offer" [level=2] [ref=e86]
+            - generic [ref=e87]:
+              - generic [ref=e88]:
+                - generic [ref=e89]: SKUs
+                - generic [ref=e90]: "1"
+              - generic [ref=e91]:
+                - generic [ref=e92]: Qty
+                - generic [ref=e93]: "3"
+              - generic [ref=e94]:
+                - generic [ref=e95]: Total
+                - generic [ref=e96]: $150.00
+          - table [ref=e99]:
+            - rowgroup [ref=e100]:
+              - row "SKU Category Brand Model Carrier Capacity Color Grade Avl. Qty List Price Offer Price Qty Total" [ref=e101]:
+                - columnheader "SKU" [ref=e102]
+                - columnheader "Category" [ref=e103]
+                - columnheader "Brand" [ref=e104]
+                - columnheader "Model" [ref=e105]
+                - columnheader "Carrier" [ref=e106]
+                - columnheader "Capacity" [ref=e107]
+                - columnheader "Color" [ref=e108]
+                - columnheader "Grade" [ref=e109]
+                - columnheader "Avl. Qty" [ref=e110]
+                - columnheader "List Price" [ref=e111]
+                - columnheader "Offer Price" [ref=e112]
+                - columnheader "Qty" [ref=e113]
+                - columnheader "Total" [ref=e114]
+                - columnheader [ref=e115]
+            - rowgroup [ref=e116]:
+              - row "TEST-SKU-1 Tablet Apple iPad Pro 11-inch (2nd generation) - 256GB Space Gray - 0 $1250.00 50 3 $150.00" [ref=e117]:
+                - cell "TEST-SKU-1" [ref=e118]
+                - cell "Tablet" [ref=e119]
+                - cell "Apple" [ref=e120]
+                - cell "iPad Pro 11-inch (2nd generation)" [ref=e121]
+                - cell "-" [ref=e122]
+                - cell "256GB" [ref=e123]
+                - cell "Space Gray" [ref=e124]
+                - cell "-" [ref=e125]
+                - cell "0" [ref=e126]
+                - cell "$1250.00" [ref=e127]
+                - cell "50" [ref=e128]:
+                  - spinbutton [ref=e129]: "50"
+                - cell "3" [ref=e130]:
+                  - spinbutton [ref=e131]: "3"
+                - cell "$150.00" [ref=e132]:
+                  - strong [ref=e133]: $150.00
+                - cell [ref=e134]:
+                  - button "Remove" [ref=e135] [cursor=pointer]:
+                    - img [ref=e136]
+          - generic [ref=e139]:
+            - button "Reset Cart" [ref=e140] [cursor=pointer]
+            - button "Submit Order" [ref=e141] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e147] [cursor=pointer]:
+    - img [ref=e148]
+  - alert [ref=e151]

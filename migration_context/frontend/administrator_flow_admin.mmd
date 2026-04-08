@@ -1,0 +1,281 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Admin --> AuctionUI_Admin_ControlCenter
+    Navigation_Menu -- Admin --> AuctionUI_Admin_Auctions_Data
+    Navigation_Menu -- Admin --> AuctionUI_Admin_PWS_Data
+    TaskQueueScheduler_Schedule_View["TaskQueueScheduler.Schedule_View (Page)"]:::page
+    EcoATM_PWSMDM_Device_Overview["EcoATM_PWSMDM.Device_Overview (Page)"]:::page
+    EcoATM_PWS_ShipmentDetail_Overview["EcoATM_PWS.ShipmentDetail_Overview (Page)"]:::page
+    EcoATM_PWS_ShipmentDetail_Overview --> EcoATM_PWS_ShipmentDetail_NewEdit
+    EcoATM_BuyerManagement_BuyerCodeChangeLog_Overview["EcoATM_BuyerManagement.BuyerCodeChangeLog_Overview (Page)"]:::page
+    AuctionUI_BidDataDoc_Overview["AuctionUI.BidDataDoc_Overview (Page)"]:::page
+    AuctionUI_BidDataDoc_Overview --> AuctionUI_BidDataDoc_NewEdit
+    EcoATM_Reports_CohortMapping_NewEdit["EcoATM_Reports.CohortMapping_NewEdit (Page)"]:::page
+    EcoATM_EB_ReserveBid_Admin_Overview["EcoATM_EB.ReserveBid_Admin_Overview (Page)"]:::page
+    EcoATM_EB_ReserveBid_Admin_Overview --> EcoATM_EB_ReserveBid_Admin_NewEdit
+    EcoATM_RMA_RMAItem_Overview["EcoATM_RMA.RMAItem_Overview (Page)"]:::page
+    EcoATM_RMA_RMAItem_Overview --> EcoATM_RMA_RMAItem_NewEdit
+    AuctionUI_SchedulingAuction_Overview_AllBuyers["AuctionUI.SchedulingAuction_Overview_AllBuyers (Page)"]:::page
+    AuctionUI_SchedulingAuction_Overview_AllBuyers --> AuctionUI_SchedulingAuction_NewEdit
+    AuctionUI_SchedulingAuction_Overview_AllBuyers --> AuctionUI_SchedulingAuction_SubmittedBuyerCodes
+    EcoATM_PWSMDM_Capacity_Overview["EcoATM_PWSMDM.Capacity_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Capacity_Overview --> EcoATM_PWSMDM_Capacity_NewEdit
+    EcoATM_PWSIntegration_Integration_Overview["EcoATM_PWSIntegration.Integration_Overview (Page)"]:::page
+    EcoATM_PWSIntegration_Integration_Overview --> EcoATM_PWSIntegration_Integration_NewEdit
+    EcoATM_PWS_BuyerOffer_NewEdit["EcoATM_PWS.BuyerOffer_NewEdit (Page)"]:::page
+    EcoATM_DA_DAWeek_Overview["EcoATM_DA.DAWeek_Overview (Page)"]:::page
+    EcoATM_DA_DAWeek_Overview --> EcoATM_DA_DAWeek_NewEdit
+    EcoATM_EB_ReserveBid_Admin_NewEdit["EcoATM_EB.ReserveBid_Admin_NewEdit (Page)"]:::page
+    AuctionUI_Auction_Edit["AuctionUI.Auction_Edit (Page)"]:::page
+    AuctionUI_SchedulingAuction_SubmittedBuyerCodes["AuctionUI.SchedulingAuction_SubmittedBuyerCodes (Page)"]:::page
+    AuctionUI_PG_UserHelperGuide["AuctionUI.PG_UserHelperGuide (Page)"]:::page
+    AuctionUI_PG_UserHelperGuide --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_PG_UserHelperGuide --> AuctionUI_UserHelperGuide_NewEdit
+    AuctionUI_AggregatedInventory_Overview["AuctionUI.AggregatedInventory_Overview (Page)"]:::page
+    AuctionUI_AggregatedInventory_Overview --> AuctionUI_AggregatedInventory_NewEdit
+    EcoATM_PWSMDM_Grade_Overview["EcoATM_PWSMDM.Grade_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Grade_Overview --> EcoATM_PWSMDM_Grade_View
+    AuctionUI_Week_Admin_NewEdit["AuctionUI.Week_Admin_NewEdit (Page)"]:::page
+    AuctionUI_PG_ErrorTestPage["AuctionUI.PG_ErrorTestPage (Page)"]:::page
+    Administration_Account_Overview["Administration.Account_Overview (Page)"]:::page
+    Administration_Account_Overview --> Administration_Account_Edit
+    TaskQueueScheduler_Schedule_NewEdit_Configuration["TaskQueueScheduler.Schedule_NewEdit_Configuration (Page)"]:::page
+    OQL_ExampleOQL_Result["OQL.ExampleOQL_Result (Page)"]:::page
+    AuctionUI_BuyerCode_Edit["AuctionUI.BuyerCode_Edit (Page)"]:::page
+    EcoATM_PO_PurchaseOrder_Overview["EcoATM_PO.PurchaseOrder_Overview (Page)"]:::page
+    EcoATM_PO_PurchaseOrder_Overview --> EcoATM_PO_PurchaseOrder_NewEdit
+    AuctionUI_BidData_Overview["AuctionUI.BidData_Overview (Page)"]:::page
+    AuctionUI_BidData_Overview --> AuctionUI_BidData_NewEdit
+    EcoATM_BuyerManagement_SalesRepresentative_NewEdit["EcoATM_BuyerManagement.SalesRepresentative_NewEdit (Page)"]:::page
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode["AuctionUI.SchedulingAuction_Overview_perBuyerCode (Page)"]:::page
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode --> AuctionUI_SchedulingAuction_NewEdit
+    EcoATM_PWSMDM_Carrier_NewEdit["EcoATM_PWSMDM.Carrier_NewEdit (Page)"]:::page
+    EcoATM_BuyerManagement_PG_BuyerSubmitConfig["EcoATM_BuyerManagement.PG_BuyerSubmitConfig (Page)"]:::page
+    EcoATM_BuyerManagement_PG_BuyerSubmitConfig --> AuctionUI_Business_Auctions_ControlCenter
+    EcoATM_RMA_RMA_Overview["EcoATM_RMA.RMA_Overview (Page)"]:::page
+    EcoATM_RMA_RMA_Overview --> EcoATM_RMA_RMA_NewEdit
+    EcoATM_RMA_RMA_Overview --> EcoATM_RMA_RMA_Detail
+    EcoATM_PWSMDM_OfferID_NewEdit["EcoATM_PWSMDM.OfferID_NewEdit (Page)"]:::page
+    AuctionUI_UserStatus_Overview["AuctionUI.UserStatus_Overview (Page)"]:::page
+    AuctionUI_UserStatus_Overview --> AuctionUI_UserStatus_NewEdit
+    EcoATM_MDM_CompanyHoliday_NewEdit["EcoATM_MDM.CompanyHoliday_NewEdit (Page)"]:::page
+    EcoATM_PWS_ShipmentDetail_NewEdit["EcoATM_PWS.ShipmentDetail_NewEdit (Page)"]:::page
+    AuctionUI_UserHelperGuide_NewEdit["AuctionUI.UserHelperGuide_NewEdit (Page)"]:::page
+    AuctionUI_BidDataTotalQuantityConfig_Overview["AuctionUI.BidDataTotalQuantityConfig_Overview (Page)"]:::page
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> AuctionUI_BidDataTotalQuantityConfig_NewEdit
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> EcoATM_BuyerManagement_PG_BidDataTotalQuantityConfig_Upload
+    TaskQueueScheduler_Schedule_Overview["TaskQueueScheduler.Schedule_Overview (Page)"]:::page
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_Schedule_NewEdit
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_Schedule_View
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_ProcessedQueueTask_View
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_ProcessedQueueTask_View
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_Schedule_NewEdit_Configuration
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_QueuedAction_Overview
+    TaskQueueScheduler_Schedule_Overview --> TaskQueueScheduler_ProcessedQueueTask_View
+    EcoATM_PWS_SKUSyncDetail_Overview["EcoATM_PWS.SKUSyncDetail_Overview (Page)"]:::page
+    EcoATM_PWS_SKUSyncDetail_Overview --> EcoATM_PWS_PWSInventorySyncReport_Overview
+    EcoATM_PWSMDM_Note_Overview["EcoATM_PWSMDM.Note_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Note_Overview --> EcoATM_PWSMDM_Note_NewEdit
+    ForgotPassword_ForgotPasswordConfiguration_Edit["ForgotPassword.ForgotPasswordConfiguration_Edit (Page)"]:::page
+    EcoATM_PWSMDM_Color_NewEdit["EcoATM_PWSMDM.Color_NewEdit (Page)"]:::page
+    DeepLink_DeepLinkConfig["DeepLink.DeepLinkConfig (Page)"]:::page
+    EcoATM_RMA_RMA_Detail["EcoATM_RMA.RMA_Detail (Page)"]:::page
+    EcoATM_PWSMDM_Category_NewEdit["EcoATM_PWSMDM.Category_NewEdit (Page)"]:::page
+    EcoATM_PWSMDM_Grade_View["EcoATM_PWSMDM.Grade_View (Page)"]:::page
+    EcoATM_PO_PODetail_NewEdit["EcoATM_PO.PODetail_NewEdit (Page)"]:::page
+    AuctionUI_Business_Auctions_ControlCenter["AuctionUI.Business_Auctions_ControlCenter (Page)"]:::page
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_Auction_Overview_QA_Testing
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_SchedulingAuction_Overview_perBuyerCode
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_BidData_Overview_QA_Testing
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_UserHelperGuide
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_BidDataTotalQuantityConfig_Overview
+    AuctionUI_Business_Auctions_ControlCenter --> EcoATM_BuyerManagement_PG_BuyerSubmitConfig
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_ErrorTestPage
+    AuctionUI_Business_Auctions_ControlCenter --> EcoATM_BuyerManagement_QualifiedBuyerCodes_Overview
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_BidRankingConfiguration
+    AuctionUI_PG_CarryForwardTest["AuctionUI.PG_CarryForwardTest (Page)"]:::page
+    AuctionUI_BuyerCode_Overview["AuctionUI.BuyerCode_Overview (Page)"]:::page
+    AuctionUI_BuyerCode_Overview --> AuctionUI_BuyerCode_Edit
+    AuctionUI_BuyerCode_Overview --> EcoATM_BuyerManagement_BuyerCodeChangeLog_Overview
+    AuctionUI_Auction_Overview["AuctionUI.Auction_Overview (Page)"]:::page
+    AuctionUI_Auction_Overview --> AuctionUI_Auction_Edit
+    EcoATM_BuyerManagement_SalesRepresentative_Overview["EcoATM_BuyerManagement.SalesRepresentative_Overview (Page)"]:::page
+    EcoATM_BuyerManagement_SalesRepresentative_Overview --> EcoATM_BuyerManagement_SalesRepresentative_NewEdit
+    EcoATM_PWS_BuyerOfferItem_Overview["EcoATM_PWS.BuyerOfferItem_Overview (Page)"]:::page
+    EcoATM_PWS_BuyerOfferItem_Overview --> EcoATM_PWS_BuyerOfferItem_NewEdit
+    EcoATM_RMA_RMA_NewEdit["EcoATM_RMA.RMA_NewEdit (Page)"]:::page
+    EcoATM_DA_DeviceAllocation_View_Admin["EcoATM_DA.DeviceAllocation_View_Admin (Page)"]:::page
+    AuctionUI_Admin_ControlCenter["AuctionUI.Admin_ControlCenter (Page)"]:::page
+    AuctionUI_Admin_ControlCenter --> OQL_Example_Overview
+    AuctionUI_Admin_ControlCenter --> TaskQueueScheduler_Schedule_Overview
+    AuctionUI_Admin_ControlCenter --> TaskQueueHelpers_MonitoringDashboard
+    AuctionUI_Admin_ControlCenter --> XLSReport_Excel_Document_Overview
+    AuctionUI_Admin_ControlCenter --> XLSReport_Excel_Document_Overview
+    AuctionUI_Admin_ControlCenter --> AuctionUI_IdleTimeoutConfiguration
+    AuctionUI_Admin_ControlCenter --> Administration_Account_Overview
+    AuctionUI_Admin_ControlCenter --> EcoATM_UnitTest_UnitTest_Overview
+    AuctionUI_Admin_ControlCenter --> DeepLink_DeepLinkConfig
+    AuctionUI_Admin_ControlCenter --> ForgotPassword_ForgotPasswordConfiguration_Edit
+    AuctionUI_Admin_ControlCenter --> EcoATM_PWS_PWSUserPersonalization_Overview
+    AuctionUI_Admin_ControlCenter --> AuctionUI_MicrosoftGraph_Overview
+    AuctionUI_Admin_ControlCenter --> AuctionUI_Sharepoint_Overview
+    AuctionUI_Admin_ControlCenter --> AuctionUI_EcoATMDirectUser_Admin_Overview
+    AuctionUI_Admin_ControlCenter --> Administration_ActiveSessions
+    AuctionUI_Admin_ControlCenter --> Administration_RuntimeInstances
+    AuctionUI_Admin_ControlCenter --> Administration_ScheduledEvents
+    AuctionUI_Admin_ControlCenter --> AuctionUI_DocumentGeneration
+    AuctionUI_Admin_ControlCenter --> EcoATM_Lock_Lock_Overview
+    AuctionUI_Admin_ControlCenter --> AuctionUI_PG_CarryForwardTest
+    EcoATM_PWSMDM_Capacity_NewEdit["EcoATM_PWSMDM.Capacity_NewEdit (Page)"]:::page
+    OQL_ExamplePerson_NewEdit["OQL.ExamplePerson_NewEdit (Page)"]:::page
+    EcoATM_BuyerManagement_PG_BidDataTotalQuantityConfig_Upload["EcoATM_BuyerManagement.PG_BidDataTotalQuantityConfig_Upload (Page)"]:::page
+    EcoATM_PWS_PWSInventorySyncReport_Overview["EcoATM_PWS.PWSInventorySyncReport_Overview (Page)"]:::page
+    EcoATM_PWS_PWSInventorySyncReport_Overview --> EcoATM_PWS_SKUSyncDetail_Overview
+    OQL_Example_Overview["OQL.Example_Overview (Page)"]:::page
+    OQL_Example_Overview --> OQL_ExampleOQL_Result
+    OQL_Example_Overview --> OQL_ExamplePerson_NewEdit
+    EcoATM_PWS_PWSUserPersonalization_NewEdit["EcoATM_PWS.PWSUserPersonalization_NewEdit (Page)"]:::page
+    AuctionUI_AggregatedInventory_NewEdit["AuctionUI.AggregatedInventory_NewEdit (Page)"]:::page
+    EcoATM_PWSMDM_Carrier_Overview["EcoATM_PWSMDM.Carrier_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Carrier_Overview --> EcoATM_PWSMDM_Carrier_NewEdit
+    EcoATM_PO_PODetail_Overview["EcoATM_PO.PODetail_Overview (Page)"]:::page
+    EcoATM_PO_PODetail_Overview --> EcoATM_PO_PODetail_NewEdit
+    EcoATM_Direct_Theme_IdleTimeout_Overview["EcoATM_Direct_Theme.IdleTimeout_Overview (Page)"]:::page
+    EcoATM_Direct_Theme_IdleTimeout_Overview --> EcoATM_Direct_Theme_IdleTimeout_NewEdit
+    EcoATM_RMA_RMAItem_NewEdit["EcoATM_RMA.RMAItem_NewEdit (Page)"]:::page
+    EcoATM_PWSMDM_Brand_Overview["EcoATM_PWSMDM.Brand_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Brand_Overview --> EcoATM_MDM_Brand_NewEdit
+    AuctionUI_Auction_Overview_QA_Testing["AuctionUI.Auction_Overview_QA_Testing (Page)"]:::page
+    AuctionUI_Auction_Overview_QA_Testing --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_Auction_Overview_QA_Testing --> AuctionUI_Auction_Edit
+    AuctionUI_SchedulingAuction_NewEdit["AuctionUI.SchedulingAuction_NewEdit (Page)"]:::page
+    AuctionUI_BidDataTotalQuantityConfig_NewEdit["AuctionUI.BidDataTotalQuantityConfig_NewEdit (Page)"]:::page
+    EcoATM_PWS_Order_detail["EcoATM_PWS.Order_detail (Page)"]:::page
+    EcoATM_PWS_Order_detail --> EcoATM_PWS_OfferItem_NewEdit
+    EcoATM_Reports_PG_CohortMapping["EcoATM_Reports.PG_CohortMapping (Page)"]:::page
+    EcoATM_Reports_PG_CohortMapping --> EcoATM_Reports_CohortMapping_NewEdit
+    AuctionUI_AggreegatedInventoryTotals_Overview["AuctionUI.AggreegatedInventoryTotals_Overview (Page)"]:::page
+    AuctionUI_AggreegatedInventoryTotals_Overview --> AuctionUI_AggreegatedInventoryTotals_NewEdit
+    AuctionUI_BidRound_Admin_Overview["AuctionUI.BidRound_Admin_Overview (Page)"]:::page
+    AuctionUI_BidRound_Admin_Overview --> AuctionUI_BidRound_NewEdit
+    EcoATM_RMA_RMAFile_Overview["EcoATM_RMA.RMAFile_Overview (Page)"]:::page
+    AuctionUI_BidDataDoc_NewEdit["AuctionUI.BidDataDoc_NewEdit (Page)"]:::page
+    AuctionUI_AggreegatedInventoryTotals_NewEdit["AuctionUI.AggreegatedInventoryTotals_NewEdit (Page)"]:::page
+    EcoATM_MDM_Brand_NewEdit["EcoATM_MDM.Brand_NewEdit (Page)"]:::page
+    EcoATM_Lock_Lock_Overview["EcoATM_Lock.Lock_Overview (Page)"]:::page
+    TaskQueueScheduler_Schedule_NewEdit["TaskQueueScheduler.Schedule_NewEdit (Page)"]:::page
+    TaskQueueHelpers_MonitoringDashboard["TaskQueueHelpers.MonitoringDashboard (Page)"]:::page
+    EcoATM_PWSMDM_CaseLot_NewEdit["EcoATM_PWSMDM.CaseLot_NewEdit (Page)"]:::page
+    EcoATM_PWS_Offer_NewEdit["EcoATM_PWS.Offer_NewEdit (Page)"]:::page
+    AuctionUI_IdleTimeoutConfiguration["AuctionUI.IdleTimeoutConfiguration (Page)"]:::page
+    EcoATM_DA_DAWeek_NewEdit["EcoATM_DA.DAWeek_NewEdit (Page)"]:::page
+    EcoATM_DA_DAWeek_NewEdit --> EcoATM_DA_DAWeek_Overview
+    EcoATM_DA_DAWeek_NewEdit --> EcoATM_DA_DeviceAllocation_View_Admin
+    TaskQueueScheduler_QueuedAction_Overview["TaskQueueScheduler.QueuedAction_Overview (Page)"]:::page
+    Administration_ScheduledEvents["Administration.ScheduledEvents (Page)"]:::page
+    EcoATM_PWS_BuyerOfferItem_NewEdit["EcoATM_PWS.BuyerOfferItem_NewEdit (Page)"]:::page
+    EcoATM_PWSMDM_Model_Overview["EcoATM_PWSMDM.Model_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Model_Overview --> EcoATM_PWSMDM_Model_NewEdit
+    AuctionUI_Week_Admin_Overview["AuctionUI.Week_Admin_Overview (Page)"]:::page
+    AuctionUI_Week_Admin_Overview --> AuctionUI_Week_Admin_NewEdit
+    AuctionUI_MicrosoftGraph_Overview["AuctionUI.MicrosoftGraph_Overview (Page)"]:::page
+    EcoATM_PWS_OfferItem_NewEdit["EcoATM_PWS.OfferItem_NewEdit (Page)"]:::page
+    AuctionUI_UserStatus_NewEdit["AuctionUI.UserStatus_NewEdit (Page)"]:::page
+    TaskQueueScheduler_ProcessedQueueTask_View["TaskQueueScheduler.ProcessedQueueTask_View (Page)"]:::page
+    AuctionUI_PG_BidRankingConfiguration["AuctionUI.PG_BidRankingConfiguration (Page)"]:::page
+    AuctionUI_PG_BidRankingConfiguration --> AuctionUI_Business_Auctions_ControlCenter
+    EcoATM_PWS_Order_Overview["EcoATM_PWS.Order_Overview (Page)"]:::page
+    EcoATM_PWS_Order_Overview --> EcoATM_PWS_Order_Edit
+    EcoATM_PWS_Order_Overview --> EcoATM_PWS_Order_detail
+    AuctionUI_EcoATMDirectUser_NewEdit["AuctionUI.EcoATMDirectUser_NewEdit (Page)"]:::page
+    AuctionUI_EcoATMDirectUser_Admin_Overview["AuctionUI.EcoATMDirectUser_Admin_Overview (Page)"]:::page
+    AuctionUI_EcoATMDirectUser_Admin_Overview --> AuctionUI_EcoATMDirectUser_NewEdit
+    EcoATM_PWSMDM_Category_Overview["EcoATM_PWSMDM.Category_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Category_Overview --> EcoATM_PWSMDM_Category_NewEdit
+    EcoATM_UnitTest_UnitTest_Overview["EcoATM_UnitTest.UnitTest_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Color_Overview["EcoATM_PWSMDM.Color_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Color_Overview --> EcoATM_PWSMDM_Color_NewEdit
+    XLSReport_Excel_Document_Overview["XLSReport.Excel_Document_Overview (Page)"]:::page
+    EcoATM_PWS_OfferItem_Overview["EcoATM_PWS.OfferItem_Overview (Page)"]:::page
+    EcoATM_PWS_OfferItem_Overview --> EcoATM_PWS_OfferItem_NewEdit
+    AuctionUI_Admin_PWS_Data["AuctionUI.Admin_PWS_Data (Page)"]:::page
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_Order_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_Offer_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_OfferItem_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_OfferID_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Color_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Brand_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Capacity_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Carrier_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Grade_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Model_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Category_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_CaseLot_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Device_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSIntegration_Integration_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_ShipmentDetail_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_PWSInventorySyncReport_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_RMA_RMA_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_RMA_RMAItem_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWSMDM_Note_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_RMA_RMAFile_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_PWS_BuyerOffer_Overview
+    AuctionUI_Admin_PWS_Data --> EcoATM_Direct_Theme_IdleTimeout_Overview
+    EcoATM_PWS_PWSUserPersonalization_Overview["EcoATM_PWS.PWSUserPersonalization_Overview (Page)"]:::page
+    EcoATM_PWS_PWSUserPersonalization_Overview --> EcoATM_PWS_PWSUserPersonalization_NewEdit
+    AuctionUI_DocumentGeneration["AuctionUI.DocumentGeneration (Page)"]:::page
+    EcoATM_PWS_OfferDetails["EcoATM_PWS.OfferDetails (Page)"]:::page
+    EcoATM_PWS_OfferDetails --> EcoATM_PWS_OfferItem_NewEdit
+    Administration_ActiveSessions["Administration.ActiveSessions (Page)"]:::page
+    Administration_RuntimeInstances["Administration.RuntimeInstances (Page)"]:::page
+    EcoATM_PWSMDM_CaseLot_Overview["EcoATM_PWSMDM.CaseLot_Overview (Page)"]:::page
+    EcoATM_PWSMDM_CaseLot_Overview --> EcoATM_PWSMDM_CaseLot_NewEdit
+    AuctionUI_Admin_Auctions_Data["AuctionUI.Admin_Auctions_Data (Page)"]:::page
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_Auction_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_EcoATMDirectUser_Admin_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_AggreegatedInventoryTotals_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_AggregatedInventory_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_BidData_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_BidRound_Admin_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_BidDataDoc_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_SchedulingAuction_Overview_AllBuyers
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_SchedulingAuction_Overview_perBuyerCode
+    AuctionUI_Admin_Auctions_Data --> EcoATM_EB_ReserveBid_Admin_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_UserStatus_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_BuyerCode_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_DA_DAWeek_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_PO_PODetail_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_PO_PurchaseOrder_Overview
+    AuctionUI_Admin_Auctions_Data --> AuctionUI_Week_Admin_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_BuyerManagement_SalesRepresentative_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_MDM_CompanyHoliday_Overview
+    AuctionUI_Admin_Auctions_Data --> EcoATM_Reports_PG_CohortMapping
+    EcoATM_PWS_Order_Edit["EcoATM_PWS.Order_Edit (Page)"]:::page
+    EcoATM_PWS_Offer_Overview["EcoATM_PWS.Offer_Overview (Page)"]:::page
+    EcoATM_PWS_Offer_Overview --> EcoATM_PWS_Offer_NewEdit
+    EcoATM_PWS_Offer_Overview --> EcoATM_PWS_OfferDetails
+    EcoATM_PWSMDM_OfferID_Overview["EcoATM_PWSMDM.OfferID_Overview (Page)"]:::page
+    EcoATM_PWSMDM_OfferID_Overview --> EcoATM_PWSMDM_OfferID_NewEdit
+    EcoATM_PWS_BuyerOffer_Overview["EcoATM_PWS.BuyerOffer_Overview (Page)"]:::page
+    EcoATM_PWS_BuyerOffer_Overview --> EcoATM_PWS_BuyerOffer_NewEdit
+    EcoATM_PWS_BuyerOffer_Overview --> EcoATM_PWS_BuyerOfferItem_Overview
+    EcoATM_PWSMDM_Note_NewEdit["EcoATM_PWSMDM.Note_NewEdit (Page)"]:::page
+    EcoATM_Direct_Theme_IdleTimeout_NewEdit["EcoATM_Direct_Theme.IdleTimeout_NewEdit (Page)"]:::page
+    EcoATM_BuyerManagement_QualifiedBuyerCodes_Overview["EcoATM_BuyerManagement.QualifiedBuyerCodes_Overview (Page)"]:::page
+    EcoATM_PWSIntegration_Integration_NewEdit["EcoATM_PWSIntegration.Integration_NewEdit (Page)"]:::page
+    Administration_Account_Edit["Administration.Account_Edit (Page)"]:::page
+    AuctionUI_BidData_Overview_QA_Testing["AuctionUI.BidData_Overview_QA_Testing (Page)"]:::page
+    AuctionUI_BidData_Overview_QA_Testing --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_BidData_Overview_QA_Testing --> AuctionUI_BidData_NewEdit
+    AuctionUI_Sharepoint_Overview["AuctionUI.Sharepoint_Overview (Page)"]:::page
+    AuctionUI_BidData_NewEdit["AuctionUI.BidData_NewEdit (Page)"]:::page
+    EcoATM_PWSMDM_Model_NewEdit["EcoATM_PWSMDM.Model_NewEdit (Page)"]:::page
+    AuctionUI_BidRound_NewEdit["AuctionUI.BidRound_NewEdit (Page)"]:::page
+    EcoATM_PO_PurchaseOrder_NewEdit["EcoATM_PO.PurchaseOrder_NewEdit (Page)"]:::page
+    EcoATM_MDM_CompanyHoliday_Overview["EcoATM_MDM.CompanyHoliday_Overview (Page)"]:::page
+    EcoATM_MDM_CompanyHoliday_Overview --> EcoATM_MDM_CompanyHoliday_NewEdit
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

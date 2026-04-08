@@ -1,0 +1,27 @@
+- generic [ref=e5]:
+  - img "Organization background image" [ref=e14]
+  - generic [ref=e15]:
+    - generic [ref=e21]:
+      - img "Organization banner logo" [ref=e24]
+      - main [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e64]:
+            - button "Back" [ref=e65] [cursor=pointer]
+            - generic "ashirwad.mittal@ecoatm.com" [ref=e66]
+          - generic [ref=e67]:
+            - textbox [ref=e68]: ashirwad.mittal@ecoatm.com
+            - heading "Enter password" [level=1] [ref=e70]
+            - generic [ref=e72]:
+              - alert
+              - textbox "Enter the password for ashirwad.mittal@ecoatm.com" [active] [ref=e74]:
+                - /placeholder: Password
+            - link "Forgot my password" [ref=e81] [cursor=pointer]:
+              - /url: https://passwordreset.microsoftonline.com/?ru=https%3a%2f%2flogin.microsoftonline.com%2f61c95826-2b6a-4da0-92e1-f07725a94cd7%2freprocess%3fctx%3drQQIARAA42Kw0skoKSkottLXT03OTyzJ1U0sTS7JzM8r1k1MTi7Qy03NS8msSM7JL03RS87PLRLiEkiqFeKbGN7iM79t0oSoquIvqxh1YUYklVbqFibqQUxKySxKTS4B6dIPDvbXTywuTi0CmXyIUTXeIDEtNTEpxUDXwjjZXNfExNxM18I02ULXMtnc3MDcxCLVxCLlAiPjC0bGW0yswYm5OUazmNWJ0hWfs4lZxcww2dLUwshM1yjJLFHXJCXRQNfSKNVQN83A3NzINNHSJDnF_AILzysWHgNmKw4OLgEGCQYFhh8sjItYgR58JHe_IzFH3n2fxpllK8MVGE6x6htn-Wf5mRdHGGRmuJflRJi5J5dWFYWYROanVIb5ZlamG_snu2obOiYauGbbGlkZTmDjPcXG8IGNsYOdYRY7wy5O0kLoAC_DD76PDz682PNnyXuPV_w6aRbZOYGleYHlle4RhQVpqclVia5-FoEBwRmh6X6Wyc4mob4ZxT5-wUmBybYbBBgeAJEgww9Bhg4hBgA1&mkt=en-US&hosted=0&device_platform=Windows+10
+            - button "Sign in" [ref=e84] [cursor=pointer]
+    - contentinfo [ref=e57]:
+      - generic [ref=e58]:
+        - link "Terms of use" [ref=e59] [cursor=pointer]:
+          - /url: https://www.microsoft.com/en-US/servicesagreement/
+        - link "Privacy & cookies" [ref=e60] [cursor=pointer]:
+          - /url: https://privacy.microsoft.com/en-US/privacystatement
+        - button "Click here for troubleshooting information" [ref=e61] [cursor=pointer]: ...

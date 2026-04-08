@@ -1,0 +1,534 @@
+# Page: PG_CohortMapping_2
+
+**Allowed Roles:** EcoATM_Reports.Administrator, EcoATM_Reports.SalesOps
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+- 📑 **TabContainer**
+  - 📑 **Tab**: "EB Calibration Report"
+    - 📦 **DataView** [Context]
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_MDM.Week.WeekDisplay]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.ECOID]
+              - header: EcoId
+              - tooltip: EcoId
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.GRADE]
+              - header: Grade
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.BRAND]
+              - header: Brand
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.PARTNAME]
+              - header: Part
+              - tooltip: Part Name
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.EBCOUNT]
+              - header: EB #
+              - tooltip: EB Count
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.DECISION]
+              - header: Decision
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.NEWEBPRICE]
+              - header: New EB $
+              - tooltip: New EB Price
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.CURRENTEBPRICE]
+              - header: Cur EB $
+              - tooltip: Current EB Price
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.CONSECUTIVEEB]
+              - header: EB Weeks
+              - tooltip: Consecutive EB Weeks
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: left
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.WEEKOFPRIORSOLD]
+              - header: Wk Prior
+              - tooltip: Week of Prior Sold
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.DELTALASTAWARDEDMIN]
+              - header: Δ Last
+              - tooltip: Delta Last Awarded Min
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.DELTALASTSOLD5WEEKS]
+              - header: Δ 5W
+              - tooltip: Delta Last Sold 5 Weeks
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.COHORTDELTA]
+              - header: Cohort Δ
+              - tooltip: Cohort Delta
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.COHORTPRICE]
+              - header: Coh. $
+              - tooltip: Cohort Price
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.CURRENTWEEKDELTA]
+              - header: Week Δ
+              - tooltip: Current Week Delta
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.PREV2WEEKBID]
+              - header: 2W Bid
+              - tooltip: Previous 2 Week Bid
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.PREVWEEKBID]
+              - header: Last Bid
+              - tooltip: Previous Week Bid
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.CURRENTWEEKBID]
+              - header: This Bid
+              - tooltip: Current Week Bid
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.PREVWEEKDELTA]
+              - header: Δ vs Last
+              - tooltip: Previous Week Delta
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.LASTAWARDEDMIN]
+              - header: Last Min
+              - tooltip: Last Awarded Min
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.COUNTOFPREVSOLDBID]
+              - header: Sold #
+              - tooltip: Count of Previous Sold Bid
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+              - showContentAs: attribute
+              - attribute: [Attr: EcoATM_Integration.AUCTIONS_EB_CALIBRATION_REPORT_OUTPUT.CURRENTWEEKCOUNT]
+              - header: Week #
+              - tooltip: Current Week Count
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+                    - screenReaderInputCaption: Search
+              - visible: `true`
+              - filterCaptionType: expression
+              - hidable: yes
+              - width: autoFit
+              - minWidth: manual
+              - minWidthLimit: 114
+              - size: 1
+              - alignment: right
+          - pageSize: 20
+          - pagination: buttons
+          - showPagingButtons: always
+          - pagingPosition: bottom
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Nanoflow**: `EcoATM_Reports.NF_DownloadEBCalibrationReport`
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+  - 📑 **Tab**: "Cohort Mapping"
+    - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: checkbox
+        - itemSelectionMode: clear
+        - loadingType: spinner
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.CurrentEcoID]
+            - header: Current EcoID
+            ➤ **filter** (Widgets)
+              - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                  - defaultFilter: equal
+                  - delay: 500
+                  - screenReaderInputCaption: Search
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: right
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.CurrentModelName]
+            - header: Current Model Name
+            ➤ **filter** (Widgets)
+              - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                  - defaultFilter: contains
+                  - delay: 500
+                  - screenReaderInputCaption: Search
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.CohortEcoID]
+            - header: Cohort EcoID
+            ➤ **filter** (Widgets)
+              - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                  - defaultFilter: equal
+                  - delay: 500
+                  - screenReaderInputCaption: Search
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.CohortModelName]
+            - header: Cohort Model Name
+            ➤ **filter** (Widgets)
+              - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                  - defaultFilter: contains
+                  - delay: 500
+                  - screenReaderInputCaption: Search
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: attribute
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.AvgSellingPrice]
+            - header: ASP
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - showContentAs: customContent
+            - attribute: [Attr: EcoATM_Reports.CohortMapping.CurrentEcoID]
+            ➤ **content** (Widgets)
+                ↳ [acti] → **Page**: `EcoATM_Reports.CohortMapping_NewEdit`
+                ↳ [acti] → **Delete**
+            - visible: `true`
+            - filterCaptionType: expression
+            - hidable: no
+            - width: autoFit
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+        - pageSize: 200
+        - pagination: buttons
+        - showPagingButtons: always
+        - pagingPosition: bottom
+        - loadMoreButtonCaption: Load More
+        - showEmptyPlaceholder: none
+        - onClickTrigger: single
+        - configurationStorageType: attribute
+        ➤ **filtersPlaceholder** (Widgets)
+            ↳ [acti] → **Page**: `EcoATM_Reports.CohortMapping_NewEdit`
+            ↳ [acti] → **Nanoflow**: `EcoATM_Reports.NF_DownloadCohortMapping`
+            ↳ [acti] → **Microflow**: `EcoATM_Reports.ACT_CreateNewCohortMapping`
+            ↳ [acti] → **Microflow**: `EcoATM_Reports.ACT_SendCohortMappingToSnowflake`
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row

@@ -1,0 +1,477 @@
+# Snippet: SNIP_Authorization_View
+
+## Widget Tree
+
+- 📑 **TabContainer**
+  - 📑 **Tab**: "Authorization"
+    - 🧩 **Pop-up menu** (ID: `com.mendix.widget.web.popupmenu.PopupMenu`)
+        ➤ **menuTrigger** (Widgets)
+        ➤ **basicItems**
+            - itemType: item
+            - caption: Request new access token
+            - styleClass: primaryStyle
+            - visible: `true`
+            - itemType: divider
+            - styleClass: defaultStyle
+            - visible: `true`
+            - itemType: item
+            - caption: Delete
+            - styleClass: dangerStyle
+            - visible: `true`
+        - trigger: onclick
+        - position: bottom
+    - ⚡ **Button**: radioButtons1
+    - 📝 **DatePicker**: datePicker2 🔒 [Read-Only]
+    - 📝 **DatePicker**: datePicker1 🔒 [Read-Only]
+    - 📝 **CheckBox**: checkBox2
+    - 📝 **DropDown**: dropDown8
+    - 📦 **DataView** [Context]
+    - 📦 **DataView** [Context]
+  - 📑 **Tab**: "Users"
+    - 📑 **TabContainer**
+      - 📑 **Tab**: "My Profile"
+        - 📦 **DataView** [MF: MicrosoftGraph.DS_User_MyProfile]
+            ↳ [acti] → **Page**: `MicrosoftGraph.User_NewEdit`
+        - 📦 **DataView** [MF: MicrosoftGraph.DS_User_MyPhoto]
+          - 📦 **DynamicImageViewer** [Context]
+      - 📑 **Tab**: "All Users"
+        - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+            - refreshInterval: 0
+            - itemSelectionMethod: rowClick
+            ➤ **columns**
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.DirectoryObject._Id]
+                - header: Id
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.DisplayName]
+                - header: Display Name
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.Surname]
+                - header: Surname
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.UserPrincipalName]
+                - header: User Principal Name
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.JobTitle]
+                - header: Job Title
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.Mail]
+                - header: Mail
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.MobilePhone]
+                - header: Mobile Phone
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.OfficeLocation]
+                - header: Office Location
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.PreferredLanguage]
+                - header: Preferred Language
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+            - pageSize: 20
+            - pagination: virtualScrolling
+            - pagingPosition: bottom
+            - showPagingButtons: always
+            - showEmptyPlaceholder: none
+            - onClickTrigger: single
+            ➤ **filterList**
+                - filter: [Attr: MicrosoftGraph.User.DisplayName]
+            ➤ **filtersPlaceholder** (Widgets)
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_View`
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_NewEdit`
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_NewEdit`
+              - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                  - defaultFilter: contains
+                  - placeholder: Search
+                  - delay: 500
+            - exportDialogLabel: Export progress
+            - cancelExportLabel: Cancel data export
+            - selectRowLabel: Select row
+            - itemSelectionMode: clear
+            - loadMoreButtonCaption: Load More
+            - configurationStorageType: attribute
+            - loadingType: spinner
+      - 📑 **Tab**: "Direct Reports"
+        - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+            - refreshInterval: 0
+            - itemSelectionMethod: rowClick
+            ➤ **columns**
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.DirectoryObject._Id]
+                - header: Id
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.DisplayName]
+                - header: Display Name
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.Surname]
+                - header: Surname
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.UserPrincipalName]
+                - header: User Principal Name
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.JobTitle]
+                - header: Job Title
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.Mail]
+                - header: Mail
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.MobilePhone]
+                - header: Mobile Phone
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.OfficeLocation]
+                - header: Office Location
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MicrosoftGraph.User.PreferredLanguage]
+                - header: Preferred Language
+                - visible: `true`
+                - hidable: yes
+                - width: autoFill
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 1
+                - alignment: left
+                - filterCaptionType: expression
+            - pageSize: 20
+            - pagination: virtualScrolling
+            - pagingPosition: bottom
+            - showPagingButtons: always
+            - showEmptyPlaceholder: none
+            - onClickTrigger: single
+            ➤ **filterList**
+                - filter: [Attr: MicrosoftGraph.User.DisplayName]
+            ➤ **filtersPlaceholder** (Widgets)
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_View`
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_NewEdit`
+                ↳ [acti] → **Page**: `MicrosoftGraph.User_NewEdit`
+              - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                  - defaultFilter: contains
+                  - placeholder: Search
+                  - delay: 500
+            - exportDialogLabel: Export progress
+            - cancelExportLabel: Cancel data export
+            - selectRowLabel: Select row
+            - itemSelectionMode: clear
+            - loadMoreButtonCaption: Load More
+            - configurationStorageType: attribute
+            - loadingType: spinner
+  - 📑 **Tab**: "Groups"
+    - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: rowClick
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.DirectoryObject._Id]
+            - header: Id
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.DisplayName]
+            - header: Display Name
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.Mail]
+            - header: Mail
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.MailEnabled]
+            - header: Mail Enabled
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.MailNickname]
+            - header: Mail Nickname
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.HideFromOutlookClients]
+            - header: Hide From Outlook Clients
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Group.Visibility]
+            - header: Visibility
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+        - pageSize: 20
+        - pagination: virtualScrolling
+        - pagingPosition: bottom
+        - showPagingButtons: always
+        - showEmptyPlaceholder: none
+        - onClickTrigger: single
+        ➤ **filterList**
+            - filter: [Attr: MicrosoftGraph.Group.DisplayName]
+        ➤ **filtersPlaceholder** (Widgets)
+            ↳ [acti] → **Page**: `MicrosoftGraph.Group_View`
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - placeholder: Search
+              - delay: 500
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row
+        - itemSelectionMode: clear
+        - loadMoreButtonCaption: Load More
+        - configurationStorageType: attribute
+        - loadingType: spinner
+  - 📑 **Tab**: "Subscriptions"
+    - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+        - refreshInterval: 0
+        - itemSelectionMethod: rowClick
+        ➤ **columns**
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Subscription._Id]
+            - header: Id
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Subscription.Resource]
+            - header: Resource
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Subscription.NotificationUrl]
+            - header: Notification URL
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Subscription.ChangeType]
+            - header: Change Type
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+            - showContentAs: attribute
+            - attribute: [Attr: MicrosoftGraph.Subscription.ExpirationDateTime]
+            - header: Expiration Date Time
+            - visible: `true`
+            - hidable: yes
+            - width: autoFill
+            - minWidth: auto
+            - minWidthLimit: 100
+            - size: 1
+            - alignment: left
+            - filterCaptionType: expression
+        - pageSize: 20
+        - pagination: buttons
+        - pagingPosition: bottom
+        - showPagingButtons: auto
+        - showEmptyPlaceholder: none
+        - onClickTrigger: double
+        ➤ **filterList**
+            - filter: [Attr: MicrosoftGraph.Subscription.Resource]
+        ➤ **filtersPlaceholder** (Widgets)
+            ↳ [acti] → **Page**: `MicrosoftGraph.Subscription_NewEdit`
+            ↳ [acti] → **Page**: `MicrosoftGraph.Subscription_NewEdit`
+            ↳ [acti] → **Microflow**: `MicrosoftGraph.ACT_Subscription_Delete`
+            ↳ [acti] → **Microflow**: `MicrosoftGraph.ACT_SubscriptionGetAll`
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - placeholder: Search
+              - delay: 500
+        - exportDialogLabel: Export progress
+        - cancelExportLabel: Cancel data export
+        - selectRowLabel: Select row
+        - itemSelectionMode: clear
+        - loadMoreButtonCaption: Load More
+        - configurationStorageType: attribute
+        - loadingType: spinner

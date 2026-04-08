@@ -1,0 +1,440 @@
+# Page: PG_Round2QualifyingInventory
+
+**Allowed Roles:** AuctionUI.Administrator
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+  ↳ [acti] → **Close Page**
+- 📦 **DataView** [Context]
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: checkbox
+    - itemSelectionMode: clear
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.EcoId]
+        - header: Eco id
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.MergedGrade]
+        - header: Merged grade
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DataWipe]
+        - header: Data wipe
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.AvgTargetPrice]
+        - header: Avg target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.AvgPayout]
+        - header: Avg payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.TotalPayout]
+        - header: Total payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.TotalQuantity]
+        - header: Total quantity
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DWAvgTargetPrice]
+        - header: DW avg target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DWAvgPayout]
+        - header: DW avg payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DWTotalPayout]
+        - header: DW total payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DWTotalQuantity]
+        - header: DW total quantity
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Name]
+        - header: Name
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Model]
+        - header: Model
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Brand]
+        - header: Brand
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Carrier]
+        - header: Carrier
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.CreatedAt]
+        - header: Created at
+        ➤ **filter** (Widgets)
+          - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+              - defaultFilter: equal
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Category]
+        - header: Category
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.DeviceId]
+        - header: Device id
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round1TargetPrice]
+        - header: Round1Target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round1TargetPrice_DW]
+        - header: Round1Target price DW
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round1MaxBid]
+        - header: Round1Max bid
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round1MaxBidBuyerCode]
+        - header: Round1Max bid buyer code
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round2EBForTarget]
+        - header: Round2EB for target
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.Round2TargetPrice]
+        - header: Round2Target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.R2TargetPriceFactor]
+        - header: R2Target price factor
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.AggregatedInventory.R2TargetPriceFactorType]
+        - header: R2Target price factor type
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+    - pageSize: 20
+    - pagination: buttons
+    - pagingPosition: bottom
+    - showPagingButtons: always
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: single
+    - configurationStorageType: attribute
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row
+    - loadingType: spinner

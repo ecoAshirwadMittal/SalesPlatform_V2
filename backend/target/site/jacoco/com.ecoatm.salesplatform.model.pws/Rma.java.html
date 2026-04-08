@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Rma.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">Rma.java</span></div><h1>Rma.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Entity
+@Table(name = &quot;rma&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L10">public class Rma {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String number;
+
+    @Column(name = &quot;buyer_code_id&quot;)
+    private Long buyerCodeId;
+
+    @Column(name = &quot;submitted_by_user_id&quot;)
+    private Long submittedByUserId;
+
+    @Column(name = &quot;reviewed_by_user_id&quot;)
+    private Long reviewedByUserId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;rma_status_id&quot;)
+    private RmaStatus rmaStatus;
+
+    @Column(name = &quot;request_skus&quot;)
+    private Integer requestSkus;
+
+    @Column(name = &quot;request_qty&quot;)
+    private Integer requestQty;
+
+    @Column(name = &quot;request_sales_total&quot;)
+    private Integer requestSalesTotal;
+
+    @Column(name = &quot;approved_skus&quot;)
+    private Integer approvedSkus;
+
+    @Column(name = &quot;approved_qty&quot;)
+    private Integer approvedQty;
+
+    @Column(name = &quot;approved_sales_total&quot;)
+    private Integer approvedSalesTotal;
+
+    @Column(name = &quot;approved_count&quot;)
+    private Integer approvedCount;
+
+    @Column(name = &quot;declined_count&quot;)
+    private Integer declinedCount;
+
+    @Column(name = &quot;submitted_date&quot;)
+    private LocalDateTime submittedDate;
+
+    @Column(name = &quot;approval_date&quot;)
+    private LocalDateTime approvalDate;
+
+    @Column(name = &quot;review_completed_on&quot;)
+    private LocalDateTime reviewCompletedOn;
+
+    @Column(name = &quot;system_status&quot;)
+    private String systemStatus;
+
+    @Column(name = &quot;oracle_rma_status&quot;)
+    private String oracleRmaStatus;
+
+    @Column(name = &quot;oracle_number&quot;)
+    private String oracleNumber;
+
+    @Column(name = &quot;oracle_id&quot;)
+    private String oracleId;
+
+    @Column(name = &quot;oracle_http_code&quot;)
+    private Integer oracleHttpCode;
+
+    @Column(name = &quot;is_successful&quot;)
+    private Boolean isSuccessful;
+
+    @Column(name = &quot;all_rma_items_valid&quot;)
+    private Boolean allRmaItemsValid;
+
+    @Column(name = &quot;json_content&quot;)
+    private String jsonContent;
+
+    @Column(name = &quot;oracle_json_response&quot;)
+    private String oracleJsonResponse;
+
+    @Column(name = &quot;entity_owner&quot;)
+    private String entityOwner;
+
+    @Column(name = &quot;entity_changer&quot;)
+    private String entityChanger;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+<span class="fc" id="L103">    @OneToMany(mappedBy = &quot;rma&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;RmaItem&gt; items = new ArrayList&lt;&gt;();
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L108">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L109">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L110">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L114">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L115">    }</span>
+
+    // Getters and Setters
+<span class="fc" id="L118">    public Long getId() { return id; }</span>
+<span class="fc" id="L119">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="fc" id="L121">    public String getNumber() { return number; }</span>
+<span class="fc" id="L122">    public void setNumber(String number) { this.number = number; }</span>
+
+<span class="fc" id="L124">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
+<span class="fc" id="L125">    public void setBuyerCodeId(Long buyerCodeId) { this.buyerCodeId = buyerCodeId; }</span>
+
+<span class="nc" id="L127">    public Long getSubmittedByUserId() { return submittedByUserId; }</span>
+<span class="nc" id="L128">    public void setSubmittedByUserId(Long submittedByUserId) { this.submittedByUserId = submittedByUserId; }</span>
+
+<span class="fc" id="L130">    public Long getReviewedByUserId() { return reviewedByUserId; }</span>
+<span class="fc" id="L131">    public void setReviewedByUserId(Long reviewedByUserId) { this.reviewedByUserId = reviewedByUserId; }</span>
+
+<span class="fc" id="L133">    public RmaStatus getRmaStatus() { return rmaStatus; }</span>
+<span class="fc" id="L134">    public void setRmaStatus(RmaStatus rmaStatus) { this.rmaStatus = rmaStatus; }</span>
+
+<span class="fc" id="L136">    public Integer getRequestSkus() { return requestSkus; }</span>
+<span class="fc" id="L137">    public void setRequestSkus(Integer requestSkus) { this.requestSkus = requestSkus; }</span>
+
+<span class="fc" id="L139">    public Integer getRequestQty() { return requestQty; }</span>
+<span class="fc" id="L140">    public void setRequestQty(Integer requestQty) { this.requestQty = requestQty; }</span>
+
+<span class="fc" id="L142">    public Integer getRequestSalesTotal() { return requestSalesTotal; }</span>
+<span class="fc" id="L143">    public void setRequestSalesTotal(Integer requestSalesTotal) { this.requestSalesTotal = requestSalesTotal; }</span>
+
+<span class="fc" id="L145">    public Integer getApprovedSkus() { return approvedSkus; }</span>
+<span class="fc" id="L146">    public void setApprovedSkus(Integer approvedSkus) { this.approvedSkus = approvedSkus; }</span>
+
+<span class="fc" id="L148">    public Integer getApprovedQty() { return approvedQty; }</span>
+<span class="fc" id="L149">    public void setApprovedQty(Integer approvedQty) { this.approvedQty = approvedQty; }</span>
+
+<span class="fc" id="L151">    public Integer getApprovedSalesTotal() { return approvedSalesTotal; }</span>
+<span class="fc" id="L152">    public void setApprovedSalesTotal(Integer approvedSalesTotal) { this.approvedSalesTotal = approvedSalesTotal; }</span>
+
+<span class="fc" id="L154">    public Integer getApprovedCount() { return approvedCount; }</span>
+<span class="fc" id="L155">    public void setApprovedCount(Integer approvedCount) { this.approvedCount = approvedCount; }</span>
+
+<span class="fc" id="L157">    public Integer getDeclinedCount() { return declinedCount; }</span>
+<span class="fc" id="L158">    public void setDeclinedCount(Integer declinedCount) { this.declinedCount = declinedCount; }</span>
+
+<span class="fc" id="L160">    public LocalDateTime getSubmittedDate() { return submittedDate; }</span>
+<span class="nc" id="L161">    public void setSubmittedDate(LocalDateTime submittedDate) { this.submittedDate = submittedDate; }</span>
+
+<span class="fc" id="L163">    public LocalDateTime getApprovalDate() { return approvalDate; }</span>
+<span class="fc" id="L164">    public void setApprovalDate(LocalDateTime approvalDate) { this.approvalDate = approvalDate; }</span>
+
+<span class="fc" id="L166">    public LocalDateTime getReviewCompletedOn() { return reviewCompletedOn; }</span>
+<span class="fc" id="L167">    public void setReviewCompletedOn(LocalDateTime reviewCompletedOn) { this.reviewCompletedOn = reviewCompletedOn; }</span>
+
+<span class="fc" id="L169">    public String getSystemStatus() { return systemStatus; }</span>
+<span class="fc" id="L170">    public void setSystemStatus(String systemStatus) { this.systemStatus = systemStatus; }</span>
+
+<span class="nc" id="L172">    public String getOracleRmaStatus() { return oracleRmaStatus; }</span>
+<span class="nc" id="L173">    public void setOracleRmaStatus(String oracleRmaStatus) { this.oracleRmaStatus = oracleRmaStatus; }</span>
+
+<span class="fc" id="L175">    public String getOracleNumber() { return oracleNumber; }</span>
+<span class="nc" id="L176">    public void setOracleNumber(String oracleNumber) { this.oracleNumber = oracleNumber; }</span>
+
+<span class="nc" id="L178">    public String getOracleId() { return oracleId; }</span>
+<span class="nc" id="L179">    public void setOracleId(String oracleId) { this.oracleId = oracleId; }</span>
+
+<span class="nc" id="L181">    public Integer getOracleHttpCode() { return oracleHttpCode; }</span>
+<span class="nc" id="L182">    public void setOracleHttpCode(Integer oracleHttpCode) { this.oracleHttpCode = oracleHttpCode; }</span>
+
+<span class="nc" id="L184">    public Boolean getIsSuccessful() { return isSuccessful; }</span>
+<span class="nc" id="L185">    public void setIsSuccessful(Boolean isSuccessful) { this.isSuccessful = isSuccessful; }</span>
+
+<span class="nc" id="L187">    public Boolean getAllRmaItemsValid() { return allRmaItemsValid; }</span>
+<span class="nc" id="L188">    public void setAllRmaItemsValid(Boolean allRmaItemsValid) { this.allRmaItemsValid = allRmaItemsValid; }</span>
+
+<span class="nc" id="L190">    public String getJsonContent() { return jsonContent; }</span>
+<span class="nc" id="L191">    public void setJsonContent(String jsonContent) { this.jsonContent = jsonContent; }</span>
+
+<span class="nc" id="L193">    public String getOracleJsonResponse() { return oracleJsonResponse; }</span>
+<span class="nc" id="L194">    public void setOracleJsonResponse(String oracleJsonResponse) { this.oracleJsonResponse = oracleJsonResponse; }</span>
+
+<span class="nc" id="L196">    public String getEntityOwner() { return entityOwner; }</span>
+<span class="nc" id="L197">    public void setEntityOwner(String entityOwner) { this.entityOwner = entityOwner; }</span>
+
+<span class="nc" id="L199">    public String getEntityChanger() { return entityChanger; }</span>
+<span class="nc" id="L200">    public void setEntityChanger(String entityChanger) { this.entityChanger = entityChanger; }</span>
+
+<span class="nc" id="L202">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L203">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+
+<span class="nc" id="L205">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="nc" id="L206">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+
+<span class="nc" id="L208">    public List&lt;RmaItem&gt; getItems() { return items; }</span>
+<span class="nc" id="L209">    public void setItems(List&lt;RmaItem&gt; items) { this.items = items; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

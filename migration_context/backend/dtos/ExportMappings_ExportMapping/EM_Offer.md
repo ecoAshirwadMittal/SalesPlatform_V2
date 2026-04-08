@@ -1,0 +1,156 @@
+# Export Mapping: EM_Offer
+
+**JSON Structure:** `EcoATM_PWS.JSON_Offer`
+
+## Mapping Structure
+
+- **Root** (Object)
+  - **Offer** (Object) → `EcoATM_PWS.Offer`
+    - **OfferId** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferID`
+    - **OfferSKUCount** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferSKUCount`
+    - **OfferTotalQuantity** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferTotalQuantity`
+    - **OfferTotalPrice** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferTotalPrice`
+    - **OfferSubmissionDate** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferSubmissionDate`
+    - **OfferAvgPrice** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferAvgPrice`
+    - **OfferMinPercentageVariance** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferMinPercentageVariance`
+    - **OfferRevertedDate** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferRevertedDate`
+    - **UpdateDate** (Value)
+      - Attribute: `EcoATM_PWS.Offer.UpdateDate`
+    - **CounterOfferTotalSKU** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterOfferTotalSKU`
+    - **CounterOfferTotalQty** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterOfferTotalQty`
+    - **CounterOfferTotalPrice** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterOfferTotalPrice`
+    - **CounterOfferAvgPrice** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterOfferAvgPrice`
+    - **CounterOfferMinPercentage** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterOfferMinPercentageVariance`
+    - **counterOfferSubmittedOn** (Value)
+      - Attribute: `EcoATM_PWS.Offer.CounterResponseSubmittedOn`
+    - **FinalOfferTotalSKU** (Value)
+      - Attribute: `EcoATM_PWS.Offer.FinalOfferTotalSKU`
+    - **FinalOfferTotalQty** (Value)
+      - Attribute: `EcoATM_PWS.Offer.FinalOfferTotalQty`
+    - **FinalOfferTotalPrice** (Value)
+      - Attribute: `EcoATM_PWS.Offer.FinalOfferTotalPrice`
+    - **FinalOfferSubmittedOn** (Value)
+      - Attribute: `EcoATM_PWS.Offer.FinalOfferSubmittedOn`
+    - **IsValidOffer** (Value)
+      - Attribute: `EcoATM_PWS.Offer.isValidOffer`
+    - **SalesReviewCompletedOn** (Value)
+      - Attribute: `EcoATM_PWS.Offer.SalesReviewCompletedOn`
+    - **OfferBeyondSLA** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferBeyondSLA`
+    - **SameSKUOffer** (Value)
+      - Attribute: `EcoATM_PWS.Offer.SameSKUOffer`
+    - **BuyerOfferCancelled** (Value)
+      - Attribute: `EcoATM_PWS.Offer.BuyerOfferCancelled`
+    - **sellerOfferCancelled** (Value)
+      - Attribute: `EcoATM_PWS.Offer.SellerOfferCancelled`
+    - **OfferCancelledOn** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferCancelledOn`
+    - **OfferType** (Value)
+      - Attribute: `EcoATM_PWS.Offer.OfferType`
+    - **OfferItems** (Array)
+      - **OfferItem** (Object) → `EcoATM_PWS.OfferItem`
+        - **OfferQuantity** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.OfferQuantity`
+        - **OfferPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.OfferPrice`
+        - **OfferTotalPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.OfferTotalPrice`
+        - **SalesOfferItemStatus** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.SalesOfferItemStatus`
+        - **CounterPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.CounterPrice`
+        - **CounterQuantity** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.CounterQuantity`
+        - **CounterTotal** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.CounterTotal`
+        - **FinalOfferPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.FinalOfferPrice`
+        - **FinalOfferQuantity** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.FinalOfferQuantity`
+        - **FinalOfferTotalPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.FinalOfferTotalPrice`
+        - **ShippedPrice** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.ShippedPrice`
+        - **ShippedQty** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.ShippedQty`
+        - **BuyerCounterStatus** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.BuyerCounterStatus`
+        - **MinPercentage** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.MinPercentage`
+        - **ListPercentage** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.ListPercentage`
+        - **SameSKUOfferAvailable** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.SameSKUOfferAvailable`
+        - **OfferDrawerStatus** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.OfferDrawerStatus`
+        - **Reserved** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.Reserved`
+        - **ReservedOn** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.ReservedOn`
+        - **OrderSynced** (Value)
+          - Attribute: `EcoATM_PWS.OfferItem.OrderSynced`
+        - **Device** (Object) → `EcoATM_PWSMDM.DeviceSFTemp`
+          - **Sku** (Value)
+            - Attribute: `EcoATM_PWSMDM.DeviceSFTemp.SKU`
+          - **ATPQuantity** (Value)
+            - Attribute: `EcoATM_PWSMDM.DeviceSFTemp.ATPQty`
+          - **AvlQuantity** (Value)
+            - Attribute: `EcoATM_PWSMDM.DeviceSFTemp.AvlQty`
+          - **ReservedQuantity** (Value)
+            - Attribute: `EcoATM_PWSMDM.DeviceSFTemp.ReservedQty`
+    - **SubmittedBy** (Object) → `Administration.Account`
+      - **Email** (Value)
+        - Attribute: `Administration.Account.Email`
+    - **OfferStatus** (Object) → `EcoATM_PWS.OrderStatus`
+      - **SystemStatus** (Value)
+        - Attribute: `EcoATM_PWS.OrderStatus.SystemStatus`
+    - **counterOfferSubmittedBy** (Object) → `Administration.Account`
+      - **Email** (Value)
+        - Attribute: `Administration.Account.Email`
+    - **salesReviewCompletedBy** (Object) → `Administration.Account`
+      - **Email** (Value)
+        - Attribute: `Administration.Account.Email`
+    - **offerRevertedBy** (Object) → `Administration.Account`
+      - **Email** (Value)
+        - Attribute: `Administration.Account.Email`
+    - **offerCancelledBy** (Object) → `EcoATM_UserManagement.EcoATMDirectUser`
+      - **Email** (Value)
+        - Attribute: `Administration.Account.Email`
+    - **SalesRepresentative** (Object) → `EcoATM_BuyerManagement.SalesRepresentative`
+      - **Name** (Value)
+        - Attribute: `EcoATM_BuyerManagement.SalesRepresentative.SalesRepFirstName`
+    - **BuyerCode** (Object) → `EcoATM_BuyerManagement.BuyerCode`
+      - **Code** (Value)
+        - Attribute: `EcoATM_BuyerManagement.BuyerCode.Code`
+    - **Order** (Object) → `EcoATM_PWS.Order`
+      - **OrderNumber** (Value)
+        - Attribute: `EcoATM_PWS.Order.OrderNumber`
+      - **OrderDate** (Value)
+        - Attribute: `EcoATM_PWS.Order.OrderDate`
+      - **HasShipmentDetails** (Value)
+        - Attribute: `EcoATM_PWS.Order.HasShipmentDetails`
+      - **ShipDate** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShipDate`
+      - **ShipMethod** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShipMethod`
+      - **ShipToAddress** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShipToAddress`
+      - **ShippedTotalSKU** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShippedTotalSKU`
+      - **ShippedTotalQuantity** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShippedTotalQuantity`
+      - **ShippedTotalPrice** (Value)
+        - Attribute: `EcoATM_PWS.Order.ShippedTotalPrice`

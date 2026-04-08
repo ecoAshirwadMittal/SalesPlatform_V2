@@ -1,0 +1,92 @@
+graph TD
+    Navigation_Menu["[Navigation_Menu]"]:::system
+    Navigation_Menu -- Settings --> AuctionUI_Business_Auctions_ControlCenter
+    Navigation_Menu -- Settings --> AuctionUI_Business_PWS_ControlCenter
+    AuctionUI_SchedulingAuction_NewEdit["AuctionUI.SchedulingAuction_NewEdit (Page)"]:::page
+    AuctionUI_Auction_Overview_QA_Testing["AuctionUI.Auction_Overview_QA_Testing (Page)"]:::page
+    AuctionUI_Auction_Overview_QA_Testing --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_Auction_Overview_QA_Testing --> AuctionUI_Auction_Edit
+    AuctionUI_UserHelperGuide_NewEdit["AuctionUI.UserHelperGuide_NewEdit (Page)"]:::page
+    EcoATM_PWS_OrderStatus_Overview["EcoATM_PWS.OrderStatus_Overview (Page)"]:::page
+    EcoATM_PWS_OrderStatus_Overview --> EcoATM_PWS_OrderStatus_NewEdit
+    AuctionUI_BidDataTotalQuantityConfig_Overview["AuctionUI.BidDataTotalQuantityConfig_Overview (Page)"]:::page
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> AuctionUI_BidDataTotalQuantityConfig_NewEdit
+    AuctionUI_BidDataTotalQuantityConfig_Overview --> EcoATM_BuyerManagement_PG_BidDataTotalQuantityConfig_Upload
+    EcoATM_RMA_RMAStatus_Edit["EcoATM_RMA.RMAStatus_Edit (Page)"]:::page
+    AuctionUI_BidDataTotalQuantityConfig_NewEdit["AuctionUI.BidDataTotalQuantityConfig_NewEdit (Page)"]:::page
+    EcoATM_PWS_MaintenanceMode_NewEdit["EcoATM_PWS.MaintenanceMode_NewEdit (Page)"]:::page
+    EcoATM_PWSIntegration_PWSConfiguration_Edit["EcoATM_PWSIntegration.PWSConfiguration_Edit (Page)"]:::page
+    EcoATM_PWSIntegration_PWSConfiguration_Edit --> AuctionUI_Business_PWS_ControlCenter
+    Eco_Core_FeatureFlag_Overview["Eco_Core.FeatureFlag_Overview (Page)"]:::page
+    Eco_Core_FeatureFlag_Overview --> AuctionUI_Business_PWS_ControlCenter
+    Eco_Core_FeatureFlag_Overview --> Eco_Core_FeatureFlag_NewEdit
+    AuctionUI_Business_Auctions_ControlCenter["AuctionUI.Business_Auctions_ControlCenter (Page)"]:::page
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_Auction_Overview_QA_Testing
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_SchedulingAuction_Overview_perBuyerCode
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_BidData_Overview_QA_Testing
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_UserHelperGuide
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_BidDataTotalQuantityConfig_Overview
+    AuctionUI_Business_Auctions_ControlCenter --> EcoATM_BuyerManagement_PG_BuyerSubmitConfig
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_ErrorTestPage
+    AuctionUI_Business_Auctions_ControlCenter --> EcoATM_BuyerManagement_QualifiedBuyerCodes_Overview
+    AuctionUI_Business_Auctions_ControlCenter --> AuctionUI_PG_BidRankingConfiguration
+    EcoATM_RMA_RMATemptate_Overview["EcoATM_RMA.RMATemptate_Overview (Page)"]:::page
+    EcoATM_RMA_RMATemptate_Overview --> EcoATM_RMA_RMATemplate_NewEdit
+    EcoATM_RMA_RMATemptate_Overview --> EcoATM_RMA_RMAReason_NewEdit
+    EcoATM_MDM_Brand_NewEdit["EcoATM_MDM.Brand_NewEdit (Page)"]:::page
+    EcoATM_RMA_RMATemplate_NewEdit["EcoATM_RMA.RMATemplate_NewEdit (Page)"]:::page
+    AuctionUI_Auction_Edit["AuctionUI.Auction_Edit (Page)"]:::page
+    EcoATM_PWS_NavigationMenu_NewEdit["EcoATM_PWS.NavigationMenu_NewEdit (Page)"]:::page
+    AuctionUI_PG_UserHelperGuide["AuctionUI.PG_UserHelperGuide (Page)"]:::page
+    AuctionUI_PG_UserHelperGuide --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_PG_UserHelperGuide --> AuctionUI_UserHelperGuide_NewEdit
+    EcoATM_PWS_OrderStatus_NewEdit["EcoATM_PWS.OrderStatus_NewEdit (Page)"]:::page
+    EcoATM_PWS_MaintenanceMode_Overview["EcoATM_PWS.MaintenanceMode_Overview (Page)"]:::page
+    EcoATM_PWS_MaintenanceMode_Overview --> EcoATM_PWS_MaintenanceMode_NewEdit
+    EcoATM_PWSIntegration_DeposcoConfig_Overview["EcoATM_PWSIntegration.DeposcoConfig_Overview (Page)"]:::page
+    EcoATM_PWSIntegration_DeposcoConfig_Overview --> EcoATM_PWSIntegration_DesposcoAPIs_View
+    EcoATM_PWS_PWSConstants_Overview["EcoATM_PWS.PWSConstants_Overview (Page)"]:::page
+    EcoATM_PWS_PWSConstants_Overview --> AuctionUI_Business_PWS_ControlCenter
+    EcoATM_BuyerManagement_QualifiedBuyerCodes_Overview["EcoATM_BuyerManagement.QualifiedBuyerCodes_Overview (Page)"]:::page
+    AuctionUI_PG_ErrorTestPage["AuctionUI.PG_ErrorTestPage (Page)"]:::page
+    EcoATM_RMA_RMAStatus_Overview["EcoATM_RMA.RMAStatus_Overview (Page)"]:::page
+    EcoATM_RMA_RMAStatus_Overview --> EcoATM_RMA_RMAStatus_Edit
+    EcoATM_PWS_NavigationMenu_Overview["EcoATM_PWS.NavigationMenu_Overview (Page)"]:::page
+    EcoATM_PWS_NavigationMenu_Overview --> EcoATM_PWS_NavigationMenu_NewEdit
+    EcoATM_PWSIntegration_DesposcoAPIs_View["EcoATM_PWSIntegration.DesposcoAPIs_View (Page)"]:::page
+    AuctionUI_BidData_Overview_QA_Testing["AuctionUI.BidData_Overview_QA_Testing (Page)"]:::page
+    AuctionUI_BidData_Overview_QA_Testing --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_BidData_Overview_QA_Testing --> AuctionUI_BidData_NewEdit
+    EcoATM_PWSIntegration_PWSResponseConfig_Overview["EcoATM_PWSIntegration.PWSResponseConfig_Overview (Page)"]:::page
+    EcoATM_PWSIntegration_PWSResponseConfig_Overview --> AuctionUI_Business_PWS_ControlCenter
+    EcoATM_PWSIntegration_PWSResponseConfig_Overview --> EcoATM_PWSIntegration_PWSResponseConfig_Edit
+    EcoATM_BuyerManagement_PG_BidDataTotalQuantityConfig_Upload["EcoATM_BuyerManagement.PG_BidDataTotalQuantityConfig_Upload (Page)"]:::page
+    AuctionUI_PG_BidRankingConfiguration["AuctionUI.PG_BidRankingConfiguration (Page)"]:::page
+    AuctionUI_PG_BidRankingConfiguration --> AuctionUI_Business_Auctions_ControlCenter
+    EcoATM_PWSIntegration_PWSResponseConfig_Edit["EcoATM_PWSIntegration.PWSResponseConfig_Edit (Page)"]:::page
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode["AuctionUI.SchedulingAuction_Overview_perBuyerCode (Page)"]:::page
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_SchedulingAuction_Overview_perBuyerCode --> AuctionUI_SchedulingAuction_NewEdit
+    Eco_Core_FeatureFlag_NewEdit["Eco_Core.FeatureFlag_NewEdit (Page)"]:::page
+    EcoATM_RMA_RMAReason_NewEdit["EcoATM_RMA.RMAReason_NewEdit (Page)"]:::page
+    AuctionUI_BidData_NewEdit["AuctionUI.BidData_NewEdit (Page)"]:::page
+    EcoATM_BuyerManagement_PG_BuyerSubmitConfig["EcoATM_BuyerManagement.PG_BuyerSubmitConfig (Page)"]:::page
+    EcoATM_BuyerManagement_PG_BuyerSubmitConfig --> AuctionUI_Business_Auctions_ControlCenter
+    AuctionUI_Business_PWS_ControlCenter["AuctionUI.Business_PWS_ControlCenter (Page)"]:::page
+    AuctionUI_Business_PWS_ControlCenter --> Eco_Core_FeatureFlag_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWSMDM_Brand_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWSIntegration_PWSResponseConfig_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWSIntegration_PWSConfiguration_Edit
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWS_PWSConstants_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWSIntegration_DeposcoConfig_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWS_OrderStatus_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWS_MaintenanceMode_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_RMA_RMAStatus_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_RMA_RMATemptate_Overview
+    AuctionUI_Business_PWS_ControlCenter --> EcoATM_PWS_NavigationMenu_Overview
+    EcoATM_PWSMDM_Brand_Overview["EcoATM_PWSMDM.Brand_Overview (Page)"]:::page
+    EcoATM_PWSMDM_Brand_Overview --> EcoATM_MDM_Brand_NewEdit
+    classDef page fill:#e1f5fe,stroke:#01579b,stroke-width:2px;
+    classDef microflow fill:#fff3e0,stroke:#e65100,stroke-width:2px;
+    classDef system fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,stroke-dasharray: 5 5;

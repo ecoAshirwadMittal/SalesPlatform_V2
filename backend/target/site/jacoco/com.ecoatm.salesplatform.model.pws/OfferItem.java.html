@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferItem.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">OfferItem.java</span></div><h1>OfferItem.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;offer_item&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L9">public class OfferItem {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;legacy_id&quot;, unique = true)
+    private Long legacyId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;offer_id&quot;, nullable = false)
+    private Offer offer;
+
+    private String sku;
+
+    @Column(name = &quot;device_id&quot;)
+    private Long deviceId;
+
+    private Integer quantity;
+    private BigDecimal price;
+
+    @Column(name = &quot;total_price&quot;)
+    private BigDecimal totalPrice;
+
+    @Column(name = &quot;counter_qty&quot;)
+    private Integer counterQty;
+
+    @Column(name = &quot;counter_price&quot;)
+    private BigDecimal counterPrice;
+
+    @Column(name = &quot;counter_total&quot;)
+    private BigDecimal counterTotal;
+
+    @Column(name = &quot;item_status&quot;)
+    private String itemStatus;
+
+    @Column(name = &quot;offer_drawer_status&quot;)
+    private String offerDrawerStatus;
+
+    @Column(name = &quot;buyer_counter_status&quot;)
+    private String buyerCounterStatus;
+
+    @Column(name = &quot;case_lot_id&quot;)
+    private Long caseLotId;
+
+    @Column(name = &quot;final_offer_price&quot;)
+    private BigDecimal finalOfferPrice;
+
+    @Column(name = &quot;final_offer_quantity&quot;)
+    private Integer finalOfferQuantity;
+
+    @Column(name = &quot;final_offer_total_price&quot;)
+    private BigDecimal finalOfferTotalPrice;
+
+    @Column(name = &quot;counter_case_price_total&quot;)
+    private BigDecimal counterCasePriceTotal;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L74">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L75">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L76">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L80">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L81">    }</span>
+
+    // Getters and Setters
+<span class="fc" id="L84">    public Long getId() { return id; }</span>
+<span class="fc" id="L85">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="nc" id="L87">    public Long getLegacyId() { return legacyId; }</span>
+<span class="nc" id="L88">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+
+<span class="nc" id="L90">    public Offer getOffer() { return offer; }</span>
+<span class="fc" id="L91">    public void setOffer(Offer offer) { this.offer = offer; }</span>
+
+<span class="fc" id="L93">    public String getSku() { return sku; }</span>
+<span class="fc" id="L94">    public void setSku(String sku) { this.sku = sku; }</span>
+
+<span class="fc" id="L96">    public Long getDeviceId() { return deviceId; }</span>
+<span class="fc" id="L97">    public void setDeviceId(Long deviceId) { this.deviceId = deviceId; }</span>
+
+<span class="fc" id="L99">    public Integer getQuantity() { return quantity; }</span>
+<span class="fc" id="L100">    public void setQuantity(Integer quantity) { this.quantity = quantity; }</span>
+
+<span class="fc" id="L102">    public BigDecimal getPrice() { return price; }</span>
+<span class="fc" id="L103">    public void setPrice(BigDecimal price) { this.price = price; }</span>
+
+<span class="fc" id="L105">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
+<span class="fc" id="L106">    public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }</span>
+
+<span class="fc" id="L108">    public Integer getCounterQty() { return counterQty; }</span>
+<span class="fc" id="L109">    public void setCounterQty(Integer counterQty) { this.counterQty = counterQty; }</span>
+
+<span class="fc" id="L111">    public BigDecimal getCounterPrice() { return counterPrice; }</span>
+<span class="fc" id="L112">    public void setCounterPrice(BigDecimal counterPrice) { this.counterPrice = counterPrice; }</span>
+
+<span class="fc" id="L114">    public BigDecimal getCounterTotal() { return counterTotal; }</span>
+<span class="fc" id="L115">    public void setCounterTotal(BigDecimal counterTotal) { this.counterTotal = counterTotal; }</span>
+
+<span class="fc" id="L117">    public String getItemStatus() { return itemStatus; }</span>
+<span class="fc" id="L118">    public void setItemStatus(String itemStatus) { this.itemStatus = itemStatus; }</span>
+
+<span class="fc" id="L120">    public String getOfferDrawerStatus() { return offerDrawerStatus; }</span>
+<span class="fc" id="L121">    public void setOfferDrawerStatus(String offerDrawerStatus) { this.offerDrawerStatus = offerDrawerStatus; }</span>
+
+<span class="fc" id="L123">    public String getBuyerCounterStatus() { return buyerCounterStatus; }</span>
+<span class="fc" id="L124">    public void setBuyerCounterStatus(String buyerCounterStatus) { this.buyerCounterStatus = buyerCounterStatus; }</span>
+
+<span class="fc" id="L126">    public Long getCaseLotId() { return caseLotId; }</span>
+<span class="fc" id="L127">    public void setCaseLotId(Long caseLotId) { this.caseLotId = caseLotId; }</span>
+
+<span class="fc" id="L129">    public BigDecimal getFinalOfferPrice() { return finalOfferPrice; }</span>
+<span class="fc" id="L130">    public void setFinalOfferPrice(BigDecimal finalOfferPrice) { this.finalOfferPrice = finalOfferPrice; }</span>
+
+<span class="fc" id="L132">    public Integer getFinalOfferQuantity() { return finalOfferQuantity; }</span>
+<span class="fc" id="L133">    public void setFinalOfferQuantity(Integer finalOfferQuantity) { this.finalOfferQuantity = finalOfferQuantity; }</span>
+
+<span class="fc" id="L135">    public BigDecimal getFinalOfferTotalPrice() { return finalOfferTotalPrice; }</span>
+<span class="fc" id="L136">    public void setFinalOfferTotalPrice(BigDecimal finalOfferTotalPrice) { this.finalOfferTotalPrice = finalOfferTotalPrice; }</span>
+
+<span class="fc" id="L138">    public BigDecimal getCounterCasePriceTotal() { return counterCasePriceTotal; }</span>
+<span class="fc" id="L139">    public void setCounterCasePriceTotal(BigDecimal counterCasePriceTotal) { this.counterCasePriceTotal = counterCasePriceTotal; }</span>
+
+<span class="nc" id="L141">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="nc" id="L142">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+
+<span class="nc" id="L144">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="nc" id="L145">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

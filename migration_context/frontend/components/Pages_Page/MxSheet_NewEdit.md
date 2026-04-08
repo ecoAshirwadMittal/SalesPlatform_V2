@@ -1,0 +1,656 @@
+# Page: MxSheet_NewEdit
+
+**Allowed Roles:** XLSReport.Configurator
+
+**Layout:** `Atlas_Core.Atlas_TopBar`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 🔤 **Text**: "Name"
+  - 🔤 **Text**: "Sequence"
+  - 🔤 **Text**: "Row object"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: rowclick
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "Reference to template input object"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectReference.CompleteName]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: rowclick
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "Sheet input object"
+  - 🔤 **Text**: "Start retrieved data at row"
+  - 🔤 **Text**: "Distinct duplicate data"
+  - 📝 **CheckBox**: checkBox4
+  - 🔤 **Text**: "Use static data"
+  - 📝 **CheckBox**: checkBox1
+  - 🔤 **Text**: "Column default width"
+  - 📝 **CheckBox**: checkBox2
+  - 🔤 **Text**: "Default column width in pixels"
+  - 🔤 **Text**: "Row default height"
+  - 📝 **CheckBox**: checkBox3
+  - 🔤 **Text**: "Default row height in points"
+  - 🔤 **Text**: "Default text style"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: XLSReport.MxCellStyle.Name]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: rowclick
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "Default header text style"
+  - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+      - source: context
+      - optionsSourceType: association
+      - optionsSourceAssociationCaptionType: attribute
+      - optionsSourceDatabaseCaptionType: attribute
+      - optionsSourceAssociationCaptionAttribute: [Attr: XLSReport.MxCellStyle.Name]
+      - filterType: contains
+      - optionsSourceAssociationCustomContentType: no
+      - optionsSourceDatabaseCustomContentType: no
+      - staticDataSourceCustomContentType: no
+      - selectionMethod: checkbox
+      - selectedItemsStyle: text
+      - selectAllButtonCaption: Select all
+      - readOnlyStyle: text
+      - ariaRequired: `false`
+      - clearButtonAriaLabel: Clear selection
+      - removeValueAriaLabel: Remove value
+      - a11ySelectedValue: Selected value:
+      - a11yOptionsAvailable: Number of options available:
+      - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+      - loadingType: spinner
+      - selectedItemsSorting: none
+  - 🔤 **Text**: "In 1 or more columns there is data aggregation. The effect is that the data will be grouped on the other columns."
+  - 📑 **TabContainer**
+    - 📑 **Tab**: "Static data" 👁️ (If DataUsage is true/false)
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: customContent
+              - attribute: [Attr: XLSReport.MxData.Status]
+              ➤ **content** (Widgets)
+                - 🖼️ **Image**: Completed 👁️ (If Status is Yes/No/(empty))
+                - 🖼️ **Image**: Cancel 👁️ (If Status is Yes/No/(empty))
+              - header: Status
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxStatic.RowPlace]
+              - header: Row
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxStatic.ColumnPlace]
+              - header: Column
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxStatic.StaticType]
+              - header: Type
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxData.Name]
+              - header: Name
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxStatic.StaticType]
+              - header: Static type
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - multiSelect: False
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxCellStyle.Name]
+              - header: Style
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+            - ⚡ **Button**: New [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.Static_New`
+              ↳ [acti] → **Page**: `XLSReport.MxStatic_NewEdit`
+              ↳ [acti] → **Delete**
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+    - 📑 **Tab**: "Column data"
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: customContent
+              - attribute: [Attr: XLSReport.MxData.Status]
+              ➤ **content** (Widgets)
+                - 🖼️ **Image**: Completed 👁️ (If Status is Yes/No/(empty))
+                - 🖼️ **Image**: Cancel 👁️ (If Status is Yes/No/(empty))
+              - header: Status
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumn.ColumnNumber]
+              - header: Sequence
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxData.Name]
+              - header: Column name
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumn.ObjectAttribute]
+              - header: Object and attribute
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxCellStyle.Name]
+              - header: Specific style
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumn.DataAggregate]
+              - header: Data aggregate
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumn.DataAggregateFunction]
+              - header: Function
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumn.ResultAggregate]
+              - header: Result aggregate
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+            - ⚡ **Button**: New [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_Column_New`
+              ↳ [acti] → **Page**: `XLSReport.MxColumn_NewEdit`
+            - ⚡ **Button**: Delete [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_DeleteColumn`
+            - ⚡ **Button**: actionButton9 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_ColumnLower`
+            - ⚡ **Button**: actionButton10 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_ColumnHigher`
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+    - 📑 **Tab**: "Associations, constraints and sorting"
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxReferenceHandling.Reference]
+              - header: Association
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxReferenceHandling.JoinType]
+              - header: Join type
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Page**: `XLSReport.MxReferenceHandling_NewEdit`
+              ↳ [acti] → **Page**: `XLSReport.MxReferenceHandling_NewEdit`
+              ↳ [acti] → **Delete**
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxConstraint.Sequence]
+              - header: Sequence
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxConstraint.AndOr]
+              - header: And/Or
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxConstraint.Summary]
+              - header: Summary
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Page**: `XLSReport.MxConstraint_New`
+              ↳ [acti] → **Page**: `XLSReport.MxConstraint_New`
+            - ⚡ **Button**: Delete [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_ConstraintDelete`
+            - ⚡ **Button**: actionButton17 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_Constraint_Lower`
+            - ⚡ **Button**: actionButton18 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_Constraint_Higher`
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxSorting.Sequence]
+              - header: Sequence
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxSorting.Summary]
+              - header: Summary
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxSorting.SortingDirection]
+              - header: Direction
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Page**: `XLSReport.MxSorting_NewEdit`
+              ↳ [acti] → **Page**: `XLSReport.MxSorting_NewEdit`
+            - ⚡ **Button**: Delete [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_SortingDelete`
+            - ⚡ **Button**: actionButton22 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_Sorting_Lower`
+            - ⚡ **Button**: actionButton23 [Style: Default]
+              ↳ [acti] → **Microflow**: `XLSReport.IVK_Sorting_Higher`
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+    - 📑 **Tab**: "Sheet preferences"
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumnSettings.ColumnIndex]
+              - header: Column index
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumnSettings.AutoSize]
+              - header: Auto size
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - multiSelect: False
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxColumnSettings.ColumnWidth]
+              - header: Column width
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Page**: `XLSReport.ColumnSettings_NewEdit`
+              ↳ [acti] → **Page**: `XLSReport.ColumnSettings_NewEdit`
+              ↳ [acti] → **Delete**
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxRowSettings.RowIndex]
+              - header: Row number
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxRowSettings.DefaultHeight]
+              - header: Default height
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - multiSelect: False
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: XLSReport.MxRowSettings.RowHeight]
+              - header: Row height
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 10
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+              ↳ [acti] → **Page**: `XLSReport.MxRowSettings_NewEdit`
+              ↳ [acti] → **Page**: `XLSReport.MxRowSettings_NewEdit`
+              ↳ [acti] → **Delete**
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+  - ⚡ **Button**: Save [Style: Default]
+    ↳ [acti] → **Microflow**: `XLSReport.Sheet_Save`
+    ↳ [acti] → **Cancel Changes**

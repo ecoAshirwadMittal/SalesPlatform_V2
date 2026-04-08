@@ -1,0 +1,15 @@
+# Node
+node_modules/
+
+# AI Assistants
+.claude/
+.gemini/
+.antigravityignore
+.claudeignore
+*claude-code*
+*clauderules*
+
+# Python
+__pycache__/
+*.pyc
+.env

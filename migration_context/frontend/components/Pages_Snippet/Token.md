@@ -1,0 +1,150 @@
+# Snippet: Token
+
+## Widget Tree
+
+- 🔤 **Text**: "Token"
+- 🔤 **Text**: "Description"
+- 🔤 **Text**: "Type"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: enumeration
+    - attributeEnumeration: [Attr: MxModelReflection.Token.TokenType]
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Objecttype"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Reference"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectReference.CompleteName]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Objecttype"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Attribute"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectMember.AttributeName]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Attribute"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectMember.AttributeName]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 🔤 **Text**: "Display Pattern"
+- 🔤 **Text**: "The pattern is optional to format your values. If specified it uses the java.text.DecimalFormat for formatting Decimal/Float/Currency attributes and the java.util.Formatter for all other fields. The module does not catch or check the pattern so please make sure that it is correct. Please see the respective JavaDocs for the format of the potential patterns." [Style: `font-style: italic; font-size: 80%;`]
+- ⚡ **Button**: Test [Style: Default] [Class: `btn-sm`]
+  ↳ [acti] → **Microflow**: `MxModelReflection.MB_TestTokenPattern`
+- 🔤 **Text**: "Required?"
+- 📝 **CheckBox**: checkBox1

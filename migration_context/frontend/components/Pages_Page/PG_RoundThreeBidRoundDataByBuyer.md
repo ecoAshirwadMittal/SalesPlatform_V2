@@ -1,0 +1,203 @@
+# Page: PG_RoundThreeBidRoundDataByBuyer
+
+**Allowed Roles:** AuctionUI.Administrator, AuctionUI.ecoAtmDirectAdmin, AuctionUI.SalesLeader, AuctionUI.SalesOps, AuctionUI.SalesRep
+
+**Layout:** `AuctionUI.ecoATM_Popup_Layout`
+
+## Widget Tree
+
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: checkbox
+    - itemSelectionMode: clear
+    - loadingType: spinner
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.CodeGrade]
+        - header: Code Grade
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.Brand]
+        - header: Brand
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.PartName]
+        - header: Part Name
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.EstimatedUnitCount]
+        - header: Estimated Unit Count
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.BuyerQtyCap]
+        - header: Your Quantity Cap
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: dynamicText
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.Bid]
+        - dynamicText: {1}
+        - header: Bid
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: dynamicText
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.MaxBid]
+        - dynamicText: {1}
+        - header: Max Bid
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.AcceptMaxBid]
+        - header: Accept Max Bid (Y/N)
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.BuyerName]
+        - header: Buyer Name
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.BuyerCode]
+        - header: Code
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - showContentAs: attribute
+        - attribute: [Attr: AuctionUI.RoundThreeBidDataReport.BidRank]
+        - header: Bid Rank
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+              - screenReaderInputCaption: Search
+        - visible: `true`
+        - filterCaptionType: expression
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+    - pageSize: 20
+    - pagination: buttons
+    - showPagingButtons: always
+    - pagingPosition: bottom
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: single
+    - configurationStorageType: attribute
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row

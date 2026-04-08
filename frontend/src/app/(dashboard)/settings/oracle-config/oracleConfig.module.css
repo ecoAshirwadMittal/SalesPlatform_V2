@@ -1,0 +1,269 @@
+/* ===================================================================
+   Oracle Configuration — Admin page
+   Matches Mendix PWSConfiguration_Edit popup layout
+   Two tabs: Security + API, consistent with dashboard styling
+   ================================================================= */
+
+.pageContainer {
+  width: 100%;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 300;
+  color: #3c3c3c;
+  margin: 0;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.lastUpdated {
+  font-size: 13px;
+  color: #888;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ---- Tab bar ---- */
+.tabBar {
+  display: flex;
+  border-bottom: 2px solid #ddd;
+  margin-bottom: 24px;
+}
+
+.tab {
+  padding: 10px 24px;
+  border: none;
+  background: none;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #888;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: #3c3c3c;
+}
+
+.tabActive {
+  color: #3c3c3c;
+  font-weight: 600;
+  border-bottom-color: #407874;
+}
+
+/* ---- Form card ---- */
+.formCard {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 24px 32px;
+  max-width: 700px;
+}
+
+/* ---- Form fields ---- */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin-bottom: 6px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.formInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+.formInput:disabled {
+  background: #f5f5f5;
+  color: #999;
+}
+
+.formInputShort {
+  width: 160px;
+  padding: 8px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.formInputShort:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+.formHint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* ---- Toggle switch ---- */
+.toggleRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.toggleLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.toggleSwitch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  background: #ccc;
+  border-radius: 12px;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.toggleSwitch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.toggleOn {
+  background: #14ac36;
+}
+
+.toggleOn::after {
+  transform: translateX(20px);
+}
+
+.toggleStatusText {
+  font-size: 13px;
+  color: #888;
+}
+
+/* ---- Buttons row ---- */
+.actionsRow {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.saveBtn {
+  padding: 10px 28px;
+  border: none;
+  border-radius: 44px;
+  background: #14ac36;
+  color: #fff;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.saveBtn:hover {
+  background: #0e8f2b;
+}
+
+.saveBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.testBtn {
+  padding: 10px 28px;
+  border: 2px solid #407874;
+  border-radius: 44px;
+  background: transparent;
+  color: #407874;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.testBtn:hover {
+  background: #407874;
+  color: #fff;
+}
+
+.testBtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---- Result banner ---- */
+.banner {
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  margin-bottom: 20px;
+}
+
+.bannerSuccess {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.bannerError {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+/* ---- Password field with masked indicator ---- */
+.passwordWrapper {
+  position: relative;
+}
+
+.passwordMask {
+  font-size: 12px;
+  color: #407874;
+  margin-top: 4px;
+}

@@ -1,0 +1,467 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RmaService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">RmaService.java</span></div><h1>RmaService.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
+
+import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.model.pws.Rma;
+import com.ecoatm.salesplatform.model.pws.RmaItem;
+import com.ecoatm.salesplatform.model.pws.RmaReason;
+import com.ecoatm.salesplatform.model.pws.RmaStatus;
+import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.RmaItemRepository;
+import com.ecoatm.salesplatform.repository.pws.RmaReasonRepository;
+import com.ecoatm.salesplatform.repository.pws.RmaRepository;
+import com.ecoatm.salesplatform.repository.pws.RmaStatusRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.Year;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Service
+public class RmaService {
+
+<span class="fc" id="L33">    private static final Logger log = LoggerFactory.getLogger(RmaService.class);</span>
+
+    private static final String STATUS_APPROVE = &quot;Approve&quot;;
+    private static final String STATUS_DECLINE = &quot;Decline&quot;;
+    private static final String STATUS_SUBMITTED = &quot;Submitted&quot;;
+    private static final String STATUS_APPROVED = &quot;Approved&quot;;
+    private static final String STATUS_DECLINED = &quot;Declined&quot;;
+
+    private final RmaRepository rmaRepository;
+    private final RmaItemRepository rmaItemRepository;
+    private final RmaStatusRepository rmaStatusRepository;
+    private final RmaReasonRepository rmaReasonRepository;
+    private final DeviceRepository deviceRepository;
+
+    @PersistenceContext
+    private EntityManager em;
+
+    public RmaService(RmaRepository rmaRepository,
+                      RmaItemRepository rmaItemRepository,
+                      RmaStatusRepository rmaStatusRepository,
+                      RmaReasonRepository rmaReasonRepository,
+<span class="fc" id="L54">                      DeviceRepository deviceRepository) {</span>
+<span class="fc" id="L55">        this.rmaRepository = rmaRepository;</span>
+<span class="fc" id="L56">        this.rmaItemRepository = rmaItemRepository;</span>
+<span class="fc" id="L57">        this.rmaStatusRepository = rmaStatusRepository;</span>
+<span class="fc" id="L58">        this.rmaReasonRepository = rmaReasonRepository;</span>
+<span class="fc" id="L59">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L60">    }</span>
+
+    /** List RMAs for a buyer code, optionally filtered by status group. */
+    @Transactional(readOnly = true)
+    public List&lt;RmaResponse&gt; getRmasByBuyerCode(Long buyerCodeId, String statusFilter) {
+        List&lt;Rma&gt; rmas;
+<span class="pc bpc" id="L66" title="1 of 6 branches missed.">        if (statusFilter != null &amp;&amp; !statusFilter.isEmpty() &amp;&amp; !&quot;Total&quot;.equalsIgnoreCase(statusFilter)) {</span>
+<span class="fc" id="L67">            rmas = rmaRepository.findByBuyerCodeIdAndStatusGroupedTo(buyerCodeId, statusFilter);</span>
+        } else {
+<span class="fc" id="L69">            rmas = rmaRepository.findByBuyerCodeIdOrderByCreatedDateDesc(buyerCodeId);</span>
+        }
+<span class="fc" id="L71">        return rmas.stream().map(RmaResponse::fromEntity).collect(Collectors.toList());</span>
+    }
+
+    /** Get all RMAs (for Sales view — no buyer code filter). */
+    @Transactional(readOnly = true)
+    public List&lt;RmaResponse&gt; getAllRmas(String statusFilter) {
+        List&lt;Rma&gt; rmas;
+<span class="pc bpc" id="L78" title="2 of 6 branches missed.">        if (statusFilter != null &amp;&amp; !statusFilter.isEmpty() &amp;&amp; !&quot;Total&quot;.equalsIgnoreCase(statusFilter)) {</span>
+<span class="fc" id="L79">            rmas = rmaRepository.findByStatusGroupedTo(statusFilter);</span>
+        } else {
+<span class="fc" id="L81">            rmas = rmaRepository.findAllOrderByCreatedDateDesc();</span>
+        }
+<span class="fc" id="L83">        return rmas.stream().map(RmaResponse::fromEntity).collect(Collectors.toList());</span>
+    }
+
+    /** Get summary cards grouped by status. */
+    @Transactional(readOnly = true)
+    public List&lt;RmaSummaryResponse&gt; getSummary(Long buyerCodeId) {
+        List&lt;Object[]&gt; rows;
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (buyerCodeId != null) {</span>
+<span class="fc" id="L91">            rows = rmaRepository.getSummaryGroupedByBuyerCode(buyerCodeId);</span>
+        } else {
+<span class="fc" id="L93">            rows = rmaRepository.getSummaryGroupedAll();</span>
+        }
+
+<span class="fc" id="L96">        long totalCount = 0, totalPrice = 0, totalSkus = 0, totalQty = 0;</span>
+<span class="fc" id="L97">        List&lt;RmaSummaryResponse&gt; summaries = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L99" title="All 2 branches covered.">        for (Object[] row : rows) {</span>
+<span class="fc" id="L100">            String status = (String) row[0];</span>
+<span class="fc" id="L101">            long count = ((Number) row[1]).longValue();</span>
+<span class="fc" id="L102">            long price = ((Number) row[2]).longValue();</span>
+<span class="fc" id="L103">            long skus = ((Number) row[3]).longValue();</span>
+<span class="fc" id="L104">            long qty = ((Number) row[4]).longValue();</span>
+
+<span class="fc" id="L106">            summaries.add(new RmaSummaryResponse(status, formatDisplayLabel(status), count, price, skus, qty));</span>
+<span class="fc" id="L107">            totalCount += count;</span>
+<span class="fc" id="L108">            totalPrice += price;</span>
+<span class="fc" id="L109">            totalSkus += skus;</span>
+<span class="fc" id="L110">            totalQty += qty;</span>
+<span class="fc" id="L111">        }</span>
+
+        // Add &quot;Total&quot; card
+<span class="fc" id="L114">        summaries.add(0, new RmaSummaryResponse(&quot;Total&quot;, &quot;Total&quot;, totalCount, totalPrice, totalSkus, totalQty));</span>
+<span class="fc" id="L115">        return summaries;</span>
+    }
+
+    /** Get all-RMAs summary (Sales view — no buyer code filter). */
+    @Transactional(readOnly = true)
+    public List&lt;RmaSummaryResponse&gt; getAllSummary() {
+<span class="fc" id="L121">        List&lt;Object[]&gt; rows = rmaRepository.getSummaryGroupedAll();</span>
+
+<span class="fc" id="L123">        long totalCount = 0, totalPrice = 0, totalSkus = 0, totalQty = 0;</span>
+<span class="fc" id="L124">        List&lt;RmaSummaryResponse&gt; summaries = new ArrayList&lt;&gt;();</span>
+
+<span class="fc bfc" id="L126" title="All 2 branches covered.">        for (Object[] row : rows) {</span>
+<span class="fc" id="L127">            String status = (String) row[0];</span>
+<span class="fc" id="L128">            long count = ((Number) row[1]).longValue();</span>
+<span class="fc" id="L129">            long price = ((Number) row[2]).longValue();</span>
+<span class="fc" id="L130">            long skus = ((Number) row[3]).longValue();</span>
+<span class="fc" id="L131">            long qty = ((Number) row[4]).longValue();</span>
+
+<span class="fc" id="L133">            summaries.add(new RmaSummaryResponse(status, formatDisplayLabel(status), count, price, skus, qty));</span>
+<span class="fc" id="L134">            totalCount += count;</span>
+<span class="fc" id="L135">            totalPrice += price;</span>
+<span class="fc" id="L136">            totalSkus += skus;</span>
+<span class="fc" id="L137">            totalQty += qty;</span>
+<span class="fc" id="L138">        }</span>
+
+<span class="fc" id="L140">        summaries.add(0, new RmaSummaryResponse(&quot;Total&quot;, &quot;Total&quot;, totalCount, totalPrice, totalSkus, totalQty));</span>
+<span class="fc" id="L141">        return summaries;</span>
+    }
+
+    /** Get RMA detail with all items, enriched with device info. */
+    @Transactional(readOnly = true)
+    public RmaDetailResponse getRmaDetail(Long rmaId) {
+<span class="fc" id="L147">        Rma rma = rmaRepository.findById(rmaId)</span>
+<span class="fc" id="L148">                .orElseThrow(() -&gt; new RuntimeException(&quot;RMA not found: &quot; + rmaId));</span>
+
+<span class="fc" id="L150">        RmaResponse rmaResponse = RmaResponse.fromEntity(rma);</span>
+<span class="fc" id="L151">        List&lt;RmaItem&gt; items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);</span>
+<span class="fc" id="L152">        List&lt;RmaItemResponse&gt; itemResponses = items.stream()</span>
+<span class="fc" id="L153">                .map(this::enrichItemWithDevice)</span>
+<span class="fc" id="L154">                .collect(Collectors.toList());</span>
+
+<span class="fc" id="L156">        return new RmaDetailResponse(rmaResponse, itemResponses);</span>
+    }
+
+    /** Approve all items in an RMA. */
+    @Transactional
+    public RmaDetailResponse approveAllItems(Long rmaId) {
+<span class="fc" id="L162">        List&lt;RmaItem&gt; items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">        for (RmaItem item : items) {</span>
+<span class="fc" id="L164">            item.setStatus(STATUS_APPROVE);</span>
+<span class="fc" id="L165">            item.setStatusDisplay(&quot;Approved&quot;);</span>
+<span class="fc" id="L166">        }</span>
+<span class="fc" id="L167">        rmaItemRepository.saveAll(items);</span>
+<span class="fc" id="L168">        recalculateApprovedValues(rmaId);</span>
+<span class="fc" id="L169">        return getRmaDetail(rmaId);</span>
+    }
+
+    /** Decline all items in an RMA. */
+    @Transactional
+    public RmaDetailResponse declineAllItems(Long rmaId) {
+<span class="fc" id="L175">        List&lt;RmaItem&gt; items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);</span>
+<span class="fc bfc" id="L176" title="All 2 branches covered.">        for (RmaItem item : items) {</span>
+<span class="fc" id="L177">            item.setStatus(STATUS_DECLINE);</span>
+<span class="fc" id="L178">            item.setStatusDisplay(&quot;Declined&quot;);</span>
+<span class="fc" id="L179">        }</span>
+<span class="fc" id="L180">        rmaItemRepository.saveAll(items);</span>
+<span class="fc" id="L181">        recalculateApprovedValues(rmaId);</span>
+<span class="fc" id="L182">        return getRmaDetail(rmaId);</span>
+    }
+
+    /** Update a single item's status (Approve/Decline). */
+    @Transactional
+    public RmaDetailResponse updateItemStatus(Long rmaItemId, String status) {
+<span class="fc bfc" id="L188" title="All 4 branches covered.">        if (!STATUS_APPROVE.equals(status) &amp;&amp; !STATUS_DECLINE.equals(status)) {</span>
+<span class="fc" id="L189">            throw new IllegalArgumentException(&quot;Invalid status: must be 'Approve' or 'Decline'&quot;);</span>
+        }
+<span class="fc" id="L191">        RmaItem item = rmaItemRepository.findById(rmaItemId)</span>
+<span class="fc" id="L192">                .orElseThrow(() -&gt; new RuntimeException(&quot;RMA Item not found: &quot; + rmaItemId));</span>
+<span class="fc" id="L193">        item.setStatus(status);</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">        item.setStatusDisplay(STATUS_APPROVE.equals(status) ? &quot;Approved&quot; : &quot;Declined&quot;);</span>
+<span class="fc" id="L195">        rmaItemRepository.save(item);</span>
+
+<span class="fc" id="L197">        Long rmaId = item.getRma().getId();</span>
+<span class="fc" id="L198">        recalculateApprovedValues(rmaId);</span>
+<span class="fc" id="L199">        return getRmaDetail(rmaId);</span>
+    }
+
+    /** Complete review — finalize the RMA, update status to Approved or Declined. */
+    @Transactional
+    public RmaDetailResponse completeReview(Long rmaId, Long reviewedByUserId) {
+<span class="fc" id="L205">        Rma rma = rmaRepository.findById(rmaId)</span>
+<span class="fc" id="L206">                .orElseThrow(() -&gt; new RuntimeException(&quot;RMA not found: &quot; + rmaId));</span>
+
+<span class="fc" id="L208">        recalculateApprovedValues(rmaId);</span>
+        // Reload after recalc
+<span class="fc" id="L210">        rma = rmaRepository.findById(rmaId).orElseThrow();</span>
+
+<span class="fc" id="L212">        rma.setReviewedByUserId(reviewedByUserId);</span>
+<span class="fc" id="L213">        rma.setReviewCompletedOn(LocalDateTime.now());</span>
+
+<span class="pc bpc" id="L215" title="1 of 2 branches missed.">        int approved = rma.getApprovedCount() != null ? rma.getApprovedCount() : 0;</span>
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">        int declined = rma.getDeclinedCount() != null ? rma.getDeclinedCount() : 0;</span>
+
+        String newStatus;
+<span class="fc bfc" id="L219" title="All 4 branches covered.">        if (approved &gt; 0 &amp;&amp; declined == 0) {</span>
+<span class="fc" id="L220">            newStatus = STATUS_APPROVED;</span>
+<span class="fc" id="L221">            rma.setApprovalDate(LocalDateTime.now());</span>
+<span class="pc bpc" id="L222" title="1 of 4 branches missed.">        } else if (approved == 0 &amp;&amp; declined &gt; 0) {</span>
+<span class="fc" id="L223">            newStatus = STATUS_DECLINED;</span>
+        } else {
+            // Mixed — treat as Approved (partial)
+<span class="fc" id="L226">            newStatus = STATUS_APPROVED;</span>
+<span class="fc" id="L227">            rma.setApprovalDate(LocalDateTime.now());</span>
+        }
+
+<span class="fc" id="L230">        rmaStatusRepository.findBySystemStatus(newStatus).ifPresent(rma::setRmaStatus);</span>
+<span class="fc" id="L231">        rma.setSystemStatus(newStatus);</span>
+<span class="fc" id="L232">        rmaRepository.save(rma);</span>
+
+<span class="fc" id="L234">        log.info(&quot;RMA {} review completed — status: {}, approved: {}, declined: {}&quot;,</span>
+<span class="fc" id="L235">                rma.getNumber(), newStatus, approved, declined);</span>
+
+<span class="fc" id="L237">        return getRmaDetail(rmaId);</span>
+    }
+
+    /** Get available return reasons. */
+    @Transactional(readOnly = true)
+    public List&lt;RmaReasonResponse&gt; getReturnReasons() {
+<span class="nc" id="L243">        return rmaReasonRepository.findByIsActiveTrueOrderByValidReasonsAsc()</span>
+<span class="nc" id="L244">                .stream()</span>
+<span class="nc" id="L245">                .map(RmaReasonResponse::fromEntity)</span>
+<span class="nc" id="L246">                .collect(Collectors.toList());</span>
+    }
+
+    /**
+     * Submit an RMA request from a CSV file upload.
+     * Validates return reasons, checks for duplicate IMEIs in pending RMAs,
+     * generates RMA number, creates RMA + RmaItems.
+     *
+     * CSV format: IMEI/Serial, Return Reason (header row expected)
+     */
+    @Transactional
+    public RmaSubmitResponse submitRmaRequest(Long buyerCodeId, Long userId, InputStream csvStream) {
+<span class="nc" id="L258">        List&lt;String[]&gt; rows = parseCsv(csvStream);</span>
+<span class="nc bnc" id="L259" title="All 2 branches missed.">        if (rows.isEmpty()) {</span>
+<span class="nc" id="L260">            return RmaSubmitResponse.failure(List.of(&quot;File is empty or contains only headers.&quot;));</span>
+        }
+
+        // Load valid reasons
+<span class="nc" id="L264">        Set&lt;String&gt; validReasons = rmaReasonRepository.findByIsActiveTrueOrderByValidReasonsAsc()</span>
+<span class="nc" id="L265">                .stream()</span>
+<span class="nc" id="L266">                .map(RmaReason::getValidReasons)</span>
+<span class="nc" id="L267">                .collect(Collectors.toSet());</span>
+
+        // Collect all IMEIs for batch duplicate check
+<span class="nc" id="L270">        List&lt;String&gt; allImeis = rows.stream()</span>
+<span class="nc" id="L271">                .map(r -&gt; r[0].trim())</span>
+<span class="nc bnc" id="L272" title="All 2 branches missed.">                .filter(s -&gt; !s.isEmpty())</span>
+<span class="nc" id="L273">                .collect(Collectors.toList());</span>
+
+<span class="nc" id="L275">        Set&lt;String&gt; duplicateImeis = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L276" title="All 2 branches missed.">        if (!allImeis.isEmpty()) {</span>
+<span class="nc" id="L277">            duplicateImeis.addAll(rmaItemRepository.findDuplicateImeis(allImeis, buyerCodeId));</span>
+        }
+
+        // Check for duplicates within the uploaded file itself
+<span class="nc" id="L281">        Set&lt;String&gt; seenInFile = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L282">        Set&lt;String&gt; fileInternalDuplicates = new HashSet&lt;&gt;();</span>
+<span class="nc bnc" id="L283" title="All 2 branches missed.">        for (String imei : allImeis) {</span>
+<span class="nc bnc" id="L284" title="All 2 branches missed.">            if (!seenInFile.add(imei)) {</span>
+<span class="nc" id="L285">                fileInternalDuplicates.add(imei);</span>
+            }
+<span class="nc" id="L287">        }</span>
+
+        // Validate each row
+<span class="nc" id="L290">        List&lt;String&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        for (int i = 0; i &lt; rows.size(); i++) {</span>
+<span class="nc" id="L292">            String[] row = rows.get(i);</span>
+<span class="nc" id="L293">            int rowNum = i + 2; // +2 because row 1 is header, data starts at 2</span>
+<span class="nc" id="L294">            String imei = row[0].trim();</span>
+<span class="nc bnc" id="L295" title="All 2 branches missed.">            String reason = row.length &gt; 1 ? row[1].trim() : &quot;&quot;;</span>
+
+<span class="nc bnc" id="L297" title="All 2 branches missed.">            if (imei.isEmpty()) {</span>
+<span class="nc" id="L298">                errors.add(&quot;Row &quot; + rowNum + &quot;: IMEI/Serial is required.&quot;);</span>
+<span class="nc" id="L299">                continue;</span>
+            }
+<span class="nc bnc" id="L301" title="All 2 branches missed.">            if (reason.isEmpty()) {</span>
+<span class="nc" id="L302">                errors.add(&quot;Row &quot; + rowNum + &quot;: Return Reason is required for IMEI &quot; + imei + &quot;.&quot;);</span>
+<span class="nc" id="L303">                continue;</span>
+            }
+<span class="nc bnc" id="L305" title="All 2 branches missed.">            if (!validReasons.contains(reason)) {</span>
+<span class="nc" id="L306">                errors.add(&quot;Row &quot; + rowNum + &quot;: Invalid return reason '&quot; + reason + &quot;' for IMEI &quot; + imei + &quot;.&quot;);</span>
+            }
+<span class="nc bnc" id="L308" title="All 2 branches missed.">            if (duplicateImeis.contains(imei)) {</span>
+<span class="nc" id="L309">                errors.add(&quot;Row &quot; + rowNum + &quot;: IMEI &quot; + imei + &quot; already exists in a pending RMA.&quot;);</span>
+            }
+<span class="nc bnc" id="L311" title="All 4 branches missed.">            if (fileInternalDuplicates.contains(imei) &amp;&amp; seenInFile.contains(imei)) {</span>
+                // Only report once
+<span class="nc bnc" id="L313" title="All 2 branches missed.">                if (i == allImeis.indexOf(imei)) {</span>
+                    // skip first occurrence, report on second
+<span class="nc bnc" id="L315" title="All 2 branches missed.">                } else if (allImeis.indexOf(imei) != i) {</span>
+<span class="nc" id="L316">                    errors.add(&quot;Row &quot; + rowNum + &quot;: Duplicate IMEI &quot; + imei + &quot; in uploaded file.&quot;);</span>
+                }
+            }
+        }
+
+<span class="nc bnc" id="L321" title="All 2 branches missed.">        if (!errors.isEmpty()) {</span>
+<span class="nc" id="L322">            return RmaSubmitResponse.failure(errors);</span>
+        }
+
+        // Generate RMA number: RMA{BuyerCode}{YY}{Seq}
+<span class="nc" id="L326">        String buyerCode = lookupBuyerCode(buyerCodeId);</span>
+<span class="nc" id="L327">        String rmaNumber = generateRmaNumber(buyerCodeId, buyerCode);</span>
+
+        // Find &quot;Submitted&quot; status
+<span class="nc" id="L330">        RmaStatus submittedStatus = rmaStatusRepository.findBySystemStatus(STATUS_SUBMITTED)</span>
+<span class="nc" id="L331">                .orElseThrow(() -&gt; new RuntimeException(&quot;RMA status 'Submitted' not found in database&quot;));</span>
+
+        // Create RMA
+<span class="nc" id="L334">        Rma rma = new Rma();</span>
+<span class="nc" id="L335">        rma.setBuyerCodeId(buyerCodeId);</span>
+<span class="nc" id="L336">        rma.setSubmittedByUserId(userId);</span>
+<span class="nc" id="L337">        rma.setNumber(rmaNumber);</span>
+<span class="nc" id="L338">        rma.setRmaStatus(submittedStatus);</span>
+<span class="nc" id="L339">        rma.setSystemStatus(STATUS_SUBMITTED);</span>
+<span class="nc" id="L340">        rma.setSubmittedDate(LocalDateTime.now());</span>
+<span class="nc" id="L341">        rma.setAllRmaItemsValid(true);</span>
+<span class="nc" id="L342">        rma = rmaRepository.save(rma);</span>
+
+        // Create RMA items
+<span class="nc" id="L345">        Set&lt;Long&gt; uniqueDeviceIds = new HashSet&lt;&gt;();</span>
+<span class="nc" id="L346">        int totalSalesPrice = 0;</span>
+
+<span class="nc bnc" id="L348" title="All 2 branches missed.">        for (String[] row : rows) {</span>
+<span class="nc" id="L349">            String imei = row[0].trim();</span>
+<span class="nc" id="L350">            String reason = row[1].trim();</span>
+
+<span class="nc" id="L352">            RmaItem item = new RmaItem();</span>
+<span class="nc" id="L353">            item.setRma(rma);</span>
+<span class="nc" id="L354">            item.setImei(imei);</span>
+<span class="nc" id="L355">            item.setReturnReason(reason);</span>
+<span class="nc" id="L356">            rmaItemRepository.save(item);</span>
+<span class="nc" id="L357">        }</span>
+
+        // Calculate summary: requestSkus = unique device count, requestQty = total items, requestSalesTotal
+<span class="nc" id="L360">        rma.setRequestQty(rows.size());</span>
+<span class="nc" id="L361">        rma.setRequestSkus(rows.size()); // Each IMEI is unique, so skus = qty for IMEI-based RMAs</span>
+<span class="nc" id="L362">        rma.setRequestSalesTotal(0); // Will be populated when devices are matched</span>
+<span class="nc" id="L363">        rmaRepository.save(rma);</span>
+
+<span class="nc" id="L365">        log.info(&quot;RMA {} created for buyerCodeId={} with {} items by userId={}&quot;,</span>
+<span class="nc" id="L366">                rmaNumber, buyerCodeId, rows.size(), userId);</span>
+
+<span class="nc" id="L368">        return RmaSubmitResponse.success(rma.getId(), rmaNumber, rows.size());</span>
+    }
+
+    // -- Private helpers --
+
+    /** Look up buyer code string from buyer_codes table. */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    private String lookupBuyerCode(Long buyerCodeId) {
+<span class="nc" id="L376">        List&lt;String&gt; results = em.createNativeQuery(</span>
+                &quot;SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id&quot;)
+<span class="nc" id="L378">                .setParameter(&quot;id&quot;, buyerCodeId)</span>
+<span class="nc" id="L379">                .getResultList();</span>
+<span class="nc bnc" id="L380" title="All 2 branches missed.">        return results.isEmpty() ? &quot;UNKNOWN&quot; : results.get(0);</span>
+    }
+
+    /**
+     * Generate RMA number: RMA{BuyerCode}{YY}{Seq}
+     * e.g., RMABC00126001 for buyer code BC001, year 26, sequence 001
+     */
+    private String generateRmaNumber(Long buyerCodeId, String buyerCode) {
+<span class="nc" id="L388">        long existingCount = rmaRepository.countByBuyerCode(buyerCodeId);</span>
+<span class="nc" id="L389">        String yearSuffix = String.valueOf(Year.now().getValue()).substring(2);</span>
+<span class="nc" id="L390">        String seq = String.format(&quot;%03d&quot;, existingCount + 1);</span>
+<span class="nc" id="L391">        return &quot;RMA&quot; + buyerCode + yearSuffix + seq;</span>
+    }
+
+    /** Parse CSV input stream. Skips header row. Returns list of [imei, reason] arrays. */
+    private List&lt;String[]&gt; parseCsv(InputStream inputStream) {
+<span class="nc" id="L396">        List&lt;String[]&gt; rows = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L397">        try (BufferedReader reader = new BufferedReader(</span>
+                new InputStreamReader(inputStream, StandardCharsets.UTF_8))) {
+            String line;
+<span class="nc" id="L400">            boolean headerSkipped = false;</span>
+<span class="nc bnc" id="L401" title="All 2 branches missed.">            while ((line = reader.readLine()) != null) {</span>
+<span class="nc bnc" id="L402" title="All 2 branches missed.">                if (!headerSkipped) {</span>
+<span class="nc" id="L403">                    headerSkipped = true;</span>
+<span class="nc" id="L404">                    continue;</span>
+                }
+<span class="nc" id="L406">                line = line.trim();</span>
+<span class="nc bnc" id="L407" title="All 2 branches missed.">                if (line.isEmpty()) continue;</span>
+<span class="nc" id="L408">                String[] parts = line.split(&quot;,&quot;, -1);</span>
+<span class="nc bnc" id="L409" title="All 2 branches missed.">                if (parts.length &gt;= 1) {</span>
+<span class="nc" id="L410">                    rows.add(parts);</span>
+                }
+<span class="nc" id="L412">            }</span>
+<span class="nc" id="L413">        } catch (Exception e) {</span>
+<span class="nc" id="L414">            log.error(&quot;Failed to parse CSV file&quot;, e);</span>
+<span class="nc" id="L415">        }</span>
+<span class="nc" id="L416">        return rows;</span>
+    }
+
+    private void recalculateApprovedValues(Long rmaId) {
+<span class="fc" id="L420">        Rma rma = rmaRepository.findById(rmaId).orElseThrow();</span>
+<span class="fc" id="L421">        List&lt;RmaItem&gt; items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);</span>
+
+<span class="fc" id="L423">        int approvedCount = 0, declinedCount = 0;</span>
+<span class="fc" id="L424">        int approvedSalesTotal = 0;</span>
+<span class="fc" id="L425">        Set&lt;Long&gt; approvedDeviceIds = new HashSet&lt;&gt;();</span>
+
+<span class="fc bfc" id="L427" title="All 2 branches covered.">        for (RmaItem item : items) {</span>
+<span class="fc bfc" id="L428" title="All 2 branches covered.">            if (STATUS_APPROVE.equals(item.getStatus())) {</span>
+<span class="fc" id="L429">                approvedCount++;</span>
+<span class="pc bpc" id="L430" title="1 of 2 branches missed.">                approvedSalesTotal += item.getSalePrice() != null ? item.getSalePrice() : 0;</span>
+<span class="pc bpc" id="L431" title="1 of 2 branches missed.">                if (item.getDeviceId() != null) {</span>
+<span class="fc" id="L432">                    approvedDeviceIds.add(item.getDeviceId());</span>
+                }
+<span class="pc bpc" id="L434" title="1 of 2 branches missed.">            } else if (STATUS_DECLINE.equals(item.getStatus())) {</span>
+<span class="fc" id="L435">                declinedCount++;</span>
+            }
+<span class="fc" id="L437">        }</span>
+
+<span class="fc" id="L439">        rma.setApprovedCount(approvedCount);</span>
+<span class="fc" id="L440">        rma.setDeclinedCount(declinedCount);</span>
+<span class="fc" id="L441">        rma.setApprovedQty(approvedCount);</span>
+<span class="fc" id="L442">        rma.setApprovedSkus(approvedDeviceIds.size());</span>
+<span class="fc" id="L443">        rma.setApprovedSalesTotal(approvedSalesTotal);</span>
+<span class="fc" id="L444">        rmaRepository.save(rma);</span>
+<span class="fc" id="L445">    }</span>
+
+    private RmaItemResponse enrichItemWithDevice(RmaItem item) {
+<span class="fc" id="L448">        RmaItemResponse response = RmaItemResponse.fromEntity(item);</span>
+<span class="fc bfc" id="L449" title="All 2 branches covered.">        if (item.getDeviceId() != null) {</span>
+<span class="fc" id="L450">            deviceRepository.findById(item.getDeviceId()).ifPresent(device -&gt; {</span>
+<span class="fc" id="L451">                response.setSku(device.getSku());</span>
+<span class="fc" id="L452">                response.setDeviceDescription(device.getDescription());</span>
+<span class="fc" id="L453">                response.setItemType(device.getItemType());</span>
+<span class="pc bpc" id="L454" title="1 of 2 branches missed.">                if (device.getGrade() != null) {</span>
+<span class="fc" id="L455">                    response.setGrade(device.getGrade().getName());</span>
+                }
+<span class="fc" id="L457">            });</span>
+        }
+<span class="fc" id="L459">        return response;</span>
+    }
+
+    private String formatDisplayLabel(String statusGrouped) {
+<span class="pc bpc" id="L463" title="1 of 2 branches missed.">        if (statusGrouped == null) return &quot;Unknown&quot;;</span>
+<span class="fc" id="L464">        return statusGrouped.replace(&quot;_&quot;, &quot; &quot;);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

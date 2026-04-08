@@ -1,0 +1,696 @@
+/* ===================================================================
+   PWSOffers — Offer Review page
+   Pixel-matched to QA buy-qa.ecoatmdirect.com/p/offers
+   Exact values extracted via Playwright getComputedStyle
+   ================================================================= */
+
+/* QA: content region bg #EFEBE4 */
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+}
+
+/* ---- Page header ---- */
+.pageHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.pageTitle {
+  font-size: 36px;
+  font-weight: 300;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  margin: 0;
+  padding-top: 4px;
+  white-space: nowrap;
+}
+
+/* ---- Status tabs row ---- */
+.statusTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+/* QA: tab is a vertical stack with NO outer border — each row has its own border */
+.statusTab {
+  flex: 1;
+  min-width: 140px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+  text-align: center;
+}
+
+.statusTab:hover .statusTabTitle {
+  border-color: #b0abab;
+}
+
+.statusTabActive .statusTabTitle {
+  background: #fdf488;
+}
+
+.statusTabActive .statusTabStats {
+  background: #fffbdf;
+}
+
+/* QA: title row — "Status: Count" — own border 2px solid #D2CDCD, border-radius 6px, padding 8px */
+.statusTabTitle {
+  font-size: 16px;
+  color: #3c3c3c;
+  padding: 8px;
+  border: 2px solid #d2cdcd;
+  border-radius: 6px;
+  margin-bottom: 4px;
+  background: transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.statusTabTitle strong {
+  font-weight: 700;
+}
+
+/* QA: stats row — own border 2px solid #D2CDCD, border-radius 6px, padding 8px */
+.statusTabStats {
+  border: 2px solid #d2cdcd;
+  border-radius: 6px;
+  padding: 8px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.statusTabTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  background: transparent;
+}
+
+.statusTabTable thead td {
+  color: #3c3c3c;
+  font-weight: 400;
+  padding: 2px 6px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.statusTabTable tbody td {
+  color: #3c3c3c;
+  font-weight: 700;
+  padding: 2px 6px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* No top-border color accents — QA tabs have no colored borders, just the uniform #D2CDCD */
+.tabSalesReview {}
+.tabBuyerAcceptance {}
+.tabOrdered {}
+.tabPendingOrder {}
+.tabDeclined {}
+.tabTotal {}
+
+/* ---- Data grid ---- */
+/* QA: grid container bg #F7F7F7, cells/headers #EFEBE4 */
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f7f7f7;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, no text-transform, padding 6px 6px 6px 15px */
+.dataGrid th {
+  background: #efebe4;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ced0d3;
+  white-space: nowrap;
+}
+
+/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, border-bottom 1px solid #CED0D3, padding 6px 6px 5px 19px */
+.dataGrid td {
+  padding: 6px 6px 5px 19px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  vertical-align: middle;
+  background: #efebe4;
+}
+
+.dataGrid tbody tr:hover {
+  background: #e5e1da;
+}
+
+/* QA: color black #000, font-weight 500, underline, font-size 14px */
+.offerIdLink {
+  color: #000;
+  font-weight: 500;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.offerIdLink:hover {
+  color: #407874;
+}
+
+/* Status badges — used on detail page */
+.statusBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.statusSalesReview { background: rgba(64,120,116,0.12); color: #407874; }
+.statusBuyerAcceptance { background: rgba(230,168,23,0.12); color: #b7860e; }
+.statusOrdered { background: rgba(46,125,50,0.12); color: #2e7d32; }
+.statusPendingOrder { background: rgba(245,124,0,0.12); color: #e65100; }
+.statusDeclined { background: rgba(198,40,40,0.12); color: #c62828; }
+.statusSubmitted { background: rgba(64,120,116,0.12); color: #407874; }
+.statusPendingReview { background: rgba(245,124,0,0.12); color: #e65100; }
+
+/* ---- Offer Detail Page ---- */
+.backLink {
+  font-size: 16px;
+  color: #3c3c3c;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.backLink:hover {
+  color: #407874;
+}
+
+.detailInfoRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 40px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.detailInfoField {
+  min-width: 100px;
+}
+
+.detailInfoLabel {
+  font-size: 14px;
+  color: #3c3c3c;
+  font-weight: 400;
+  text-decoration: underline;
+  margin-bottom: 2px;
+}
+
+.detailInfoValue {
+  font-size: 16px;
+  color: #3c3c3c;
+  font-weight: 400;
+}
+
+/* Original Offer / Counter Offer summary boxes */
+.offerSummaryBox {
+  border: 2px solid #d2cdcd;
+  border-radius: 6px;
+  padding: 8px 12px;
+  background: transparent;
+  min-width: 240px;
+}
+
+.offerSummaryTitle {
+  font-size: 14px;
+  color: #3c3c3c;
+  font-weight: 400;
+  text-decoration: underline;
+  margin-bottom: 4px;
+}
+
+.offerSummaryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.offerSummaryTable thead td {
+  color: #407874;
+  font-weight: 600;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.offerSummaryTable tbody td {
+  color: #3c3c3c;
+  font-weight: 700;
+  padding: 2px 8px;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Actions row: status badge left, buttons right */
+.detailActionsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.detailActionsRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Large status badge on detail page */
+.statusBadgeLarge {
+  display: inline-block;
+  padding: 8px 24px;
+  border-radius: 20px;
+  font-size: 16px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+/* QA Complete Review: bg #102E33 (dark teal), white, border-radius 50px, font 18px 400, padding ~11px 18px */
+.completeReviewButton {
+  padding: 11px 28px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.completeReviewButton:hover {
+  background: #1a4a51;
+}
+
+.completeReviewButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* More actions (...) menu */
+.moreMenuWrapper {
+  position: relative;
+}
+
+.moreMenuButton {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #d2cdcd;
+  border-radius: 50%;
+  background: transparent;
+  color: #3c3c3c;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.moreMenuButton:hover {
+  border-color: #407874;
+  color: #407874;
+}
+
+.moreMenuDropdown {
+  position: absolute;
+  right: 0;
+  top: 44px;
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 100;
+  min-width: 170px;
+  overflow: hidden;
+}
+
+.moreMenuDropdown button {
+  display: block;
+  width: 100%;
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.moreMenuDropdown button:hover {
+  background: #efebe4;
+  color: #102e33;
+}
+
+.moreMenuDropdown button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Item actions dropdown ---- */
+.itemActionSelect {
+  padding: 4px 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+  color: #3c3c3c;
+}
+
+/* Counter cells — highlighted when item is Counter */
+/* QA: light teal/green background for counter columns */
+.counterCell {
+  background: rgba(64, 120, 116, 0.08) !important;
+}
+
+.counterInput {
+  width: 80px;
+  padding: 4px 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  text-align: right;
+  color: #3c3c3c;
+}
+
+.counterInput:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+/* Accept cells — normal background */
+.acceptCell {
+  background: transparent;
+}
+
+/* Decline cells — muted */
+.declineCell {
+  background: rgba(198, 40, 40, 0.04);
+  color: #999;
+}
+
+/* Item status icons */
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  font-size: 12px;
+}
+
+.iconAccept { background: #2e7d32; color: #fff; }
+.iconCounter { background: #407874; color: #fff; }
+.iconDecline { background: #c62828; color: #fff; }
+.iconFinalize { background: #f57c00; color: #fff; }
+
+/* ---- Section headers (Functional Devices / Case Lots) ---- */
+.sectionLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin: 16px 0 8px;
+  padding: 8px 12px;
+  background: transparent;
+  border-radius: 0;
+}
+
+/* ---- Percentage columns ---- */
+.pctPositive { color: #2e7d32; font-weight: 600; }
+.pctNegative { color: #c62828; font-weight: 600; }
+.pctNeutral { color: #3c3c3c; }
+
+/* ---- Price formatting ---- */
+.priceCell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 48px 24px;
+  color: #888;
+  font-size: 14px;
+}
+
+/* ---- Loading ---- */
+.loading {
+  text-align: center;
+  padding: 48px;
+  color: #888;
+}
+
+/* ---- Modal overlay ---- */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 420px;
+  max-width: 90vw;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.modalHeaderSuccess {
+  padding: 16px 20px;
+  background: #dcfce7;
+  color: #166534;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalHeaderError {
+  padding: 16px 20px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 16px;
+  font-weight: 700;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalBody {
+  padding: 20px;
+  font-size: 14px;
+  color: #3c3c3c;
+}
+
+.modalFooter {
+  padding: 12px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid #ced0d3;
+}
+
+.modalOk {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 4px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.modalOk:hover {
+  background: #1a4a51;
+}
+
+/* ---- Sortable header ---- */
+/* QA: clickable div inside th, cursor pointer, display flex, align-items baseline */
+.sortableHeader {
+  display: flex;
+  align-items: baseline;
+  cursor: pointer;
+  gap: 4px;
+  user-select: none;
+}
+
+.sortIcon {
+  display: inline-block;
+  font-size: 10px;
+  color: #3c3c3c;
+  opacity: 0.5;
+  margin-left: 2px;
+  line-height: 1;
+}
+
+.sortIconActive {
+  opacity: 1;
+  color: #407874;
+}
+
+/* ---- Download row ---- */
+/* QA: flex, justify-content flex-end, margin-right ~54px */
+.downloadRow {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+/* QA: bg #102E33, color white, border 1px solid #102E33, border-radius 50px, padding 10.8px 18px, font 18px 400 */
+.downloadButton {
+  padding: 10.8px 18px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.downloadButton:hover {
+  background: #1a4a51;
+}
+
+/* ---- Filter row ---- */
+/* QA: filter inputs sit in a row below the header row, same bg as headers */
+.filterRow td {
+  padding: 4px 6px 6px 15px;
+  background: #efebe4;
+  border-bottom: 1px solid #ced0d3;
+}
+
+/* QA: border 1px solid #D0D0D0, border-radius 0, bg #F7F7F7, padding 2px, font 18px, height ~30px */
+.filterInput {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  box-sizing: border-box;
+}
+
+.filterInput:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+/* QA: numeric inputs are narrower ~84px */
+.filterInputNumeric {
+  width: 84px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  box-sizing: border-box;
+  text-align: right;
+}
+
+.filterInputNumeric:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+/* QA: date inputs are narrower ~50px */
+.filterInputDate {
+  width: 50px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  box-sizing: border-box;
+}
+
+.filterInputDate:focus {
+  outline: none;
+  border-color: #407874;
+  box-shadow: 0 0 0 2px rgba(64, 120, 116, 0.2);
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.paginationBtn {
+  padding: 4px 10px;
+  border: 1px solid #d2cdcd;
+  border-radius: 3px;
+  background: #fff;
+  color: #3c3c3c;
+  font-size: 13px;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.paginationBtn:hover:not(:disabled) {
+  background: #efebe4;
+  border-color: #b0abab;
+}
+
+.paginationBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.paginationInfo {
+  font-size: 13px;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  padding: 0 8px;
+}

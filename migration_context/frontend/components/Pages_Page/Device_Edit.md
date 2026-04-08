@@ -1,0 +1,234 @@
+# Page: Device_Edit
+
+**Allowed Roles:** EcoATM_PWSMDM.Administrator
+
+**Layout:** `Atlas_Core.PopupLayout_2`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 📑 **TabContainer**
+    - 📑 **Tab**: "Device"
+      - 📝 **DatePicker**: datePicker1 🔒 [Read-Only]
+      - 📝 **ReferenceSelector**: referenceSelector3
+      - 📝 **ReferenceSelector**: referenceSelector4
+      - 📝 **ReferenceSelector**: referenceSelector5
+      - 📝 **ReferenceSelector**: referenceSelector6
+      - 📝 **ReferenceSelector**: referenceSelector7
+      - 📝 **ReferenceSelector**: referenceSelector8
+      - 📝 **ReferenceSelector**: referenceSelector9
+      - 📝 **CheckBox**: checkBox1
+    - 📑 **Tab**: "Properties"
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Model.Model]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Capacity.Capacity]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Color.Color]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Carrier.Carrier]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Grade.Grade]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Category.Category]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Brand.Brand]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Condition.Condition]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+      - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+          - source: context
+          - optionsSourceType: association
+          - optionsSourceDatabaseCaptionType: attribute
+          - optionsSourceAssociationCaptionType: attribute
+          - optionsSourceAssociationCaptionAttribute: [Attr: EcoATM_PWSMDM.Note.Notes]
+          - filterType: contains
+          - optionsSourceAssociationCustomContentType: no
+          - optionsSourceDatabaseCustomContentType: no
+          - selectionMethod: checkbox
+          - selectedItemsStyle: text
+          - selectAllButtonCaption: Select all
+          - ariaRequired: `false`
+          - clearButtonAriaLabel: Clear selection
+          - removeValueAriaLabel: Remove value
+          - a11ySelectedValue: Selected value:
+          - a11yOptionsAvailable: Number of options available:
+          - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+          - staticDataSourceCustomContentType: no
+          - readOnlyStyle: text
+          - loadingType: spinner
+          - selectedItemsSorting: none
+    - 📑 **Tab**: "System"
+      - 📝 **DatePicker**: datePicker2
+      - 📝 **DatePicker**: datePicker3
+      - 📝 **ReferenceSelector**: referenceSelector1 🔒 [Read-Only]
+      - 📝 **ReferenceSelector**: referenceSelector2 🔒 [Read-Only]
+    - 📑 **Tab**: "Offer Item Details"
+      - 📦 **DataGrid** [MF: EcoATM_PWSMDM.DS_RetrieveOfferItems]
+        - 📊 **Column**: Offer status [Width: 16]
+        - 📊 **Column**: Offer ID [Width: 16]
+        - 📊 **Column**: Offer quantity [Width: 17]
+        - 📊 **Column**: Sales offer item status [Width: 17]
+        - 📊 **Column**: Counter quantity [Width: 17]
+        - 📊 **Column**: Final offer quantity [Width: 17]
+    ↳ [acti] → **Microflow**: `EcoATM_PWSMDM.ACT_Device_UpdateByAdmin`
+    ↳ [acti] → **Cancel Changes**

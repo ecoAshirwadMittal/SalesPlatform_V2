@@ -1,0 +1,23 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+  flyway:
+    enabled: false
+
+app:
+  jwt:
+    secret: test-secret-key-must-be-at-least-32-bytes-long-for-hmac!!
+    expiration-ms: 3600000
+    remember-me-expiration-ms: 7200000
+
+server:
+  error:
+    include-message: never
+    include-exception: false

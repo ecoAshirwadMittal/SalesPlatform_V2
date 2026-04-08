@@ -1,0 +1,10 @@
+# Microflow Detailed Specification: DS_User_AllUsers
+
+### 📥 Inputs (Parameters)
+- **$Authorization** (Type: MicrosoftGraph.Authorization)
+
+### ⚙️ Execution Flow (Logic Steps)
+1. **Call Microflow **MicrosoftGraph.SUB_User_GetAllUsers** (Result: **$UserList**)**
+2. 🏁 **END:** Return `$UserList`
+
+**Final Result:** This process concludes by returning a [List] value.

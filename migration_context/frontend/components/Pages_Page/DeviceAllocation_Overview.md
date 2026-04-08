@@ -1,0 +1,416 @@
+# Page: DeviceAllocation_Overview
+
+**Allowed Roles:** EcoATM_DA.Administrator
+
+**Layout:** `AuctionUI.ecoAtm_Atlas_Default`
+
+## Widget Tree
+
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: rowClick
+    - itemSelectionMode: clear
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.ProductID]
+        - header: Product ID
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Brand]
+        - header: Brand
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.ModelName]
+        - header: Model name
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Grade]
+        - header: Grade
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.AvailableQty]
+        - header: Available qty
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Payout]
+        - header: Payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.EB]
+        - header: EB
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.TargetPrice]
+        - header: Target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.SalesQty]
+        - header: Sales qty
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.AvgSalesPrice]
+        - header: Avg sales price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Revenue]
+        - header: Revenue
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.MinEB]
+        - header: Min EB
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.MinEBWeekEnding]
+        - header: Min EB week ending
+        ➤ **filter** (Widgets)
+          - 🧩 **Date filter** (ID: `com.mendix.widget.web.datagriddatefilter.DatagridDateFilter`)
+              - defaultFilter: equal
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Margin]
+        - header: Margin
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.MarginPercentage]
+        - header: Margin percentage
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.DataWipeQty]
+        - header: Data wipe qty
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.DataWipePayout]
+        - header: Data wipe payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.DataWipeTargetPrice]
+        - header: Data wipe target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.NonDataWipeQty]
+        - header: Non data wipe qty
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.NonDataWipePayout]
+        - header: Non data wipe payout
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.NonDataWipeTargetPrice]
+        - header: Non data wipe target price
+        ➤ **filter** (Widgets)
+          - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+              - defaultFilter: equal
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: right
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.Review]
+        - header: Review
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.IsChanged]
+        - header: Is changed
+        ➤ **filter** (Widgets)
+          - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+              - selectedItemsStyle: text
+              - selectionMethod: checkbox
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.RowType]
+        - header: Row type
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.BuyerJSON]
+        - header: Buyer JSON
+        ➤ **filter** (Widgets)
+          - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+              - defaultFilter: contains
+              - delay: 500
+        - visible: `true`
+        - hidable: yes
+        - width: autoFill
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: customContent
+        - attribute: [Attr: EcoATM_DA.DeviceAllocation.ProductID]
+        ➤ **content** (Widgets)
+            ↳ [acti] → **Page**: `EcoATM_DA.DeviceAllocation_NewEdit`
+            ↳ [acti] → **Delete**
+        - visible: `true`
+        - hidable: no
+        - width: autoFit
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 1
+        - alignment: left
+        - filterCaptionType: expression
+    - pageSize: 20
+    - pagination: buttons
+    - pagingPosition: bottom
+    - showPagingButtons: always
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: double
+    - configurationStorageType: attribute
+    ➤ **filtersPlaceholder** (Widgets)
+        ↳ [acti] → **Microflow**: `EcoATM_DA.SUB_DeleteAllDeviceAllocation_Admin`
+        ↳ [acti] → **Page**: `EcoATM_DA.DeviceAllocation_NewEdit`
+        ↳ [acti] → **Microflow**: `EcoATM_DA.ACT_MAPAuctionsWeekDA_Admin`
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row
+    - loadingType: spinner

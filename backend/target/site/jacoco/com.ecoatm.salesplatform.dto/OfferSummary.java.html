@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferSummary.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">OfferSummary.java</span></div><h1>OfferSummary.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
+
+import java.math.BigDecimal;
+
+/**
+ * Status summary card data — clones Mendix DS_GetOfferSummaryByStatus.
+ * Each status tab on PWSOffers page shows: count, total SKUs, total qty, total price.
+ */
+public class OfferSummary {
+
+    private String status;
+    private String displayLabel;
+    private long offerCount;
+    private long totalSkus;
+    private long totalQty;
+    private BigDecimal totalPrice;
+
+    public OfferSummary(String status, String displayLabel, long offerCount,
+<span class="fc" id="L19">                        long totalSkus, long totalQty, BigDecimal totalPrice) {</span>
+<span class="fc" id="L20">        this.status = status;</span>
+<span class="fc" id="L21">        this.displayLabel = displayLabel;</span>
+<span class="fc" id="L22">        this.offerCount = offerCount;</span>
+<span class="fc" id="L23">        this.totalSkus = totalSkus;</span>
+<span class="fc" id="L24">        this.totalQty = totalQty;</span>
+<span class="fc" id="L25">        this.totalPrice = totalPrice;</span>
+<span class="fc" id="L26">    }</span>
+
+<span class="fc" id="L28">    public String getStatus() { return status; }</span>
+<span class="fc" id="L29">    public String getDisplayLabel() { return displayLabel; }</span>
+<span class="fc" id="L30">    public long getOfferCount() { return offerCount; }</span>
+<span class="fc" id="L31">    public long getTotalSkus() { return totalSkus; }</span>
+<span class="fc" id="L32">    public long getTotalQty() { return totalQty; }</span>
+<span class="fc" id="L33">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

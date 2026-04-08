@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.ecoatm.salesplatform.controller.AtpSyncControllerTest
+-------------------------------------------------------------------------------
+Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 9.463 s -- in com.ecoatm.salesplatform.controller.AtpSyncControllerTest

@@ -1,0 +1,412 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - img "ecoATM" [ref=e5]
+      - navigation [ref=e6]:
+        - link "Users" [ref=e7] [cursor=pointer]:
+          - /url: /users
+          - img [ref=e9]
+          - generic [ref=e14]: Users
+        - link "Buyers" [ref=e15] [cursor=pointer]:
+          - /url: /buyers
+          - img [ref=e17]
+          - generic [ref=e20]: Buyers
+        - link "Inventory" [ref=e21] [cursor=pointer]:
+          - /url: /inventory
+          - img [ref=e23]
+          - generic [ref=e26]: Inventory
+        - link "PO Purchase Order" [ref=e27] [cursor=pointer]:
+          - /url: /purchase-order
+          - generic [ref=e29]: PO
+          - generic [ref=e30]: Purchase Order
+        - link "RB Reserved Bids (EB)" [ref=e31] [cursor=pointer]:
+          - /url: /reserved-bids
+          - generic [ref=e33]: RB
+          - generic [ref=e34]: Reserved Bids (EB)
+        - link "Auction Scheduling" [ref=e35] [cursor=pointer]:
+          - /url: /auction-scheduling
+          - img [ref=e37]
+          - generic [ref=e40]: Auction Scheduling
+        - link "Bid as Bidder" [ref=e41] [cursor=pointer]:
+          - /url: /bid-as-bidder
+          - img [ref=e43]
+          - generic [ref=e45]: Bid as Bidder
+        - link "Auction" [ref=e46] [cursor=pointer]:
+          - /url: /auction
+          - img [ref=e48]
+          - generic [ref=e51]: Auction
+        - link "Reports" [ref=e52] [cursor=pointer]:
+          - /url: /reports
+          - img [ref=e54]
+          - generic [ref=e55]: Reports
+          - img [ref=e57]
+        - link "Settings" [ref=e59] [cursor=pointer]:
+          - /url: /settings
+          - img [ref=e61]
+          - generic [ref=e64]: Settings
+          - img [ref=e66]
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e72]: 👤
+      - main [ref=e73]:
+        - generic [ref=e74]:
+          - generic [ref=e75]:
+            - heading "User Management" [level=2] [ref=e76]
+            - button "Create" [ref=e77] [cursor=pointer]:
+              - text: Create
+              - img [ref=e78]
+          - table [ref=e82]:
+            - rowgroup [ref=e90]:
+              - row "Name ▲ ▼ Buyer ▲ ▼ Roles ▲ ▼ Email ▲ ▼ Status ▲ ▼ Select" [ref=e91]:
+                - columnheader "Name ▲ ▼" [ref=e92]:
+                  - button "Name ▲ ▼" [ref=e94] [cursor=pointer]:
+                    - generic [ref=e95]: Name
+                    - generic [ref=e96]:
+                      - generic [ref=e97]: ▲
+                      - generic [ref=e98]: ▼
+                  - textbox "Ab" [ref=e99]
+                - columnheader "Buyer ▲ ▼" [ref=e100]:
+                  - button "Buyer ▲ ▼" [ref=e102] [cursor=pointer]:
+                    - generic [ref=e103]: Buyer
+                    - generic [ref=e104]:
+                      - generic [ref=e105]: ▲
+                      - generic [ref=e106]: ▼
+                  - textbox "Ab" [ref=e107]
+                - columnheader "Roles ▲ ▼" [ref=e108]:
+                  - button "Roles ▲ ▼" [ref=e110] [cursor=pointer]:
+                    - generic [ref=e111]: Roles
+                    - generic [ref=e112]:
+                      - generic [ref=e113]: ▲
+                      - generic [ref=e114]: ▼
+                  - textbox "Ab" [ref=e115]
+                - columnheader "Email ▲ ▼" [ref=e116]:
+                  - button "Email ▲ ▼" [ref=e118] [cursor=pointer]:
+                    - generic [ref=e119]: Email
+                    - generic [ref=e120]:
+                      - generic [ref=e121]: ▲
+                      - generic [ref=e122]: ▼
+                  - textbox "Ab" [ref=e123]
+                - columnheader "Status ▲ ▼ Select" [ref=e124]:
+                  - button "Status ▲ ▼" [ref=e126] [cursor=pointer]:
+                    - generic [ref=e127]: Status
+                    - generic [ref=e128]:
+                      - generic [ref=e129]: ▲
+                      - generic [ref=e130]: ▼
+                  - combobox [ref=e131] [cursor=pointer]:
+                    - option "Select" [selected]
+                    - option "Active"
+                    - option "Inactive"
+                    - option "Disabled"
+                - columnheader [ref=e132]:
+                  - button "Column selector" [ref=e133] [cursor=pointer]:
+                    - img [ref=e134]
+            - rowgroup [ref=e137]:
+              - row "AP A1 PWS A1 PWS Bidder a1pws@proton.me 04/05/2026" [ref=e150]:
+                - cell "AP A1 PWS" [ref=e151]:
+                  - generic [ref=e152]:
+                    - generic [ref=e153]: AP
+                    - generic [ref=e154]: A1 PWS
+                - cell "A1 PWS" [ref=e155]
+                - cell "Bidder" [ref=e156]
+                - cell "a1pws@proton.me" [ref=e157]
+                - cell "04/05/2026" [ref=e158]:
+                  - generic "Active" [ref=e159]:
+                    - img [ref=e160]
+                  - generic [ref=e163]: 04/05/2026
+                - cell [ref=e164]:
+                  - button "Edit user" [ref=e165] [cursor=pointer]:
+                    - img [ref=e166]
+              - row "AT Adam Tester EcoATM Automation Bidder automated-bidder-qa@jr4joz0g.mailosaur.net 04/05/2026" [ref=e169]:
+                - cell "AT Adam Tester" [ref=e170]:
+                  - generic [ref=e171]:
+                    - generic [ref=e172]: AT
+                    - generic [ref=e173]: Adam Tester
+                - cell "EcoATM Automation" [ref=e174]
+                - cell "Bidder" [ref=e175]
+                - cell "automated-bidder-qa@jr4joz0g.mailosaur.net" [ref=e176]
+                - cell "04/05/2026" [ref=e177]:
+                  - generic "Inactive" [ref=e178]:
+                    - img [ref=e179]
+                  - generic [ref=e182]: 04/05/2026
+                - cell [ref=e183]:
+                  - button "Edit user" [ref=e184] [cursor=pointer]:
+                    - img [ref=e185]
+              - row "AS Akshay Singhal CHS Technology (HK) Ltd Bidder akshay+4@learnfastthinkslow.com 04/05/2026" [ref=e188]:
+                - cell "AS Akshay Singhal" [ref=e189]:
+                  - generic [ref=e190]:
+                    - generic [ref=e191]: AS
+                    - generic [ref=e192]: Akshay Singhal
+                - cell "CHS Technology (HK) Ltd" [ref=e193]
+                - cell "Bidder" [ref=e194]
+                - cell "akshay+4@learnfastthinkslow.com" [ref=e195]
+                - cell "04/05/2026" [ref=e196]:
+                  - generic "Disabled" [ref=e197]:
+                    - img [ref=e198]
+                  - generic [ref=e201]: 04/05/2026
+                - cell [ref=e202]:
+                  - button "Edit user" [ref=e203] [cursor=pointer]:
+                    - img [ref=e204]
+              - row "AS Akshay Singhal Akshay's Buyer Bidder akshay+3@learnfastthinkslow.com 04/05/2026" [ref=e207]:
+                - cell "AS Akshay Singhal" [ref=e208]:
+                  - generic [ref=e209]:
+                    - generic [ref=e210]: AS
+                    - generic [ref=e211]: Akshay Singhal
+                - cell "Akshay's Buyer" [ref=e212]
+                - cell "Bidder" [ref=e213]
+                - cell "akshay+3@learnfastthinkslow.com" [ref=e214]
+                - cell "04/05/2026" [ref=e215]:
+                  - generic "Disabled" [ref=e216]:
+                    - img [ref=e217]
+                  - generic [ref=e220]: 04/05/2026
+                - cell [ref=e221]:
+                  - button "Edit user" [ref=e222] [cursor=pointer]:
+                    - img [ref=e223]
+              - row "AS Akshay Singhal Administrator akshay.singhal@ecoatm.com 04/05/2026" [ref=e226]:
+                - cell "AS Akshay Singhal" [ref=e227]:
+                  - generic [ref=e228]:
+                    - generic [ref=e229]: AS
+                    - generic [ref=e230]: Akshay Singhal
+                - cell [ref=e231]
+                - cell "Administrator" [ref=e232]
+                - cell "akshay.singhal@ecoatm.com" [ref=e233]
+                - cell "04/05/2026" [ref=e234]:
+                  - generic "Active" [ref=e235]:
+                    - img [ref=e236]
+                  - generic [ref=e239]: 04/05/2026
+                - cell [ref=e240]:
+                  - button "Edit user" [ref=e241] [cursor=pointer]:
+                    - img [ref=e242]
+              - row "AW Alyssa Wolf Administrator alyssa.wolf@ecoatm.com 04/05/2026" [ref=e245]:
+                - cell "AW Alyssa Wolf" [ref=e246]:
+                  - generic [ref=e247]:
+                    - generic [ref=e248]: AW
+                    - generic [ref=e249]: Alyssa Wolf
+                - cell [ref=e250]
+                - cell "Administrator" [ref=e251]
+                - cell "alyssa.wolf@ecoatm.com" [ref=e252]
+                - cell "04/05/2026" [ref=e253]:
+                  - generic "Disabled" [ref=e254]:
+                    - img [ref=e255]
+                  - generic [ref=e258]: 04/05/2026
+                - cell [ref=e259]:
+                  - button "Edit user" [ref=e260] [cursor=pointer]:
+                    - img [ref=e261]
+              - row "AA Andrei Aliasiuk Administrator, SalesOps, SalesRep andrei.aliasiuk@ecoatm.com 04/05/2026" [ref=e264]:
+                - cell "AA Andrei Aliasiuk" [ref=e265]:
+                  - generic [ref=e266]:
+                    - generic [ref=e267]: AA
+                    - generic [ref=e268]: Andrei Aliasiuk
+                - cell [ref=e269]
+                - cell "Administrator, SalesOps, SalesRep" [ref=e270]
+                - cell "andrei.aliasiuk@ecoatm.com" [ref=e271]
+                - cell "04/05/2026" [ref=e272]:
+                  - generic "Inactive" [ref=e273]:
+                    - img [ref=e274]
+                  - generic [ref=e277]: 04/05/2026
+                - cell [ref=e278]:
+                  - button "Edit user" [ref=e279] [cursor=pointer]:
+                    - img [ref=e280]
+              - row "AS Andrei Sales SalesRep andrei.aliasiuk+sales@ecoatm.com 04/05/2026" [ref=e283]:
+                - cell "AS Andrei Sales" [ref=e284]:
+                  - generic [ref=e285]:
+                    - generic [ref=e286]: AS
+                    - generic [ref=e287]: Andrei Sales
+                - cell [ref=e288]
+                - cell "SalesRep" [ref=e289]
+                - cell "andrei.aliasiuk+sales@ecoatm.com" [ref=e290]
+                - cell "04/05/2026" [ref=e291]:
+                  - generic "Inactive" [ref=e292]:
+                    - img [ref=e293]
+                  - generic [ref=e296]: 04/05/2026
+                - cell [ref=e297]:
+                  - button "Edit user" [ref=e298] [cursor=pointer]:
+                    - img [ref=e299]
+              - row "AR Andrew Ryan-Waldo Administrator, SalesRep andrew.ryanwaldo@ecoatm.com 04/05/2026" [ref=e302]:
+                - cell "AR Andrew Ryan-Waldo" [ref=e303]:
+                  - generic [ref=e304]:
+                    - generic [ref=e305]: AR
+                    - generic [ref=e306]: Andrew Ryan-Waldo
+                - cell [ref=e307]
+                - cell "Administrator, SalesRep" [ref=e308]
+                - cell "andrew.ryanwaldo@ecoatm.com" [ref=e309]
+                - cell "04/05/2026" [ref=e310]:
+                  - generic "Inactive" [ref=e311]:
+                    - img [ref=e312]
+                  - generic [ref=e315]: 04/05/2026
+                - cell [ref=e316]:
+                  - button "Edit user" [ref=e317] [cursor=pointer]:
+                    - img [ref=e318]
+              - row "AC Angel Cortez ACCP Mobile Bidder acortez@jr4joz0g.mailosaur.net 04/05/2026" [ref=e321]:
+                - cell "AC Angel Cortez" [ref=e322]:
+                  - generic [ref=e323]:
+                    - generic [ref=e324]: AC
+                    - generic [ref=e325]: Angel Cortez
+                - cell "ACCP Mobile" [ref=e326]
+                - cell "Bidder" [ref=e327]
+                - cell "acortez@jr4joz0g.mailosaur.net" [ref=e328]
+                - cell "04/05/2026" [ref=e329]:
+                  - generic "Disabled" [ref=e330]:
+                    - img [ref=e331]
+                  - generic [ref=e334]: 04/05/2026
+                - cell [ref=e335]:
+                  - button "Edit user" [ref=e336] [cursor=pointer]:
+                    - img [ref=e337]
+              - row "AM Ashirwad Mittal Administrator, Compliance, Executive, SalesLeader, SalesOps, SalesRep Ashirwad.Mittal@ecoatm.com 04/05/2026" [ref=e340]:
+                - cell "AM Ashirwad Mittal" [ref=e341]:
+                  - generic [ref=e342]:
+                    - generic [ref=e343]: AM
+                    - generic [ref=e344]: Ashirwad Mittal
+                - cell [ref=e345]
+                - cell "Administrator, Compliance, Executive, SalesLeader, SalesOps, SalesRep" [ref=e346]
+                - cell "Ashirwad.Mittal@ecoatm.com" [ref=e347]
+                - cell "04/05/2026" [ref=e348]:
+                  - generic "Inactive" [ref=e349]:
+                    - img [ref=e350]
+                  - generic [ref=e353]: 04/05/2026
+                - cell [ref=e354]:
+                  - button "Edit user" [ref=e355] [cursor=pointer]:
+                    - img [ref=e356]
+              - row "A1 Auction Automation 10 Auction Automation 10 Bidder ecoauc.automation+10@gmail.com 04/05/2026" [ref=e359]:
+                - cell "A1 Auction Automation 10" [ref=e360]:
+                  - generic [ref=e361]:
+                    - generic [ref=e362]: A1
+                    - generic [ref=e363]: Auction Automation 10
+                - cell "Auction Automation 10" [ref=e364]
+                - cell "Bidder" [ref=e365]
+                - cell "ecoauc.automation+10@gmail.com" [ref=e366]
+                - cell "04/05/2026" [ref=e367]:
+                  - generic "Active" [ref=e368]:
+                    - img [ref=e369]
+                  - generic [ref=e372]: 04/05/2026
+                - cell [ref=e373]:
+                  - button "Edit user" [ref=e374] [cursor=pointer]:
+                    - img [ref=e375]
+              - row "A1 Auction Automation 12 Auctions Automation 12 Bidder ecoauc.automation+12@gmail.com 04/05/2026" [ref=e378]:
+                - cell "A1 Auction Automation 12" [ref=e379]:
+                  - generic [ref=e380]:
+                    - generic [ref=e381]: A1
+                    - generic [ref=e382]: Auction Automation 12
+                - cell "Auctions Automation 12" [ref=e383]
+                - cell "Bidder" [ref=e384]
+                - cell "ecoauc.automation+12@gmail.com" [ref=e385]
+                - cell "04/05/2026" [ref=e386]:
+                  - generic "Active" [ref=e387]:
+                    - img [ref=e388]
+                  - generic [ref=e391]: 04/05/2026
+                - cell [ref=e392]:
+                  - button "Edit user" [ref=e393] [cursor=pointer]:
+                    - img [ref=e394]
+              - row "A2 Auction Automation 24 Auction Automation 24, Auction Automation 24 Bidder ecoauc24@fexpost.com 04/05/2026" [ref=e397]:
+                - cell "A2 Auction Automation 24" [ref=e398]:
+                  - generic [ref=e399]:
+                    - generic [ref=e400]: A2
+                    - generic [ref=e401]: Auction Automation 24
+                - cell "Auction Automation 24, Auction Automation 24" [ref=e402]
+                - cell "Bidder" [ref=e403]
+                - cell "ecoauc24@fexpost.com" [ref=e404]
+                - cell "04/05/2026" [ref=e405]:
+                  - generic "Active" [ref=e406]:
+                    - img [ref=e407]
+                  - generic [ref=e410]: 04/05/2026
+                - cell [ref=e411]:
+                  - button "Edit user" [ref=e412] [cursor=pointer]:
+                    - img [ref=e413]
+              - row "A2 Auction Automation 25 Auction Automation 25 Bidder ecoauc25@fexpost.com 04/05/2026" [ref=e416]:
+                - cell "A2 Auction Automation 25" [ref=e417]:
+                  - generic [ref=e418]:
+                    - generic [ref=e419]: A2
+                    - generic [ref=e420]: Auction Automation 25
+                - cell "Auction Automation 25" [ref=e421]
+                - cell "Bidder" [ref=e422]
+                - cell "ecoauc25@fexpost.com" [ref=e423]
+                - cell "04/05/2026" [ref=e424]:
+                  - generic "Active" [ref=e425]:
+                    - img [ref=e426]
+                  - generic [ref=e429]: 04/05/2026
+                - cell [ref=e430]:
+                  - button "Edit user" [ref=e431] [cursor=pointer]:
+                    - img [ref=e432]
+              - row "AR Auction 121 Release Buyer 121 DW Bidder ecoauc.automation+r121@gmail.com 04/05/2026" [ref=e435]:
+                - cell "AR Auction 121 Release" [ref=e436]:
+                  - generic [ref=e437]:
+                    - generic [ref=e438]: AR
+                    - generic [ref=e439]: Auction 121 Release
+                - cell "Buyer 121 DW" [ref=e440]
+                - cell "Bidder" [ref=e441]
+                - cell "ecoauc.automation+r121@gmail.com" [ref=e442]
+                - cell "04/05/2026" [ref=e443]:
+                  - generic "Active" [ref=e444]:
+                    - img [ref=e445]
+                  - generic [ref=e448]: 04/05/2026
+                - cell [ref=e449]:
+                  - button "Edit user" [ref=e450] [cursor=pointer]:
+                    - img [ref=e451]
+              - row "A1 Auction Automation 11 Auction Automation 11 Bidder ecoauc.automation+11@gmail.com 04/05/2026" [ref=e454]:
+                - cell "A1 Auction Automation 11" [ref=e455]:
+                  - generic [ref=e456]:
+                    - generic [ref=e457]: A1
+                    - generic [ref=e458]: Auction Automation 11
+                - cell "Auction Automation 11" [ref=e459]
+                - cell "Bidder" [ref=e460]
+                - cell "ecoauc.automation+11@gmail.com" [ref=e461]
+                - cell "04/05/2026" [ref=e462]:
+                  - generic "Active" [ref=e463]:
+                    - img [ref=e464]
+                  - generic [ref=e467]: 04/05/2026
+                - cell [ref=e468]:
+                  - button "Edit user" [ref=e469] [cursor=pointer]:
+                    - img [ref=e470]
+              - row "A1 Auction Automation 15 AA15 Bidder ecoauc.automation+15@gmail.com 04/05/2026" [ref=e473]:
+                - cell "A1 Auction Automation 15" [ref=e474]:
+                  - generic [ref=e475]:
+                    - generic [ref=e476]: A1
+                    - generic [ref=e477]: Auction Automation 15
+                - cell "AA15" [ref=e478]
+                - cell "Bidder" [ref=e479]
+                - cell "ecoauc.automation+15@gmail.com" [ref=e480]
+                - cell "04/05/2026" [ref=e481]:
+                  - generic "Active" [ref=e482]:
+                    - img [ref=e483]
+                  - generic [ref=e486]: 04/05/2026
+                - cell [ref=e487]:
+                  - button "Edit user" [ref=e488] [cursor=pointer]:
+                    - img [ref=e489]
+              - row "A1 Auction Automation 16 Auction Automation 16 Bidder ecoauc.automation+16@gmail.com 04/05/2026" [ref=e492]:
+                - cell "A1 Auction Automation 16" [ref=e493]:
+                  - generic [ref=e494]:
+                    - generic [ref=e495]: A1
+                    - generic [ref=e496]: Auction Automation 16
+                - cell "Auction Automation 16" [ref=e497]
+                - cell "Bidder" [ref=e498]
+                - cell "ecoauc.automation+16@gmail.com" [ref=e499]
+                - cell "04/05/2026" [ref=e500]:
+                  - generic "Active" [ref=e501]:
+                    - img [ref=e502]
+                  - generic [ref=e505]: 04/05/2026
+                - cell [ref=e506]:
+                  - button "Edit user" [ref=e507] [cursor=pointer]:
+                    - img [ref=e508]
+              - row "A1 Auction Automation 17 Auction Automation 17 Bidder ecoauc.automation+17@gmail.com 04/05/2026" [ref=e511]:
+                - cell "A1 Auction Automation 17" [ref=e512]:
+                  - generic [ref=e513]:
+                    - generic [ref=e514]: A1
+                    - generic [ref=e515]: Auction Automation 17
+                - cell "Auction Automation 17" [ref=e516]
+                - cell "Bidder" [ref=e517]
+                - cell "ecoauc.automation+17@gmail.com" [ref=e518]
+                - cell "04/05/2026" [ref=e519]:
+                  - generic "Active" [ref=e520]:
+                    - img [ref=e521]
+                  - generic [ref=e524]: 04/05/2026
+                - cell [ref=e525]:
+                  - button "Edit user" [ref=e526] [cursor=pointer]:
+                    - img [ref=e527]
+          - generic [ref=e530]:
+            - button "«" [disabled] [ref=e531]
+            - button "‹" [disabled] [ref=e532]
+            - generic [ref=e533]: Currently showing 1 to 20 of 467
+            - button "›" [ref=e534] [cursor=pointer]
+            - button "»" [ref=e535] [cursor=pointer]
+  - button "Open Next.js Dev Tools" [ref=e145] [cursor=pointer]:
+    - img [ref=e146]
+  - alert [ref=e149]

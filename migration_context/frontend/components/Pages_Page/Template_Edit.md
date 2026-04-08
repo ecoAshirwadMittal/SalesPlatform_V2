@@ -1,0 +1,295 @@
+# Page: Template_Edit
+
+**Allowed Roles:** ExcelImporter.Configurator
+
+**Layout:** `Atlas_Core.Atlas_Default`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 📑 **TabContainer**
+    - 📑 **Tab**: "Columns"
+      - 🔤 **Text**: "Col Nr 0 = A, ... 10 = K, ... etc" [Style: `font-size: 9px;
+font-style: italic;`]
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: customContent
+              - attribute: [Attr: ExcelImporter.Column.Status]
+              ➤ **content** (Widgets)
+                - 🧩 **Image** [DP: {Image style: Rounded}] 👁️ (If Status is INFO/VALID/INVALID/(empty)) (ID: `com.mendix.widget.web.image.Image`)
+                    - datasource: icon
+                    - onClickType: action
+                    - widthUnit: auto
+                    - width: 100
+                    - heightUnit: auto
+                    - height: 100
+                    - iconSize: 14
+                    - displayAs: fullImage
+                - 🧩 **Image** 👁️ (If Status is INFO/VALID/INVALID/(empty)) (ID: `com.mendix.widget.web.image.Image`)
+                    - datasource: icon
+                    - onClickType: action
+                    - widthUnit: auto
+                    - width: 100
+                    - heightUnit: auto
+                    - height: 100
+                    - iconSize: 14
+                    - displayAs: fullImage
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.ColNumber]
+              - header: Col nr
+              ➤ **filter** (Widgets)
+                - 🧩 **Number filter** (ID: `com.mendix.widget.web.datagridnumberfilter.DatagridNumberFilter`)
+                    - defaultFilter: equal
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.Text]
+              - header: Caption
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.IsReferenceKey]
+              - header: Is key
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.CaseSensitive]
+              - header: Case S.
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.MappingType]
+              - header: Type
+              ➤ **filter** (Widgets)
+                - 🧩 **Drop-down filter** (ID: `com.mendix.widget.web.datagriddropdownfilter.DatagridDropdownFilter`)
+                    - multiSelect: False
+                    - selectedItemsStyle: text
+                    - selectionMethod: checkbox
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.Column.Details]
+              - header: Details
+              ➤ **filter** (Widgets)
+                - 🧩 **Text filter** (ID: `com.mendix.widget.web.datagridtextfilter.DatagridTextFilter`)
+                    - defaultFilter: contains
+                    - delay: 500
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MxModelReflection.Microflows.CompleteName]
+              - header: Parser
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: customContent
+              - attribute: [Attr: ExcelImporter.Column.Status]
+              ➤ **content** (Widgets)
+                - ⚡ **Button**: Edit [Style: Default]
+                  ↳ [acti] → **Microflow**: `ExcelImporter.IVK_ColumnEdit`
+                - ⚡ **Button**: Delete [Style: Danger]
+                  ↳ [acti] → **Delete**
+              - header: Actions
+              - visible: `true`
+              - hidable: yes
+              - width: autoFit
+              - minWidth: minContent
+              - minWidthLimit: 100
+              - size: 1
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 20
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          ➤ **filtersPlaceholder** (Widgets)
+            - ⚡ **Button**: New [Style: Success]
+              ↳ [acti] → **Microflow**: `ExcelImporter.IVK_ColumnNew`
+            - ⚡ **Button**: Connect matching attributes [Style: Default]
+              ↳ [acti] → **Microflow**: `ExcelImporter.IVK_Template_ConnectMatchingAttributes`
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+    - 📑 **Tab**: "Reference"
+      - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+          - refreshInterval: 0
+          - itemSelectionMethod: rowClick
+          - itemSelectionMode: clear
+          - loadingType: spinner
+          ➤ **columns**
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.ReferenceHandling.Handling]
+              - header: Handling
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 15
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.ReferenceHandling.DataHandling]
+              - header: Data handling
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 16
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.ReferenceHandling.PrintNotFoundMessages]
+              - header: Print message when reference is not found
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 15
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: ExcelImporter.ReferenceHandling.CommitUnchangedObjects]
+              - header: Commit unchanged objects
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 15
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: attribute
+              - attribute: [Attr: MxModelReflection.MxObjectReference.CompleteName]
+              - header: Reference
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 39
+              - alignment: left
+              - filterCaptionType: expression
+              - showContentAs: customContent
+              - attribute: [Attr: ExcelImporter.ReferenceHandling.Handling]
+              ➤ **content** (Widgets)
+                - ⚡ **Button**: Edit handling [Style: Default]
+                  ↳ [acti] → **Page**: `ExcelImporter.ReferenceHandling_NewEdit`
+              - header: Actions
+              - visible: `true`
+              - hidable: yes
+              - width: manual
+              - minWidth: auto
+              - minWidthLimit: 100
+              - size: 10
+              - alignment: left
+              - filterCaptionType: expression
+          - pageSize: 20
+          - pagination: buttons
+          - pagingPosition: bottom
+          - showPagingButtons: always
+          - loadMoreButtonCaption: Load More
+          - showEmptyPlaceholder: none
+          - onClickTrigger: double
+          - configurationStorageType: attribute
+          - exportDialogLabel: Export progress
+          - cancelExportLabel: Cancel data export
+          - selectRowLabel: Select row
+    - 📑 **Tab**: "Settings"
+      - 📦 **DataView** [Context]
+        - ⚡ **Button**: radioButtons1
+        - 📝 **CheckBox**: checkBox5
+        - 📝 **CheckBox**: checkBox1
+        - ⚡ **Button**: radioButtons2
+        - 🧩 **Combo box** 👁️ (If RemoveUnsyncedObjects is TrackChanges/RemoveUnchangedObjects/Nothing/(empty)) (ID: `com.mendix.widget.web.combobox.Combobox`)
+            - source: context
+            - optionsSourceType: association
+            - optionsSourceAssociationCaptionType: attribute
+            - optionsSourceDatabaseCaptionType: attribute
+            - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.MxObjectMember.AttributeName]
+            - filterType: contains
+            - optionsSourceAssociationCustomContentType: no
+            - optionsSourceDatabaseCustomContentType: no
+            - staticDataSourceCustomContentType: no
+            - selectionMethod: rowclick
+            - selectedItemsStyle: text
+            - selectAllButtonCaption: Select all
+            - readOnlyStyle: text
+            - ariaRequired: `false`
+            - clearButtonAriaLabel: Clear selection
+            - removeValueAriaLabel: Remove value
+            - a11ySelectedValue: Selected value:
+            - a11yOptionsAvailable: Number of options available:
+            - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+            - loadingType: spinner
+            - selectedItemsSorting: none
+        - 📝 **CheckBox**: checkBox2
+        - 📝 **CheckBox**: checkBox3
+  - ⚡ **Button**: Save [Style: Success]
+    ↳ [acti] → **Microflow**: `ExcelImporter.IVK_SaveTemplate`
+  - ⚡ **Button**: Cancel [Style: Default]
+    ↳ [acti] → **Microflow**: `ExcelImporter.IVK_CancelTemplate`

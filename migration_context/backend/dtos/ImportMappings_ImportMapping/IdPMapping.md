@@ -1,0 +1,567 @@
+# Import Mapping: IdPMapping
+
+## Mapping Structure
+
+- **EntitiesDescriptorType** (Object) → `SAML20.EntitiesDescriptor`
+  - **validUntil** (Value)
+    - Attribute: `SAML20.EntitiesDescriptor.validUntil`
+  - **cacheDuration** (Value)
+    - Attribute: `SAML20.EntitiesDescriptor.cacheDuration`
+  - **ID** (Value)
+    - Attribute: `SAML20.EntitiesDescriptor._ID`
+  - **Name** (Value)
+    - Attribute: `SAML20.EntitiesDescriptor.Name`
+  - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+    - **Id** (Value)
+      - Attribute: `SAML20.KeyInfo._Id`
+    - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+      - **X509DataType** (Object) → `SAML20.KeyInfo`
+        - **base64Binary** (Object) → `SAML20.X509Certificate`
+          - **(content)** (Value)
+            - Attribute: `System.FileDocument.Contents`
+  - **ChoiceBase** (Choice) → `SAML20.EntityDescriptor`
+    - **EntityDescriptorType** (Object) → `SAML20.EntityDescriptor`
+      - **entityID** (Value)
+        - Attribute: `SAML20.EntityDescriptor.entityID`
+      - **validUntil** (Value)
+        - Attribute: `SAML20.EntityDescriptor.validUntil`
+      - **cacheDuration** (Value)
+        - Attribute: `SAML20.EntityDescriptor.cacheDuration`
+      - **ID** (Value)
+        - Attribute: `SAML20.EntityDescriptor._ID`
+      - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+        - **Id** (Value)
+          - Attribute: `SAML20.KeyInfo._Id`
+        - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+          - **X509DataType** (Object) → `SAML20.KeyInfo`
+            - **base64Binary** (Object) → `SAML20.X509Certificate`
+              - **(content)** (Value)
+                - Attribute: `System.FileDocument.Contents`
+      - **RoleDescriptorType** (Inheritance) → `SAML20.RoleDescriptor`
+        - **IDPSSODescriptorType** (Object) → `SAML20.RoleDescriptor`
+          - **ID** (Value)
+            - Attribute: `SAML20.RoleDescriptor._ID`
+          - **validUntil** (Value)
+            - Attribute: `SAML20.RoleDescriptor.validUntil`
+          - **cacheDuration** (Value)
+            - Attribute: `SAML20.RoleDescriptor.cacheDuration`
+          - **protocolSupportEnumeration** (Value)
+            - Attribute: `SAML20.RoleDescriptor.protocolSupportEnumeration`
+          - **errorURL** (Value)
+            - Attribute: `SAML20.RoleDescriptor.errorURL`
+          - **KeyDescriptorType** (Object) → `SAML20.KeyDescriptor`
+            - **use** (Value)
+              - Attribute: `SAML20.KeyDescriptor.use`
+            - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+              - **Id** (Value)
+                - Attribute: `SAML20.KeyInfo._Id`
+              - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+                - **X509DataType** (Object) → `SAML20.KeyInfo`
+                  - **base64Binary** (Object) → `SAML20.X509Certificate`
+                    - **(content)** (Value)
+                      - Attribute: `System.FileDocument.Contents`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+          - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+            - **EndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+              - **index** (Value)
+                - Attribute: `SAML20.Endpoint.index`
+              - **isDefault** (Value)
+                - Attribute: `SAML20.Endpoint.isDefault`
+          - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+            - **EndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+              - **index** (Value)
+                - Attribute: `SAML20.Endpoint.index`
+              - **isDefault** (Value)
+                - Attribute: `SAML20.Endpoint.isDefault`
+        - **SPSSODescriptorType** (Object) → `SAML20.RoleDescriptor`
+          - **ID** (Value)
+            - Attribute: `SAML20.RoleDescriptor._ID`
+          - **validUntil** (Value)
+            - Attribute: `SAML20.RoleDescriptor.validUntil`
+          - **cacheDuration** (Value)
+            - Attribute: `SAML20.RoleDescriptor.cacheDuration`
+          - **protocolSupportEnumeration** (Value)
+            - Attribute: `SAML20.RoleDescriptor.protocolSupportEnumeration`
+          - **errorURL** (Value)
+            - Attribute: `SAML20.RoleDescriptor.errorURL`
+          - **AuthnRequestsSigned** (Value)
+            - Attribute: `SAML20.RoleDescriptor.AuthnRequestsSigned`
+          - **WantAssertionsSigned** (Value)
+            - Attribute: `SAML20.RoleDescriptor.WantAssertionsSigned`
+          - **KeyDescriptorType** (Object) → `SAML20.KeyDescriptor`
+            - **use** (Value)
+              - Attribute: `SAML20.KeyDescriptor.use`
+            - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+              - **Id** (Value)
+                - Attribute: `SAML20.KeyInfo._Id`
+              - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+                - **X509DataType** (Object) → `SAML20.KeyInfo`
+                  - **base64Binary** (Object) → `SAML20.X509Certificate`
+                    - **(content)** (Value)
+                      - Attribute: `System.FileDocument.Contents`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+          - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+            - **EndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+              - **index** (Value)
+                - Attribute: `SAML20.Endpoint.index`
+              - **isDefault** (Value)
+                - Attribute: `SAML20.Endpoint.isDefault`
+          - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+            - **EndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+              - **Binding** (Value)
+                - Attribute: `SAML20.Endpoint.Binding`
+              - **Location** (Value)
+                - Attribute: `SAML20.Endpoint.Location`
+              - **ResponseLocation** (Value)
+                - Attribute: `SAML20.Endpoint.ResponseLocation`
+              - **index** (Value)
+                - Attribute: `SAML20.Endpoint.index`
+              - **isDefault** (Value)
+                - Attribute: `SAML20.Endpoint.isDefault`
+          - **anyURI** (Object) → `SAML20.NameIDFormat`
+            - **(content)** (Value)
+              - Attribute: `SAML20.NameIDFormat.Description`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+          - **AttributeConsumingServiceType** (Object) → `SAML20.AttributeConsumingService`
+            - **index** (Value)
+              - Attribute: `SAML20.AttributeConsumingService.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.AttributeConsumingService.isDefault`
+            - **localizedNameType** (Object) → `SAML20.ServiceProperty`
+              - **(content)** (Value)
+                - Attribute: `SAML20.ServiceProperty._content_`
+              - **lang** (Value)
+                - Attribute: `SAML20.ServiceProperty.lang`
+            - **localizedNameType** (Object) → `SAML20.ServiceProperty`
+              - **(content)** (Value)
+                - Attribute: `SAML20.ServiceProperty._content_`
+              - **lang** (Value)
+                - Attribute: `SAML20.ServiceProperty.lang`
+            - **RequestedAttributeType** (Object) → `SAML20.Attribute`
+              - **Name** (Value)
+                - Attribute: `SAML20.Attribute.Name`
+              - **NameFormat** (Value)
+                - Attribute: `SAML20.Attribute.NameFormat`
+              - **FriendlyName** (Value)
+                - Attribute: `SAML20.Attribute.FriendlyName`
+              - **isRequired** (Value)
+                - Attribute: `SAML20.Attribute.isRequired`
+      - **IDPSSODescriptorType** (Object) → `SAML20.RoleDescriptor`
+        - **ID** (Value)
+          - Attribute: `SAML20.RoleDescriptor._ID`
+        - **validUntil** (Value)
+          - Attribute: `SAML20.RoleDescriptor.validUntil`
+        - **cacheDuration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.cacheDuration`
+        - **protocolSupportEnumeration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.protocolSupportEnumeration`
+        - **errorURL** (Value)
+          - Attribute: `SAML20.RoleDescriptor.errorURL`
+        - **WantAuthnRequestsSigned** (Value)
+          - Attribute: `SAML20.RoleDescriptor.WantAuthnRequestsSigned`
+        - **KeyDescriptorType** (Object) → `SAML20.KeyDescriptor`
+          - **use** (Value)
+            - Attribute: `SAML20.KeyDescriptor.use`
+          - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+            - **Id** (Value)
+              - Attribute: `SAML20.KeyInfo._Id`
+            - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+              - **X509DataType** (Object) → `SAML20.KeyInfo`
+                - **base64Binary** (Object) → `SAML20.X509Certificate`
+                  - **(content)** (Value)
+                    - Attribute: `System.FileDocument.Contents`
+        - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+          - **Binding** (Value)
+            - Attribute: `SAML20.Endpoint.Binding`
+          - **Location** (Value)
+            - Attribute: `SAML20.Endpoint.Location`
+          - **ResponseLocation** (Value)
+            - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **index** (Value)
+            - Attribute: `SAML20.Endpoint.index`
+          - **isDefault** (Value)
+            - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **anyURI** (Object) → `SAML20.NameIDFormat`
+          - **(content)** (Value)
+            - Attribute: `SAML20.NameIDFormat.Description`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **AttributeType** (Inheritance) → `SAML20.Attribute`
+          - **AttributeType** (Object) → `SAML20.Attribute`
+            - **Name** (Value)
+              - Attribute: `SAML20.Attribute.Name`
+            - **NameFormat** (Value)
+              - Attribute: `SAML20.Attribute.NameFormat`
+            - **FriendlyName** (Value)
+              - Attribute: `SAML20.Attribute.FriendlyName`
+          - **RequestedAttributeType** (Object) → `SAML20.Attribute`
+            - **Name** (Value)
+              - Attribute: `SAML20.Attribute.Name`
+            - **NameFormat** (Value)
+              - Attribute: `SAML20.Attribute.NameFormat`
+            - **FriendlyName** (Value)
+              - Attribute: `SAML20.Attribute.FriendlyName`
+            - **isRequired** (Value)
+              - Attribute: `SAML20.Attribute.isRequired`
+      - **SPSSODescriptorType** (Object) → `SAML20.RoleDescriptor`
+        - **ID** (Value)
+          - Attribute: `SAML20.RoleDescriptor._ID`
+        - **validUntil** (Value)
+          - Attribute: `SAML20.RoleDescriptor.validUntil`
+        - **cacheDuration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.cacheDuration`
+        - **protocolSupportEnumeration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.protocolSupportEnumeration`
+        - **errorURL** (Value)
+          - Attribute: `SAML20.RoleDescriptor.errorURL`
+        - **AuthnRequestsSigned** (Value)
+          - Attribute: `SAML20.RoleDescriptor.AuthnRequestsSigned`
+        - **WantAssertionsSigned** (Value)
+          - Attribute: `SAML20.RoleDescriptor.WantAssertionsSigned`
+        - **KeyDescriptorType** (Object) → `SAML20.KeyDescriptor`
+          - **use** (Value)
+            - Attribute: `SAML20.KeyDescriptor.use`
+          - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+            - **Id** (Value)
+              - Attribute: `SAML20.KeyInfo._Id`
+            - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+              - **X509DataType** (Object) → `SAML20.KeyInfo`
+                - **base64Binary** (Object) → `SAML20.X509Certificate`
+                  - **(content)** (Value)
+                    - Attribute: `System.FileDocument.Contents`
+        - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+          - **Binding** (Value)
+            - Attribute: `SAML20.Endpoint.Binding`
+          - **Location** (Value)
+            - Attribute: `SAML20.Endpoint.Location`
+          - **ResponseLocation** (Value)
+            - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **index** (Value)
+            - Attribute: `SAML20.Endpoint.index`
+          - **isDefault** (Value)
+            - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **anyURI** (Object) → `SAML20.NameIDFormat`
+          - **(content)** (Value)
+            - Attribute: `SAML20.NameIDFormat.Description`
+        - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+          - **Binding** (Value)
+            - Attribute: `SAML20.Endpoint.Binding`
+          - **Location** (Value)
+            - Attribute: `SAML20.Endpoint.Location`
+          - **ResponseLocation** (Value)
+            - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **index** (Value)
+            - Attribute: `SAML20.Endpoint.index`
+          - **isDefault** (Value)
+            - Attribute: `SAML20.Endpoint.isDefault`
+        - **AttributeConsumingServiceType** (Object) → `SAML20.AttributeConsumingService`
+          - **index** (Value)
+            - Attribute: `SAML20.AttributeConsumingService.index`
+          - **isDefault** (Value)
+            - Attribute: `SAML20.AttributeConsumingService.isDefault`
+          - **localizedNameType** (Object) → `SAML20.ServiceProperty`
+            - **(content)** (Value)
+              - Attribute: `SAML20.ServiceProperty._content_`
+            - **lang** (Value)
+              - Attribute: `SAML20.ServiceProperty.lang`
+          - **localizedNameType** (Object) → `SAML20.ServiceProperty`
+            - **(content)** (Value)
+              - Attribute: `SAML20.ServiceProperty._content_`
+            - **lang** (Value)
+              - Attribute: `SAML20.ServiceProperty.lang`
+          - **RequestedAttributeType** (Object) → `SAML20.Attribute`
+            - **Name** (Value)
+              - Attribute: `SAML20.Attribute.Name`
+            - **NameFormat** (Value)
+              - Attribute: `SAML20.Attribute.NameFormat`
+            - **FriendlyName** (Value)
+              - Attribute: `SAML20.Attribute.FriendlyName`
+            - **isRequired** (Value)
+              - Attribute: `SAML20.Attribute.isRequired`
+      - **AttributeAuthorityDescriptorType** (Object) → `SAML20.RoleDescriptor`
+        - **ID** (Value)
+          - Attribute: `SAML20.RoleDescriptor._ID`
+        - **validUntil** (Value)
+          - Attribute: `SAML20.RoleDescriptor.validUntil`
+        - **cacheDuration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.cacheDuration`
+        - **protocolSupportEnumeration** (Value)
+          - Attribute: `SAML20.RoleDescriptor.protocolSupportEnumeration`
+        - **errorURL** (Value)
+          - Attribute: `SAML20.RoleDescriptor.errorURL`
+        - **KeyDescriptorType** (Object) → `SAML20.KeyDescriptor`
+          - **use** (Value)
+            - Attribute: `SAML20.KeyDescriptor.use`
+          - **KeyInfoType** (Object) → `SAML20.KeyInfo`
+            - **Id** (Value)
+              - Attribute: `SAML20.KeyInfo._Id`
+            - **ChoiceBase** (Choice) → `SAML20.KeyInfo`
+              - **X509DataType** (Object) → `SAML20.KeyInfo`
+                - **base64Binary** (Object) → `SAML20.X509Certificate`
+                  - **(content)** (Value)
+                    - Attribute: `System.FileDocument.Contents`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **EndpointType** (Inheritance) → `SAML20.Endpoint`
+          - **EndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+          - **IndexedEndpointType** (Object) → `SAML20.Endpoint`
+            - **Binding** (Value)
+              - Attribute: `SAML20.Endpoint.Binding`
+            - **Location** (Value)
+              - Attribute: `SAML20.Endpoint.Location`
+            - **ResponseLocation** (Value)
+              - Attribute: `SAML20.Endpoint.ResponseLocation`
+            - **index** (Value)
+              - Attribute: `SAML20.Endpoint.index`
+            - **isDefault** (Value)
+              - Attribute: `SAML20.Endpoint.isDefault`
+        - **anyURI** (Object) → `SAML20.NameIDFormat`
+          - **(content)** (Value)
+            - Attribute: `SAML20.NameIDFormat.Description`
+        - **AttributeType** (Inheritance) → `SAML20.Attribute`
+          - **AttributeType** (Object) → `SAML20.Attribute`
+            - **Name** (Value)
+              - Attribute: `SAML20.Attribute.Name`
+            - **NameFormat** (Value)
+              - Attribute: `SAML20.Attribute.NameFormat`
+            - **FriendlyName** (Value)
+              - Attribute: `SAML20.Attribute.FriendlyName`
+          - **RequestedAttributeType** (Object) → `SAML20.Attribute`
+            - **Name** (Value)
+              - Attribute: `SAML20.Attribute.Name`
+            - **NameFormat** (Value)
+              - Attribute: `SAML20.Attribute.NameFormat`
+            - **FriendlyName** (Value)
+              - Attribute: `SAML20.Attribute.FriendlyName`
+            - **isRequired** (Value)
+              - Attribute: `SAML20.Attribute.isRequired`

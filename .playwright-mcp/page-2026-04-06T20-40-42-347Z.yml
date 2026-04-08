@@ -1,0 +1,25 @@
+- generic [ref=e12]:
+  - generic [ref=e17]:
+    - generic [ref=e20]: Premium Wholesale & Weekly Auctions
+    - generic [ref=e23]:
+      - textbox "Email" [ref=e26]: ecoadm1@fexpost.com
+      - generic [ref=e29]:
+        - textbox "Password" [ref=e30]: ecoATM123
+        - button [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - img [ref=e33]
+      - generic [ref=e61]: Incorrect Password
+      - generic [ref=e35]:
+        - generic [ref=e36]:
+          - checkbox [ref=e38] [cursor=pointer]
+          - text: Remember me?
+        - link "Forgot Password?" [ref=e40] [cursor=pointer]:
+          - /url: "#"
+      - button "Login" [active] [ref=e42] [cursor=pointer]
+      - button "Employee Login" [ref=e44] [cursor=pointer]
+    - generic [ref=e46]: Interested but don’t have an account?
+    - button "Contact Us" [ref=e48] [cursor=pointer]
+  - generic [ref=e51]:
+    - button "Privacy Policy" [ref=e56] [cursor=pointer]
+    - generic [ref=e59]: © 2026 ecoATM, LLC. All Rights Reserved.
+  - text: 

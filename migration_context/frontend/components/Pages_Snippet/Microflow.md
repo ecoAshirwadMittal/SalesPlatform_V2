@@ -1,0 +1,81 @@
+# Snippet: Microflow
+
+## Widget Tree
+
+- 🔤 **Text**: "Microflow name"
+- 🔤 **Text**: "Input parameter(s)"
+- 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+    - refreshInterval: 0
+    - itemSelectionMethod: checkbox
+    - itemSelectionMode: clear
+    ➤ **columns**
+        - showContentAs: attribute
+        - attribute: [Attr: MxModelReflection.Parameter.Name]
+        - header: Name
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 32
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: MxModelReflection.ValueType.Name]
+        - header: Primitive type
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 34
+        - alignment: left
+        - filterCaptionType: expression
+        - showContentAs: attribute
+        - attribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+        - header: Object type
+        - visible: `true`
+        - hidable: yes
+        - width: manual
+        - minWidth: auto
+        - minWidthLimit: 100
+        - size: 34
+        - alignment: left
+        - filterCaptionType: expression
+    - pageSize: 20
+    - pagination: buttons
+    - pagingPosition: bottom
+    - showPagingButtons: always
+    - loadMoreButtonCaption: Load More
+    - showEmptyPlaceholder: none
+    - onClickTrigger: single
+    - configurationStorageType: attribute
+    - exportDialogLabel: Export progress
+    - cancelExportLabel: Cancel data export
+    - selectRowLabel: Select row
+    - loadingType: spinner
+- 🔤 **Text**: "Output"
+- 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+    - source: context
+    - optionsSourceType: association
+    - optionsSourceDatabaseCaptionType: attribute
+    - optionsSourceAssociationCaptionType: attribute
+    - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.ValueType.Name]
+    - filterType: contains
+    - optionsSourceAssociationCustomContentType: no
+    - optionsSourceDatabaseCustomContentType: no
+    - selectionMethod: checkbox
+    - selectedItemsStyle: text
+    - selectAllButtonCaption: Select all
+    - ariaRequired: `false`
+    - clearButtonAriaLabel: Clear selection
+    - removeValueAriaLabel: Remove value
+    - a11ySelectedValue: Selected value:
+    - a11yOptionsAvailable: Number of options available:
+    - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+    - staticDataSourceCustomContentType: no
+    - readOnlyStyle: text
+    - loadingType: spinner
+    - selectedItemsSorting: none
+- 📦 **DataView** [Context]
+    ↳ [acti] → **Page**: `MxModelReflection.ValueType_View`

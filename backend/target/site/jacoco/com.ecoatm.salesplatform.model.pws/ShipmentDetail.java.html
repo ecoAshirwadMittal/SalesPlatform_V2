@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ShipmentDetail.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">ShipmentDetail.java</span></div><h1>ShipmentDetail.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;shipment_detail&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L8">public class ShipmentDetail {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;legacy_id&quot;, unique = true)
+    private Long legacyId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;order_id&quot;, nullable = false)
+    private Order order;
+
+    @Column(name = &quot;tracking_number&quot;)
+    private String trackingNumber;
+
+    @Column(name = &quot;tracking_url&quot;)
+    private String trackingUrl;
+
+    @Column(name = &quot;sku_count&quot;)
+    private Integer skuCount;
+
+    private Integer quantity;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L40">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L41">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L42">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L46">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L47">    }</span>
+
+    // Getters and Setters
+<span class="fc" id="L50">    public Long getId() { return id; }</span>
+<span class="fc" id="L51">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="fc" id="L53">    public Long getLegacyId() { return legacyId; }</span>
+<span class="fc" id="L54">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+
+<span class="fc" id="L56">    public Order getOrder() { return order; }</span>
+<span class="fc" id="L57">    public void setOrder(Order order) { this.order = order; }</span>
+
+<span class="fc" id="L59">    public String getTrackingNumber() { return trackingNumber; }</span>
+<span class="fc" id="L60">    public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }</span>
+
+<span class="fc" id="L62">    public String getTrackingUrl() { return trackingUrl; }</span>
+<span class="fc" id="L63">    public void setTrackingUrl(String trackingUrl) { this.trackingUrl = trackingUrl; }</span>
+
+<span class="fc" id="L65">    public Integer getSkuCount() { return skuCount; }</span>
+<span class="fc" id="L66">    public void setSkuCount(Integer skuCount) { this.skuCount = skuCount; }</span>
+
+<span class="fc" id="L68">    public Integer getQuantity() { return quantity; }</span>
+<span class="fc" id="L69">    public void setQuantity(Integer quantity) { this.quantity = quantity; }</span>
+
+<span class="fc" id="L71">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L72">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+
+<span class="fc" id="L74">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="fc" id="L75">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

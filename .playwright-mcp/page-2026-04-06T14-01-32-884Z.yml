@@ -1,0 +1,65 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - img "ecoATM" [ref=e5]
+      - navigation [ref=e6]:
+        - link "👥 Users" [ref=e7] [cursor=pointer]:
+          - /url: /users
+          - generic [ref=e8]: 👥
+          - generic [ref=e9]: Users
+        - link "🏢 Buyers" [ref=e10] [cursor=pointer]:
+          - /url: /buyers
+          - generic [ref=e11]: 🏢
+          - generic [ref=e12]: Buyers
+        - link "📦 Inventory" [ref=e13] [cursor=pointer]:
+          - /url: /inventory
+          - generic [ref=e14]: 📦
+          - generic [ref=e15]: Inventory
+        - link "🔨 Auction" [ref=e16] [cursor=pointer]:
+          - /url: /auction
+          - generic [ref=e17]: 🔨
+          - generic [ref=e18]: Auction
+        - link "📊 Reports" [ref=e19] [cursor=pointer]:
+          - /url: /reports
+          - generic [ref=e20]: 📊
+          - generic [ref=e21]: Reports
+        - link "⚙️ Settings" [ref=e22] [cursor=pointer]:
+          - /url: /settings
+          - generic [ref=e23]: ⚙️
+          - generic [ref=e24]: Settings
+    - generic [ref=e25]:
+      - banner [ref=e26]:
+        - generic [ref=e29]: 👤
+      - main [ref=e30]:
+        - generic [ref=e31]:
+          - generic [ref=e32]:
+            - heading "Users" [level=2] [ref=e33]
+            - button "+ New User" [ref=e34] [cursor=pointer]
+          - table [ref=e36]:
+            - rowgroup [ref=e37]:
+              - row "Name Buyer Roles Email Status All" [ref=e38]:
+                - columnheader "Name" [ref=e39]:
+                  - generic [ref=e40]: Name
+                  - textbox "Search..." [ref=e41]
+                - columnheader "Buyer" [ref=e42]:
+                  - generic [ref=e43]: Buyer
+                  - textbox "Search..." [ref=e44]
+                - columnheader "Roles" [ref=e45]:
+                  - generic [ref=e46]: Roles
+                  - textbox "Search..." [ref=e47]
+                - columnheader "Email" [ref=e48]:
+                  - generic [ref=e49]: Email
+                  - textbox "Search..." [ref=e50]
+                - columnheader "Status All" [ref=e51]:
+                  - generic [ref=e52]: Status
+                  - combobox [ref=e53] [cursor=pointer]:
+                    - option "All" [selected]
+                    - option "Active"
+                    - option "Inactive"
+                    - option "Disabled"
+            - rowgroup [ref=e54]:
+              - row "Loading..." [ref=e55]:
+                - cell "Loading..." [ref=e56]
+  - button "Open Next.js Dev Tools" [ref=e62] [cursor=pointer]:
+    - img [ref=e63]
+  - alert [ref=e66]

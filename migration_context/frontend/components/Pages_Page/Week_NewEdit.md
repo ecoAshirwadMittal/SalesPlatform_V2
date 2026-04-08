@@ -1,0 +1,13 @@
+# Page: Week_NewEdit
+
+**Allowed Roles:** AuctionUI.Administrator
+
+**Layout:** `Atlas_Core.PopupLayout`
+
+## Widget Tree
+
+- 📦 **DataView** [Context]
+  - 📝 **DatePicker**: datePicker1
+  - 📝 **DatePicker**: datePicker2
+    ↳ [acti] → **Save Changes**
+    ↳ [acti] → **Cancel Changes**

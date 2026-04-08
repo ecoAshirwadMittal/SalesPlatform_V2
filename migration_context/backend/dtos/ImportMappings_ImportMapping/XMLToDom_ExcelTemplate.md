@@ -1,0 +1,124 @@
+# Import Mapping: XMLToDom_ExcelTemplate
+
+> This mapping is used to map the ExcelTemplate in a XML file to the Domain Model.
+
+## Mapping Structure
+
+- **ExcelTemplate** (Object) → `ExcelImporter.Template`
+  - **Title** (Value)
+    - Attribute: `ExcelImporter.Template.Title`
+  - **Description** (Value)
+    - Attribute: `ExcelImporter.Template.Description`
+  - **SheetIndex** (Value)
+    - Attribute: `ExcelImporter.Template.SheetIndex`
+  - **HeaderRowNumber** (Value)
+    - Attribute: `ExcelImporter.Template.HeaderRowNumber`
+  - **FirstDataRowNumber** (Value)
+    - Attribute: `ExcelImporter.Template.FirstDataRowNumber`
+  - **Status** (Value)
+    - Attribute: `ExcelImporter.Template.Status`
+  - **ImportAction** (Value)
+    - Attribute: `ExcelImporter.Template.ImportAction`
+  - **MxObjectReference** (Object) → `MxModelReflection.MxObjectReference`
+    - **Module** (Value)
+      - Attribute: `MxModelReflection.MxObjectReference.Module`
+    - **Name** (Value)
+      - Attribute: `MxModelReflection.MxObjectReference.Name`
+  - **MxObjectType** (Object) → `MxModelReflection.MxObjectType`
+    - **Name** (Value)
+      - Attribute: `MxModelReflection.MxObjectType.Name`
+    - **Module** (Value)
+      - Attribute: `MxModelReflection.MxObjectType.Module`
+  - **AdditionalProperties** (Object) → `ExcelImporter.AdditionalProperties`
+    - **PrintStatisticsMessages** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.PrintStatisticsMessages`
+    - **PrintNotFoundMessages_MainObject** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.PrintNotFoundMessages_MainObject`
+    - **IgnoreEmptyKeys** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.IgnoreEmptyKeys`
+    - **CommitUnchangedObjects_MainObject** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.CommitUnchangedObjects_MainObject`
+    - **RemoveUnsyncedObjects** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.RemoveUnsyncedObjects`
+    - **ResetEmptyAssociations** (Value)
+      - Attribute: `ExcelImporter.AdditionalProperties.ResetEmptyAssociations`
+    - **MxObjectMember** (Object) → `MxModelReflection.MxObjectMember`
+      - **CompleteName** (Value)
+        - Attribute: `MxModelReflection.MxObjectMember.CompleteName`
+  - **ReferenceHandling** (Object) → `ExcelImporter.ReferenceHandling`
+    - **Handling** (Value)
+      - Attribute: `ExcelImporter.ReferenceHandling.Handling`
+    - **DataHandling** (Value)
+      - Attribute: `ExcelImporter.ReferenceHandling.DataHandling`
+    - **PrintNotFoundMessages** (Value)
+      - Attribute: `ExcelImporter.ReferenceHandling.PrintNotFoundMessages`
+    - **CommitUnchangedObjects** (Value)
+      - Attribute: `ExcelImporter.ReferenceHandling.CommitUnchangedObjects`
+    - **IgnoreEmptyKeys** (Value)
+      - Attribute: `ExcelImporter.ReferenceHandling.IgnoreEmptyKeys`
+    - **MxObjectReference** (Object) → `MxModelReflection.MxObjectReference`
+      - **Module** (Value)
+        - Attribute: `MxModelReflection.MxObjectReference.Module`
+      - **Name** (Value)
+        - Attribute: `MxModelReflection.MxObjectReference.Name`
+  - **Column** (Object) → `ExcelImporter.Column`
+    - **ColNumber** (Value)
+      - Attribute: `ExcelImporter.Column.ColNumber`
+    - **Text** (Value)
+      - Attribute: `ExcelImporter.Column.Text`
+    - **MappingType** (Value)
+      - Attribute: `ExcelImporter.Column.MappingType`
+    - **IsKey** (Value)
+      - Attribute: `ExcelImporter.Column.IsKey`
+    - **IsReferenceKey** (Value)
+      - Attribute: `ExcelImporter.Column.IsReferenceKey`
+    - **Status** (Value)
+      - Attribute: `ExcelImporter.Column.Status`
+    - **Details** (Value)
+      - Attribute: `ExcelImporter.Column.Details`
+    - **InputMask** (Value)
+      - Attribute: `ExcelImporter.Column.InputMask`
+    - **CaseSensitive** (Value)
+      - Attribute: `ExcelImporter.Column.CaseSensitive`
+    - **AttributeTypeEnum** (Value)
+      - Attribute: `ExcelImporter.Column.AttributeTypeEnum`
+    - **FindAttribute** (Value)
+      - Attribute: `ExcelImporter.Column.FindAttribute`
+    - **FindReference** (Value)
+      - Attribute: `ExcelImporter.Column.FindReference`
+    - **FindObjectType** (Value)
+      - Attribute: `ExcelImporter.Column.FindObjectType`
+    - **FindMicroflow** (Value)
+      - Attribute: `ExcelImporter.Column.FindMicroflow`
+    - **DataSource** (Value)
+      - Attribute: `ExcelImporter.Column.DataSource`
+    - **Microflows** (Object) → `MxModelReflection.Microflows`
+      - **Name** (Value)
+        - Attribute: `MxModelReflection.Microflows.Name`
+      - **Module** (Value)
+        - Attribute: `MxModelReflection.Microflows.Module`
+    - **MxObjectReference** (Object) → `MxModelReflection.MxObjectReference`
+      - **Module** (Value)
+        - Attribute: `MxModelReflection.MxObjectReference.Module`
+      - **Name** (Value)
+        - Attribute: `MxModelReflection.MxObjectReference.Name`
+    - **MxObjectMember** (Object) → `MxModelReflection.MxObjectMember`
+      - **AttributeName** (Value)
+        - Attribute: `MxModelReflection.MxObjectMember.AttributeName`
+      - **CompleteName** (Value)
+        - Attribute: `MxModelReflection.MxObjectMember.CompleteName`
+    - **MxObjectMember** (Object) → `MxModelReflection.MxObjectMember`
+      - **AttributeName** (Value)
+        - Attribute: `MxModelReflection.MxObjectMember.AttributeName`
+      - **CompleteName** (Value)
+        - Attribute: `MxModelReflection.MxObjectMember.CompleteName`
+    - **MxObjectType** (Object) → `MxModelReflection.MxObjectType`
+      - **Name** (Value)
+        - Attribute: `MxModelReflection.MxObjectType.Name`
+      - **Module** (Value)
+        - Attribute: `MxModelReflection.MxObjectType.Module`
+    - **MxObjectType** (Object) → `MxModelReflection.MxObjectType`
+      - **Name** (Value)
+        - Attribute: `MxModelReflection.MxObjectType.Name`
+      - **Module** (Value)
+        - Attribute: `MxModelReflection.MxObjectType.Module`

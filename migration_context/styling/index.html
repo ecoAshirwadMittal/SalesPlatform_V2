@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!--
+      ────────────────────────────────────────────────────────────────────────────
+      Mendix index.html (ecoATM Direct) — with Datadog RUM integration comments
+      ────────────────────────────────────────────────────────────────────────────
+
+      WHY THESE PLACEHOLDERS:
+      - {{unsupportedbrowser}}, {{themecss}}, {{appicons}}, {{manifest}}, {{startupimages}}
+        are Mendix server-side placeholders that expand at build/runtime.
+
+      KEY DATADOG NOTES:
+      - We load the Datadog Browser SDK *from* datadog.js (via onReady injection),
+        so there is no separate <script> to datadoghq here.
+      - The only requirement is that mxclientsystem/mxui.js loads BEFORE /scripts/datadog.js.
+      - DO NOT add async/defer to these two <script> tags; order matters.
+
+      OPTIONAL (performance): You can preconnect to Datadog’s CDN to shave off a bit of latency
+        <link rel="preconnect" href="https://www.datadoghq-browser-agent.com" crossorigin>
+        <link rel="dns-prefetch" href="https://www.datadoghq-browser-agent.com">
+    -->
+
+    {{unsupportedbrowser}}
+    <meta charset="utf-8">
+    <title>ecoATM Direct</title>
+
+    <!-- Viewport for responsive Mendix UI -->
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Mendix-managed CSS & app metadata -->
+    {{themecss}}
+    {{appicons}}
+    {{manifest}}
+    {{startupimages}}
+
+    <!--
+      CSP (Content Security Policy):
+      If you enforce CSP, allow the following for Datadog RUM/Replays:
+       - script-src: https://www.datadoghq-browser-agent.com
+       - connect-src: https://*.datadoghq.com https://*.browser-intake-datadoghq.com
+       - img-src: data: blob: https://*.datadoghq.com
+       - worker-src: blob:
+      Your exact domains vary by Datadog site (us1 here).
+    -->
+  </head>
+
+  <body dir="ltr">
+    <noscript>To use this application, please enable JavaScript.</noscript>
+
+    <!-- Mendix renders the app UI into #content -->
+    <div id="content"></div>
+
+    <!--
+      dojoConfig must be declared before loading mxui.js.
+      rtlRedirect keeps parity with Mendix’s RTL build.
+      cacheBust is a Mendix placeholder to avoid stale assets.
+    -->
+    <script>
+      /* Global Dojo/Mendix config */
+      window.dojoConfig = {
+        isDebug: false,
+        useCustomLogger: true,
+        async: true,
+        baseUrl: "mxclientsystem/dojo/",
+        cacheBust: "{{cachebust}}",
+        rtlRedirect: "index-rtl.html"
+      };
+    </script>
+
+    <!--
+      Persist originURI to send users to login.html when the session expires.
+      This is the standard Mendix pattern; we keep it unchanged.
+    -->
+    <script>
+      (function setOriginUriCookie() {
+        try {
+          if (!document.cookie || !document.cookie.match(/(^|;) *originURI=/gi)) {
+            const url = new URL(window.location.href);
+            const subPath = url.pathname.substring(0, url.pathname.lastIndexOf("/"));
+            // SameSite=None;Secure only on HTTPS
+            document.cookie =
+              "originURI=" + subPath + "/login.html" +
+              (window.location.protocol === "https:" ? ";SameSite=None;Secure" : "");
+          }
+        } catch (e) {
+          /* non-fatal */
+          console.warn("[index.html] originURI cookie set failed:", e);
+        }
+      })();
+    </script>
+
+    <!--
+      1) Load Mendix runtime (must be first).
+      2) Load Datadog integration script (depends on mx.* being available).
+
+      ⚠️ Do NOT add async/defer to either tag below; we rely on this order.
+    -->
+    <script src="mxclientsystem/mxui/mxui.js?{{cachebust}}"></script>
+
+    <!--
+      Your drop-in Datadog file.
+      It:
+        • Detects environment (dev/accp/uat/prod)
+        • Loads Datadog RUM v5 (us1)
+        • Resolves user + roles via MF AuctionUI.MF_GetSecurityRoles
+        • Tracks SPA views, actions, errors, performance, uploads
+        • Cleans up sessions on logout/login/401/pagehide/multi-tab
+      Turn on verbose logs in the browser console by running:
+        localStorage.__dd_debug = '1'
+      Then reload the page.
+    -->
+    <script src="/scripts/datadog.js"></script>
+
+    <!--
+      OPTIONAL DEV AIDS (comment out in prod):
+      - Quick sanity of Mendix + Datadog wiring without touching your app code.
+      - Paste these snippets into your console as needed:
+        // Show what RUM thinks the user/context is:
+        (function(){ const r=DD_RUM,u=r.getUser(),c=r.getGlobalContext(); console.table({
+          "usr.id":u.id, "usr.name":u.name, "usr.roles":Array.isArray(u.roles)?u.roles.join(", "):u.roles,
+          "mx_roles":c.mx_roles, "mendix_page":c.mendix_page, "mendix_page_module":c.mendix_page_module
+        }); })();
+
+        // Call your roles MF directly and see the raw return:
+        (function(){
+          if(!(mx&&mx.data&&typeof mx.data.action==="function")) return console.warn("mx.data.action not ready");
+          mx.data.action({
+            params:{ actionname:"AuctionUI.MF_GetSecurityRoles", applyto:"none" },
+            callback: res => console.log("[MF roles] RAW:", res, "TYPE:", typeof res),
+            error: e => console.error("[MF roles] ERROR:", e)
+          });
+        })();
+
+      Remove this dev block before production if you want the cleanest HTML.
+    -->
+  </body>
+</html>

@@ -1,0 +1,527 @@
+/* ===================================================================
+   RMA Requests — Buyer Overview page
+   Pixel-matched to QA buy-qa.ecoatmdirect.com RMA page
+   ================================================================= */
+
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  font-size: 36px;
+  font-weight: 300;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.searchInput {
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  background: #fff;
+  min-width: 200px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #407874;
+}
+
+/* ---- Action buttons ---- */
+.actionBtn {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.actionBtn:hover {
+  background: #f5f5f5;
+  border-color: #b0abab;
+}
+
+.requestRmaBtn {
+  composes: actionBtn;
+  background: #407874;
+  color: #fff;
+  border-color: #407874;
+}
+
+.requestRmaBtn:hover {
+  background: #356a66;
+}
+
+/* ---- 3-dot menu ---- */
+.moreActionsContainer {
+  position: relative;
+}
+
+.moreActionsBtn {
+  composes: actionBtn;
+  padding: 0 8px;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.moreActionsMenu {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  z-index: 10;
+  min-width: 180px;
+}
+
+.menuItem {
+  display: block;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+}
+
+.menuItem:hover {
+  background: #f5f5f5;
+}
+
+/* ---- Data Grid ---- */
+.tableContainer {
+  background: #fff;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.dataGrid th {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 2px solid #d2cdcd;
+  color: #3c3c3c;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  background: #fafafa;
+}
+
+.dataGrid th:hover {
+  background: #f0f0f0;
+}
+
+.dataGrid td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #e8e4de;
+  color: #3c3c3c;
+  vertical-align: middle;
+}
+
+.dataGrid tr:hover td {
+  background: #f5f3ef;
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+
+.sortIcon {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #999;
+}
+
+.sortActive {
+  color: #407874;
+  font-weight: bold;
+}
+
+/* ---- Column alignment ---- */
+.alignCenter {
+  text-align: center;
+}
+
+.alignRight {
+  text-align: right;
+}
+
+/* ---- Status badge ---- */
+.statusBadge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.statusSubmitted { background: #fff3cd; color: #856404; }
+.statusApproved { background: #d4edda; color: #155724; }
+.statusDeclined { background: #f8d7da; color: #721c24; }
+.statusOpen { background: #cce5ff; color: #004085; }
+.statusClosed { background: #e2e3e5; color: #383d41; }
+.statusDefault { background: #e2e3e5; color: #383d41; }
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+  font-size: 16px;
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 4px;
+  border-top: 1px solid #e8e4de;
+}
+
+.pageBtn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+}
+
+.pageBtn:hover { background: #f5f5f5; }
+.pageBtn:disabled { opacity: 0.5; cursor: default; }
+.pageBtnActive { background: #407874; color: #fff; border-color: #407874; }
+
+/* ---- Loading ---- */
+.loadingOverlay {
+  text-align: center;
+  padding: 60px;
+  font-size: 16px;
+  color: #666;
+}
+
+/* ---- Column filter ---- */
+.columnFilter {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #d2cdcd;
+  border-radius: 3px;
+  font-size: 12px;
+  font-family: "Founders Grotesk", sans-serif;
+  margin-top: 4px;
+}
+
+.columnFilter:focus {
+  outline: none;
+  border-color: #407874;
+}
+
+/* ===================================================================
+   Request RMA Modal — matches Mendix popup styling
+   ================================================================= */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 4px;
+  width: 540px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #ddd;
+  background: #f5f5f5;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin: 0;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalCloseBtn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #666;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.modalCloseBtn:hover {
+  color: #333;
+}
+
+.modalBody {
+  padding: 20px;
+}
+
+.modalStep {
+  margin-bottom: 20px;
+}
+
+.modalStepLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  margin-bottom: 8px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalStepDescription {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 12px;
+  line-height: 1.4;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.downloadTemplateBtn {
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #407874;
+  border-radius: 4px;
+  background: #fff;
+  color: #407874;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.downloadTemplateBtn:hover {
+  background: #f0f8f7;
+}
+
+.fileUploadArea {
+  border: 2px dashed #d2cdcd;
+  border-radius: 4px;
+  padding: 24px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.fileUploadArea:hover {
+  border-color: #407874;
+  background: #f0f8f7;
+}
+
+.fileUploadAreaActive {
+  border-color: #407874;
+  background: #e8f4f2;
+}
+
+.fileUploadIcon {
+  font-size: 28px;
+  color: #999;
+  margin-bottom: 8px;
+}
+
+.fileUploadText {
+  font-size: 14px;
+  color: #666;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.fileUploadHint {
+  font-size: 12px;
+  color: #999;
+  margin-top: 4px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.selectedFile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: #f0f8f7;
+  border: 1px solid #407874;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+
+.selectedFileName {
+  font-size: 13px;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.removeFileBtn {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+}
+
+.removeFileBtn:hover {
+  color: #cc0000;
+}
+
+.modalFooter {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 20px;
+  border-top: 1px solid #ddd;
+}
+
+.cancelBtn {
+  height: 36px;
+  padding: 0 20px;
+  border: 1px solid #d2cdcd;
+  border-radius: 4px;
+  background: #fff;
+  color: #3c3c3c;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.cancelBtn:hover {
+  background: #f5f5f5;
+}
+
+.submitRmaBtn {
+  height: 36px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 4px;
+  background: #407874;
+  color: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.submitRmaBtn:hover {
+  background: #356a66;
+}
+
+.submitRmaBtn:disabled {
+  background: #a0bfbd;
+  cursor: not-allowed;
+}
+
+.modalError {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 4px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.modalErrorTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: #dc2626;
+  margin-bottom: 6px;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalErrorList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.modalErrorList li {
+  font-size: 12px;
+  color: #991b1b;
+  padding: 2px 0;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalSuccess {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 4px;
+  padding: 16px;
+  text-align: center;
+}
+
+.modalSuccessText {
+  font-size: 14px;
+  color: #166534;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalSubmitting {
+  text-align: center;
+  padding: 20px;
+  font-size: 14px;
+  color: #666;
+  font-family: "Founders Grotesk", sans-serif;
+}

@@ -1,0 +1,227 @@
+# Snippet: MxObjects
+
+## Widget Tree
+
+- ⚡ **Button**: Synchronize modules and all entities and microflows of checked modules [Style: Primary]
+  ↳ [acti] → **Microflow**: `MxModelReflection.IVK_SyncObjects`
+- 📦 **ListView** [MF: MxModelReflection.DSL_Modules] [Class: `listview-lined` | DP: {Row Size: Small}]
+  - 📝 **CheckBox**: checkBox1 [Style: `display: inline-block;`]
+    ↳ [Change] → **Microflow**: `MxModelReflection.IVK_ToggleModule`
+- 📑 **TabContainer** [Style: `margin-top: 10px;`]
+  - 📑 **Tab**: "Entities"
+    - 📦 **ListView** [Context]
+    - 📂 **GroupBox**: "Entity details"
+      - 📦 **DataView** [Context]
+        - 🔤 **Text**: "Friendly name" [Class: `control-label col-sm-3`]
+        - ⚡ **Button**: Save [Style: Primary]
+          ↳ [acti] → **Microflow**: `MxModelReflection.IVK_MxObjectTypeCommit`
+        - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+            - source: context
+            - optionsSourceType: enumeration
+            - attributeEnumeration: [Attr: MxModelReflection.MxObjectType.PersistenceType]
+            - optionsSourceDatabaseCaptionType: attribute
+            - optionsSourceAssociationCaptionType: attribute
+            - filterType: contains
+            - optionsSourceAssociationCustomContentType: no
+            - optionsSourceDatabaseCustomContentType: no
+            - selectionMethod: checkbox
+            - selectedItemsStyle: text
+            - selectAllButtonCaption: Select all
+            - ariaRequired: `false`
+            - clearButtonAriaLabel: Clear selection
+            - removeValueAriaLabel: Remove value
+            - a11ySelectedValue: Selected value:
+            - a11yOptionsAvailable: Number of options available:
+            - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+            - staticDataSourceCustomContentType: no
+            - readOnlyStyle: text
+            - loadingType: spinner
+            - selectedItemsSorting: none
+        - 🔤 **Text**: "Inherits from" [Class: `control-label col-sm-3`]
+        - 📦 **DataView** [MF: MxModelReflection.DSO_InheritsFromContainer] [Class: `col-sm-9`]
+        - 📑 **TabContainer**
+          - 📑 **Tab**: "Attributes"
+            - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+                - refreshInterval: 0
+                - itemSelectionMethod: rowClick
+                - itemSelectionMode: clear
+                ➤ **columns**
+                    - showContentAs: attribute
+                    - attribute: [Attr: MxModelReflection.MxObjectMember.AttributeName]
+                    - header: Member name
+                    - visible: `true`
+                    - hidable: yes
+                    - width: manual
+                    - minWidth: auto
+                    - minWidthLimit: 100
+                    - size: 25
+                    - alignment: left
+                    - filterCaptionType: expression
+                    - showContentAs: attribute
+                    - attribute: [Attr: MxModelReflection.MxObjectMember.AttributeTypeEnum]
+                    - header: Type
+                    - visible: `true`
+                    - hidable: yes
+                    - width: manual
+                    - minWidth: auto
+                    - minWidthLimit: 100
+                    - size: 75
+                    - alignment: left
+                    - filterCaptionType: expression
+                - pageSize: 10
+                - pagination: buttons
+                - pagingPosition: bottom
+                - showPagingButtons: always
+                - loadMoreButtonCaption: Load More
+                - showEmptyPlaceholder: none
+                - onClickTrigger: double
+                - configurationStorageType: attribute
+                ➤ **filtersPlaceholder** (Widgets)
+                    ↳ [acti] → **Microflow**: `MxModelReflection.ACT_ShowMemberPage`
+                - exportDialogLabel: Export progress
+                - cancelExportLabel: Cancel data export
+                - selectRowLabel: Select row
+                - loadingType: spinner
+          - 📑 **Tab**: "References"
+            - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+                - refreshInterval: 0
+                - itemSelectionMethod: rowClick
+                - itemSelectionMode: clear
+                ➤ **columns**
+                    - showContentAs: attribute
+                    - attribute: [Attr: MxModelReflection.MxObjectReference.CompleteName]
+                    - header: Association
+                    - visible: `true`
+                    - hidable: yes
+                    - width: manual
+                    - minWidth: auto
+                    - minWidthLimit: 100
+                    - size: 50
+                    - alignment: left
+                    - filterCaptionType: expression
+                    - showContentAs: customContent
+                    ➤ **content** (Widgets)
+                      - 📦 **DataView** [MF: MxModelReflection.ReferenceObjects]
+                    - header: Associated entities
+                    - visible: `true`
+                    - hidable: yes
+                    - width: manual
+                    - minWidth: auto
+                    - minWidthLimit: 100
+                    - size: 50
+                    - alignment: left
+                    - filterCaptionType: expression
+                - pageSize: 20
+                - pagination: buttons
+                - pagingPosition: bottom
+                - showPagingButtons: always
+                - loadMoreButtonCaption: Load More
+                - showEmptyPlaceholder: none
+                - onClickTrigger: double
+                - configurationStorageType: attribute
+                ➤ **filtersPlaceholder** (Widgets)
+                    ↳ [acti] → **Page**: `MxModelReflection.MxObjectReference_View`
+                - exportDialogLabel: Export progress
+                - cancelExportLabel: Cancel data export
+                - selectRowLabel: Select row
+                - loadingType: spinner
+  - 📑 **Tab**: "Microflows"
+    - 📦 **ListView** [Context]
+    - 📂 **GroupBox**: "Entity details"
+      - 📦 **DataView** [Context]
+        - 🔤 **Text**: "Input parameters" [Class: `control-label col-sm-3`]
+        - 🧩 **Data grid 2** (ID: `com.mendix.widget.web.datagrid.Datagrid`)
+            - refreshInterval: 0
+            - itemSelectionMethod: checkbox
+            - itemSelectionMode: clear
+            ➤ **columns**
+                - showContentAs: attribute
+                - attribute: [Attr: MxModelReflection.Parameter.Name]
+                - header: Name
+                - visible: `true`
+                - hidable: yes
+                - width: manual
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 32
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MxModelReflection.ValueType.Name]
+                - header: Primitive type
+                - visible: `true`
+                - hidable: yes
+                - width: manual
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 34
+                - alignment: left
+                - filterCaptionType: expression
+                - showContentAs: attribute
+                - attribute: [Attr: MxModelReflection.MxObjectType.CompleteName]
+                - header: Object type
+                - visible: `true`
+                - hidable: yes
+                - width: manual
+                - minWidth: auto
+                - minWidthLimit: 100
+                - size: 34
+                - alignment: left
+                - filterCaptionType: expression
+            - pageSize: 5
+            - pagination: buttons
+            - pagingPosition: bottom
+            - showPagingButtons: always
+            - loadMoreButtonCaption: Load More
+            - showEmptyPlaceholder: none
+            - onClickTrigger: single
+            - configurationStorageType: attribute
+            - exportDialogLabel: Export progress
+            - cancelExportLabel: Cancel data export
+            - selectRowLabel: Select row
+            - loadingType: spinner
+        - 🔤 **Text**: "Output" [Class: `control-label col-sm-3`]
+        - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+            - source: context
+            - optionsSourceType: association
+            - optionsSourceDatabaseCaptionType: attribute
+            - optionsSourceAssociationCaptionType: attribute
+            - optionsSourceAssociationCaptionAttribute: [Attr: MxModelReflection.ValueType.Name]
+            - filterType: contains
+            - optionsSourceAssociationCustomContentType: no
+            - optionsSourceDatabaseCustomContentType: no
+            - selectionMethod: checkbox
+            - selectedItemsStyle: text
+            - selectAllButtonCaption: Select all
+            - ariaRequired: `false`
+            - clearButtonAriaLabel: Clear selection
+            - removeValueAriaLabel: Remove value
+            - a11ySelectedValue: Selected value:
+            - a11yOptionsAvailable: Number of options available:
+            - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+            - staticDataSourceCustomContentType: no
+            - readOnlyStyle: text
+            - loadingType: spinner
+            - selectedItemsSorting: none
+        - 🧩 **Combo box** (ID: `com.mendix.widget.web.combobox.Combobox`)
+            - source: context
+            - optionsSourceType: association
+            - optionsSourceDatabaseCaptionType: attribute
+            - optionsSourceAssociationCaptionType: expression
+            - optionsSourceAssociationCaptionExpression: `getCaption($currentObject/TypeEnum)`
+            - filterType: contains
+            - optionsSourceAssociationCustomContentType: no
+            - optionsSourceDatabaseCustomContentType: no
+            - selectionMethod: checkbox
+            - selectedItemsStyle: text
+            - selectAllButtonCaption: Select all
+            - ariaRequired: `false`
+            - clearButtonAriaLabel: Clear selection
+            - removeValueAriaLabel: Remove value
+            - a11ySelectedValue: Selected value:
+            - a11yOptionsAvailable: Number of options available:
+            - a11yInstructions: Use up and down arrow keys to navigate. Press Enter or Space Bar keys to select.
+            - staticDataSourceCustomContentType: no
+            - readOnlyStyle: text
+            - loadingType: spinner
+            - selectedItemsSorting: none
