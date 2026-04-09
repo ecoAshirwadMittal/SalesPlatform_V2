@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.service;
 
+import com.ecoatm.salesplatform.dto.CsvUploadResult;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.model.mdm.Device;
@@ -13,9 +14,14 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -98,5 +104,66 @@ public class PricingService {
         return requests.stream()
                 .map(req -> updateFuturePrices(req.getDeviceId(), req.getFutureListPrice(), req.getFutureMinPrice()))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public CsvUploadResult processPricingCsv(InputStream csvStream) {
+        List<String> errors = new ArrayList<>();
+        int totalRows = 0;
+        int updatedCount = 0;
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csvStream, StandardCharsets.UTF_8))) {
+            String header = reader.readLine(); // skip header
+            if (header == null) {
+                return new CsvUploadResult(0, 0, 0, List.of());
+            }
+
+            String line;
+            int rowNum = 1; // header is row 1
+            while ((line = reader.readLine()) != null) {
+                rowNum++;
+                String trimmed = line.trim();
+                if (trimmed.isEmpty()) continue;
+
+                totalRows++;
+                String[] cols = trimmed.split(",", -1);
+                if (cols.length != 3) {
+                    errors.add("Row " + rowNum + ": expected 3 columns, got " + cols.length);
+                    continue;
+                }
+
+                String sku = cols[0].trim();
+                BigDecimal futureListPrice;
+                BigDecimal futureMinPrice;
+                try {
+                    futureListPrice = new BigDecimal(cols[1].trim());
+                    futureMinPrice = new BigDecimal(cols[2].trim());
+                } catch (NumberFormatException e) {
+                    errors.add("Row " + rowNum + ": invalid decimal value");
+                    continue;
+                }
+
+                if (futureListPrice.compareTo(futureMinPrice) < 0) {
+                    errors.add("Row " + rowNum + ": futureListPrice is less than futureMinPrice");
+                    continue;
+                }
+
+                Optional<Device> deviceOpt = deviceRepository.findBySku(sku);
+                if (deviceOpt.isEmpty()) {
+                    errors.add("Row " + rowNum + ": SKU '" + sku + "' not found");
+                    continue;
+                }
+
+                Device device = deviceOpt.get();
+                device.setFutureListPrice(futureListPrice);
+                device.setFutureMinPrice(futureMinPrice);
+                deviceRepository.save(device);
+                updatedCount++;
+            }
+        } catch (Exception e) {
+            errors.add("Failed to read CSV: " + e.getMessage());
+        }
+
+        return new CsvUploadResult(totalRows, updatedCount, errors.size(), errors);
     }
 }

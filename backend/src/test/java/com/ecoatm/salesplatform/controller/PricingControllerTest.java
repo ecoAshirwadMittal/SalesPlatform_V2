@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.controller;
 
+import com.ecoatm.salesplatform.dto.CsvUploadResult;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
@@ -16,6 +17,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -24,6 +26,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -198,6 +201,50 @@ class PricingControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].futureListPrice").value(50.00))
                     .andExpect(jsonPath("$[1].futureListPrice").value(60.00));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/pws/pricing/devices/upload")
+    class UploadPricingCsv {
+
+        @Test
+        @DisplayName("returns 401 without auth token")
+        void requiresAuth() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    "text/csv", "sku,futureListPrice,futureMinPrice\n".getBytes());
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload").file(file))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("uploads CSV and returns result")
+        void uploadsAndReturnsResult() throws Exception {
+            CsvUploadResult result = new CsvUploadResult(2, 2, 0, List.of());
+            when(pricingService.processPricingCsv(any())).thenReturn(result);
+
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    "text/csv", "sku,futureListPrice,futureMinPrice\nPWS001,120,95\nPWS002,60,45\n".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalRows").value(2))
+                    .andExpect(jsonPath("$.updatedCount").value(2))
+                    .andExpect(jsonPath("$.errorCount").value(0));
+        }
+
+        @Test
+        @DisplayName("returns 400 for empty file")
+        void returns400ForEmptyFile() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    "text/csv", new byte[0]);
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest());
         }
     }
 }
