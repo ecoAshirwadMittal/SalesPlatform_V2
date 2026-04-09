@@ -1,0 +1,296 @@
+/* =================================================================
+   PWS Pricing Page — pixel-matched to QA Mendix PWS_Pricing
+   Shares styling patterns with inventory.module.css
+   Font: "Founders Grotesk" throughout
+   Grid bg: #efebe4 (warm beige)
+   Grid cell border: 1px solid #ced0d3
+   ================================================================= */
+
+.pageWrapper {
+  font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
+  color: #3c3c3c;
+}
+
+.contentArea {
+  padding: 0;
+  background: #efebe4;
+  min-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Header ---- */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 24px;
+  background: #efebe4;
+}
+
+.pageTitle {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 40px;
+  font-weight: 500;
+  color: #1c1b1c;
+  margin: 0;
+  white-space: nowrap;
+  line-height: 47px;
+}
+
+/* Search bar — pill shape */
+.searchBar {
+  position: relative;
+  flex: 0 1 500px;
+}
+
+.searchInput {
+  width: 100%;
+  height: 36px;
+  padding: 4px 36px 4px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: 50px;
+  font-size: 18px;
+  font-family: "Founders Grotesk", sans-serif;
+  background: #f7f5f1;
+  color: #3c3c3c;
+  outline: none;
+}
+
+.searchInput:focus {
+  border-color: #407874;
+}
+
+.searchIconSvg {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #3c3c3c;
+  pointer-events: none;
+}
+
+/* Action buttons */
+.headerActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.actionBtn {
+  background: #112d32;
+  color: #fff;
+  border: none;
+  border-radius: 33px;
+  padding: 0 24px;
+  height: 42px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.actionBtn:hover {
+  background: #1a3f46;
+}
+
+.actionBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- Data grid ---- */
+.gridWrapper {
+  background: #efebe4;
+  padding: 13px 0 0 0;
+  min-height: 0;
+  flex: 1;
+}
+
+.gridContainer {
+  overflow-x: auto;
+}
+
+.datagrid {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+/* Column headers */
+.datagrid thead tr:first-child th {
+  background-color: #efebe4;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  padding: 6px 6px 6px 15px;
+  white-space: nowrap;
+  border-bottom: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.datagrid thead tr:first-child th:hover {
+  background-color: #e8e3db;
+}
+
+.colSku {
+  min-width: 100px;
+}
+
+.colModel {
+  min-width: 150px;
+}
+
+.colStatus {
+  min-width: 80px;
+}
+
+.sortIcon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+/* Filter row */
+.filterRow th {
+  background-color: #efebe4;
+  padding: 4px 6px 4px 15px;
+  border-bottom: none;
+  font-weight: normal;
+}
+
+.filterInput {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 18px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  background: #f7f7f7;
+}
+
+.filterSelect {
+  width: 100%;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 18px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  cursor: pointer;
+  min-width: 75px;
+}
+
+.filterInputNumber {
+  width: 50px;
+  height: 30px;
+  padding: 2px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 18px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  text-align: center;
+}
+
+/* Grid cells */
+.datagrid td {
+  background-color: #efebe4;
+  color: #3c3c3c;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  padding: 6px 6px 5px 19px;
+  border-bottom: 1px solid #ced0d3;
+  line-height: 23px;
+}
+
+.datagrid tbody tr {
+  cursor: pointer;
+}
+
+.datagrid tbody tr:hover td {
+  background-color: #e8e3db;
+}
+
+/* Input cells (New List Price / New Min Price) — highlighted background */
+.inputCell {
+  background-color: #e2dfd8;
+}
+
+.datagrid tbody tr:hover .inputCell {
+  background-color: #dad6cd;
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 8px;
+  height: 42px;
+  background: #efebe4;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 41px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  color: #3c3c3c;
+  padding: 6px;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #efebe4;
+}
+
+.pageBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.pageInfo {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #3b4251;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 35px 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #3c3c3c;
+}
+
+/* ---- Loading ---- */
+.loadingState {
+  padding: 48px;
+  text-align: center;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #888;
+  background: #efebe4;
+}
