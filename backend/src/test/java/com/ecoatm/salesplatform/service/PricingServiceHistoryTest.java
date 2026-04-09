@@ -38,6 +38,9 @@ class PricingServiceHistoryTest {
         h.setListPrice(listPrice);
         h.setMinPrice(minPrice);
         h.setCreatedDate(created);
+        h.setLegacyId(id + 1000L);
+        h.setExpirationDate(created.plusDays(90));
+        h.setUpdatedDate(created);
         return h;
     }
 
@@ -79,6 +82,24 @@ class PricingServiceHistoryTest {
             List<PriceHistoryResponse> result = pricingService.getPriceHistory(999L);
 
             assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("expiration date and legacy fields are populated correctly")
+        void expirationAndLegacyFieldsPopulated() {
+            LocalDateTime created = LocalDateTime.of(2026, 1, 15, 0, 0);
+            PriceHistory h = makeHistory(1L, 100L, new BigDecimal("50.00"), new BigDecimal("40.00"), created);
+
+            assertThat(h.getLegacyId()).isEqualTo(1001L);
+            assertThat(h.getExpirationDate()).isEqualTo(created.plusDays(90));
+            assertThat(h.getUpdatedDate()).isEqualTo(created);
+
+            when(priceHistoryRepository.findByDeviceIdOrderByCreatedDateDesc(100L))
+                    .thenReturn(List.of(h));
+
+            List<PriceHistoryResponse> result = pricingService.getPriceHistory(100L);
+            assertThat(result.get(0).expirationDate()).isEqualTo(created.plusDays(90));
+            assertThat(result.get(0).createdDate()).isEqualTo(created);
         }
 
         @Test

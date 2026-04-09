@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.CsvUploadResult;
+import com.ecoatm.salesplatform.dto.PriceHistoryResponse;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
@@ -205,6 +206,39 @@ class PricingControllerTest {
         }
 
         @Test
+        @DisplayName("returns 400 when bulk list exceeds 1000 items")
+        void returns400WhenBulkTooLarge() throws Exception {
+            // Build JSON array with 1001 items
+            StringBuilder sb = new StringBuilder("[");
+            for (int i = 0; i < 1001; i++) {
+                if (i > 0) sb.append(",");
+                sb.append("{\"deviceId\":").append(i).append(",\"futureListPrice\":10.00,\"futureMinPrice\":5.00}");
+            }
+            sb.append("]");
+
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/bulk")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(sb.toString())
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("1000")));
+        }
+
+        @Test
+        @DisplayName("returns 400 when bulk update throws IllegalArgumentException")
+        void returns400WhenBulkError() throws Exception {
+            when(pricingService.bulkUpdateFuturePrices(any()))
+                    .thenThrow(new IllegalArgumentException("Device not found: 999"));
+
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/bulk")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("[{\"deviceId\":999,\"futureListPrice\":10.00,\"futureMinPrice\":5.00}]")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("999")));
+        }
+
+        @Test
         @DisplayName("updates multiple devices and returns list")
         void updatesMultiple() throws Exception {
             PricingDeviceResponse d1 = makeDto(1L, "PWS001");
@@ -221,6 +255,46 @@ class PricingControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$[0].futureListPrice").value(50.00))
                     .andExpect(jsonPath("$[1].futureListPrice").value(60.00));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/pws/pricing/devices/{id}/history")
+    class GetDevicePriceHistory {
+
+        @Test
+        @DisplayName("returns 401 without auth")
+        void requiresAuth() throws Exception {
+            mockMvc.perform(get("/api/v1/pws/pricing/devices/1/history"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("returns price history for device")
+        void returnsPriceHistory() throws Exception {
+            PriceHistoryResponse h = new PriceHistoryResponse(
+                    1L, new BigDecimal("100.00"), new BigDecimal("80.00"),
+                    new BigDecimal("90.00"), new BigDecimal("70.00"),
+                    null, null);
+            when(pricingService.getPriceHistory(1L)).thenReturn(List.of(h));
+
+            mockMvc.perform(get("/api/v1/pws/pricing/devices/1/history")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].listPrice").value(100.00))
+                    .andExpect(jsonPath("$[0].previousListPrice").value(90.00));
+        }
+
+        @Test
+        @DisplayName("returns empty list when no history")
+        void returnsEmptyList() throws Exception {
+            when(pricingService.getPriceHistory(999L)).thenReturn(List.of());
+
+            mockMvc.perform(get("/api/v1/pws/pricing/devices/999/history")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$").isArray())
+                    .andExpect(jsonPath("$").isEmpty());
         }
     }
 
@@ -265,6 +339,34 @@ class PricingControllerTest {
                             .file(file)
                             .header("Authorization", "Bearer " + validToken()))
                     .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        @DisplayName("returns 400 for wrong content type")
+        void returns400ForWrongContentType() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.json",
+                    "application/json", "{\"data\": true}".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("CSV")));
+        }
+
+        @Test
+        @DisplayName("accepts text/plain content type")
+        void acceptsTextPlain() throws Exception {
+            CsvUploadResult result = new CsvUploadResult(1, 1, 0, List.of());
+            when(pricingService.processPricingCsv(any())).thenReturn(result);
+
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    "text/plain", "sku,futureListPrice,futureMinPrice\nPWS001,120,95\n".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk());
         }
     }
 }
