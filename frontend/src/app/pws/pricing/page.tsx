@@ -45,6 +45,12 @@ interface Filters {
   grade: string;
 }
 
+// Pending edits: deviceId -> { futureListPrice, futureMinPrice }
+interface PendingEdit {
+  futureListPrice: string;
+  futureMinPrice: string;
+}
+
 type SortField = string | null;
 type SortDir = 'asc' | 'desc';
 
@@ -63,6 +69,8 @@ export default function PricingPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const [filters, setFilters] = useState<Filters>({ ...emptyFilters });
   const [debouncedFilters, setDebouncedFilters] = useState<Filters>({ ...emptyFilters });
@@ -76,6 +84,9 @@ export default function PricingPage() {
 
   // Distinct values for dropdown filters
   const [distinctValues, setDistinctValues] = useState<Record<string, string[]>>({});
+
+  // Inline editing state
+  const [pendingEdits, setPendingEdits] = useState<Record<number, PendingEdit>>({});
 
   // ── Debounce search ──
   useEffect(() => {
@@ -105,10 +116,8 @@ export default function PricingPage() {
       params.set('page', String(page));
       params.set('size', String(PAGE_SIZE));
 
-      // Apply debounced filters
       if (debouncedFilters.sku || debouncedSearch) {
-        const skuSearch = debouncedFilters.sku || debouncedSearch;
-        params.set('sku', skuSearch);
+        params.set('sku', debouncedFilters.sku || debouncedSearch);
       }
       for (const field of dropdownFields) {
         if (debouncedFilters[field]) params.set(field, debouncedFilters[field]);
@@ -130,49 +139,29 @@ export default function PricingPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Fetch distinct values for dropdowns ──
+  // ── Fetch distinct values for dropdowns (once on mount) ──
   useEffect(() => {
-    (async () => {
-      try {
-        // Fetch all active devices to build distinct values (using a large page)
-        // In future phases this can be a dedicated endpoint
-        const res = await apiFetch(`${API_BASE}/pws/pricing/devices?page=0&size=1`);
-        if (res.ok) {
-          // For now, we'll populate distinct values from the loaded data
-          // A dedicated /distinct endpoint would be better for 23K rows
-        }
-      } catch { /* not critical */ }
-    })();
-  }, []);
-
-  // Build distinct values from currently loaded data (basic approach for Phase 1)
-  // In production, a dedicated endpoint should provide these
-  useEffect(() => {
-    const vals: Record<string, Set<string>> = {};
-    for (const field of dropdownFields) {
-      vals[field] = new Set();
-    }
-    // We need all data for distinct values, so fetch without pagination
     (async () => {
       try {
         const res = await apiFetch(`${API_BASE}/pws/pricing/devices?page=0&size=10000`);
-        if (res.ok) {
-          const json: PageResponse = await res.json();
-          for (const d of json.content) {
-            if (d.categoryName) vals['category'].add(d.categoryName);
-            if (d.brandName) vals['brand'].add(d.brandName);
-            if (d.modelName) vals['model'].add(d.modelName);
-            if (d.carrierName) vals['carrier'].add(d.carrierName);
-            if (d.capacityName) vals['capacity'].add(d.capacityName);
-            if (d.colorName) vals['color'].add(d.colorName);
-            if (d.gradeName) vals['grade'].add(d.gradeName);
-          }
-          const result: Record<string, string[]> = {};
-          for (const field of dropdownFields) {
-            result[field] = Array.from(vals[field]).sort();
-          }
-          setDistinctValues(result);
+        if (!res.ok) return;
+        const json: PageResponse = await res.json();
+        const vals: Record<string, Set<string>> = {};
+        for (const field of dropdownFields) vals[field] = new Set();
+        for (const d of json.content) {
+          if (d.categoryName) vals['category'].add(d.categoryName);
+          if (d.brandName) vals['brand'].add(d.brandName);
+          if (d.modelName) vals['model'].add(d.modelName);
+          if (d.carrierName) vals['carrier'].add(d.carrierName);
+          if (d.capacityName) vals['capacity'].add(d.capacityName);
+          if (d.colorName) vals['color'].add(d.colorName);
+          if (d.gradeName) vals['grade'].add(d.gradeName);
         }
+        const result: Record<string, string[]> = {};
+        for (const field of dropdownFields) {
+          result[field] = Array.from(vals[field]).sort();
+        }
+        setDistinctValues(result);
       } catch { /* not critical */ }
     })();
   }, []);
@@ -207,6 +196,113 @@ export default function PricingPage() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   }, []);
 
+  // ── Inline edit handlers ──
+  const getEditValue = (deviceId: number, field: 'futureListPrice' | 'futureMinPrice', original: number | null): string => {
+    const edit = pendingEdits[deviceId];
+    if (edit) return edit[field];
+    return original != null ? original.toFixed(2) : '';
+  };
+
+  const handleEditChange = useCallback((deviceId: number, field: 'futureListPrice' | 'futureMinPrice', value: string) => {
+    setPendingEdits((prev) => {
+      const existing = prev[deviceId];
+      const row = data.find((d) => d.id === deviceId);
+      const base: PendingEdit = existing || {
+        futureListPrice: row?.futureListPrice != null ? row.futureListPrice.toFixed(2) : '',
+        futureMinPrice: row?.futureMinPrice != null ? row.futureMinPrice.toFixed(2) : '',
+      };
+      return { ...prev, [deviceId]: { ...base, [field]: value } };
+    });
+  }, [data]);
+
+  const hasEdits = Object.keys(pendingEdits).length > 0;
+
+  // ── Save pending edits ──
+  const handleSave = useCallback(async () => {
+    const entries = Object.entries(pendingEdits);
+    if (entries.length === 0) return;
+
+    setSaving(true);
+    try {
+      const requests = entries.map(([id, edit]) => ({
+        deviceId: Number(id),
+        futureListPrice: edit.futureListPrice !== '' ? parseFloat(edit.futureListPrice) : null,
+        futureMinPrice: edit.futureMinPrice !== '' ? parseFloat(edit.futureMinPrice) : null,
+      }));
+
+      const res = await apiFetch(`${API_BASE}/pws/pricing/devices/bulk`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requests),
+      });
+
+      if (res.ok) {
+        setPendingEdits({});
+        await fetchData();
+      }
+    } catch (err) {
+      console.error('Failed to save pricing updates:', err);
+    } finally {
+      setSaving(false);
+    }
+  }, [pendingEdits, fetchData]);
+
+  // ── Discard edits ──
+  const handleDiscard = useCallback(() => {
+    setPendingEdits({});
+  }, []);
+
+  // ── Export ──
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      // Fetch all data for export (respecting current filters)
+      const params = new URLSearchParams();
+      params.set('page', '0');
+      params.set('size', '100000');
+      if (debouncedFilters.sku || debouncedSearch) {
+        params.set('sku', debouncedFilters.sku || debouncedSearch);
+      }
+      for (const field of dropdownFields) {
+        if (debouncedFilters[field]) params.set(field, debouncedFilters[field]);
+      }
+
+      const res = await apiFetch(`${API_BASE}/pws/pricing/devices?${params.toString()}`);
+      if (!res.ok) return;
+      const json: PageResponse = await res.json();
+
+      let csv = 'SKU,Category,Brand,Model Family,Carrier,Capacity,Color,Grade,Current List Price,New List Price,Current Min Price,New Min Price\n';
+      for (const d of json.content) {
+        csv += [
+          d.sku,
+          d.categoryName ?? '',
+          d.brandName ?? '',
+          d.modelName ?? '',
+          d.carrierName ?? '',
+          d.capacityName ?? '',
+          d.colorName ?? '',
+          d.gradeName ?? '',
+          d.currentListPrice ?? '',
+          d.futureListPrice ?? '',
+          d.currentMinPrice ?? '',
+          d.futureMinPrice ?? '',
+        ].join(',') + '\n';
+      }
+
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `CONFIDENTIAL_PWS_Pricing_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to export pricing data:', err);
+    } finally {
+      setExporting(false);
+    }
+  }, [debouncedFilters, debouncedSearch]);
+
   // ── Sort icon ──
   function sortIcon(field: string) {
     return (
@@ -237,9 +333,9 @@ export default function PricingPage() {
     { key: 'colorName', header: 'Color', type: 'dropdown' as const, filterField: 'color' },
     { key: 'gradeName', header: 'Grade', type: 'dropdown' as const, filterField: 'grade' },
     { key: 'currentListPrice', header: 'Current List Price', type: 'number' as const },
-    { key: 'futureListPrice', header: 'New List Price', type: 'number' as const, inputCell: true },
+    { key: 'futureListPrice', header: 'New List Price', type: 'number' as const, editable: true },
     { key: 'currentMinPrice', header: 'Current Min Price', type: 'number' as const },
-    { key: 'futureMinPrice', header: 'New Min Price', type: 'number' as const, inputCell: true },
+    { key: 'futureMinPrice', header: 'New Min Price', type: 'number' as const, editable: true },
   ];
 
   return (
@@ -262,6 +358,16 @@ export default function PricingPage() {
             </svg>
           </div>
           <div className={s.headerActions}>
+            {hasEdits && (
+              <>
+                <button className={s.actionBtn} type="button" onClick={handleDiscard} disabled={saving}>
+                  Discard
+                </button>
+                <button className={`${s.actionBtn} ${s.saveBtn}`} type="button" onClick={handleSave} disabled={saving}>
+                  {saving ? 'Saving…' : `Save (${Object.keys(pendingEdits).length})`}
+                </button>
+              </>
+            )}
             <button className={s.actionBtn} type="button">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -270,13 +376,13 @@ export default function PricingPage() {
               </svg>
               Upload Data
             </button>
-            <button className={s.actionBtn} type="button">
+            <button className={s.actionBtn} type="button" onClick={handleExport} disabled={exporting}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Export
+              {exporting ? 'Exporting…' : 'Export'}
             </button>
           </div>
         </div>
@@ -356,9 +462,23 @@ export default function PricingPage() {
                         <td>{row.colorName}</td>
                         <td>{row.gradeName}</td>
                         <td>{fmtPrice(row.currentListPrice)}</td>
-                        <td className={s.inputCell}>{fmtPrice(row.futureListPrice)}</td>
+                        <td className={s.inputCell}>
+                          <input
+                            type="text"
+                            className={s.priceInput}
+                            value={getEditValue(row.id, 'futureListPrice', row.futureListPrice)}
+                            onChange={(e) => handleEditChange(row.id, 'futureListPrice', e.target.value)}
+                          />
+                        </td>
                         <td>{fmtPrice(row.currentMinPrice)}</td>
-                        <td className={s.inputCell}>{fmtPrice(row.futureMinPrice)}</td>
+                        <td className={s.inputCell}>
+                          <input
+                            type="text"
+                            className={s.priceInput}
+                            value={getEditValue(row.id, 'futureMinPrice', row.futureMinPrice)}
+                            onChange={(e) => handleEditChange(row.id, 'futureMinPrice', e.target.value)}
+                          />
+                        </td>
                       </tr>
                     ))
                   )}

@@ -227,10 +227,40 @@
 /* Input cells (New List Price / New Min Price) — highlighted background */
 .inputCell {
   background-color: #e2dfd8;
+  padding: 2px 4px 2px 4px !important;
 }
 
 .datagrid tbody tr:hover .inputCell {
   background-color: #dad6cd;
+}
+
+/* Inline price input */
+.priceInput {
+  width: 80px;
+  height: 28px;
+  padding: 2px 4px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  text-align: right;
+}
+
+.priceInput:focus {
+  border-color: #407874;
+  outline: none;
+  background: #fff;
+}
+
+/* Save button (green accent) */
+.saveBtn {
+  background: #407874 !important;
+}
+
+.saveBtn:hover {
+  background: #356662 !important;
 }
 
 /* ---- Pagination ---- */
