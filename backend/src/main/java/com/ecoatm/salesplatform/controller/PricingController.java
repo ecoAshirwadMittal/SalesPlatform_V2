@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.CsvUploadResult;
+import com.ecoatm.salesplatform.dto.PriceHistoryResponse;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.service.PricingService;
@@ -63,6 +64,12 @@ public class PricingController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @GetMapping("/devices/{id}/history")
+    public ResponseEntity<List<PriceHistoryResponse>> getDevicePriceHistory(@PathVariable Long id) {
+        List<PriceHistoryResponse> history = pricingService.getPriceHistory(id);
+        return ResponseEntity.ok(history);
     }
 
     @PostMapping(value = "/devices/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

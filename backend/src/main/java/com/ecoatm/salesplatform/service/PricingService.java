@@ -1,10 +1,13 @@
 package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.CsvUploadResult;
+import com.ecoatm.salesplatform.dto.PriceHistoryResponse;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.model.mdm.PriceHistory;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.mdm.PriceHistoryRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,9 +31,11 @@ import java.util.stream.Collectors;
 public class PricingService {
 
     private final DeviceRepository deviceRepository;
+    private final PriceHistoryRepository priceHistoryRepository;
 
-    public PricingService(DeviceRepository deviceRepository) {
+    public PricingService(DeviceRepository deviceRepository, PriceHistoryRepository priceHistoryRepository) {
         this.deviceRepository = deviceRepository;
+        this.priceHistoryRepository = priceHistoryRepository;
     }
 
     @Transactional(readOnly = true)
@@ -165,5 +170,11 @@ public class PricingService {
         }
 
         return new CsvUploadResult(totalRows, updatedCount, errors.size(), errors);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PriceHistoryResponse> getPriceHistory(Long deviceId) {
+        List<PriceHistory> rows = priceHistoryRepository.findByDeviceIdOrderByCreatedDateDesc(deviceId);
+        return PriceHistoryResponse.fromEntities(rows);
     }
 }
