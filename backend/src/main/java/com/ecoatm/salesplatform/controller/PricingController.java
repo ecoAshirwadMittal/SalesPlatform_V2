@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -36,10 +37,15 @@ public class PricingController {
             @RequestParam(required = false) String carrier,
             @RequestParam(required = false) String capacity,
             @RequestParam(required = false) String color,
-            @RequestParam(required = false) String grade) {
+            @RequestParam(required = false) String grade,
+            @RequestParam(required = false) BigDecimal currentListPrice,
+            @RequestParam(required = false) BigDecimal futureListPrice,
+            @RequestParam(required = false) BigDecimal currentMinPrice,
+            @RequestParam(required = false) BigDecimal futureMinPrice) {
 
         Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                PageRequest.of(page, size), sku, category, brand, model, carrier, capacity, color, grade);
+                PageRequest.of(page, size), sku, category, brand, model, carrier, capacity, color, grade,
+                currentListPrice, futureListPrice, currentMinPrice, futureMinPrice);
         return ResponseEntity.ok(result);
     }
 

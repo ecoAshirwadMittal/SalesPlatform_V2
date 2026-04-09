@@ -48,7 +48,11 @@ public class PricingService {
             String carrier,
             String capacity,
             String color,
-            String grade) {
+            String grade,
+            BigDecimal currentListPrice,
+            BigDecimal futureListPrice,
+            BigDecimal currentMinPrice,
+            BigDecimal futureMinPrice) {
 
         Specification<Device> spec = (root, query, cb) -> {
             List<Predicate> preds = new ArrayList<>();
@@ -85,6 +89,19 @@ public class PricingService {
             if (grade != null && !grade.isBlank()) {
                 var join = root.join("grade", JoinType.INNER);
                 preds.add(cb.equal(join.get("displayName"), grade));
+            }
+
+            if (currentListPrice != null) {
+                preds.add(cb.equal(root.get("listPrice"), currentListPrice));
+            }
+            if (futureListPrice != null) {
+                preds.add(cb.equal(root.get("futureListPrice"), futureListPrice));
+            }
+            if (currentMinPrice != null) {
+                preds.add(cb.equal(root.get("minPrice"), currentMinPrice));
+            }
+            if (futureMinPrice != null) {
+                preds.add(cb.equal(root.get("futureMinPrice"), futureMinPrice));
             }
 
             return cb.and(preds.toArray(new Predicate[0]));
