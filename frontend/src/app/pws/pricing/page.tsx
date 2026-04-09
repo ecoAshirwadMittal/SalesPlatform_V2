@@ -43,6 +43,10 @@ interface Filters {
   capacity: string;
   color: string;
   grade: string;
+  currentListPrice: string;
+  futureListPrice: string;
+  currentMinPrice: string;
+  futureMinPrice: string;
 }
 
 interface PriceHistoryEntry {
@@ -67,6 +71,7 @@ type SortDir = 'asc' | 'desc';
 const emptyFilters: Filters = {
   sku: '', category: '', brand: '', model: '',
   carrier: '', capacity: '', color: '', grade: '',
+  currentListPrice: '', futureListPrice: '', currentMinPrice: '', futureMinPrice: '',
 };
 
 const dropdownFields = ['category', 'brand', 'model', 'carrier', 'capacity', 'color', 'grade'] as const;
@@ -140,6 +145,10 @@ export default function PricingPage() {
       }
       for (const field of dropdownFields) {
         if (debouncedFilters[field]) params.set(field, debouncedFilters[field]);
+      }
+      const priceFields = ['currentListPrice', 'futureListPrice', 'currentMinPrice', 'futureMinPrice'] as const;
+      for (const pf of priceFields) {
+        if (debouncedFilters[pf]) params.set(pf, debouncedFilters[pf]);
       }
 
       const res = await apiFetch(`${API_BASE}/pws/pricing/devices?${params.toString()}`);
@@ -285,6 +294,10 @@ export default function PricingPage() {
       for (const field of dropdownFields) {
         if (debouncedFilters[field]) params.set(field, debouncedFilters[field]);
       }
+      const priceFieldsExport = ['currentListPrice', 'futureListPrice', 'currentMinPrice', 'futureMinPrice'] as const;
+      for (const pf of priceFieldsExport) {
+        if (debouncedFilters[pf]) params.set(pf, debouncedFilters[pf]);
+      }
 
       const res = await apiFetch(`${API_BASE}/pws/pricing/devices?${params.toString()}`);
       if (!res.ok) return;
@@ -394,10 +407,10 @@ export default function PricingPage() {
     { key: 'capacityName', header: 'Capacity', type: 'dropdown' as const, filterField: 'capacity' },
     { key: 'colorName', header: 'Color', type: 'dropdown' as const, filterField: 'color' },
     { key: 'gradeName', header: 'Grade', type: 'dropdown' as const, filterField: 'grade' },
-    { key: 'currentListPrice', header: 'Current List Price', type: 'number' as const },
-    { key: 'futureListPrice', header: 'New List Price', type: 'number' as const, editable: true },
-    { key: 'currentMinPrice', header: 'Current Min Price', type: 'number' as const },
-    { key: 'futureMinPrice', header: 'New Min Price', type: 'number' as const, editable: true },
+    { key: 'currentListPrice', header: 'Current List Price', type: 'number' as const, filterField: 'currentListPrice' },
+    { key: 'futureListPrice', header: 'New List Price', type: 'number' as const, editable: true, filterField: 'futureListPrice' },
+    { key: 'currentMinPrice', header: 'Current Min Price', type: 'number' as const, filterField: 'currentMinPrice' },
+    { key: 'futureMinPrice', header: 'New Min Price', type: 'number' as const, editable: true, filterField: 'futureMinPrice' },
   ];
 
   return (
@@ -499,6 +512,8 @@ export default function PricingPage() {
                             type="text"
                             className={s.filterInputNumber}
                             placeholder="="
+                            value={filters[col.filterField as keyof Filters] || ''}
+                            onChange={(e) => updateFilter(col.filterField as keyof Filters, e.target.value)}
                           />
                         )}
                       </th>
