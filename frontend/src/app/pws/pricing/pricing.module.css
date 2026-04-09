@@ -425,6 +425,34 @@
   margin-bottom: 2px;
 }
 
+/* ---- History Modal ---- */
+.historyModal {
+  width: 700px;
+}
+
+.historyTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.historyTable th {
+  background: #f0f0f0;
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 2px solid #ddd;
+}
+
+.historyTable td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.historyTable tbody tr:hover td {
+  background: #f9f9f9;
+}
+
 /* ---- Loading ---- */
 .loadingState {
   padding: 48px;

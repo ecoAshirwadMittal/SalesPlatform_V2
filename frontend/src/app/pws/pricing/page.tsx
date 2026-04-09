@@ -45,6 +45,16 @@ interface Filters {
   grade: string;
 }
 
+interface PriceHistoryEntry {
+  id: number;
+  listPrice: number | null;
+  minPrice: number | null;
+  previousListPrice: number | null;
+  previousMinPrice: number | null;
+  expirationDate: string | null;
+  createdDate: string | null;
+}
+
 // Pending edits: deviceId -> { futureListPrice, futureMinPrice }
 interface PendingEdit {
   futureListPrice: string;
@@ -74,6 +84,12 @@ export default function PricingPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ totalRows: number; updatedCount: number; errorCount: number; errors: string[] } | null>(null);
+
+  // Price history modal
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyDevice, setHistoryDevice] = useState<PricingDevice | null>(null);
+  const [historyData, setHistoryData] = useState<PriceHistoryEntry[]>([]);
 
   const [filters, setFilters] = useState<Filters>({ ...emptyFilters });
   const [debouncedFilters, setDebouncedFilters] = useState<Filters>({ ...emptyFilters });
@@ -331,6 +347,24 @@ export default function PricingPage() {
     }
   }, [fetchData]);
 
+  // ── Row click → price history ──
+  const handleRowClick = useCallback(async (device: PricingDevice) => {
+    setHistoryDevice(device);
+    setHistoryOpen(true);
+    setHistoryLoading(true);
+    setHistoryData([]);
+    try {
+      const res = await apiFetch(`${API_BASE}/pws/pricing/devices/${device.id}/history`);
+      if (res.ok) {
+        setHistoryData(await res.json());
+      }
+    } catch (err) {
+      console.error('Failed to load price history:', err);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   // ── Sort icon ──
   function sortIcon(field: string) {
     return (
@@ -480,7 +514,7 @@ export default function PricingPage() {
                     </tr>
                   ) : (
                     sorted.map((row) => (
-                      <tr key={row.id}>
+                      <tr key={row.id} onClick={() => handleRowClick(row)}>
                         <td>{row.sku}</td>
                         <td>{row.categoryName}</td>
                         <td>{row.brandName}</td>
@@ -535,6 +569,50 @@ export default function PricingPage() {
           </div>
         )}
       </div>
+
+      {/* ── Price History Modal ── */}
+      {historyOpen && (
+        <div className={s.modalOverlay} onClick={() => setHistoryOpen(false)}>
+          <div className={`${s.modal} ${s.historyModal}`} onClick={(e) => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>
+                Price History{historyDevice ? ` — ${historyDevice.sku}` : ''}
+              </h2>
+              <button className={s.modalClose} onClick={() => setHistoryOpen(false)}>×</button>
+            </div>
+            <div className={s.modalBody}>
+              {historyLoading ? (
+                <p className={s.modalStatus}>Loading history…</p>
+              ) : historyData.length === 0 ? (
+                <p>No price history found for this device.</p>
+              ) : (
+                <table className={s.historyTable}>
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>List Price</th>
+                      <th>Prev List Price</th>
+                      <th>Min Price</th>
+                      <th>Prev Min Price</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyData.map((h) => (
+                      <tr key={h.id}>
+                        <td>{h.createdDate ? new Date(h.createdDate).toLocaleDateString() : '—'}</td>
+                        <td>{h.listPrice != null ? `$${h.listPrice.toFixed(2)}` : '—'}</td>
+                        <td>{h.previousListPrice != null ? `$${h.previousListPrice.toFixed(2)}` : '—'}</td>
+                        <td>{h.minPrice != null ? `$${h.minPrice.toFixed(2)}` : '—'}</td>
+                        <td>{h.previousMinPrice != null ? `$${h.previousMinPrice.toFixed(2)}` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Upload Modal ── */}
       {uploadOpen && (
