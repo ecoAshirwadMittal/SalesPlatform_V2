@@ -80,7 +80,8 @@ class PricingControllerTest {
             Page<PricingDeviceResponse> page = new PageImpl<>(
                     List.of(dto), PageRequest.of(0, 20), 1);
             when(pricingService.listPricingDevices(any(), isNull(), isNull(), isNull(),
-                    isNull(), isNull(), isNull(), isNull(), isNull()))
+                    isNull(), isNull(), isNull(), isNull(), isNull(),
+                    isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(page);
 
             mockMvc.perform(get("/api/v1/pws/pricing/devices")
@@ -99,7 +100,8 @@ class PricingControllerTest {
             Page<PricingDeviceResponse> page = new PageImpl<>(
                     List.of(), PageRequest.of(0, 20), 0);
             when(pricingService.listPricingDevices(any(), eq("PWS"), eq("Cell Phone"),
-                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull()))
+                    isNull(), isNull(), isNull(), isNull(), isNull(), isNull(),
+                    isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(page);
 
             mockMvc.perform(get("/api/v1/pws/pricing/devices")
@@ -111,12 +113,30 @@ class PricingControllerTest {
         }
 
         @Test
+        @DisplayName("passes price filter params to service")
+        void passesPriceFilters() throws Exception {
+            Page<PricingDeviceResponse> page = new PageImpl<>(
+                    List.of(), PageRequest.of(0, 20), 0);
+            when(pricingService.listPricingDevices(any(), isNull(), isNull(), isNull(),
+                    isNull(), isNull(), isNull(), isNull(), isNull(),
+                    eq(new BigDecimal("100.00")), isNull(), isNull(), isNull()))
+                    .thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/pws/pricing/devices")
+                            .param("currentListPrice", "100.00")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.totalElements").value(0));
+        }
+
+        @Test
         @DisplayName("respects page and size params")
         void respectsPagination() throws Exception {
             Page<PricingDeviceResponse> page = new PageImpl<>(
                     List.of(), PageRequest.of(2, 50), 0);
             when(pricingService.listPricingDevices(any(), isNull(), isNull(), isNull(),
-                    isNull(), isNull(), isNull(), isNull(), isNull()))
+                    isNull(), isNull(), isNull(), isNull(), isNull(),
+                    isNull(), isNull(), isNull(), isNull()))
                     .thenReturn(page);
 
             mockMvc.perform(get("/api/v1/pws/pricing/devices")

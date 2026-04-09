@@ -94,7 +94,8 @@ class PricingServiceTest {
             when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
             Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null);
+                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null,
+                    null, null, null, null);
 
             assertThat(result.getContent()).hasSize(1);
             PricingDeviceResponse dto = result.getContent().get(0);
@@ -116,7 +117,8 @@ class PricingServiceTest {
             when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(emptyPage);
 
             Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null);
+                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null,
+                    null, null, null, null);
 
             assertThat(result.getContent()).isEmpty();
             assertThat(result.getTotalElements()).isZero();
@@ -132,7 +134,8 @@ class PricingServiceTest {
             when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
             Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null);
+                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null,
+                    null, null, null, null);
 
             PricingDeviceResponse dto = result.getContent().get(0);
             assertThat(dto.getFutureListPrice()).isNull();
@@ -148,7 +151,8 @@ class PricingServiceTest {
             when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
             Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                    PageRequest.of(0, 20), "PWS001", null, null, null, null, null, null, null);
+                    PageRequest.of(0, 20), "PWS001", null, null, null, null, null, null, null,
+                    null, null, null, null);
 
             assertThat(result.getContent()).hasSize(1);
         }
@@ -161,7 +165,38 @@ class PricingServiceTest {
             when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
             Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
-                    PageRequest.of(0, 20), null, "Cell Phone", null, null, null, null, null, null);
+                    PageRequest.of(0, 20), null, "Cell Phone", null, null, null, null, null, null,
+                    null, null, null, null);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("applies currentListPrice equality filter")
+        void appliesCurrentListPriceFilter() {
+            Device device = makeDevice(1L, "PWS001", new BigDecimal("100.00"), null,
+                    new BigDecimal("80.00"), null);
+            Page<Device> page = new PageImpl<>(List.of(device), PageRequest.of(0, 20), 1);
+            when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+            Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
+                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null,
+                    new BigDecimal("100.00"), null, null, null);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("applies futureListPrice equality filter")
+        void appliesFutureListPriceFilter() {
+            Device device = makeDevice(1L, "PWS001", new BigDecimal("100.00"),
+                    new BigDecimal("110.00"), new BigDecimal("80.00"), null);
+            Page<Device> page = new PageImpl<>(List.of(device), PageRequest.of(0, 20), 1);
+            when(deviceRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+            Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
+                    PageRequest.of(0, 20), null, null, null, null, null, null, null, null,
+                    null, new BigDecimal("110.00"), null, null);
 
             assertThat(result.getContent()).hasSize(1);
         }
