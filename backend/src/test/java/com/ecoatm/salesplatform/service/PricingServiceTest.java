@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
+import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.model.mdm.*;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -18,9 +19,12 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -160,6 +164,79 @@ class PricingServiceTest {
                     PageRequest.of(0, 20), null, "Cell Phone", null, null, null, null, null, null);
 
             assertThat(result.getContent()).hasSize(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("updateFuturePrices")
+    class UpdateFuturePrices {
+
+        @Test
+        @DisplayName("updates future list and min price on existing device")
+        void updatesBothFuturePrices() {
+            Device device = makeDevice(1L, "PWS001", new BigDecimal("100.00"),
+                    null, new BigDecimal("80.00"), null);
+            when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            PricingDeviceResponse result = pricingService.updateFuturePrices(
+                    1L, new BigDecimal("120.00"), new BigDecimal("95.00"));
+
+            assertThat(result.getFutureListPrice()).isEqualByComparingTo("120.00");
+            assertThat(result.getFutureMinPrice()).isEqualByComparingTo("95.00");
+            assertThat(result.getCurrentListPrice()).isEqualByComparingTo("100.00");
+            verify(deviceRepository).save(any(Device.class));
+        }
+
+        @Test
+        @DisplayName("allows null future prices (clearing)")
+        void allowsNullFuturePrices() {
+            Device device = makeDevice(1L, "PWS001", new BigDecimal("100.00"),
+                    new BigDecimal("110.00"), new BigDecimal("80.00"), new BigDecimal("90.00"));
+            when(deviceRepository.findById(1L)).thenReturn(Optional.of(device));
+            when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            PricingDeviceResponse result = pricingService.updateFuturePrices(1L, null, null);
+
+            assertThat(result.getFutureListPrice()).isNull();
+            assertThat(result.getFutureMinPrice()).isNull();
+        }
+
+        @Test
+        @DisplayName("throws when device not found")
+        void throwsWhenDeviceNotFound() {
+            when(deviceRepository.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> pricingService.updateFuturePrices(
+                    999L, BigDecimal.TEN, BigDecimal.ONE))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("999");
+        }
+    }
+
+    @Nested
+    @DisplayName("bulkUpdateFuturePrices")
+    class BulkUpdateFuturePrices {
+
+        @Test
+        @DisplayName("updates multiple devices and returns results")
+        void updatesMultipleDevices() {
+            Device d1 = makeDevice(1L, "PWS001", BigDecimal.TEN, null, BigDecimal.ONE, null);
+            Device d2 = makeDevice(2L, "PWS002", BigDecimal.TEN, null, BigDecimal.ONE, null);
+            when(deviceRepository.findById(1L)).thenReturn(Optional.of(d1));
+            when(deviceRepository.findById(2L)).thenReturn(Optional.of(d2));
+            when(deviceRepository.save(any(Device.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            List<PricingUpdateRequest> requests = List.of(
+                    new PricingUpdateRequest(1L, new BigDecimal("50.00"), new BigDecimal("40.00")),
+                    new PricingUpdateRequest(2L, new BigDecimal("60.00"), new BigDecimal("45.00"))
+            );
+
+            List<PricingDeviceResponse> results = pricingService.bulkUpdateFuturePrices(requests);
+
+            assertThat(results).hasSize(2);
+            assertThat(results.get(0).getFutureListPrice()).isEqualByComparingTo("50.00");
+            assertThat(results.get(1).getFutureListPrice()).isEqualByComparingTo("60.00");
         }
     }
 }

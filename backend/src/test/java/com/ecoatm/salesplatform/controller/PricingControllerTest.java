@@ -24,7 +24,10 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+import org.springframework.http.MediaType;
 
 @WebMvcTest(PricingController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
@@ -118,6 +121,83 @@ class PricingControllerTest {
                             .param("size", "50")
                             .header("Authorization", "Bearer " + validToken()))
                     .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/pws/pricing/devices/{id}")
+    class UpdateFuturePrices {
+
+        @Test
+        @DisplayName("returns 401 without auth token")
+        void requiresAuth() throws Exception {
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"futureListPrice\":120.00,\"futureMinPrice\":95.00}"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("updates future prices and returns updated device")
+        void updatesAndReturns() throws Exception {
+            PricingDeviceResponse dto = makeDto(1L, "PWS001");
+            dto.setFutureListPrice(new BigDecimal("120.00"));
+            dto.setFutureMinPrice(new BigDecimal("95.00"));
+            when(pricingService.updateFuturePrices(eq(1L), any(), any())).thenReturn(dto);
+
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/1")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"futureListPrice\":120.00,\"futureMinPrice\":95.00}")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.sku").value("PWS001"))
+                    .andExpect(jsonPath("$.futureListPrice").value(120.00));
+        }
+
+        @Test
+        @DisplayName("returns 400 when device not found")
+        void returns400WhenNotFound() throws Exception {
+            when(pricingService.updateFuturePrices(eq(999L), any(), any()))
+                    .thenThrow(new IllegalArgumentException("Device not found: 999"));
+
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/999")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("{\"futureListPrice\":120.00}")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest());
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT /api/v1/pws/pricing/devices/bulk")
+    class BulkUpdateFuturePrices {
+
+        @Test
+        @DisplayName("returns 401 without auth token")
+        void requiresAuth() throws Exception {
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/bulk")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("[]"))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("updates multiple devices and returns list")
+        void updatesMultiple() throws Exception {
+            PricingDeviceResponse d1 = makeDto(1L, "PWS001");
+            d1.setFutureListPrice(new BigDecimal("50.00"));
+            PricingDeviceResponse d2 = makeDto(2L, "PWS002");
+            d2.setFutureListPrice(new BigDecimal("60.00"));
+            when(pricingService.bulkUpdateFuturePrices(any())).thenReturn(List.of(d1, d2));
+
+            mockMvc.perform(put("/api/v1/pws/pricing/devices/bulk")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("[{\"deviceId\":1,\"futureListPrice\":50.00,\"futureMinPrice\":40.00},"
+                                    + "{\"deviceId\":2,\"futureListPrice\":60.00,\"futureMinPrice\":45.00}]")
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].futureListPrice").value(50.00))
+                    .andExpect(jsonPath("$[1].futureListPrice").value(60.00));
         }
     }
 }
