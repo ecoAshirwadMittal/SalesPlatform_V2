@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
+import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import org.springframework.data.domain.Page;
@@ -12,8 +13,10 @@ import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class PricingService {
@@ -78,5 +81,22 @@ public class PricingService {
 
         return deviceRepository.findAll(spec, pageable)
                 .map(PricingDeviceResponse::fromEntity);
+    }
+
+    @Transactional
+    public PricingDeviceResponse updateFuturePrices(Long deviceId, BigDecimal futureListPrice, BigDecimal futureMinPrice) {
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Device not found: " + deviceId));
+        device.setFutureListPrice(futureListPrice);
+        device.setFutureMinPrice(futureMinPrice);
+        Device saved = deviceRepository.save(device);
+        return PricingDeviceResponse.fromEntity(saved);
+    }
+
+    @Transactional
+    public List<PricingDeviceResponse> bulkUpdateFuturePrices(List<PricingUpdateRequest> requests) {
+        return requests.stream()
+                .map(req -> updateFuturePrices(req.getDeviceId(), req.getFutureListPrice(), req.getFutureMinPrice()))
+                .collect(Collectors.toList());
     }
 }

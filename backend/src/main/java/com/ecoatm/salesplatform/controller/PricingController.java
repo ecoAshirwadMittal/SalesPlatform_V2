@@ -1,11 +1,15 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
+import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
 import com.ecoatm.salesplatform.service.PricingService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/pws/pricing")
@@ -33,5 +37,28 @@ public class PricingController {
         Page<PricingDeviceResponse> result = pricingService.listPricingDevices(
                 PageRequest.of(page, size), sku, category, brand, model, carrier, capacity, color, grade);
         return ResponseEntity.ok(result);
+    }
+
+    @PutMapping("/devices/{id}")
+    public ResponseEntity<?> updateFuturePrices(
+            @PathVariable Long id,
+            @RequestBody PricingUpdateRequest request) {
+        try {
+            PricingDeviceResponse result = pricingService.updateFuturePrices(
+                    id, request.getFutureListPrice(), request.getFutureMinPrice());
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PutMapping("/devices/bulk")
+    public ResponseEntity<?> bulkUpdateFuturePrices(@RequestBody List<PricingUpdateRequest> requests) {
+        try {
+            List<PricingDeviceResponse> results = pricingService.bulkUpdateFuturePrices(requests);
+            return ResponseEntity.ok(results);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }
