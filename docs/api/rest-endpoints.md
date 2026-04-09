@@ -24,6 +24,10 @@ List pricing devices with server-side pagination and optional filters.
 | capacity | string | - | Exact capacity name |
 | color | string | - | Exact color name |
 | grade | string | - | Exact grade name |
+| currentListPrice | BigDecimal | - | Exact current list price |
+| futureListPrice | BigDecimal | - | Exact future list price |
+| currentMinPrice | BigDecimal | - | Exact current min price |
+| futureMinPrice | BigDecimal | - | Exact future min price |
 
 **Response**: Spring `Page<PricingDeviceResponse>` JSON with `content`, `totalElements`, `totalPages`, `number`, `size`.
 
@@ -58,6 +62,40 @@ Bulk update future prices for multiple devices.
 **Response**: `List<PricingDeviceResponse>` with updated values.
 
 **Error**: 400 if any device not found.
+
+### GET /pws/pricing/devices/{id}/history
+
+Get price history for a device, ordered by date descending. Returns derived previous prices by comparing adjacent rows.
+
+**Response**: `List<PriceHistoryResponse>` with `id`, `listPrice`, `minPrice`, `previousListPrice`, `previousMinPrice`, `expirationDate`, `createdDate`.
+
+### POST /pws/pricing/devices/upload
+
+Upload a CSV file to bulk update future prices. Format: `sku,futureListPrice,futureMinPrice`.
+
+**Request**: `multipart/form-data` with `file` field (`.csv`).
+
+**Response**: `CsvUploadResult` with `totalRows`, `updatedCount`, `errorCount`, `errors[]`.
+
+### GET /pws/pricing/config
+
+Get the future price activation date configuration (singleton).
+
+**Response**:
+```json
+{ "id": 1, "futurePriceDate": "2026-05-01T00:00" }
+```
+
+### PUT /pws/pricing/config
+
+Update the future price activation date.
+
+**Request body**:
+```json
+{ "futurePriceDate": "2026-06-15T00:00:00" }
+```
+
+**Response**: Same as GET.
 
 ---
 
