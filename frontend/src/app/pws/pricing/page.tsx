@@ -90,6 +90,11 @@ export default function PricingPage() {
   const [uploading, setUploading] = useState(false);
   const [uploadResult, setUploadResult] = useState<{ totalRows: number; updatedCount: number; errorCount: number; errors: string[] } | null>(null);
 
+  // Future price date config
+  const [futureDateOpen, setFutureDateOpen] = useState(false);
+  const [futurePriceDate, setFuturePriceDate] = useState('');
+  const [futureDateSaving, setFutureDateSaving] = useState(false);
+
   // Price history modal
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -166,6 +171,41 @@ export default function PricingPage() {
   }, [page, debouncedFilters, debouncedSearch]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // ── Fetch future price config on mount ──
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await apiFetch(`${API_BASE}/pws/pricing/config`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.futurePriceDate) {
+            setFuturePriceDate(json.futurePriceDate.slice(0, 10));
+          }
+        }
+      } catch { /* not critical */ }
+    })();
+  }, []);
+
+  // ── Save future price date ──
+  const handleFutureDateSave = useCallback(async () => {
+    setFutureDateSaving(true);
+    try {
+      const dateValue = futurePriceDate ? futurePriceDate + 'T00:00:00' : '';
+      const res = await apiFetch(`${API_BASE}/pws/pricing/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ futurePriceDate: dateValue }),
+      });
+      if (res.ok) {
+        setFutureDateOpen(false);
+      }
+    } catch (err) {
+      console.error('Failed to save future price date:', err);
+    } finally {
+      setFutureDateSaving(false);
+    }
+  }, [futurePriceDate]);
 
   // ── Fetch distinct values for dropdowns (once on mount) ──
   useEffect(() => {
@@ -443,6 +483,15 @@ export default function PricingPage() {
                 </button>
               </>
             )}
+            <button className={s.actionBtn} type="button" onClick={() => setFutureDateOpen(true)}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+              Set Future Date
+            </button>
             <button className={s.actionBtn} type="button" onClick={() => { setUploadOpen(true); setUploadResult(null); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -624,6 +673,43 @@ export default function PricingPage() {
                   </tbody>
                 </table>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Future Date Modal ── */}
+      {futureDateOpen && (
+        <div className={s.modalOverlay} onClick={() => setFutureDateOpen(false)}>
+          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>Set Future Price Date</h2>
+              <button className={s.modalClose} onClick={() => setFutureDateOpen(false)}>×</button>
+            </div>
+            <div className={s.modalBody}>
+              <p className={s.modalHint}>
+                Select the date when future prices become effective.
+              </p>
+              <input
+                type="date"
+                className={s.filterInput}
+                value={futurePriceDate}
+                min={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setFuturePriceDate(e.target.value)}
+              />
+              <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className={s.actionBtn} type="button" onClick={() => setFutureDateOpen(false)}>
+                  Cancel
+                </button>
+                <button
+                  className={`${s.actionBtn} ${s.saveBtn}`}
+                  type="button"
+                  onClick={handleFutureDateSave}
+                  disabled={futureDateSaving}
+                >
+                  {futureDateSaving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
