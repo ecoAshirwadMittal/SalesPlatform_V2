@@ -315,6 +315,116 @@
   color: #3c3c3c;
 }
 
+/* ---- Upload Modal ---- */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 480px;
+  max-width: 90vw;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1c1b1c;
+  margin: 0;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #888;
+  line-height: 1;
+}
+
+.modalClose:hover {
+  color: #333;
+}
+
+.modalBody {
+  padding: 20px;
+}
+
+.modalHint {
+  font-size: 14px;
+  color: #666;
+  margin: 0 0 16px;
+}
+
+.modalHint code {
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 13px;
+}
+
+.fileInput {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.modalStatus {
+  font-size: 14px;
+  color: #407874;
+  margin: 12px 0 0;
+}
+
+.uploadResult {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f7f7f7;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.uploadResult p {
+  margin: 0 0 8px;
+}
+
+.uploadErrors {
+  color: #c0392b;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.uploadErrors ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
+.uploadErrors li {
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
 /* ---- Loading ---- */
 .loadingState {
   padding: 48px;

@@ -71,6 +71,9 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadResult, setUploadResult] = useState<{ totalRows: number; updatedCount: number; errorCount: number; errors: string[] } | null>(null);
 
   const [filters, setFilters] = useState<Filters>({ ...emptyFilters });
   const [debouncedFilters, setDebouncedFilters] = useState<Filters>({ ...emptyFilters });
@@ -303,6 +306,31 @@ export default function PricingPage() {
     }
   }, [debouncedFilters, debouncedSearch]);
 
+  // ── Upload handler ──
+  const handleUpload = useCallback(async (file: File) => {
+    setUploading(true);
+    setUploadResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const res = await apiFetch(`${API_BASE}/pws/pricing/devices/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (res.ok) {
+        const result = await res.json();
+        setUploadResult(result);
+        if (result.updatedCount > 0) {
+          await fetchData();
+        }
+      }
+    } catch (err) {
+      console.error('Failed to upload pricing CSV:', err);
+    } finally {
+      setUploading(false);
+    }
+  }, [fetchData]);
+
   // ── Sort icon ──
   function sortIcon(field: string) {
     return (
@@ -368,7 +396,7 @@ export default function PricingPage() {
                 </button>
               </>
             )}
-            <button className={s.actionBtn} type="button">
+            <button className={s.actionBtn} type="button" onClick={() => { setUploadOpen(true); setUploadResult(null); }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
@@ -507,6 +535,49 @@ export default function PricingPage() {
           </div>
         )}
       </div>
+
+      {/* ── Upload Modal ── */}
+      {uploadOpen && (
+        <div className={s.modalOverlay} onClick={() => setUploadOpen(false)}>
+          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={s.modalHeader}>
+              <h2 className={s.modalTitle}>Upload Pricing Data</h2>
+              <button className={s.modalClose} onClick={() => setUploadOpen(false)}>×</button>
+            </div>
+            <div className={s.modalBody}>
+              <p className={s.modalHint}>
+                CSV format: <code>sku,futureListPrice,futureMinPrice</code>
+              </p>
+              <input
+                type="file"
+                accept=".csv"
+                className={s.fileInput}
+                disabled={uploading}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleUpload(file);
+                }}
+              />
+              {uploading && <p className={s.modalStatus}>Uploading…</p>}
+              {uploadResult && (
+                <div className={s.uploadResult}>
+                  <p><strong>{uploadResult.updatedCount}</strong> of {uploadResult.totalRows} rows updated</p>
+                  {uploadResult.errorCount > 0 && (
+                    <div className={s.uploadErrors}>
+                      <p><strong>{uploadResult.errorCount} errors:</strong></p>
+                      <ul>
+                        {uploadResult.errors.map((err, i) => (
+                          <li key={i}>{err}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
