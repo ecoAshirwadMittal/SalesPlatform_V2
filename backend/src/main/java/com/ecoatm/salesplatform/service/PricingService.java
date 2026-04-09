@@ -18,6 +18,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
@@ -155,6 +156,10 @@ public class PricingService {
                 }
 
                 String sku = cols[0].trim();
+                if (!sku.isEmpty() && "=+-@".indexOf(sku.charAt(0)) >= 0) {
+                    errors.add("Row " + rowNum + ": SKU contains disallowed leading character");
+                    continue;
+                }
                 BigDecimal futureListPrice;
                 BigDecimal futureMinPrice;
                 try {
@@ -182,7 +187,7 @@ public class PricingService {
                 deviceRepository.save(device);
                 updatedCount++;
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             errors.add("Failed to read CSV: " + e.getMessage());
         }
 

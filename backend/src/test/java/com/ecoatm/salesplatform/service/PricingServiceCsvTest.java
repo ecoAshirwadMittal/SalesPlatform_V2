@@ -134,6 +134,17 @@ class PricingServiceCsvTest {
         }
 
         @Test
+        @DisplayName("rejects SKU with CSV injection characters")
+        void rejectsCsvInjectionSku() {
+            String content = "sku,futureListPrice,futureMinPrice\n=CMD|'/C calc'!A0,120.00,95.00\n";
+
+            CsvUploadResult result = pricingService.processPricingCsv(csv(content));
+
+            assertThat(result.errorCount()).isEqualTo(1);
+            assertThat(result.errors().get(0)).contains("disallowed leading character");
+        }
+
+        @Test
         @DisplayName("reports error when futureListPrice < futureMinPrice")
         void reportsListPriceLessThanMinPrice() {
             String content = "sku,futureListPrice,futureMinPrice\nPWS001,50.00,95.00\n";

@@ -62,8 +62,14 @@ public class PricingController {
         }
     }
 
+    private static final int MAX_BULK_SIZE = 1000;
+
     @PutMapping("/devices/bulk")
     public ResponseEntity<?> bulkUpdateFuturePrices(@RequestBody List<PricingUpdateRequest> requests) {
+        if (requests.size() > MAX_BULK_SIZE) {
+            return ResponseEntity.badRequest().body(Map.of("error",
+                    "Bulk update limited to " + MAX_BULK_SIZE + " items, received " + requests.size()));
+        }
         try {
             List<PricingDeviceResponse> results = pricingService.bulkUpdateFuturePrices(requests);
             return ResponseEntity.ok(results);
@@ -78,10 +84,20 @@ public class PricingController {
         return ResponseEntity.ok(history);
     }
 
+    private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
+
     @PostMapping(value = "/devices/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> uploadPricingCsv(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
+        }
+        if (file.getSize() > MAX_UPLOAD_SIZE) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File exceeds maximum size of 10 MB"));
+        }
+        String contentType = file.getContentType();
+        if (contentType != null && !contentType.equals("text/csv") && !contentType.equals("text/plain")
+                && !contentType.equals("application/vnd.ms-excel")) {
+            return ResponseEntity.badRequest().body(Map.of("error", "File must be a CSV (text/csv)"));
         }
         try {
             CsvUploadResult result = pricingService.processPricingCsv(file.getInputStream());
