@@ -63,6 +63,12 @@ public class OfferItem {
     @Column(name = "counter_case_price_total")
     private BigDecimal counterCasePriceTotal;
 
+    @Column(name = "shipped_qty")
+    private Integer shippedQty;
+
+    @Column(name = "shipped_price")
+    private BigDecimal shippedPrice;
+
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
 
@@ -143,4 +149,10 @@ public class OfferItem {
 
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
+
+    public Integer getShippedQty() { return shippedQty; }
+    public void setShippedQty(Integer shippedQty) { this.shippedQty = shippedQty; }
+
+    public BigDecimal getShippedPrice() { return shippedPrice; }
+    public void setShippedPrice(BigDecimal shippedPrice) { this.shippedPrice = shippedPrice; }
 }

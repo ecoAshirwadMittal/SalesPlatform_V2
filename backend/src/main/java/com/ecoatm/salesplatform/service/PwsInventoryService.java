@@ -7,6 +7,11 @@ import com.ecoatm.salesplatform.repository.mdm.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -109,6 +114,31 @@ public class PwsInventoryService {
     @Transactional(readOnly = true)
     public List<DeviceResponse> listActiveDevices() {
         return deviceRepository.findByIsActiveTrue().stream()
+                .map(DeviceResponse::fromEntity)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * List devices with optional server-side filters.
+     * Used by the Inventory page to reduce payload size.
+     */
+    @Transactional(readOnly = true)
+    public List<DeviceResponse> listFilteredDevices(String itemType, String excludeGrade, Integer minAtpQty) {
+        Specification<Device> spec = (root, query, cb) -> {
+            List<Predicate> preds = new ArrayList<>();
+            preds.add(cb.isTrue(root.get("isActive")));
+            if (itemType != null) preds.add(cb.equal(root.get("itemType"), itemType));
+            if (minAtpQty != null) preds.add(cb.greaterThanOrEqualTo(root.get("atpQty"), minAtpQty));
+            if (excludeGrade != null) {
+                var gradeJoin = root.join("grade", JoinType.LEFT);
+                preds.add(cb.or(
+                        cb.isNull(gradeJoin),
+                        cb.notEqual(gradeJoin.get("displayName"), excludeGrade)
+                ));
+            }
+            return cb.and(preds.toArray(new Predicate[0]));
+        };
+        return deviceRepository.findAll(spec).stream()
                 .map(DeviceResponse::fromEntity)
                 .collect(Collectors.toList());
     }

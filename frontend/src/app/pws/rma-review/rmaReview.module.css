@@ -18,9 +18,9 @@
 }
 
 .pageTitle {
-  font-size: 36px;
-  font-weight: 300;
-  color: #3c3c3c;
+  font-size: 40px;
+  font-weight: 500;
+  color: #112d32;
   font-family: "Founders Grotesk", sans-serif;
   margin: 0;
   padding-top: 4px;
@@ -95,35 +95,42 @@
 .dataGrid {
   width: 100%;
   border-collapse: collapse;
-  font-size: 14px;
+  font-size: 16px;
   font-family: "Founders Grotesk", sans-serif;
+  background: #f7f7f7;
 }
 
 .dataGrid th {
   text-align: left;
-  padding: 10px 12px;
-  border-bottom: 2px solid #d2cdcd;
+  padding: 6px 6px 6px 15px;
+  border-bottom: 1px solid #ced0d3;
   color: #3c3c3c;
-  font-weight: 600;
+  font-weight: 400;
+  font-size: 16px;
   white-space: nowrap;
   cursor: pointer;
   user-select: none;
-  background: #fafafa;
+  background: #efebe4;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .dataGrid th:hover {
-  background: #f0f0f0;
+  background: #e5e1da;
 }
 
 .dataGrid td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #e8e4de;
+  padding: 6px 6px 5.25px 19px;
+  border-bottom: 1px solid #ced0d3;
   color: #3c3c3c;
+  font-size: 16px;
+  font-weight: 400;
   vertical-align: middle;
+  background: #efebe4;
 }
 
 .dataGrid tr:hover td {
-  background: #f5f3ef;
+  background: #e5e1da;
 }
 
 .clickableRow {

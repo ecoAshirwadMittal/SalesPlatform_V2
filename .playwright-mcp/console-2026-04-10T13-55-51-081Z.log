@@ -1,0 +1,13 @@
+[    2870ms] [ERROR] [Client] TypeError: Cannot read properties of null (reading 'querySelector')
+    at t.componentDidMount (https://buy-qa.ecoatmdirect.com/widgets/mendix/activemenuselector/ActiveMenuSelector.js?639111995520314897:1:195)
+    at xc (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:100313)
+    at wc (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:100098)
+    at yc (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:99642)
+    at https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:111299
+    at _l (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:111801)
+    at ol (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:39:104365)
+    at _ (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:66:1361)
+    at MessagePort.A (https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:66:1893) @ https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:50
+[  932596ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://buy-qa.ecoatmdirect.com/xas/:0
+[  932597ms] [INFO] [Auth] The client is not authorized. Request failed with status code 419. Removing session. @ https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:50
+[  933467ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://buy-qa.ecoatmdirect.com/p/login/web:0

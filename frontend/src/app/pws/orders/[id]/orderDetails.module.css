@@ -1,0 +1,322 @@
+/* =================================================================
+   PWS Order Details — pixel-matched to QA Mendix PWS_OrderDetails
+   Font: "Founders Grotesk" throughout
+   Layout: white card on beige bg, matching QA exactly
+   ================================================================= */
+
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+  font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
+  color: #3c3c3c;
+}
+
+/* ---- Back link ---- */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 16px;
+  color: #3c3c3c;
+  cursor: pointer;
+  margin-bottom: 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.backLink:hover {
+  color: #407874;
+}
+
+/* ---- Details card (white container) ---- */
+.detailsCard {
+  background: #f7f3ee;
+  border-radius: 4px;
+  padding: 32px 40px 24px;
+}
+
+.cardTitle {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 36px;
+  font-weight: 500;
+  color: #1c1b1c;
+  margin: 0 0 24px 0;
+  line-height: 1.2;
+}
+
+/* ---- Metadata rows ---- */
+.metaRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 20px;
+}
+
+.metaFields {
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.metaField {
+  min-width: 100px;
+}
+
+.metaLabel {
+  font-size: 14px;
+  color: #3c3c3c;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.metaValue {
+  font-size: 16px;
+  color: #3c3c3c;
+  font-weight: 400;
+}
+
+/* ---- Order Summary box ---- */
+.orderSummaryBox {
+  flex-shrink: 0;
+}
+
+.summaryTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #3c3c3c;
+  margin-bottom: 4px;
+}
+
+.summaryTable {
+  border-collapse: collapse;
+  border: 1px solid #ced0d3;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.summaryTable th {
+  padding: 6px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  text-align: center;
+  background: transparent;
+}
+
+.summaryTable td {
+  padding: 8px 20px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  text-align: center;
+}
+
+/* ---- Status badge (QA-matched: only 3 colored, rest plain text) ---- */
+.statusBadge {
+  display: inline;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+/* Offer Pending — darkorange pill */
+.statusOfferPending {
+  background: rgb(242, 107, 33);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* Shipped — seagreen pill */
+.statusShipped {
+  background: rgb(65, 121, 116);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* Order Cancelled — red pill */
+.statusCancelled {
+  background: rgb(235, 51, 0);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* All other statuses — plain text, no badge */
+.statusNone {
+  /* no badge styling */
+}
+
+/* ---- Action bar (toggle + download) ---- */
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  margin-top: 16px;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 0;
+}
+
+.viewBtn {
+  padding: 8px 20px;
+  border: 2px solid #d2cdcd;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  transition: background 0.15s;
+}
+
+.viewBtn:first-child {
+  border-radius: 6px 0 0 6px;
+}
+
+.viewBtn:last-child {
+  border-radius: 0 6px 6px 0;
+  border-left: none;
+}
+
+.viewBtnActive {
+  background: transparent;
+  font-weight: 600;
+  border-bottom: 3px solid #407874;
+}
+
+/* ---- Download button ---- */
+.downloadBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 20px;
+  border: 1.5px solid #102e33;
+  border-radius: 50px;
+  background: transparent;
+  color: #102e33;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.downloadBtn:hover {
+  background: rgba(16,46,51,0.06);
+}
+
+/* ---- Data grid ---- */
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+.dataGrid th {
+  background: transparent;
+  font-size: 16px;
+  font-weight: 600;
+  color: #3c3c3c;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ced0d3;
+  white-space: nowrap;
+}
+
+.dataGrid td {
+  padding: 10px 6px 10px 15px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  vertical-align: middle;
+}
+
+.dataGrid tbody tr:hover td {
+  background: #eae6df;
+}
+
+.colCenter {
+  text-align: center;
+}
+
+.colRight {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- Strikethrough for Declined/Cancelled ---- */
+.strikethrough {
+  text-decoration: line-through;
+}
+
+/* ---- Tracking link ---- */
+.trackingLink {
+  color: #407874;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.trackingLink:hover {
+  color: #2e5f5c;
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.pageInfo {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  color: #3b4251;
+}
+
+/* ---- Invoice footer ---- */
+.invoiceFooter {
+  text-align: center;
+  padding: 20px 0 8px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  border-top: 1px solid #ced0d3;
+  margin-top: 8px;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 35px 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #3c3c3c;
+}
+
+/* ---- Loading ---- */
+.loadingState {
+  text-align: center;
+  padding: 48px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #888;
+  background: #efebe4;
+}

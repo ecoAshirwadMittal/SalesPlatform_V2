@@ -1,0 +1,3 @@
+[     198ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/_next/static/chunks/0vi_ho_tnahqf.js:0
+[     227ms] ChunkLoadError: Failed to load chunk /_next/static/chunks/0vi_ho_tnahqf.js from module 9608
+    at https://designatory-scrawnier-rocco.ngrok-free.dev/_next/static/chunks/turbopack-15y~tkganyaxi.js:1:6128

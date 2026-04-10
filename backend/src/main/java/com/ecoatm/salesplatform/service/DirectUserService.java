@@ -3,7 +3,6 @@ package com.ecoatm.salesplatform.service;
 import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,9 +18,7 @@ import java.util.stream.Collectors;
 public class DirectUserService {
 
     private final EcoATMDirectUserRepository directUserRepository;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final EntityManager em;
 
     // ── List (existing) ──────────────────────────────────────────────
 

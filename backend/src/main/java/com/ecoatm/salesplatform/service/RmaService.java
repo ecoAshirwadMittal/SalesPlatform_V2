@@ -11,8 +11,6 @@ import com.ecoatm.salesplatform.repository.pws.RmaItemRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaReasonRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaStatusRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -43,20 +41,20 @@ public class RmaService {
     private final RmaStatusRepository rmaStatusRepository;
     private final RmaReasonRepository rmaReasonRepository;
     private final DeviceRepository deviceRepository;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final BuyerCodeLookupService buyerCodeLookup;
 
     public RmaService(RmaRepository rmaRepository,
                       RmaItemRepository rmaItemRepository,
                       RmaStatusRepository rmaStatusRepository,
                       RmaReasonRepository rmaReasonRepository,
-                      DeviceRepository deviceRepository) {
+                      DeviceRepository deviceRepository,
+                      BuyerCodeLookupService buyerCodeLookup) {
         this.rmaRepository = rmaRepository;
         this.rmaItemRepository = rmaItemRepository;
         this.rmaStatusRepository = rmaStatusRepository;
         this.rmaReasonRepository = rmaReasonRepository;
         this.deviceRepository = deviceRepository;
+        this.buyerCodeLookup = buyerCodeLookup;
     }
 
     /** List RMAs for a buyer code, optionally filtered by status group. */
@@ -376,7 +374,6 @@ public class RmaService {
     // -- Private helpers --
 
     /** Enrich RmaResponse list with buyer code and company name from buyer_mgmt tables. */
-    @SuppressWarnings("unchecked")
     private void enrichWithBuyerInfo(List<RmaResponse> responses) {
         Set<Long> buyerCodeIds = responses.stream()
                 .map(RmaResponse::getBuyerCodeId)
@@ -384,40 +381,22 @@ public class RmaService {
                 .collect(Collectors.toSet());
         if (buyerCodeIds.isEmpty()) return;
 
-        List<Object[]> rows = em.createNativeQuery(
-                "SELECT bc.id, bc.code, b.company_name " +
-                "FROM buyer_mgmt.buyer_codes bc " +
-                "LEFT JOIN buyer_mgmt.buyer_code_buyers bcb ON bc.id = bcb.buyer_code_id " +
-                "LEFT JOIN buyer_mgmt.buyers b ON bcb.buyer_id = b.id " +
-                "WHERE bc.id IN :ids")
-                .setParameter("ids", buyerCodeIds)
-                .getResultList();
-
-        Map<Long, String[]> infoMap = new HashMap<>();
-        for (Object[] row : rows) {
-            Long id = ((Number) row[0]).longValue();
-            String code = (String) row[1];
-            String company = (String) row[2];
-            infoMap.put(id, new String[]{code, company});
-        }
+        Map<Long, BuyerCodeLookupService.BuyerCodeInfo> infoMap =
+                buyerCodeLookup.findCodeAndCompanyByIds(buyerCodeIds);
 
         for (RmaResponse r : responses) {
-            String[] info = infoMap.get(r.getBuyerCodeId());
+            BuyerCodeLookupService.BuyerCodeInfo info = infoMap.get(r.getBuyerCodeId());
             if (info != null) {
-                r.setBuyerName(info[0]);
-                r.setCompanyName(info[1]);
+                r.setBuyerName(info.code());
+                r.setCompanyName(info.companyName());
             }
         }
     }
 
     /** Look up buyer code string from buyer_codes table. */
-    @SuppressWarnings("unchecked")
     private String lookupBuyerCode(Long buyerCodeId) {
-        List<String> results = em.createNativeQuery(
-                "SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id")
-                .setParameter("id", buyerCodeId)
-                .getResultList();
-        return results.isEmpty() ? "UNKNOWN" : results.get(0);
+        String code = buyerCodeLookup.findCodeById(buyerCodeId);
+        return code != null ? code : "UNKNOWN";
     }
 
     /**

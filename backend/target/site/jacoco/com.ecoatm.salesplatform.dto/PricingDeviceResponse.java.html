@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PricingDeviceResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">PricingDeviceResponse.java</span></div><h1>PricingDeviceResponse.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
+
+import com.ecoatm.salesplatform.model.mdm.Device;
+
+import java.math.BigDecimal;
+
+<span class="fc" id="L7">public class PricingDeviceResponse {</span>
+
+    private Long id;
+    private String sku;
+    private String categoryName;
+    private String brandName;
+    private String modelName;
+    private String carrierName;
+    private String capacityName;
+    private String colorName;
+    private String gradeName;
+    private BigDecimal currentListPrice;
+    private BigDecimal futureListPrice;
+    private BigDecimal currentMinPrice;
+    private BigDecimal futureMinPrice;
+
+    public static PricingDeviceResponse fromEntity(Device device) {
+<span class="fc" id="L24">        PricingDeviceResponse dto = new PricingDeviceResponse();</span>
+<span class="fc" id="L25">        dto.setId(device.getId());</span>
+<span class="fc" id="L26">        dto.setSku(device.getSku());</span>
+<span class="pc bpc" id="L27" title="1 of 2 branches missed.">        dto.setCategoryName(device.getCategory() != null ? device.getCategory().getDisplayName() : null);</span>
+<span class="pc bpc" id="L28" title="1 of 2 branches missed.">        dto.setBrandName(device.getBrand() != null ? device.getBrand().getDisplayName() : null);</span>
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">        dto.setModelName(device.getModel() != null ? device.getModel().getDisplayName() : null);</span>
+<span class="pc bpc" id="L30" title="1 of 2 branches missed.">        dto.setCarrierName(device.getCarrier() != null ? device.getCarrier().getDisplayName() : null);</span>
+<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        dto.setCapacityName(device.getCapacity() != null ? device.getCapacity().getDisplayName() : null);</span>
+<span class="pc bpc" id="L32" title="1 of 2 branches missed.">        dto.setColorName(device.getColor() != null ? device.getColor().getDisplayName() : null);</span>
+<span class="pc bpc" id="L33" title="1 of 2 branches missed.">        dto.setGradeName(device.getGrade() != null ? device.getGrade().getDisplayName() : null);</span>
+<span class="fc" id="L34">        dto.setCurrentListPrice(device.getListPrice());</span>
+<span class="fc" id="L35">        dto.setFutureListPrice(device.getFutureListPrice());</span>
+<span class="fc" id="L36">        dto.setCurrentMinPrice(device.getMinPrice());</span>
+<span class="fc" id="L37">        dto.setFutureMinPrice(device.getFutureMinPrice());</span>
+<span class="fc" id="L38">        return dto;</span>
+    }
+
+    // --- Getters and Setters ---
+
+<span class="fc" id="L43">    public Long getId() { return id; }</span>
+<span class="fc" id="L44">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="fc" id="L46">    public String getSku() { return sku; }</span>
+<span class="fc" id="L47">    public void setSku(String sku) { this.sku = sku; }</span>
+
+<span class="fc" id="L49">    public String getCategoryName() { return categoryName; }</span>
+<span class="fc" id="L50">    public void setCategoryName(String categoryName) { this.categoryName = categoryName; }</span>
+
+<span class="fc" id="L52">    public String getBrandName() { return brandName; }</span>
+<span class="fc" id="L53">    public void setBrandName(String brandName) { this.brandName = brandName; }</span>
+
+<span class="fc" id="L55">    public String getModelName() { return modelName; }</span>
+<span class="fc" id="L56">    public void setModelName(String modelName) { this.modelName = modelName; }</span>
+
+<span class="fc" id="L58">    public String getCarrierName() { return carrierName; }</span>
+<span class="fc" id="L59">    public void setCarrierName(String carrierName) { this.carrierName = carrierName; }</span>
+
+<span class="fc" id="L61">    public String getCapacityName() { return capacityName; }</span>
+<span class="fc" id="L62">    public void setCapacityName(String capacityName) { this.capacityName = capacityName; }</span>
+
+<span class="fc" id="L64">    public String getColorName() { return colorName; }</span>
+<span class="fc" id="L65">    public void setColorName(String colorName) { this.colorName = colorName; }</span>
+
+<span class="fc" id="L67">    public String getGradeName() { return gradeName; }</span>
+<span class="fc" id="L68">    public void setGradeName(String gradeName) { this.gradeName = gradeName; }</span>
+
+<span class="fc" id="L70">    public BigDecimal getCurrentListPrice() { return currentListPrice; }</span>
+<span class="fc" id="L71">    public void setCurrentListPrice(BigDecimal currentListPrice) { this.currentListPrice = currentListPrice; }</span>
+
+<span class="fc" id="L73">    public BigDecimal getFutureListPrice() { return futureListPrice; }</span>
+<span class="fc" id="L74">    public void setFutureListPrice(BigDecimal futureListPrice) { this.futureListPrice = futureListPrice; }</span>
+
+<span class="fc" id="L76">    public BigDecimal getCurrentMinPrice() { return currentMinPrice; }</span>
+<span class="fc" id="L77">    public void setCurrentMinPrice(BigDecimal currentMinPrice) { this.currentMinPrice = currentMinPrice; }</span>
+
+<span class="fc" id="L79">    public BigDecimal getFutureMinPrice() { return futureMinPrice; }</span>
+<span class="fc" id="L80">    public void setFutureMinPrice(BigDecimal futureMinPrice) { this.futureMinPrice = futureMinPrice; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

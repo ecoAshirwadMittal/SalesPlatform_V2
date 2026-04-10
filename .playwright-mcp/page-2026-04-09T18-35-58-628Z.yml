@@ -1,0 +1,435 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - button "Show/Hide Navigation" [active] [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - menu [ref=e13]:
+        - menuitem "Users" [ref=e14] [cursor=pointer]
+        - menuitem "Buyers" [ref=e15] [cursor=pointer]
+        - menuitem "Inventory" [ref=e16] [cursor=pointer]
+        - menuitem "Purchase Order" [ref=e17] [cursor=pointer]
+        - menuitem "Reserved Bids (EB)" [ref=e18] [cursor=pointer]
+        - menuitem "Auction Scheduling" [ref=e19] [cursor=pointer]
+        - menuitem "Bid as Bidder" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: 
+          - text: Bid as Bidder
+        - menuitem "Auction" [ref=e22] [cursor=pointer]
+        - menuitem "Reports" [ref=e23] [cursor=pointer]: Reports
+        - text:    
+        - menuitem "Settings" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: 
+          - text: Settings
+        - text:  
+        - menuitem "Admin" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: 
+          - text: Admin
+        - text:   
+        - menuitem "Buyer User Guide" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: 
+          - text: Buyer User Guide
+    - generic [ref=e35]:
+      - button [ref=e58] [cursor=pointer]
+      - generic [ref=e60]:
+        - generic [ref=e298]:
+          - generic [ref=e301]:
+            - heading "Purchase Order" [level=2] [ref=e304]
+            - generic [ref=e307]:
+              - generic [ref=e311]:
+                - generic [ref=e312]:
+                  - combobox [ref=e313]
+                  - generic: 2026/9-2026-20
+                - button "Clear selection" [ref=e314] [cursor=pointer]:
+                  - img [ref=e316]
+                - img [ref=e320] [cursor=pointer]: 
+              - button [ref=e325] [cursor=pointer]:
+                - generic [ref=e326]: 
+            - generic [ref=e327]:
+              - button "Export" [ref=e328] [cursor=pointer]:
+                - generic [ref=e329]: 
+                - text: Export
+              - button "Refresh Packout" [ref=e330] [cursor=pointer]
+              - button "Import" [ref=e331] [cursor=pointer]:
+                - generic [ref=e332]: 
+                - text: Import
+          - generic [ref=e333]:
+            - generic [ref=e334]: "Fulfilled as of:"
+            - generic [ref=e335]: 4/4/2026, 7:00 AM EST
+          - generic [ref=e336]:
+            - grid [ref=e338]:
+              - rowgroup [ref=e339]:
+                - row "sort ProductID sort Grade sort ModelName sort BuyerCode sort Price sort QtyCap sort PriceFulfilled sort QtyFullfiled Column selector" [ref=e340]:
+                  - columnheader "sort ProductID" [ref=e341]:
+                    - generic [ref=e342]:
+                      - button "sort ProductID" [ref=e343] [cursor=pointer]:
+                        - generic [ref=e344]: ProductID
+                        - img [ref=e345]
+                      - generic [ref=e348]:
+                        - combobox "Equal" [ref=e351] [cursor=pointer]: 
+                        - textbox [ref=e352]
+                  - columnheader "sort Grade" [ref=e355]:
+                    - generic [ref=e356]:
+                      - button "sort Grade" [ref=e357] [cursor=pointer]:
+                        - generic [ref=e358]: Grade
+                        - img [ref=e359]
+                      - generic [ref=e362]:
+                        - combobox "Contains" [ref=e365] [cursor=pointer]: 
+                        - textbox [ref=e366]
+                  - columnheader "sort ModelName" [ref=e369]:
+                    - generic [ref=e370]:
+                      - button "sort ModelName" [ref=e371] [cursor=pointer]:
+                        - generic [ref=e372]: ModelName
+                        - img [ref=e373]
+                      - generic [ref=e376]:
+                        - combobox "Contains" [ref=e379] [cursor=pointer]: 
+                        - textbox [ref=e380]
+                  - columnheader "sort BuyerCode" [ref=e383]:
+                    - generic [ref=e384]:
+                      - button "sort BuyerCode" [ref=e385] [cursor=pointer]:
+                        - generic [ref=e386]: BuyerCode
+                        - img [ref=e387]
+                      - generic [ref=e390]:
+                        - combobox "Contains" [ref=e393] [cursor=pointer]: 
+                        - textbox [ref=e394]
+                  - columnheader "sort Price" [ref=e397]:
+                    - generic [ref=e398]:
+                      - button "sort Price" [ref=e399] [cursor=pointer]:
+                        - generic [ref=e400]: Price
+                        - img [ref=e401]
+                      - generic [ref=e404]:
+                        - combobox "Equal" [ref=e407] [cursor=pointer]: 
+                        - textbox [ref=e408]
+                  - columnheader "sort QtyCap" [ref=e411]:
+                    - generic [ref=e412]:
+                      - button "sort QtyCap" [ref=e413] [cursor=pointer]:
+                        - generic [ref=e414]: QtyCap
+                        - img [ref=e415]
+                      - generic [ref=e418]:
+                        - combobox "Equal" [ref=e421] [cursor=pointer]: 
+                        - textbox [ref=e422]
+                  - columnheader "sort PriceFulfilled" [ref=e425]:
+                    - button "sort PriceFulfilled" [ref=e427] [cursor=pointer]:
+                      - generic [ref=e428]: PriceFulfilled
+                      - img [ref=e429]
+                  - columnheader "sort QtyFullfiled" [ref=e433]:
+                    - button "sort QtyFullfiled" [ref=e435] [cursor=pointer]:
+                      - generic [ref=e436]: QtyFullfiled
+                      - img [ref=e437]
+                  - columnheader "Column selector" [ref=e439]:
+                    - button "Column selector" [ref=e441] [cursor=pointer]:
+                      - img [ref=e442]
+              - rowgroup [ref=e444]:
+                - row "7590 A_YYY iPhone 5 16GB AT&T A1428/A1429 N3 1.01" [ref=e445]:
+                  - gridcell "7590" [ref=e446]:
+                    - generic [ref=e447]: "7590"
+                  - gridcell "A_YYY" [ref=e448]:
+                    - generic [ref=e449]: A_YYY
+                  - gridcell "iPhone 5 16GB AT&T A1428/A1429" [ref=e450]:
+                    - generic [ref=e451]: iPhone 5 16GB AT&T A1428/A1429
+                  - gridcell "N3" [ref=e452]:
+                    - generic [ref=e453]: N3
+                  - gridcell "1.01" [ref=e454]:
+                    - generic [ref=e455]: "1.01"
+                  - gridcell [ref=e456]
+                  - gridcell [ref=e457]
+                  - gridcell [ref=e458]
+                  - gridcell [ref=e459]
+                - row "7590 C_YNY/G_YNN iPhone 5 16GB AT&T A1428/A1429 N3 1.01" [ref=e460]:
+                  - gridcell "7590" [ref=e461]:
+                    - generic [ref=e462]: "7590"
+                  - gridcell "C_YNY/G_YNN" [ref=e463]:
+                    - generic [ref=e464]: C_YNY/G_YNN
+                  - gridcell "iPhone 5 16GB AT&T A1428/A1429" [ref=e465]:
+                    - generic [ref=e466]: iPhone 5 16GB AT&T A1428/A1429
+                  - gridcell "N3" [ref=e467]:
+                    - generic [ref=e468]: N3
+                  - gridcell "1.01" [ref=e469]:
+                    - generic [ref=e470]: "1.01"
+                  - gridcell [ref=e471]
+                  - gridcell [ref=e472]
+                  - gridcell [ref=e473]
+                  - gridcell [ref=e474]
+                - row "7590 E_YYN iPhone 5 16GB AT&T A1428/A1429 N3 1.01" [ref=e475]:
+                  - gridcell "7590" [ref=e476]:
+                    - generic [ref=e477]: "7590"
+                  - gridcell "E_YYN" [ref=e478]:
+                    - generic [ref=e479]: E_YYN
+                  - gridcell "iPhone 5 16GB AT&T A1428/A1429" [ref=e480]:
+                    - generic [ref=e481]: iPhone 5 16GB AT&T A1428/A1429
+                  - gridcell "N3" [ref=e482]:
+                    - generic [ref=e483]: N3
+                  - gridcell "1.01" [ref=e484]:
+                    - generic [ref=e485]: "1.01"
+                  - gridcell [ref=e486]
+                  - gridcell [ref=e487]
+                  - gridcell [ref=e488]
+                  - gridcell [ref=e489]
+                - row "7597 A_YYY iPhone 5 16GB Verizon A1428/A1429 N3 1.01" [ref=e490]:
+                  - gridcell "7597" [ref=e491]:
+                    - generic [ref=e492]: "7597"
+                  - gridcell "A_YYY" [ref=e493]:
+                    - generic [ref=e494]: A_YYY
+                  - gridcell "iPhone 5 16GB Verizon A1428/A1429" [ref=e495]:
+                    - generic [ref=e496]: iPhone 5 16GB Verizon A1428/A1429
+                  - gridcell "N3" [ref=e497]:
+                    - generic [ref=e498]: N3
+                  - gridcell "1.01" [ref=e499]:
+                    - generic [ref=e500]: "1.01"
+                  - gridcell [ref=e501]
+                  - gridcell [ref=e502]
+                  - gridcell [ref=e503]
+                  - gridcell [ref=e504]
+                - row "7598 E_YYN iPhone 5 32GB Verizon A1428/A1429 N3 1.01" [ref=e505]:
+                  - gridcell "7598" [ref=e506]:
+                    - generic [ref=e507]: "7598"
+                  - gridcell "E_YYN" [ref=e508]:
+                    - generic [ref=e509]: E_YYN
+                  - gridcell "iPhone 5 32GB Verizon A1428/A1429" [ref=e510]:
+                    - generic [ref=e511]: iPhone 5 32GB Verizon A1428/A1429
+                  - gridcell "N3" [ref=e512]:
+                    - generic [ref=e513]: N3
+                  - gridcell "1.01" [ref=e514]:
+                    - generic [ref=e515]: "1.01"
+                  - gridcell [ref=e516]
+                  - gridcell [ref=e517]
+                  - gridcell [ref=e518]
+                  - gridcell [ref=e519]
+                - row "7603 A_YYY iPhone 5 16GB T-Mobile A1428/A1429 N3 1.01" [ref=e520]:
+                  - gridcell "7603" [ref=e521]:
+                    - generic [ref=e522]: "7603"
+                  - gridcell "A_YYY" [ref=e523]:
+                    - generic [ref=e524]: A_YYY
+                  - gridcell "iPhone 5 16GB T-Mobile A1428/A1429" [ref=e525]:
+                    - generic [ref=e526]: iPhone 5 16GB T-Mobile A1428/A1429
+                  - gridcell "N3" [ref=e527]:
+                    - generic [ref=e528]: N3
+                  - gridcell "1.01" [ref=e529]:
+                    - generic [ref=e530]: "1.01"
+                  - gridcell [ref=e531]
+                  - gridcell [ref=e532]
+                  - gridcell [ref=e533]
+                  - gridcell [ref=e534]
+                - row "7712 A_YYY iPhone 5s 16GB Verizon/Unlocked A1453/A1533 N3 5555" [ref=e535]:
+                  - gridcell "7712" [ref=e536]:
+                    - generic [ref=e537]: "7712"
+                  - gridcell "A_YYY" [ref=e538]:
+                    - generic [ref=e539]: A_YYY
+                  - gridcell "iPhone 5s 16GB Verizon/Unlocked A1453/A1533" [ref=e540]:
+                    - generic [ref=e541]: iPhone 5s 16GB Verizon/Unlocked A1453/A1533
+                  - gridcell "N3" [ref=e542]:
+                    - generic [ref=e543]: N3
+                  - gridcell "5555" [ref=e544]:
+                    - generic [ref=e545]: "5555"
+                  - gridcell [ref=e546]
+                  - gridcell [ref=e547]
+                  - gridcell [ref=e548]
+                  - gridcell [ref=e549]
+                - row "7712 B_NYY/D_NNY iPhone 5s 16GB Verizon/Unlocked A1453/A1533 N3 4.99" [ref=e550]:
+                  - gridcell "7712" [ref=e551]:
+                    - generic [ref=e552]: "7712"
+                  - gridcell "B_NYY/D_NNY" [ref=e553]:
+                    - generic [ref=e554]: B_NYY/D_NNY
+                  - gridcell "iPhone 5s 16GB Verizon/Unlocked A1453/A1533" [ref=e555]:
+                    - generic [ref=e556]: iPhone 5s 16GB Verizon/Unlocked A1453/A1533
+                  - gridcell "N3" [ref=e557]:
+                    - generic [ref=e558]: N3
+                  - gridcell "4.99" [ref=e559]:
+                    - generic [ref=e560]: "4.99"
+                  - gridcell [ref=e561]
+                  - gridcell [ref=e562]
+                  - gridcell [ref=e563]
+                  - gridcell [ref=e564]
+                - row "7712 C_YNY/G_YNN iPhone 5s 16GB Verizon/Unlocked A1453/A1533 N3 4.99" [ref=e565]:
+                  - gridcell "7712" [ref=e566]:
+                    - generic [ref=e567]: "7712"
+                  - gridcell "C_YNY/G_YNN" [ref=e568]:
+                    - generic [ref=e569]: C_YNY/G_YNN
+                  - gridcell "iPhone 5s 16GB Verizon/Unlocked A1453/A1533" [ref=e570]:
+                    - generic [ref=e571]: iPhone 5s 16GB Verizon/Unlocked A1453/A1533
+                  - gridcell "N3" [ref=e572]:
+                    - generic [ref=e573]: N3
+                  - gridcell "4.99" [ref=e574]:
+                    - generic [ref=e575]: "4.99"
+                  - gridcell [ref=e576]
+                  - gridcell [ref=e577]
+                  - gridcell [ref=e578]
+                  - gridcell [ref=e579]
+                - row "7712 E_YYN iPhone 5s 16GB Verizon/Unlocked A1453/A1533 N3 4.99" [ref=e580]:
+                  - gridcell "7712" [ref=e581]:
+                    - generic [ref=e582]: "7712"
+                  - gridcell "E_YYN" [ref=e583]:
+                    - generic [ref=e584]: E_YYN
+                  - gridcell "iPhone 5s 16GB Verizon/Unlocked A1453/A1533" [ref=e585]:
+                    - generic [ref=e586]: iPhone 5s 16GB Verizon/Unlocked A1453/A1533
+                  - gridcell "N3" [ref=e587]:
+                    - generic [ref=e588]: N3
+                  - gridcell "4.99" [ref=e589]:
+                    - generic [ref=e590]: "4.99"
+                  - gridcell [ref=e591]
+                  - gridcell [ref=e592]
+                  - gridcell [ref=e593]
+                  - gridcell [ref=e594]
+                - row "7712 F_NYN/H_NNN iPhone 5s 16GB Verizon/Unlocked A1453/A1533 N3 4.99" [ref=e595]:
+                  - gridcell "7712" [ref=e596]:
+                    - generic [ref=e597]: "7712"
+                  - gridcell "F_NYN/H_NNN" [ref=e598]:
+                    - generic [ref=e599]: F_NYN/H_NNN
+                  - gridcell "iPhone 5s 16GB Verizon/Unlocked A1453/A1533" [ref=e600]:
+                    - generic [ref=e601]: iPhone 5s 16GB Verizon/Unlocked A1453/A1533
+                  - gridcell "N3" [ref=e602]:
+                    - generic [ref=e603]: N3
+                  - gridcell "4.99" [ref=e604]:
+                    - generic [ref=e605]: "4.99"
+                  - gridcell [ref=e606]
+                  - gridcell [ref=e607]
+                  - gridcell [ref=e608]
+                  - gridcell [ref=e609]
+                - row "10224 A_YYY iPhone 7 128GB Sprint A1660/A1778/A1779 N3 1.01" [ref=e610]:
+                  - gridcell "10224" [ref=e611]:
+                    - generic [ref=e612]: "10224"
+                  - gridcell "A_YYY" [ref=e613]:
+                    - generic [ref=e614]: A_YYY
+                  - gridcell "iPhone 7 128GB Sprint A1660/A1778/A1779" [ref=e615]:
+                    - generic [ref=e616]: iPhone 7 128GB Sprint A1660/A1778/A1779
+                  - gridcell "N3" [ref=e617]:
+                    - generic [ref=e618]: N3
+                  - gridcell "1.01" [ref=e619]:
+                    - generic [ref=e620]: "1.01"
+                  - gridcell [ref=e621]
+                  - gridcell [ref=e622]
+                  - gridcell [ref=e623]
+                  - gridcell [ref=e624]
+                - row "12200 A_YYY iPhone 11 128GB AT&T A2111 N3 1.01" [ref=e625]:
+                  - gridcell "12200" [ref=e626]:
+                    - generic [ref=e627]: "12200"
+                  - gridcell "A_YYY" [ref=e628]:
+                    - generic [ref=e629]: A_YYY
+                  - gridcell "iPhone 11 128GB AT&T A2111" [ref=e630]:
+                    - generic [ref=e631]: iPhone 11 128GB AT&T A2111
+                  - gridcell "N3" [ref=e632]:
+                    - generic [ref=e633]: N3
+                  - gridcell "1.01" [ref=e634]:
+                    - generic [ref=e635]: "1.01"
+                  - gridcell [ref=e636]
+                  - gridcell [ref=e637]
+                  - gridcell [ref=e638]
+                  - gridcell [ref=e639]
+                - row "13627 B_NYY/D_NNY Mobile Computer TC51/TC52/TC56/TC57 N3 1.01" [ref=e640]:
+                  - gridcell "13627" [ref=e641]:
+                    - generic [ref=e642]: "13627"
+                  - gridcell "B_NYY/D_NNY" [ref=e643]:
+                    - generic [ref=e644]: B_NYY/D_NNY
+                  - gridcell "Mobile Computer TC51/TC52/TC56/TC57" [ref=e645]:
+                    - generic [ref=e646]: Mobile Computer TC51/TC52/TC56/TC57
+                  - gridcell "N3" [ref=e647]:
+                    - generic [ref=e648]: N3
+                  - gridcell "1.01" [ref=e649]:
+                    - generic [ref=e650]: "1.01"
+                  - gridcell [ref=e651]
+                  - gridcell [ref=e652]
+                  - gridcell [ref=e653]
+                  - gridcell [ref=e654]
+                - row "14283 A_YYY iPhone 13 256GB AT&T A2482 N3 1.01" [ref=e655]:
+                  - gridcell "14283" [ref=e656]:
+                    - generic [ref=e657]: "14283"
+                  - gridcell "A_YYY" [ref=e658]:
+                    - generic [ref=e659]: A_YYY
+                  - gridcell "iPhone 13 256GB AT&T A2482" [ref=e660]:
+                    - generic [ref=e661]: iPhone 13 256GB AT&T A2482
+                  - gridcell "N3" [ref=e662]:
+                    - generic [ref=e663]: N3
+                  - gridcell "1.01" [ref=e664]:
+                    - generic [ref=e665]: "1.01"
+                  - gridcell [ref=e666]
+                  - gridcell [ref=e667]
+                  - gridcell [ref=e668]
+                  - gridcell [ref=e669]
+                - row "15241 A_YYY Galaxy A03s Tracfone SM-S134DL/SM-S135DL N3 1.01" [ref=e670]:
+                  - gridcell "15241" [ref=e671]:
+                    - generic [ref=e672]: "15241"
+                  - gridcell "A_YYY" [ref=e673]:
+                    - generic [ref=e674]: A_YYY
+                  - gridcell "Galaxy A03s Tracfone SM-S134DL/SM-S135DL" [ref=e675]:
+                    - generic [ref=e676]: Galaxy A03s Tracfone SM-S134DL/SM-S135DL
+                  - gridcell "N3" [ref=e677]:
+                    - generic [ref=e678]: N3
+                  - gridcell "1.01" [ref=e679]:
+                    - generic [ref=e680]: "1.01"
+                  - gridcell [ref=e681]
+                  - gridcell [ref=e682]
+                  - gridcell [ref=e683]
+                  - gridcell [ref=e684]
+                - row "17105 C_YNY/G_YNN C110 N156DL/TA-1554 N3 1.01" [ref=e685]:
+                  - gridcell "17105" [ref=e686]:
+                    - generic [ref=e687]: "17105"
+                  - gridcell "C_YNY/G_YNN" [ref=e688]:
+                    - generic [ref=e689]: C_YNY/G_YNN
+                  - gridcell "C110 N156DL/TA-1554" [ref=e690]:
+                    - generic [ref=e691]: C110 N156DL/TA-1554
+                  - gridcell "N3" [ref=e692]:
+                    - generic [ref=e693]: N3
+                  - gridcell "1.01" [ref=e694]:
+                    - generic [ref=e695]: "1.01"
+                  - gridcell [ref=e696]
+                  - gridcell [ref=e697]
+                  - gridcell [ref=e698]
+                  - gridcell [ref=e699]
+                - row "17109 A_YYY Pixel Fold G9FPL N3 1.01" [ref=e700]:
+                  - gridcell "17109" [ref=e701]:
+                    - generic [ref=e702]: "17109"
+                  - gridcell "A_YYY" [ref=e703]:
+                    - generic [ref=e704]: A_YYY
+                  - gridcell "Pixel Fold G9FPL" [ref=e705]:
+                    - generic [ref=e706]: Pixel Fold G9FPL
+                  - gridcell "N3" [ref=e707]:
+                    - generic [ref=e708]: N3
+                  - gridcell "1.01" [ref=e709]:
+                    - generic [ref=e710]: "1.01"
+                  - gridcell [ref=e711]
+                  - gridcell [ref=e712]
+                  - gridcell [ref=e713]
+                  - gridcell [ref=e714]
+                - row "17209 C_YNY/G_YNN iPhone 15 Plus 256GB Unlocked A2847/A3093/A3094/A3096 N3 1.01" [ref=e715]:
+                  - gridcell "17209" [ref=e716]:
+                    - generic [ref=e717]: "17209"
+                  - gridcell "C_YNY/G_YNN" [ref=e718]:
+                    - generic [ref=e719]: C_YNY/G_YNN
+                  - gridcell "iPhone 15 Plus 256GB Unlocked A2847/A3093/A3094/A3096" [ref=e720]:
+                    - generic [ref=e721]: iPhone 15 Plus 256GB Unlocked A2847/A3093/A3094/A3096
+                  - gridcell "N3" [ref=e722]:
+                    - generic [ref=e723]: N3
+                  - gridcell "1.01" [ref=e724]:
+                    - generic [ref=e725]: "1.01"
+                  - gridcell [ref=e726]
+                  - gridcell [ref=e727]
+                  - gridcell [ref=e728]
+                  - gridcell [ref=e729]
+                - row "17255 C_YNY/G_YNN C300 N155DL/TA-1515 N3 1.01" [ref=e730]:
+                  - gridcell "17255" [ref=e731]:
+                    - generic [ref=e732]: "17255"
+                  - gridcell "C_YNY/G_YNN" [ref=e733]:
+                    - generic [ref=e734]: C_YNY/G_YNN
+                  - gridcell "C300 N155DL/TA-1515" [ref=e735]:
+                    - generic [ref=e736]: C300 N155DL/TA-1515
+                  - gridcell "N3" [ref=e737]:
+                    - generic [ref=e738]: N3
+                  - gridcell "1.01" [ref=e739]:
+                    - generic [ref=e740]: "1.01"
+                  - gridcell [ref=e741]
+                  - gridcell [ref=e742]
+                  - gridcell [ref=e743]
+                  - gridcell [ref=e744]
+            - generic "Pagination" [ref=e746]:
+              - button "Go to first page" [disabled]:
+                - generic:
+                  - img
+              - button "Go to previous page" [disabled]:
+                - generic:
+                  - img
+              - generic [ref=e747]: Currently showing 1 to 20 of 33
+              - generic [ref=e748]: 1 to 20 of 33
+              - button "Go to next page" [ref=e749] [cursor=pointer]:
+                - img [ref=e751]
+              - button "Go to last page" [ref=e754] [cursor=pointer]:
+                - img [ref=e756]
+        - text: 
+  - status [ref=e759]

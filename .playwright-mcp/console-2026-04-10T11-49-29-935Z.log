@@ -1,0 +1,6 @@
+[     482ms] [ERROR] [Client] Datadog Browser SDK: DD_RUM is already initialized. @ https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:50
+[     552ms] [WARNING] [Client] Datadog Browser SDK: SDK is loaded more than once. This is unsupported and might have unexpected behavior. @ https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:50
+[    1004ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://buy-qa.ecoatmdirect.com/p/login/web:0
+[    8418ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://buy-qa.ecoatmdirect.com/p/login/web:0
+[   13335ms] [WARNING] <meta name="apple-mobile-web-app-capable" content="yes"> is deprecated. Please include <meta name="mobile-web-app-capable" content="yes"> @ https://buy-qa.ecoatmdirect.com/sso/:0
+[   13688ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ https://login.microsoftonline.com/61c95826-2b6a-4da0-92e1-f07725a94cd7/saml2:0

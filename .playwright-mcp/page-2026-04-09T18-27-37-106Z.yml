@@ -1,0 +1,155 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [active] [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - generic [ref=e2366]:
+          - generic [ref=e2367]: View As
+          - generic [ref=e2370]:
+            - generic [ref=e2371]:
+              - combobox "View As" [ref=e2372]
+              - generic [ref=e2373]: NB_PWS Nadia Boonnayanont
+            - img [ref=e2376] [cursor=pointer]: 
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e2386]:
+          - button "Available Inventory" [ref=e2388] [cursor=pointer]:
+            - generic [ref=e2389]: 
+            - text: Available Inventory
+          - generic [ref=e2396]:
+            - generic [ref=e2398]:
+              - generic [ref=e2401]: Cart
+              - generic [ref=e2403]:
+                - generic [ref=e2404]: 
+                - generic [ref=e2405]: Offer quantity exceeds available quantity
+              - generic [ref=e2408]:
+                - generic [ref=e2410]:
+                  - generic [ref=e2411]: SKUs
+                  - heading "1" [level=5] [ref=e2412]
+                - generic [ref=e2414]:
+                  - generic [ref=e2415]: Qty
+                  - heading "5" [level=5] [ref=e2416]
+                - generic [ref=e2418]:
+                  - generic [ref=e2419]: Total
+                  - heading "$6,250" [level=5] [ref=e2420]
+                - generic [ref=e2423]: Submit
+              - button [ref=e2429] [cursor=pointer]
+            - grid [ref=e2433]:
+              - rowgroup [ref=e2434]:
+                - row "SKU Brand Model Carrier Capacity Color Grade Avl. Qty Unit Price Offer Price Qty Total" [ref=e2435]:
+                  - columnheader "SKU" [ref=e2436]:
+                    - generic "SKU" [ref=e2438]:
+                      - generic [ref=e2439]: SKU
+                  - columnheader "Brand" [ref=e2440]:
+                    - generic "Brand" [ref=e2442]:
+                      - generic [ref=e2443]: Brand
+                  - columnheader "Model" [ref=e2444]:
+                    - generic "Model" [ref=e2446]:
+                      - generic [ref=e2447]: Model
+                  - columnheader "Carrier" [ref=e2448]:
+                    - generic "Carrier" [ref=e2450]:
+                      - generic [ref=e2451]: Carrier
+                  - columnheader "Capacity" [ref=e2452]:
+                    - generic "Capacity" [ref=e2454]:
+                      - generic [ref=e2455]: Capacity
+                  - columnheader "Color" [ref=e2456]:
+                    - generic "Color" [ref=e2458]:
+                      - generic [ref=e2459]: Color
+                  - columnheader "Grade" [ref=e2460]:
+                    - generic "Grade" [ref=e2462]:
+                      - generic [ref=e2463]: Grade
+                  - columnheader "Avl. Qty" [ref=e2464]:
+                    - generic "Avl. Qty" [ref=e2466]:
+                      - generic [ref=e2467]: Avl. Qty
+                  - columnheader "Unit Price" [ref=e2468]:
+                    - generic "Unit Price" [ref=e2470]:
+                      - generic [ref=e2471]: Unit Price
+                  - columnheader "Offer Price" [ref=e2472]:
+                    - generic "Offer Price" [ref=e2474]:
+                      - generic [ref=e2475]: Offer Price
+                  - columnheader "Qty" [ref=e2476]:
+                    - generic "Qty" [ref=e2478]:
+                      - generic [ref=e2479]: Qty
+                  - columnheader "Total" [ref=e2480]:
+                    - generic "Total" [ref=e2482]:
+                      - generic [ref=e2483]: Total
+                  - columnheader [ref=e2484]
+              - rowgroup [ref=e2488]:
+                - row "PWS10009858 Apple iPhone 16 Pro Unlocked 128GB Black Titanium A 2 $1,250 $ 1,250 5 $6,250" [ref=e2489]:
+                  - gridcell "PWS10009858" [ref=e2490]:
+                    - generic [ref=e2491]: PWS10009858
+                  - gridcell "Apple" [ref=e2492]:
+                    - generic [ref=e2493]: Apple
+                  - gridcell "iPhone 16 Pro" [ref=e2494]:
+                    - generic "iPhone 16 Pro" [ref=e2495]
+                  - gridcell "Unlocked" [ref=e2496]:
+                    - generic [ref=e2497]: Unlocked
+                  - gridcell "128GB" [ref=e2498]:
+                    - generic [ref=e2499]: 128GB
+                  - gridcell "Black Titanium" [ref=e2500]:
+                    - generic "Black Titanium" [ref=e2501]
+                  - gridcell "A" [ref=e2502]:
+                    - generic [ref=e2503]: A
+                  - gridcell "2" [ref=e2504]:
+                    - generic [ref=e2505]: "2"
+                  - gridcell "$1,250" [ref=e2506]:
+                    - generic [ref=e2507]: $1,250
+                  - gridcell "$ 1,250" [ref=e2508]:
+                    - generic [ref=e2512]:
+                      - text: $
+                      - textbox [ref=e2513]: 1,250
+                  - gridcell "5" [ref=e2514]:
+                    - textbox [ref=e2519]: "5"
+                  - gridcell "$6,250" [ref=e2520]:
+                    - generic [ref=e2522]: $6,250
+                  - gridcell [ref=e2523]:
+                    - button [ref=e2525] [cursor=pointer]:
+                      - generic [ref=e2526]: ✖
+        - text: 
+  - status [ref=e2527]

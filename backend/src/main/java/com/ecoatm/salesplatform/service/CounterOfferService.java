@@ -8,8 +8,6 @@ import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -49,18 +47,18 @@ public class CounterOfferService {
     private final DeviceRepository deviceRepository;
     private final CaseLotRepository caseLotRepository;
     private final OfferService offerService;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final BuyerCodeLookupService buyerCodeLookup;
 
     public CounterOfferService(OfferRepository offerRepository,
                                DeviceRepository deviceRepository,
                                CaseLotRepository caseLotRepository,
-                               OfferService offerService) {
+                               OfferService offerService,
+                               BuyerCodeLookupService buyerCodeLookup) {
         this.offerRepository = offerRepository;
         this.deviceRepository = deviceRepository;
         this.caseLotRepository = caseLotRepository;
         this.offerService = offerService;
+        this.buyerCodeLookup = buyerCodeLookup;
     }
 
     /**
@@ -75,16 +73,7 @@ public class CounterOfferService {
         // Load buyer code string
         Map<Long, String> buyerCodeMap = new HashMap<>();
         if (!offers.isEmpty()) {
-            try {
-                List<Object[]> rows = em.createNativeQuery(
-                        "SELECT bc.id, bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id")
-                        .setParameter("id", buyerCodeId).getResultList();
-                for (Object[] row : rows) {
-                    buyerCodeMap.put(((Number) row[0]).longValue(), (String) row[1]);
-                }
-            } catch (Exception e) {
-                log.debug("Could not load buyer code: {}", e.getMessage());
-            }
+            buyerCodeMap.putAll(buyerCodeLookup.findCodesByIds(Set.of(buyerCodeId)));
         }
 
         return offers.stream().map(offer -> {

@@ -4,31 +4,34 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-<span class="pc bnc" id="L7" title="All 34 branches missed.">@Data</span>
-<span class="nc" id="L8">@AllArgsConstructor</span>
-<span class="nc" id="L9">@NoArgsConstructor</span>
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
 public class LoginResponse {
-<span class="fc" id="L11">    private boolean success;</span>
-<span class="fc" id="L12">    private String message;</span>
-<span class="fc" id="L13">    private String token; // For later JWT integration</span>
-<span class="fc" id="L14">    private UserInfo user;</span>
+    private boolean success;
+    private String message;
+    private String token; // For later JWT integration
+    private UserInfo user;
 
-<span class="fc" id="L16">    public LoginResponse(boolean success, String message, String token) {</span>
-<span class="fc" id="L17">        this.success = success;</span>
-<span class="fc" id="L18">        this.message = message;</span>
-<span class="fc" id="L19">        this.token = token;</span>
-<span class="fc" id="L20">    }</span>
+<span class="fc" id="L18">    public LoginResponse(boolean success, String message, String token) {</span>
+<span class="fc" id="L19">        this.success = success;</span>
+<span class="fc" id="L20">        this.message = message;</span>
+<span class="fc" id="L21">        this.token = token;</span>
+<span class="fc" id="L22">    }</span>
 
-<span class="nc bnc" id="L22" title="All 54 branches missed.">    @Data</span>
-<span class="fc" id="L23">    @AllArgsConstructor</span>
-<span class="nc" id="L24">    @NoArgsConstructor</span>
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class UserInfo {
-<span class="fc" id="L26">        private Long userId;</span>
-<span class="fc" id="L27">        private String firstName;</span>
-<span class="fc" id="L28">        private String lastName;</span>
-<span class="fc" id="L29">        private String fullName;</span>
-<span class="fc" id="L30">        private String email;</span>
-<span class="fc" id="L31">        private String initials;</span>
+        private Long userId;
+        private String firstName;
+        private String lastName;
+        private String fullName;
+        private String email;
+        private String initials;
+        private List&lt;String&gt; roles;
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

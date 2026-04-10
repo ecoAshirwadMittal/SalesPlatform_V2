@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import java.lang.reflect.Field;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -44,10 +43,7 @@ class AuthServiceTest {
     private User testUser;
 
     @BeforeEach
-    void setUp() throws Exception {
-        Field emField = AuthService.class.getDeclaredField("em");
-        emField.setAccessible(true);
-        emField.set(authService, em);
+    void setUp() {
         loginRequest = new LoginRequest();
         loginRequest.setEmail("admin@test.com");
         loginRequest.setPassword("Admin123!");
@@ -183,6 +179,7 @@ class AuthServiceTest {
     void getCurrentUser_existingUser_returnsUserInfo() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
         mockBuildUserInfo();
+        mockGetUserRoles("Administrator");
 
         LoginResponse.UserInfo info = authService.getCurrentUser(1L);
 

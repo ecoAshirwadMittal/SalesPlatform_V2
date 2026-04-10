@@ -20,7 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
+import com.ecoatm.salesplatform.service.BuyerCodeLookupService;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -38,17 +38,11 @@ class OfferReviewServiceTest {
     @Mock private OfferRepository offerRepository;
     @Mock private DeviceRepository deviceRepository;
     @Mock private OfferService offerService;
+    @Mock private BuyerCodeLookupService buyerCodeLookup;
     @Mock private EntityManager em;
 
     @InjectMocks
     private OfferReviewService offerReviewService;
-
-    @BeforeEach
-    void injectEntityManager() throws Exception {
-        Field emField = OfferReviewService.class.getDeclaredField("em");
-        emField.setAccessible(true);
-        emField.set(offerReviewService, em);
-    }
 
     // --- Helpers ---
 
@@ -168,21 +162,9 @@ class OfferReviewServiceTest {
 
         @SuppressWarnings("unchecked")
         private void stubListOffersQueries() {
-            Query codeQuery = mock(Query.class);
-            when(em.createNativeQuery(contains("buyer_codes bc"))).thenReturn(codeQuery);
-            when(codeQuery.setParameter(anyString(), any())).thenReturn(codeQuery);
-            when(codeQuery.getResultList()).thenReturn(Collections.emptyList());
+            // buyerCodeLookup methods return empty maps by default (Mockito)
 
-            Query buyerQuery = mock(Query.class);
-            when(em.createNativeQuery(contains("buyer_code_buyers"))).thenReturn(buyerQuery);
-            when(buyerQuery.setParameter(anyString(), any())).thenReturn(buyerQuery);
-            when(buyerQuery.getResultList()).thenReturn(Collections.emptyList());
-
-            Query repQuery = mock(Query.class);
-            when(em.createNativeQuery(contains("buyer_sales_reps"))).thenReturn(repQuery);
-            when(repQuery.setParameter(anyString(), any())).thenReturn(repQuery);
-            when(repQuery.getResultList()).thenReturn(Collections.emptyList());
-
+            // Order number query still uses EntityManager directly
             Query orderQuery = mock(Query.class);
             when(em.createNativeQuery(contains("order_number"))).thenReturn(orderQuery);
             when(orderQuery.setParameter(anyString(), any())).thenReturn(orderQuery);

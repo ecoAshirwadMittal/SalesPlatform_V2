@@ -6,7 +6,6 @@ import com.ecoatm.salesplatform.model.User;
 import com.ecoatm.salesplatform.repository.UserRepository;
 import com.ecoatm.salesplatform.security.JwtService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,9 +21,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final EntityManager em;
 
     @Transactional(readOnly = true)
     public LoginResponse authenticateLocalUser(LoginRequest request) {
@@ -47,7 +44,9 @@ public class AuthService {
             List<String> roles = getUserRoles(user.getId());
             String token = jwtService.generateToken(user.getId(), user.getName(), roles, request.isRememberMe());
             LoginResponse resp = new LoginResponse(true, "Authentication successful", token);
-            resp.setUser(buildUserInfo(user.getId(), user.getName()));
+            LoginResponse.UserInfo userInfo = buildUserInfo(user.getId(), user.getName());
+            userInfo.setRoles(roles);
+            resp.setUser(userInfo);
             return resp;
         } else {
             return new LoginResponse(false, "Incorrect Password", null);
@@ -62,7 +61,9 @@ public class AuthService {
     public LoginResponse.UserInfo getCurrentUser(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found: " + userId));
-        return buildUserInfo(user.getId(), user.getName());
+        LoginResponse.UserInfo userInfo = buildUserInfo(user.getId(), user.getName());
+        userInfo.setRoles(getUserRoles(userId));
+        return userInfo;
     }
 
     @SuppressWarnings("unchecked")
@@ -118,6 +119,6 @@ public class AuthService {
             initials = "??";
         }
 
-        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials);
+        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials, null);
     }
 }

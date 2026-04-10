@@ -16,4 +16,6 @@ public interface OfferItemRepository extends JpaRepository<OfferItem, Long> {
     void deleteByOfferAndSku(Offer offer, String sku);
 
     void deleteByOffer(Offer offer);
+
+    List<OfferItem> findByOfferId(Long offerId);
 }

@@ -27,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.lang.reflect.Field;
+import com.ecoatm.salesplatform.service.BuyerCodeLookupService;
 
 import com.ecoatm.salesplatform.dto.OracleResponse;
 import com.ecoatm.salesplatform.model.integration.OracleConfig;
@@ -42,6 +42,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -76,16 +77,17 @@ class OfferServiceTest {
     private ObjectMapper objectMapper;
 
     @Mock
+    private BuyerCodeLookupService buyerCodeLookup;
+
+    @Mock
     private EntityManager em;
 
     @InjectMocks
     private OfferService offerService;
 
     @BeforeEach
-    void injectEntityManager() throws Exception {
-        Field emField = OfferService.class.getDeclaredField("em");
-        emField.setAccessible(true);
-        emField.set(offerService, em);
+    void setUp() {
+        when(buyerCodeLookup.findCodeById(anyLong())).thenReturn("BC001");
     }
 
     // ── helpers ──────────────────────────────────────────────────────────

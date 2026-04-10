@@ -1,21 +1,35 @@
 /* ===================================================================
    PWS Layout — pixel-matched to QA: buy-qa.ecoatmdirect.com
    Font: "Founders Grotesk" throughout
-   Sidebar: #112d32, 56px wide
-   Top bar: #112d32
+   Sidebar: #112d32, 80px wide (QA buyer: 56px, admin labels need more)
+   Top bar: #112d32, 62px tall (QA: 62px)
+   Nav labels: 12px/500 (QA: 12px/500)
+   Nav item: 67px height, 13px top/bottom padding (QA)
+   User icon: 28px circle, solid #407874 bg, white icon (QA)
+   Active nav: orange #e27f4b text + beige #efebe4 bg (QA)
+   Hover nav: teal #407874 bg (QA)
    ================================================================= */
 
 .pwsContainer {
   display: flex;
+  flex-direction: column;
   min-height: 100vh;
-  background: #F7F7F7;
+  background: #efebe4;
   font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
 }
 
-/* ---- Sidebar (56px, #112d32) ---- */
+/* Row below the top bar: sidebar + content side by side */
+.bodyRow {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* ---- Sidebar (#112d32) ---- */
+/* QA buyer nav is 56px with short labels; admin nav has longer labels
+   ("Offer Review", "RMA Review") that need ~76px to avoid clipping. */
 .sidebar {
-  width: 56px;
-  min-height: 100vh;
+  width: 80px;
   background: #112d32;
   display: flex;
   flex-direction: column;
@@ -24,28 +38,29 @@
   overflow-x: hidden;
 }
 
-/* Section headers: SALES / BUYERS — #fbfaf8, 11px, wt 500, uppercase */
+/* Section headers: SALES / BUYERS — QA: 11px, 500wt, #fbfaf8, uppercase, centered */
 .sectionHeader {
-  padding: 14px 0 6px;
+  padding: 14px 0 4px;
   text-align: center;
   font-family: "Founders Grotesk", sans-serif;
   font-size: 11px;
   font-weight: 500;
   color: #fbfaf8;
   text-transform: uppercase;
+  line-height: 15.7px;
 }
 
-/* Nav item — vertical icon + label, 10px label */
+/* Nav item — vertical icon + label, 12px label (QA: 67px height, 13px padding, 12px/500) */
 .navItem {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 8px 2px;
+  padding: 13px 2px;
   color: #fbfaf8;
   text-decoration: none;
-  font-size: 10px;
+  font-size: 12px;
   font-family: "Founders Grotesk", sans-serif;
   font-weight: 500;
   transition: background-color 0.15s, color 0.15s;
@@ -54,12 +69,14 @@
 }
 
 .navItem:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #407874;
 }
 
-/* Active nav — teal #407874 */
-.navItemActive {
-  color: #407874;
+/* Active nav — orange text #e27f4b + beige bg #efebe4 (QA: rgb(239,235,228) + rgb(226,127,75)) */
+.navItemActive,
+.navItemActive:hover {
+  color: #e27f4b;
+  background-color: #efebe4;
 }
 
 .navIcon {
@@ -76,28 +93,22 @@
 }
 
 .navLabel {
-  white-space: nowrap;
   text-align: center;
   line-height: 1.2;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
-/* ---- Main area ---- */
-.mainArea {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* ---- Top bar (#112d32, ~48px) ---- */
+/* ---- Top bar (#112d32, 62px — QA: 62px) ---- */
 .topBar {
-  height: 48px;
+  height: 62px;
   background: #112d32;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px 0 16px;
+  padding: 0 8px 0 8px;
   flex-shrink: 0;
+  position: relative;
 }
 
 .topBarLeft {
@@ -107,7 +118,16 @@
 }
 
 .topBarLeft img {
-  height: 24px;
+  height: 29px;
+}
+
+/* Center the buyer code selector in the topbar */
+.topBarCenter {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
 }
 
 /* "Premium Wholesale" — light green #d6fddb, 18px, wt 500 */
@@ -118,9 +138,27 @@
   color: #d6fddb;
 }
 
-/* Buyer code dropdown — top bar selector */
+/* Buyer code selector — QA "View As" label + combobox pattern */
 .buyerCodeWrapper {
   position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.buyerCodeLabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fbfaf8;
+  background: #407874;
+  padding: 8px 16px;
+  border-radius: 8px 0 0 8px;
+  height: 35px;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .buyerCodeButton {
@@ -128,20 +166,22 @@
   align-items: center;
   gap: 6px;
   font-family: "Founders Grotesk", sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 4px 12px;
-  border-radius: 4px;
-  border: none;
+  font-size: 16px;
+  font-weight: 400;
+  color: #000;
+  background: #F7F7F7;
+  padding: 1px 8px;
+  border-radius: 0 8px 8px 0;
+  border: 1px solid #898787;
+  height: 35px;
+  min-width: 200px;
   cursor: pointer;
-  letter-spacing: 0.5px;
+  box-sizing: border-box;
   transition: background 0.15s;
 }
 
 .buyerCodeButton:hover {
-  background: rgba(255, 255, 255, 0.25);
+  background: #eeeeee;
 }
 
 .buyerCodeDropdown {
@@ -237,23 +277,23 @@
   position: relative;
 }
 
-/* User icon — 34px circle, border #407874 */
+/* User icon — 28px circle, solid #407874 bg, white icon (QA: 28px, bg #407874, color white) */
 .userIconWrapper {
-  width: 34px;
-  height: 34px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  border: 1.5px solid #407874;
-  background: transparent;
+  border: none;
+  background: #407874;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #407874;
+  color: #fff;
   cursor: pointer;
   padding: 0;
 }
 
 .userIconWrapper:hover {
-  background-color: rgba(64, 120, 116, 0.15);
+  background-color: rgba(64, 120, 116, 0.85);
 }
 
 .userIcon {
@@ -314,9 +354,10 @@
   background: #f5f5f5;
 }
 
-/* ---- Content area ---- */
+/* ---- Content area (QA: #efebe4 beige — pws-region-content) ---- */
 .contentArea {
   flex: 1;
+  min-width: 0;
   overflow-y: auto;
-  background: #F7F7F7;
+  background: #efebe4;
 }

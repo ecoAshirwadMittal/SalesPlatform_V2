@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ImeiDetail.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">ImeiDetail.java</span></div><h1>ImeiDetail.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;imei_detail&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L8">public class ImeiDetail {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;legacy_id&quot;, unique = true)
+    private Long legacyId;
+
+    @Column(name = &quot;imei_number&quot;)
+    private String imeiNumber;
+
+    @Column(name = &quot;serial_number&quot;)
+    private String serialNumber;
+
+    @Column(name = &quot;box_lpn_number&quot;)
+    private String boxLpnNumber;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;offer_item_id&quot;)
+    private OfferItem offerItem;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = &quot;shipment_detail_id&quot;)
+    private ShipmentDetail shipmentDetail;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+    @PrePersist
+    protected void onCreate() {
+<span class="nc" id="L42">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L43">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L44">    }</span>
+
+    @PreUpdate
+    protected void onUpdate() {
+<span class="nc" id="L48">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L49">    }</span>
+
+    // Getters and Setters
+<span class="fc" id="L52">    public Long getId() { return id; }</span>
+<span class="fc" id="L53">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="nc" id="L55">    public Long getLegacyId() { return legacyId; }</span>
+<span class="nc" id="L56">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+
+<span class="fc" id="L58">    public String getImeiNumber() { return imeiNumber; }</span>
+<span class="fc" id="L59">    public void setImeiNumber(String imeiNumber) { this.imeiNumber = imeiNumber; }</span>
+
+<span class="fc" id="L61">    public String getSerialNumber() { return serialNumber; }</span>
+<span class="fc" id="L62">    public void setSerialNumber(String serialNumber) { this.serialNumber = serialNumber; }</span>
+
+<span class="fc" id="L64">    public String getBoxLpnNumber() { return boxLpnNumber; }</span>
+<span class="fc" id="L65">    public void setBoxLpnNumber(String boxLpnNumber) { this.boxLpnNumber = boxLpnNumber; }</span>
+
+<span class="fc" id="L67">    public OfferItem getOfferItem() { return offerItem; }</span>
+<span class="fc" id="L68">    public void setOfferItem(OfferItem offerItem) { this.offerItem = offerItem; }</span>
+
+<span class="fc" id="L70">    public ShipmentDetail getShipmentDetail() { return shipmentDetail; }</span>
+<span class="fc" id="L71">    public void setShipmentDetail(ShipmentDetail shipmentDetail) { this.shipmentDetail = shipmentDetail; }</span>
+
+<span class="nc" id="L73">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="nc" id="L74">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+
+<span class="nc" id="L76">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="nc" id="L77">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

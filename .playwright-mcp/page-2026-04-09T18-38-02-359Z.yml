@@ -1,0 +1,233 @@
+- generic [ref=e5]:
+  - generic [ref=e8]:
+    - generic [ref=e10]: SALES
+    - list [ref=e12]:
+      - listitem [ref=e13]:
+        - button " Inventory" [active] [ref=e16] [cursor=pointer]:
+          - generic [ref=e17]: 
+          - generic [ref=e18]: Inventory
+      - listitem [ref=e19]:
+        - button " Offer Review" [ref=e22] [cursor=pointer]:
+          - generic [ref=e23]: 
+          - generic [ref=e24]: Offer Review
+      - listitem [ref=e25]:
+        - button " RMA Review" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: 
+          - generic [ref=e30]: RMA Review
+      - listitem [ref=e31]:
+        - button " Pricing" [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: 
+          - generic [ref=e36]: Pricing
+    - generic [ref=e38]: BUYERS
+    - list [ref=e40]:
+      - listitem [ref=e41]:
+        - button " Shop" [ref=e44] [cursor=pointer]:
+          - generic [ref=e45]: 
+          - generic [ref=e46]: Shop
+      - listitem [ref=e47]:
+        - button " Counters" [ref=e50] [cursor=pointer]:
+          - generic [ref=e51]: 
+          - generic [ref=e52]: Counters
+      - listitem [ref=e53]:
+        - button " Orders" [ref=e56] [cursor=pointer]:
+          - generic [ref=e57]: 
+          - generic [ref=e58]: Orders
+      - listitem [ref=e59]:
+        - button " RMAs" [ref=e62] [cursor=pointer]:
+          - generic [ref=e63]: 
+          - generic [ref=e64]: RMAs
+      - listitem [ref=e65]:
+        - button " FAQ's" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]: 
+          - generic [ref=e70]: FAQ's
+      - listitem [ref=e71]:
+        - button " Grading" [ref=e74] [cursor=pointer]:
+          - generic [ref=e75]: 
+          - generic [ref=e76]: Grading
+  - generic [ref=e79]:
+    - generic [ref=e85]:
+      - generic [ref=e89]: Premium Wholesale
+      - button [ref=e130] [cursor=pointer]:
+        - generic [ref=e131]: 
+    - generic [ref=e133]:
+      - generic [ref=e2016]:
+        - generic [ref=e2024]:
+          - button "All Offers" [ref=e2027] [cursor=pointer]:
+            - generic [ref=e2028]: 
+            - text: All Offers
+          - generic [ref=e2029]:
+            - generic [ref=e2031]:
+              - generic [ref=e2032]:
+                - generic [ref=e2034]:
+                  - generic [ref=e2035]: Offer ID
+                  - generic [ref=e2036]: "21999261179"
+                - generic [ref=e2038]:
+                  - generic [ref=e2039]: Buyer
+                  - generic [ref=e2040]: PWSUser6 Automation
+                - generic [ref=e2042]:
+                  - generic [ref=e2043]: Customer
+                  - generic [ref=e2044]: PWSUser6 Automation
+                - generic [ref=e2046]:
+                  - generic [ref=e2047]: Sales Rep
+                  - generic [ref=e2048]: Julie Spellman
+              - generic [ref=e2056]: Sales Review
+            - generic [ref=e2059]:
+              - generic [ref=e2060]: Original Offer
+              - generic [ref=e2063]:
+                - generic [ref=e2064]:
+                  - generic [ref=e2066]: SKUs
+                  - generic [ref=e2068]: "1"
+                - generic [ref=e2069]:
+                  - generic [ref=e2071]: Qty
+                  - generic [ref=e2073]: "10000"
+                - generic [ref=e2074]:
+                  - generic [ref=e2076]: Price
+                  - generic [ref=e2078]: $90,000
+                - generic [ref=e2079]:
+                  - generic [ref=e2081]: Avg. Price
+                  - generic [ref=e2083]: $9.00
+                - generic [ref=e2084]:
+                  - generic [ref=e2086]: vs Min%
+                  - generic [ref=e2088]: "-13788.89%"
+            - generic [ref=e2089]:
+              - generic [ref=e2090]:
+                - generic [ref=e2091]: Counter Offer
+                - generic [ref=e2094]:
+                  - generic [ref=e2097]: SKUs
+                  - generic [ref=e2100]: Qty
+                  - generic [ref=e2103]: Price
+                  - generic [ref=e2106]: Avg. Price
+                  - generic [ref=e2109]: vs. Min%
+              - generic [ref=e2112]:
+                - button "Complete Review" [ref=e2114] [cursor=pointer]
+                - button [ref=e2117] [cursor=pointer]
+        - grid [ref=e2122]:
+          - rowgroup [ref=e2123]:
+            - row "sort Tag sort SKU sort Brand sort Model sort Carrier sort Capacity sort Color sort Grade sort Avl. Qty sort Min Price sort List Price sort vs Min% sort vs List% sort Offer Qty sort Offer Price sort Offer Total Actions Qty Counter Price Total Column selector" [ref=e2124]:
+              - columnheader "sort Tag" [ref=e2125]:
+                - button "sort Tag" [ref=e2127] [cursor=pointer]:
+                  - generic [ref=e2128]: Tag
+                  - img [ref=e2129]
+              - columnheader "sort SKU" [ref=e2131]:
+                - button "sort SKU" [ref=e2133] [cursor=pointer]:
+                  - generic [ref=e2134]: SKU
+                  - img [ref=e2135]
+              - columnheader "sort Brand" [ref=e2137]:
+                - button "sort Brand" [ref=e2139] [cursor=pointer]:
+                  - generic [ref=e2140]: Brand
+                  - img [ref=e2141]
+              - columnheader "sort Model" [ref=e2143]:
+                - button "sort Model" [ref=e2145] [cursor=pointer]:
+                  - generic [ref=e2146]: Model
+                  - img [ref=e2147]
+              - columnheader "sort Carrier" [ref=e2149]:
+                - button "sort Carrier" [ref=e2151] [cursor=pointer]:
+                  - generic [ref=e2152]: Carrier
+                  - img [ref=e2153]
+              - columnheader "sort Capacity" [ref=e2155]:
+                - button "sort Capacity" [ref=e2157] [cursor=pointer]:
+                  - generic [ref=e2158]: Capacity
+                  - img [ref=e2159]
+              - columnheader "sort Color" [ref=e2161]:
+                - button "sort Color" [ref=e2163] [cursor=pointer]:
+                  - generic [ref=e2164]: Color
+                  - img [ref=e2165]
+              - columnheader "sort Grade" [ref=e2167]:
+                - button "sort Grade" [ref=e2169] [cursor=pointer]:
+                  - generic [ref=e2170]: Grade
+                  - img [ref=e2171]
+              - columnheader "sort Avl. Qty" [ref=e2173]:
+                - button "sort Avl. Qty" [ref=e2175] [cursor=pointer]:
+                  - generic [ref=e2176]: Avl. Qty
+                  - img [ref=e2177]
+              - columnheader "sort Min Price" [ref=e2179]:
+                - button "sort Min Price" [ref=e2181] [cursor=pointer]:
+                  - generic [ref=e2182]: Min Price
+                  - img [ref=e2183]
+              - columnheader "sort List Price" [ref=e2185]:
+                - button "sort List Price" [ref=e2187] [cursor=pointer]:
+                  - generic [ref=e2188]: List Price
+                  - img [ref=e2189]
+              - columnheader "sort vs Min%" [ref=e2191]:
+                - button "sort vs Min%" [ref=e2193] [cursor=pointer]:
+                  - generic [ref=e2194]: vs Min%
+                  - img [ref=e2195]
+              - columnheader "sort vs List%" [ref=e2197]:
+                - button "sort vs List%" [ref=e2199] [cursor=pointer]:
+                  - generic [ref=e2200]: vs List%
+                  - img [ref=e2201]
+              - columnheader "sort Offer Qty" [ref=e2203]:
+                - button "sort Offer Qty" [ref=e2205] [cursor=pointer]:
+                  - generic [ref=e2206]: Offer Qty
+                  - img [ref=e2207]
+              - columnheader "sort Offer Price" [ref=e2209]:
+                - button "sort Offer Price" [ref=e2211] [cursor=pointer]:
+                  - generic [ref=e2212]: Offer Price
+                  - img [ref=e2213]
+              - columnheader "sort Offer Total" [ref=e2215]:
+                - button "sort Offer Total" [ref=e2217] [cursor=pointer]:
+                  - generic [ref=e2218]: Offer Total
+                  - img [ref=e2219]
+              - columnheader "Actions" [ref=e2221]:
+                - generic "Actions" [ref=e2223]:
+                  - generic [ref=e2224]: Actions
+              - columnheader "Qty" [ref=e2225]:
+                - generic "Qty" [ref=e2227]:
+                  - generic [ref=e2228]: Qty
+              - columnheader "Counter Price" [ref=e2229]:
+                - generic "Counter Price" [ref=e2231]:
+                  - generic [ref=e2232]: Counter Price
+              - columnheader "Total" [ref=e2233]:
+                - generic "Total" [ref=e2235]:
+                  - generic [ref=e2236]: Total
+              - columnheader "Column selector" [ref=e2237]:
+                - button "Column selector" [ref=e2239] [cursor=pointer]:
+                  - img [ref=e2240]
+          - rowgroup [ref=e2242]:
+            - row "PWS142529928118-D Apple iPhone 13 Unlocked 128GB Midnight Value 901 $1,250 $1,250 -13788.9% -13788.9% 10000 $9 $90,000  Counter 10,000" [ref=e2243]:
+              - gridcell [ref=e2244] [cursor=pointer]
+              - gridcell "PWS142529928118-D" [ref=e2248] [cursor=pointer]:
+                - generic [ref=e2249]: PWS142529928118-D
+              - gridcell "Apple" [ref=e2250] [cursor=pointer]:
+                - generic [ref=e2251]: Apple
+              - gridcell "iPhone 13" [ref=e2252] [cursor=pointer]:
+                - generic [ref=e2253]: iPhone 13
+              - gridcell "Unlocked" [ref=e2254] [cursor=pointer]:
+                - generic [ref=e2255]: Unlocked
+              - gridcell "128GB" [ref=e2256] [cursor=pointer]:
+                - generic [ref=e2257]: 128GB
+              - gridcell "Midnight" [ref=e2258] [cursor=pointer]:
+                - generic [ref=e2259]: Midnight
+              - gridcell "Value" [ref=e2260] [cursor=pointer]:
+                - generic [ref=e2261]: Value
+              - gridcell "901" [ref=e2262] [cursor=pointer]:
+                - generic [ref=e2263]: "901"
+              - gridcell "$1,250" [ref=e2264] [cursor=pointer]:
+                - generic [ref=e2265]: $1,250
+              - gridcell "$1,250" [ref=e2266] [cursor=pointer]:
+                - generic [ref=e2267]: $1,250
+              - gridcell "-13788.9%" [ref=e2268] [cursor=pointer]:
+                - generic [ref=e2269]: "-13788.9%"
+              - gridcell "-13788.9%" [ref=e2270] [cursor=pointer]:
+                - generic [ref=e2271]: "-13788.9%"
+              - gridcell "10000" [ref=e2272] [cursor=pointer]:
+                - generic [ref=e2277]: "10000"
+              - gridcell "$9" [ref=e2278] [cursor=pointer]:
+                - generic [ref=e2279]: $9
+              - gridcell "$90,000" [ref=e2280] [cursor=pointer]:
+                - generic [ref=e2281]: $90,000
+              - gridcell " Counter" [ref=e2282] [cursor=pointer]:
+                - generic [ref=e2285]:
+                  - generic [ref=e2288]: 
+                  - combobox [ref=e2291]:
+                    - option "Accept"
+                    - option "Counter" [selected]
+                    - option "Decline"
+                    - option "Finalize"
+              - gridcell "10,000" [ref=e2292] [cursor=pointer]:
+                - textbox [ref=e2295]: 10,000
+              - gridcell [ref=e2296] [cursor=pointer]:
+                - textbox [ref=e2299]
+              - gridcell [ref=e2300] [cursor=pointer]
+              - gridcell [ref=e2302] [cursor=pointer]
+      - text: 

@@ -99,6 +99,115 @@ Update the future price activation date.
 
 ---
 
+## Order History
+
+### GET /pws/orders
+
+Paginated order history list, scoped by the user's buyer codes.
+
+| Param | Type | Default | Description |
+|-------|------|---------|-------------|
+| tab | string | `all` | Tab filter: `recent`, `inProcess`, `complete`, `all` |
+| userId | long | - | User ID (required) |
+| buyerCodeId | long | - | Filter to a specific buyer code (optional; must belong to user) |
+| page | int | 0 | Page number (zero-based) |
+| size | int | 20 | Page size |
+
+**Response**: Spring `Page<OrderHistoryResponse>` JSON with `content`, `totalElements`, `totalPages`, `number`, `size`.
+
+**Content item shape**:
+```json
+{
+  "id": 123,
+  "orderNumber": "ORD-001",
+  "offerDate": "2026-03-15T10:00:00",
+  "orderDate": "2026-03-16T14:00:00",
+  "orderStatus": "In_Process",
+  "shipDate": null,
+  "shipMethod": null,
+  "skuCount": 5,
+  "totalQuantity": 50,
+  "totalPrice": 1250.00,
+  "buyer": "Acme Corp",
+  "company": "Acme Corp",
+  "lastUpdateDate": "2026-03-17T09:00:00",
+  "offerOrderType": "Order",
+  "offerId": 42
+}
+```
+
+**Tab filter logic**:
+| Tab | Filter |
+|-----|--------|
+| recent | `lastUpdateDate >= (now - 7 days)` |
+| inProcess | `orderStatus IN ('In_Process', 'Pending_Order', 'Awaiting_Carrier_Pickup')` |
+| complete | `orderStatus NOT IN ('In_Process', 'Pending_Order', 'Awaiting_Carrier_Pickup')` |
+| all | no filter |
+
+**Error**: 400 if `userId` is null or `tab` is unknown.
+
+### GET /pws/orders/counts
+
+Tab counts for the user's scoped orders.
+
+| Param | Type | Description |
+|-------|------|-------------|
+| userId | long | User ID (required) |
+| buyerCodeId | long | Filter to a specific buyer code (optional; must belong to user) |
+
+**Response**:
+```json
+{ "recent": 12, "inProcess": 5, "complete": 230, "all": 247 }
+```
+
+**Error**: 400 if `userId` is null.
+
+### GET /pws/orders/{offerId}/details/by-sku
+
+Get order detail items aggregated by SKU for a given offer.
+
+**Response**: `List<OrderDetailBySkuResponse>`
+
+```json
+[
+  {
+    "offerItemId": 1,
+    "sku": "SKU-001",
+    "description": "iPhone 14 Pro 128GB",
+    "orderedQty": 5,
+    "shippedQty": 3,
+    "unitPrice": 25.00,
+    "totalPrice": 125.00
+  }
+]
+```
+
+### GET /pws/orders/{offerId}/details/by-device
+
+Get order detail items at the individual device (IMEI) level for a given offer.
+
+**Response**: `List<OrderDetailByDeviceResponse>`
+
+```json
+[
+  {
+    "imeiDetailId": 100,
+    "imei": "353456789012345",
+    "sku": "SKU-001",
+    "description": "iPhone 14 Pro 128GB",
+    "unitPrice": 25.00,
+    "serialNumber": "SN-001",
+    "boxNumber": "BOX-A",
+    "trackingNumber": "1Z999AA",
+    "trackingUrl": "https://ups.com/track/1Z999AA"
+  }
+]
+```
+
+**Note**: Device-level data (IMEI, serial, box) is populated by the Deposco shipment sync. The By Device grid will show empty until shipment data exists.
+
+---
+
 ## Inventory
 
 ### GET /inventory/devices

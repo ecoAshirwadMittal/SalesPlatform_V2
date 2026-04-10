@@ -71,95 +71,101 @@ import java.util.List;
     @Column(name = &quot;counter_response_submitted_on&quot;)
     private LocalDateTime counterResponseSubmittedOn;
 
+    @Column(name = &quot;visible_in_history&quot;, nullable = false)
+<span class="fc" id="L75">    private boolean visibleInHistory = true;</span>
+
     @Column(name = &quot;created_date&quot;, updatable = false)
     private LocalDateTime createdDate;
 
     @Column(name = &quot;updated_date&quot;)
     private LocalDateTime updatedDate;
 
-<span class="fc" id="L80">    @OneToMany(mappedBy = &quot;offer&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
-    private List&lt;OfferItem&gt; items = new ArrayList&lt;&gt;();
+    @OneToMany(mappedBy = &quot;offer&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+<span class="fc" id="L84">    private List&lt;OfferItem&gt; items = new ArrayList&lt;&gt;();</span>
 
     @PrePersist
     protected void onCreate() {
-<span class="nc" id="L85">        createdDate = LocalDateTime.now();</span>
-<span class="nc" id="L86">        updatedDate = LocalDateTime.now();</span>
-<span class="nc" id="L87">    }</span>
+<span class="nc" id="L88">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L89">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L90">    }</span>
 
     @PreUpdate
     protected void onUpdate() {
-<span class="nc" id="L91">        updatedDate = LocalDateTime.now();</span>
-<span class="nc" id="L92">    }</span>
+<span class="nc" id="L94">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L95">    }</span>
 
     // Getters and Setters
 
-<span class="fc" id="L96">    public Long getId() { return id; }</span>
-<span class="fc" id="L97">    public void setId(Long id) { this.id = id; }</span>
+<span class="fc" id="L99">    public Long getId() { return id; }</span>
+<span class="fc" id="L100">    public void setId(Long id) { this.id = id; }</span>
 
-<span class="fc" id="L99">    public Long getLegacyId() { return legacyId; }</span>
-<span class="fc" id="L100">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+<span class="fc" id="L102">    public Long getLegacyId() { return legacyId; }</span>
+<span class="fc" id="L103">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
 
-<span class="fc" id="L102">    public String getOfferType() { return offerType; }</span>
-<span class="fc" id="L103">    public void setOfferType(String offerType) { this.offerType = offerType; }</span>
+<span class="fc" id="L105">    public String getOfferType() { return offerType; }</span>
+<span class="fc" id="L106">    public void setOfferType(String offerType) { this.offerType = offerType; }</span>
 
-<span class="fc" id="L105">    public String getStatus() { return status; }</span>
-<span class="fc" id="L106">    public void setStatus(String status) { this.status = status; }</span>
+<span class="fc" id="L108">    public String getStatus() { return status; }</span>
+<span class="fc" id="L109">    public void setStatus(String status) { this.status = status; }</span>
 
-<span class="fc" id="L108">    public Integer getTotalQty() { return totalQty; }</span>
-<span class="fc" id="L109">    public void setTotalQty(Integer totalQty) { this.totalQty = totalQty; }</span>
+<span class="fc" id="L111">    public Integer getTotalQty() { return totalQty; }</span>
+<span class="fc" id="L112">    public void setTotalQty(Integer totalQty) { this.totalQty = totalQty; }</span>
 
-<span class="fc" id="L111">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
-<span class="fc" id="L112">    public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }</span>
+<span class="fc" id="L114">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
+<span class="fc" id="L115">    public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }</span>
 
-<span class="fc" id="L114">    public String getOfferNumber() { return offerNumber; }</span>
-<span class="fc" id="L115">    public void setOfferNumber(String offerNumber) { this.offerNumber = offerNumber; }</span>
+<span class="fc" id="L117">    public String getOfferNumber() { return offerNumber; }</span>
+<span class="fc" id="L118">    public void setOfferNumber(String offerNumber) { this.offerNumber = offerNumber; }</span>
 
-<span class="fc" id="L117">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
-<span class="fc" id="L118">    public void setBuyerCodeId(Long buyerCodeId) { this.buyerCodeId = buyerCodeId; }</span>
+<span class="fc" id="L120">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
+<span class="fc" id="L121">    public void setBuyerCodeId(Long buyerCodeId) { this.buyerCodeId = buyerCodeId; }</span>
 
-<span class="nc" id="L120">    public Long getSalesRepId() { return salesRepId; }</span>
-<span class="nc" id="L121">    public void setSalesRepId(Long salesRepId) { this.salesRepId = salesRepId; }</span>
+<span class="nc" id="L123">    public Long getSalesRepId() { return salesRepId; }</span>
+<span class="nc" id="L124">    public void setSalesRepId(Long salesRepId) { this.salesRepId = salesRepId; }</span>
 
-<span class="fc" id="L123">    public LocalDateTime getSubmissionDate() { return submissionDate; }</span>
-<span class="fc" id="L124">    public void setSubmissionDate(LocalDateTime submissionDate) { this.submissionDate = submissionDate; }</span>
+<span class="fc" id="L126">    public LocalDateTime getSubmissionDate() { return submissionDate; }</span>
+<span class="fc" id="L127">    public void setSubmissionDate(LocalDateTime submissionDate) { this.submissionDate = submissionDate; }</span>
 
-<span class="nc" id="L126">    public LocalDateTime getSalesReviewCompletedOn() { return salesReviewCompletedOn; }</span>
-<span class="fc" id="L127">    public void setSalesReviewCompletedOn(LocalDateTime salesReviewCompletedOn) { this.salesReviewCompletedOn = salesReviewCompletedOn; }</span>
+<span class="nc" id="L129">    public LocalDateTime getSalesReviewCompletedOn() { return salesReviewCompletedOn; }</span>
+<span class="fc" id="L130">    public void setSalesReviewCompletedOn(LocalDateTime salesReviewCompletedOn) { this.salesReviewCompletedOn = salesReviewCompletedOn; }</span>
 
-<span class="fc" id="L129">    public LocalDateTime getCanceledOn() { return canceledOn; }</span>
-<span class="fc" id="L130">    public void setCanceledOn(LocalDateTime canceledOn) { this.canceledOn = canceledOn; }</span>
+<span class="fc" id="L132">    public LocalDateTime getCanceledOn() { return canceledOn; }</span>
+<span class="fc" id="L133">    public void setCanceledOn(LocalDateTime canceledOn) { this.canceledOn = canceledOn; }</span>
 
-<span class="fc" id="L132">    public LocalDateTime getFinalOfferSubmittedOn() { return finalOfferSubmittedOn; }</span>
-<span class="fc" id="L133">    public void setFinalOfferSubmittedOn(LocalDateTime finalOfferSubmittedOn) { this.finalOfferSubmittedOn = finalOfferSubmittedOn; }</span>
+<span class="fc" id="L135">    public LocalDateTime getFinalOfferSubmittedOn() { return finalOfferSubmittedOn; }</span>
+<span class="fc" id="L136">    public void setFinalOfferSubmittedOn(LocalDateTime finalOfferSubmittedOn) { this.finalOfferSubmittedOn = finalOfferSubmittedOn; }</span>
 
-<span class="fc" id="L135">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
-<span class="fc" id="L136">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+<span class="fc" id="L138">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L139">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
 
-<span class="fc" id="L138">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
-<span class="fc" id="L139">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+<span class="fc" id="L141">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="fc" id="L142">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
 
-<span class="fc" id="L141">    public Integer getCounterOfferTotalSku() { return counterOfferTotalSku; }</span>
-<span class="nc" id="L142">    public void setCounterOfferTotalSku(Integer counterOfferTotalSku) { this.counterOfferTotalSku = counterOfferTotalSku; }</span>
+<span class="fc" id="L144">    public Integer getCounterOfferTotalSku() { return counterOfferTotalSku; }</span>
+<span class="nc" id="L145">    public void setCounterOfferTotalSku(Integer counterOfferTotalSku) { this.counterOfferTotalSku = counterOfferTotalSku; }</span>
 
-<span class="fc" id="L144">    public Integer getCounterOfferTotalQty() { return counterOfferTotalQty; }</span>
-<span class="nc" id="L145">    public void setCounterOfferTotalQty(Integer counterOfferTotalQty) { this.counterOfferTotalQty = counterOfferTotalQty; }</span>
+<span class="fc" id="L147">    public Integer getCounterOfferTotalQty() { return counterOfferTotalQty; }</span>
+<span class="nc" id="L148">    public void setCounterOfferTotalQty(Integer counterOfferTotalQty) { this.counterOfferTotalQty = counterOfferTotalQty; }</span>
 
-<span class="fc" id="L147">    public BigDecimal getCounterOfferTotalPrice() { return counterOfferTotalPrice; }</span>
-<span class="nc" id="L148">    public void setCounterOfferTotalPrice(BigDecimal counterOfferTotalPrice) { this.counterOfferTotalPrice = counterOfferTotalPrice; }</span>
+<span class="fc" id="L150">    public BigDecimal getCounterOfferTotalPrice() { return counterOfferTotalPrice; }</span>
+<span class="nc" id="L151">    public void setCounterOfferTotalPrice(BigDecimal counterOfferTotalPrice) { this.counterOfferTotalPrice = counterOfferTotalPrice; }</span>
 
-<span class="fc" id="L150">    public Integer getFinalOfferTotalSku() { return finalOfferTotalSku; }</span>
-<span class="fc" id="L151">    public void setFinalOfferTotalSku(Integer finalOfferTotalSku) { this.finalOfferTotalSku = finalOfferTotalSku; }</span>
+<span class="fc" id="L153">    public Integer getFinalOfferTotalSku() { return finalOfferTotalSku; }</span>
+<span class="fc" id="L154">    public void setFinalOfferTotalSku(Integer finalOfferTotalSku) { this.finalOfferTotalSku = finalOfferTotalSku; }</span>
 
-<span class="fc" id="L153">    public Integer getFinalOfferTotalQty() { return finalOfferTotalQty; }</span>
-<span class="fc" id="L154">    public void setFinalOfferTotalQty(Integer finalOfferTotalQty) { this.finalOfferTotalQty = finalOfferTotalQty; }</span>
+<span class="fc" id="L156">    public Integer getFinalOfferTotalQty() { return finalOfferTotalQty; }</span>
+<span class="fc" id="L157">    public void setFinalOfferTotalQty(Integer finalOfferTotalQty) { this.finalOfferTotalQty = finalOfferTotalQty; }</span>
 
-<span class="fc" id="L156">    public BigDecimal getFinalOfferTotalPrice() { return finalOfferTotalPrice; }</span>
-<span class="fc" id="L157">    public void setFinalOfferTotalPrice(BigDecimal finalOfferTotalPrice) { this.finalOfferTotalPrice = finalOfferTotalPrice; }</span>
+<span class="fc" id="L159">    public BigDecimal getFinalOfferTotalPrice() { return finalOfferTotalPrice; }</span>
+<span class="fc" id="L160">    public void setFinalOfferTotalPrice(BigDecimal finalOfferTotalPrice) { this.finalOfferTotalPrice = finalOfferTotalPrice; }</span>
 
-<span class="nc" id="L159">    public LocalDateTime getCounterResponseSubmittedOn() { return counterResponseSubmittedOn; }</span>
-<span class="fc" id="L160">    public void setCounterResponseSubmittedOn(LocalDateTime counterResponseSubmittedOn) { this.counterResponseSubmittedOn = counterResponseSubmittedOn; }</span>
+<span class="nc" id="L162">    public LocalDateTime getCounterResponseSubmittedOn() { return counterResponseSubmittedOn; }</span>
+<span class="fc" id="L163">    public void setCounterResponseSubmittedOn(LocalDateTime counterResponseSubmittedOn) { this.counterResponseSubmittedOn = counterResponseSubmittedOn; }</span>
 
-<span class="fc" id="L162">    public List&lt;OfferItem&gt; getItems() { return items; }</span>
-<span class="fc" id="L163">    public void setItems(List&lt;OfferItem&gt; items) { this.items = items; }</span>
+<span class="nc" id="L165">    public boolean isVisibleInHistory() { return visibleInHistory; }</span>
+<span class="nc" id="L166">    public void setVisibleInHistory(boolean visibleInHistory) { this.visibleInHistory = visibleInHistory; }</span>
+
+<span class="fc" id="L168">    public List&lt;OfferItem&gt; getItems() { return items; }</span>
+<span class="fc" id="L169">    public void setItems(List&lt;OfferItem&gt; items) { this.items = items; }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

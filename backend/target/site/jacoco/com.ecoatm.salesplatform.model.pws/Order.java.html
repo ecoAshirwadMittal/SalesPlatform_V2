@@ -69,8 +69,8 @@ import java.util.List;
     @Column(name = &quot;updated_date&quot;)
     private LocalDateTime updatedDate;
 
-<span class="fc" id="L72">    @OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
-    private List&lt;ShipmentDetail&gt; shipments = new ArrayList&lt;&gt;();
+    @OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
+<span class="fc" id="L73">    private List&lt;ShipmentDetail&gt; shipments = new ArrayList&lt;&gt;();</span>
 
     @PrePersist
     protected void onCreate() {

@@ -1,0 +1,104 @@
+- generic [ref=e1]:
+  - generic [ref=e107]:
+    - list [ref=e112]:
+      - listitem [ref=e113]:
+        - button " Shop" [active] [ref=e116] [cursor=pointer]:
+          - generic [ref=e117]: 
+          - generic [ref=e118]: Shop
+      - listitem [ref=e119]:
+        - button " Counters" [ref=e122] [cursor=pointer]:
+          - generic [ref=e123]: 
+          - generic [ref=e124]: Counters
+      - listitem [ref=e125]:
+        - button " Orders" [ref=e128] [cursor=pointer]:
+          - generic [ref=e129]: 
+          - generic [ref=e130]: Orders
+      - listitem [ref=e131]:
+        - button " RMAs" [ref=e134] [cursor=pointer]:
+          - generic [ref=e135]: 
+          - generic [ref=e136]: RMAs
+      - listitem [ref=e137]:
+        - button " FAQ's" [ref=e140] [cursor=pointer]:
+          - generic [ref=e141]: 
+          - generic [ref=e142]: FAQ's
+      - listitem [ref=e143]:
+        - button " Grading" [ref=e146] [cursor=pointer]:
+          - generic [ref=e147]: 
+          - generic [ref=e148]: Grading
+    - generic [ref=e151]:
+      - generic [ref=e157]:
+        - generic [ref=e161]: Premium Wholesale
+        - generic [ref=e3978]:
+          - generic [ref=e3979]: View As
+          - generic [ref=e3982]:
+            - generic [ref=e3983]:
+              - combobox "View As" [ref=e3984]
+              - generic [ref=e3985]: NB_PWS Nadia Boonnayanont
+            - img [ref=e3988] [cursor=pointer]: 
+        - button [ref=e202] [cursor=pointer]:
+          - generic [ref=e203]: 
+      - generic [ref=e205]:
+        - generic [ref=e4000]:
+          - generic [ref=e4004]:
+            - generic [ref=e4007]: RMA Requests
+            - textbox "Search" [ref=e4013]:
+              - /placeholder: ""
+            - button "Request an RMA" [ref=e4017] [cursor=pointer]
+            - button [ref=e4023] [cursor=pointer]
+          - grid [ref=e4025]:
+            - rowgroup [ref=e4026]:
+              - row "sort RMA Number sort Submit Date sort Buyer sort Company sort RMA Status sort SKUs sort Qty sort Original Total Column selector" [ref=e4027]:
+                - columnheader "sort RMA Number" [ref=e4028]:
+                  - button "sort RMA Number" [ref=e4030] [cursor=pointer]:
+                    - generic [ref=e4031]: RMA Number
+                    - img [ref=e4032]
+                - columnheader "sort Submit Date" [ref=e4036]:
+                  - button "sort Submit Date" [ref=e4038] [cursor=pointer]:
+                    - generic [ref=e4039]: Submit Date
+                    - img [ref=e4040]
+                - columnheader "sort Buyer" [ref=e4044]:
+                  - button "sort Buyer" [ref=e4046] [cursor=pointer]:
+                    - generic [ref=e4047]: Buyer
+                    - img [ref=e4048]
+                - columnheader "sort Company" [ref=e4052]:
+                  - button "sort Company" [ref=e4054] [cursor=pointer]:
+                    - generic [ref=e4055]: Company
+                    - img [ref=e4056]
+                - columnheader "sort RMA Status" [ref=e4060]:
+                  - button "sort RMA Status" [ref=e4062] [cursor=pointer]:
+                    - generic [ref=e4063]: RMA Status
+                    - img [ref=e4064]
+                - columnheader "sort SKUs" [ref=e4068]:
+                  - button "sort SKUs" [ref=e4070] [cursor=pointer]:
+                    - generic [ref=e4071]: SKUs
+                    - img [ref=e4072]
+                - columnheader "sort Qty" [ref=e4076]:
+                  - button "sort Qty" [ref=e4078] [cursor=pointer]:
+                    - generic [ref=e4079]: Qty
+                    - img [ref=e4080]
+                - columnheader "sort Original Total" [ref=e4084]:
+                  - button "sort Original Total" [ref=e4086] [cursor=pointer]:
+                    - generic [ref=e4087]: Original Total
+                    - img [ref=e4088]
+                - columnheader "Column selector" [ref=e4090]:
+                  - button "Column selector" [ref=e4092] [cursor=pointer]:
+                    - img [ref=e4093]
+            - rowgroup [ref=e4095]:
+              - generic [ref=e4099]: There are currently no RMA requests
+          - generic "Pagination" [ref=e4101]:
+            - button "Go to first page" [disabled]:
+              - generic:
+                - img
+            - button "Go to previous page" [disabled]:
+              - generic:
+                - img
+            - generic [ref=e4102]: Currently showing 0 to 0 of 0
+            - generic [ref=e4103]: 0 to 0 of 0
+            - button "Go to next page" [disabled]:
+              - generic:
+                - img
+            - button "Go to last page" [disabled]:
+              - generic:
+                - img
+        - text: 
+  - status [ref=e4104]

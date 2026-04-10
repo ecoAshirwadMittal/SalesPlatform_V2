@@ -1,0 +1,1598 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - img "ecoATM" [ref=e5]
+        - generic [ref=e6]: Premium Wholesale
+      - generic [ref=e58]:
+        - generic [ref=e59]: View As
+        - button "Select buyer code" [ref=e60] [cursor=pointer]:
+          - generic [ref=e61]: 001 Bidder User
+          - img [ref=e62]
+      - button "User menu" [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+    - generic [ref=e12]:
+      - complementary [ref=e13]:
+        - link "Shop" [ref=e14] [cursor=pointer]:
+          - /url: /pws/order
+          - img [ref=e16]
+          - generic [ref=e20]: Shop
+        - link "Counters" [ref=e21] [cursor=pointer]:
+          - /url: /pws/counter-offers
+          - img [ref=e23]
+          - generic [ref=e28]: Counters
+        - link "Orders" [ref=e29] [cursor=pointer]:
+          - /url: /pws/orders
+          - img [ref=e31]
+          - generic [ref=e34]: Orders
+        - link "RMAs" [ref=e35] [cursor=pointer]:
+          - /url: /pws/rma-requests
+          - img [ref=e37]
+          - generic [ref=e40]: RMAs
+        - link "FAQ's" [ref=e41] [cursor=pointer]:
+          - /url: /pws/faqs
+          - img [ref=e43]
+          - generic [ref=e46]: FAQ's
+        - link "Grading" [ref=e47] [cursor=pointer]:
+          - /url: /pws/grading
+          - img [ref=e49]
+          - generic [ref=e51]: Grading
+      - main [ref=e52]:
+        - generic [ref=e54]:
+          - generic [ref=e55]:
+            - heading "Inventory" [level=1] [ref=e64]
+            - generic [ref=e65]:
+              - textbox "Search inventory..." [ref=e66]
+              - img
+            - button "Export" [ref=e67] [cursor=pointer]
+          - generic [ref=e69]:
+            - button "Functional Devices" [ref=e70] [cursor=pointer]
+            - button "Functional Case Lots" [ref=e71] [cursor=pointer]
+          - generic [ref=e72]:
+            - table [ref=e74]:
+              - rowgroup [ref=e75]:
+                - row "SKU Category Brand Model Family Carrier Capacity Color Grade Price Avl. Qty" [ref=e76]:
+                  - columnheader "SKU" [ref=e77] [cursor=pointer]:
+                    - text: SKU
+                    - img [ref=e79]
+                  - columnheader "Category" [ref=e82] [cursor=pointer]:
+                    - text: Category
+                    - img [ref=e84]
+                  - columnheader "Brand" [ref=e87] [cursor=pointer]:
+                    - text: Brand
+                    - img [ref=e89]
+                  - columnheader "Model Family" [ref=e92] [cursor=pointer]:
+                    - text: Model Family
+                    - img [ref=e94]
+                  - columnheader "Carrier" [ref=e97] [cursor=pointer]:
+                    - text: Carrier
+                    - img [ref=e99]
+                  - columnheader "Capacity" [ref=e102] [cursor=pointer]:
+                    - text: Capacity
+                    - img [ref=e104]
+                  - columnheader "Color" [ref=e107] [cursor=pointer]:
+                    - text: Color
+                    - img [ref=e109]
+                  - columnheader "Grade" [ref=e112] [cursor=pointer]:
+                    - text: Grade
+                    - img [ref=e114]
+                  - columnheader "Price" [ref=e117] [cursor=pointer]:
+                    - text: Price
+                    - img [ref=e119]
+                  - columnheader "Avl. Qty" [ref=e122] [cursor=pointer]:
+                    - text: Avl. Qty
+                    - img [ref=e124]
+                - row "Search Search Search Search Search Search Search" [ref=e127]:
+                  - columnheader [ref=e128]:
+                    - textbox [ref=e129]
+                  - columnheader "Search" [ref=e130]:
+                    - combobox [ref=e131] [cursor=pointer]:
+                      - option "Search" [selected]
+                      - option "Cell Phone"
+                      - option "Tablet"
+                  - columnheader "Search" [ref=e132]:
+                    - combobox [ref=e133] [cursor=pointer]:
+                      - option "Search" [selected]
+                      - option "Apple"
+                      - option "Asus"
+                      - option "Blu"
+                      - option "Google"
+                      - option "Huawei"
+                      - option "LG"
+                      - option "Motorola"
+                      - option "Nokia"
+                      - option "OnePlus"
+                      - option "Oppo"
+                      - option "Realme"
+                      - option "Samsung"
+                      - option "Sony"
+                      - option "Vivo"
+                      - option "Xiaomi"
+                      - option "ZTE"
+                      - option "iPad"
+                  - columnheader "Search" [ref=e134]:
+                    - combobox [ref=e135] [cursor=pointer]:
+                      - option "Search" [selected]
+                      - option "Asus Rog Phone 6 128gb"
+                      - option "Asus Rog Phone 6 256gb"
+                      - option "Asus Rog Phone 6 2tb"
+                      - option "Asus Rog Phone 6 8gb"
+                      - option "Asus Rog Phone 7 10gb"
+                      - option "Asus Rog Phone 7 2tb"
+                      - option "Asus Rog Phone 7 5tb"
+                      - option "Asus Rog Phone 8 256gb"
+                      - option "Asus Rog Phone 8 2tb"
+                      - option "Asus Rog Phone 8 64gb"
+                      - option "Asus Zenfone 9 128gb"
+                      - option "Asus Zenfone 9 1tb"
+                      - option "Asus Zenfone 9 2tb"
+                      - option "Asus Zenfone 9 32gb"
+                      - option "Asus Zenfone 9 512gb"
+                      - option "Cat S75 128gb"
+                      - option "Cat S75 16gb"
+                      - option "Cat S75 32gb"
+                      - option "Edge+ (2023)"
+                      - option "Fairphone 4 1tb"
+                      - option "Fairphone 4 512gb"
+                      - option "Fairphone 5 10gb"
+                      - option "Fairphone 5 1tb"
+                      - option "Fairphone 5 2tb"
+                      - option "Find X3"
+                      - option "Find X6"
+                      - option "Galaxy Note10"
+                      - option "Galaxy Note10+"
+                      - option "Galaxy Note10+ 5G"
+                      - option "Galaxy Note20 5G"
+                      - option "Galaxy Note20 5g"
+                      - option "Galaxy Note20 Ultra 5G"
+                      - option "Galaxy Note9"
+                      - option "Galaxy S10"
+                      - option "Galaxy S10 5G"
+                      - option "Galaxy S10+"
+                      - option "Galaxy S10e"
+                      - option "Galaxy S20"
+                      - option "Galaxy S20 2tb"
+                      - option "Galaxy S20 512gb"
+                      - option "Galaxy S20 FE 5G"
+                      - option "Galaxy S20 Fe 10gb"
+                      - option "Galaxy S20 Fe 2tb"
+                      - option "Galaxy S20 Fe 8gb"
+                      - option "Galaxy S20 Ultra"
+                      - option "Galaxy S20 Ultra 4gb"
+                      - option "Galaxy S20 Ultra 512gb"
+                      - option "Galaxy S20 Ultra 64gb"
+                      - option "Galaxy S20 Ultra 8gb"
+                      - option "Galaxy S20+"
+                      - option "Galaxy S20+ 16gb"
+                      - option "Galaxy S20+ 1tb"
+                      - option "Galaxy S21"
+                      - option "Galaxy S21 5G"
+                      - option "Galaxy S21 FE 5G"
+                      - option "Galaxy S21 Fe 128gb"
+                      - option "Galaxy S21 Fe 4gb"
+                      - option "Galaxy S21 Ultra"
+                      - option "Galaxy S21 Ultra 16gb"
+                      - option "Galaxy S21 Ultra 32gb"
+                      - option "Galaxy S21 Ultra 5G"
+                      - option "Galaxy S21+"
+                      - option "Galaxy S21+ 256gb"
+                      - option "Galaxy S21+ 5G"
+                      - option "Galaxy S22 1tb"
+                      - option "Galaxy S22 32gb"
+                      - option "Galaxy S22 4gb"
+                      - option "Galaxy S22 512gb"
+                      - option "Galaxy S22 5G"
+                      - option "Galaxy S22 Ultra"
+                      - option "Galaxy S22 Ultra 10gb"
+                      - option "Galaxy S22 Ultra 128gb"
+                      - option "Galaxy S22 Ultra 16gb"
+                      - option "Galaxy S22 Ultra 4gb"
+                      - option "Galaxy S22 Ultra 5G"
+                      - option "Galaxy S22+ 10gb"
+                      - option "Galaxy S22+ 16gb"
+                      - option "Galaxy S22+ 5G"
+                      - option "Galaxy S23"
+                      - option "Galaxy S23 10gb"
+                      - option "Galaxy S23 16gb"
+                      - option "Galaxy S23 256gb"
+                      - option "Galaxy S23 2tb"
+                      - option "Galaxy S23 32gb"
+                      - option "Galaxy S23 4gb"
+                      - option "Galaxy S23 512gb"
+                      - option "Galaxy S23 5tb"
+                      - option "Galaxy S23 64gb"
+                      - option "Galaxy S23 8gb"
+                      - option "Galaxy S23 FE"
+                      - option "Galaxy S23 Fe 8gb"
+                      - option "Galaxy S23 Ultra"
+                      - option "Galaxy S23+"
+                      - option "Galaxy S23+ 128gb"
+                      - option "Galaxy S23+ 256gb"
+                      - option "Galaxy S23+ 512gb"
+                      - option "Galaxy S23+ 8gb"
+                      - option "Galaxy S24"
+                      - option "Galaxy S24 128gb"
+                      - option "Galaxy S24 16gb"
+                      - option "Galaxy S24 FE"
+                      - option "Galaxy S24 Ultra"
+                      - option "Galaxy S24 Ultra 16gb"
+                      - option "Galaxy S24 Ultra 4gb"
+                      - option "Galaxy S24+"
+                      - option "Galaxy S25"
+                      - option "Galaxy S25 Edge"
+                      - option "Galaxy S25 Ultra"
+                      - option "Galaxy S25+"
+                      - option "Galaxy S26"
+                      - option "Galaxy S26 Ultra"
+                      - option "Galaxy S26+"
+                      - option "Galaxy S6"
+                      - option "Galaxy S6 Edge"
+                      - option "Galaxy S7"
+                      - option "Galaxy S8"
+                      - option "Galaxy S9"
+                      - option "Galaxy S9+"
+                      - option "Galaxy Tab S10 Ultra"
+                      - option "Galaxy Tab S10+"
+                      - option "Galaxy Z Flip 3 2tb"
+                      - option "Galaxy Z Flip 4 4gb"
+                      - option "Galaxy Z Flip 5 2tb"
+                      - option "Galaxy Z Flip3 5G"
+                      - option "Galaxy Z Flip4"
+                      - option "Galaxy Z Flip5"
+                      - option "Galaxy Z Flip6"
+                      - option "Galaxy Z Fold 4 1tb"
+                      - option "Galaxy Z Fold 4 256gb"
+                      - option "Galaxy Z Fold 5 256gb"
+                      - option "Galaxy Z Fold3 5G"
+                      - option "Galaxy Z Fold4"
+                      - option "Galaxy Z Fold5"
+                      - option "Galaxy Z Fold6"
+                      - option "Google Pixel 10 Pro Xl"
+                      - option "Honor 100 10gb"
+                      - option "Honor 100 16gb"
+                      - option "Honor 100 512gb"
+                      - option "Honor 90 128gb"
+                      - option "Honor 90 16gb"
+                      - option "Honor 90 4gb"
+                      - option "Honor 90 64gb"
+                      - option "Honor Magic 5 16gb"
+                      - option "Honor Magic 5 256gb"
+                      - option "Honor Magic 6 Pro 16gb"
+                      - option "Huawei Mate 10"
+                      - option "Huawei Mate 50 Pro 16gb"
+                      - option "Huawei Mate 50 Pro 256gb"
+                      - option "Huawei Mate 50 Pro 5tb"
+                      - option "Huawei Mate 60 Pro 10gb"
+                      - option "Huawei Mate 60 Pro 2tb"
+                      - option "Huawei Mate Xs 2 10gb"
+                      - option "Huawei Mate Xs 2 32gb"
+                      - option "Huawei P40 128gb"
+                      - option "Huawei P40 2tb"
+                      - option "Huawei P40 32gb"
+                      - option "Huawei P40 5tb"
+                      - option "Huawei P40 8gb"
+                      - option "Huawei P40 Pro 1tb"
+                      - option "Huawei P60 Pro 2tb"
+                      - option "Huawei P9"
+                      - option "Iqoo 11 128gb"
+                      - option "Iqoo 11 2tb"
+                      - option "Iqoo 11 8gb"
+                      - option "Iqoo 12 16gb"
+                      - option "Iqoo 12 2tb"
+                      - option "Iqoo 12 32gb"
+                      - option "Iqoo 12 5tb"
+                      - option "Iqoo 12 64gb"
+                      - option "Iqoo 12 8gb"
+                      - option "Kyocera Duraforce Pro 3 256gb"
+                      - option "Kyocera Duraforce Pro 3 32gb"
+                      - option "Lg Velvet 4gb"
+                      - option "Lg Velvet 512gb"
+                      - option "Lg Velvet 8gb"
+                      - option "Mate 20"
+                      - option "Mate 30"
+                      - option "Mate 40"
+                      - option "Mi 11"
+                      - option "Mi 12"
+                      - option "Mi 9 Pro"
+                      - option "Mi 9t"
+                      - option "Moto Edge"
+                      - option "Moto Edge+"
+                      - option "Moto G Power 2024 2tb"
+                      - option "Moto G Stylus 2024 16gb"
+                      - option "Moto G Stylus 2024 5tb"
+                      - option "Moto G Stylus 2024 8gb"
+                      - option "Moto Z"
+                      - option "Moto Z2 Force"
+                      - option "Motorola Edge 30 Pro 32gb"
+                      - option "Motorola Edge 30 Pro 64gb"
+                      - option "Motorola Edge 40 16gb"
+                      - option "Motorola Edge 40 4gb"
+                      - option "Nokia X30 5g 4gb"
+                      - option "Nokia X30 5g 64gb"
+                      - option "Nokia Xr21 5tb"
+                      - option "Nubia Z50 Ultra 128gb"
+                      - option "Nubia Z50 Ultra 2tb"
+                      - option "Nubia Z50 Ultra 32gb"
+                      - option "Nubia Z60 Ultra 5tb"
+                      - option "Oneplus 10 Pro"
+                      - option "Oneplus 10 Pro 1tb"
+                      - option "Oneplus 10 Pro 256gb"
+                      - option "Oneplus 10 Pro 2tb"
+                      - option "Oneplus 10t 10gb"
+                      - option "Oneplus 10t 16gb"
+                      - option "Oneplus 10t 256gb"
+                      - option "Oneplus 10t 512gb"
+                      - option "Oneplus 11"
+                      - option "Oneplus 11 128gb"
+                      - option "Oneplus 11 8gb"
+                      - option "Oneplus 11r 1tb"
+                      - option "Oneplus 12"
+                      - option "Oneplus 12 128gb"
+                      - option "Oneplus 12 1tb"
+                      - option "Oneplus 12 256gb"
+                      - option "Oneplus 12 2tb"
+                      - option "Oneplus 12 32gb"
+                      - option "Oneplus 12 4gb"
+                      - option "Oneplus 12 512gb"
+                      - option "Oneplus 12 5tb"
+                      - option "Oneplus 12 64gb"
+                      - option "Oneplus 12 8gb"
+                      - option "Oneplus 12r 5tb"
+                      - option "Oneplus 12r 64gb"
+                      - option "Oneplus 13"
+                      - option "Oneplus 15"
+                      - option "Oneplus 2"
+                      - option "Oneplus 3"
+                      - option "Oneplus 3t"
+                      - option "Oneplus 5"
+                      - option "Oneplus 6"
+                      - option "Oneplus 6t"
+                      - option "Oneplus 7"
+                      - option "Oneplus 7 Pro"
+                      - option "Oneplus 7t Pro"
+                      - option "Oneplus 8"
+                      - option "Oneplus 8 4gb"
+                      - option "Oneplus 8 512gb"
+                      - option "Oneplus 8 Pro"
+                      - option "Oneplus 8 Pro 16gb"
+                      - option "Oneplus 8t 128gb"
+                      - option "Oneplus 9 2tb"
+                      - option "Oneplus 9 4gb"
+                      - option "Oneplus 9 Pro"
+                      - option "Oneplus 9 Pro 256gb"
+                      - option "Oneplus 9 Pro 32gb"
+                      - option "Oneplus 9r 4gb"
+                      - option "Oneplus Nord 2 4gb"
+                      - option "Oneplus Nord Ce 5g 2tb"
+                      - option "Oppo Find X"
+                      - option "Oppo Find X3 Pro 128gb"
+                      - option "Oppo Find X3 Pro 5tb"
+                      - option "Oppo Find X5 Pro 2tb"
+                      - option "Oppo Find X5 Pro 5tb"
+                      - option "Oppo Find X6 Pro 8gb"
+                      - option "Oppo Find X7 Ultra 16gb"
+                      - option "Oppo Find X7 Ultra 1tb"
+                      - option "Oppo Reno 10"
+                      - option "Oppo Reno 10 128gb"
+                      - option "Oppo Reno 10 32gb"
+                      - option "Oppo Reno 10 64gb"
+                      - option "Oppo Reno 11 128gb"
+                      - option "Oppo Reno 11 1tb"
+                      - option "Oppo Reno 9 128gb"
+                      - option "Oppo Reno 9 1tb"
+                      - option "Oppo Reno 9 4gb"
+                      - option "P30"
+                      - option "P50"
+                      - option "Palm Phone (2019) 16gb"
+                      - option "Palm Phone (2019) 2tb"
+                      - option "Palm Phone (2019) 32gb"
+                      - option "Palm Phone (2019) 8gb"
+                      - option "Pixel"
+                      - option "Pixel 10"
+                      - option "Pixel 10 Pro"
+                      - option "Pixel 2 Xl"
+                      - option "Pixel 3"
+                      - option "Pixel 3 Xl"
+                      - option "Pixel 4"
+                      - option "Pixel 4 16gb"
+                      - option "Pixel 4 512gb"
+                      - option "Pixel 4 XL"
+                      - option "Pixel 4 Xl 128gb"
+                      - option "Pixel 4 Xl 1tb"
+                      - option "Pixel 4a"
+                      - option "Pixel 4a 2tb"
+                      - option "Pixel 4a 4gb"
+                      - option "Pixel 4a 5tb"
+                      - option "Pixel 5"
+                      - option "Pixel 5a"
+                      - option "Pixel 5a 128gb"
+                      - option "Pixel 5a 32gb"
+                      - option "Pixel 5a 512gb"
+                      - option "Pixel 5a 8gb"
+                      - option "Pixel 6"
+                      - option "Pixel 6 32gb"
+                      - option "Pixel 6 5tb"
+                      - option "Pixel 6 Pro"
+                      - option "Pixel 6 Pro 16gb"
+                      - option "Pixel 6 Pro 32gb"
+                      - option "Pixel 6 Pro 8gb"
+                      - option "Pixel 6a"
+                      - option "Pixel 6a 1tb"
+                      - option "Pixel 6a 5tb"
+                      - option "Pixel 6a 8gb"
+                      - option "Pixel 7"
+                      - option "Pixel 7 128gb"
+                      - option "Pixel 7 1tb"
+                      - option "Pixel 7 5tb"
+                      - option "Pixel 7 Pro"
+                      - option "Pixel 7 Pro 256gb"
+                      - option "Pixel 7 Pro 2tb"
+                      - option "Pixel 7a"
+                      - option "Pixel 7a 1tb"
+                      - option "Pixel 7a 2tb"
+                      - option "Pixel 7a 64gb"
+                      - option "Pixel 7a 8gb"
+                      - option "Pixel 8"
+                      - option "Pixel 8 1tb"
+                      - option "Pixel 8 5tb"
+                      - option "Pixel 8 Pro"
+                      - option "Pixel 8 Pro 10gb"
+                      - option "Pixel 8 Pro 128gb"
+                      - option "Pixel 8 Pro 256gb"
+                      - option "Pixel 8 Pro 2tb"
+                      - option "Pixel 8 Pro 32gb"
+                      - option "Pixel 8 Pro 4gb"
+                      - option "Pixel 8 Pro 5tb"
+                      - option "Pixel 8 Pro 8gb"
+                      - option "Pixel 8a"
+                      - option "Pixel 8a 10gb"
+                      - option "Pixel 9"
+                      - option "Pixel 9 Pro"
+                      - option "Pixel 9 Pro Fold"
+                      - option "Pixel 9 Pro XL"
+                      - option "Pixel 9a"
+                      - option "Pixel Fold"
+                      - option "Pixel Fold 128gb"
+                      - option "Pixel Fold 4gb"
+                      - option "Pixel Fold 512gb"
+                      - option "Pixel Xl"
+                      - option "Poco F4 2tb"
+                      - option "Poco F5 2tb"
+                      - option "Poco F6 10gb"
+                      - option "Poco F6 64gb"
+                      - option "Poco F6 8gb"
+                      - option "Poco X5 Pro 1tb"
+                      - option "Poco X6 Pro 1tb"
+                      - option "Poco X6 Pro 64gb"
+                      - option "Razr 2023 10gb"
+                      - option "Razr 2023 16gb"
+                      - option "Razr 2023 256gb"
+                      - option "Razr 2023 5tb"
+                      - option "Razr 2023 64gb"
+                      - option "Razr 2024 10gb"
+                      - option "Realme 12 Pro 2tb"
+                      - option "Realme Gt 2 Pro 512gb"
+                      - option "Realme Gt 3 32gb"
+                      - option "Realme Gt 3 4gb"
+                      - option "Realme Gt 3 5tb"
+                      - option "Realme Gt 5 128gb"
+                      - option "Red Magic 9 Pro 1tb"
+                      - option "Redmi Note 11 512gb"
+                      - option "Redmi Note 11 5tb"
+                      - option "Redmi Note 12 128gb"
+                      - option "Redmi Note 12 256gb"
+                      - option "Redmi Note 12 8gb"
+                      - option "Redmi Note 13 8gb"
+                      - option "Rog Phone 3"
+                      - option "Rog Phone 5"
+                      - option "Rog Phone 6"
+                      - option "Rog Phone 6d"
+                      - option "Shiftphone 8 2tb"
+                      - option "Sony Xperia 1"
+                      - option "Sony Xperia 1 Iii 8gb"
+                      - option "Sony Xperia 1 Iv 10gb"
+                      - option "Sony Xperia 1 Iv 32gb"
+                      - option "Sony Xperia 1 Iv 64gb"
+                      - option "Sony Xperia 1 V 10gb"
+                      - option "Sony Xperia 5 V 1tb"
+                      - option "Sony Xperia 5 V 2tb"
+                      - option "Vivo X100 4gb"
+                      - option "Vivo X100 512gb"
+                      - option "Vivo X100 Pro 10gb"
+                      - option "Vivo X90 Pro 16gb"
+                      - option "Vivo X90 Pro 4gb"
+                      - option "Xiaomi 11 2tb"
+                      - option "Xiaomi 11t 8gb"
+                      - option "Xiaomi 11t Pro 2tb"
+                      - option "Xiaomi 12 10gb"
+                      - option "Xiaomi 12 2tb"
+                      - option "Xiaomi 12 Pro 2tb"
+                      - option "Xiaomi 12 Pro 4gb"
+                      - option "Xiaomi 12 Pro 5tb"
+                      - option "Xiaomi 12 Pro 64gb"
+                      - option "Xiaomi 12t 16gb"
+                      - option "Xiaomi 12t 1tb"
+                      - option "Xiaomi 12t 64gb"
+                      - option "Xiaomi 12t Pro 2tb"
+                      - option "Xiaomi 13"
+                      - option "Xiaomi 13 16gb"
+                      - option "Xiaomi 13 2tb"
+                      - option "Xiaomi 13 32gb"
+                      - option "Xiaomi 13 Pro 10gb"
+                      - option "Xiaomi 13t 16gb"
+                      - option "Xiaomi 13t 1tb"
+                      - option "Xiaomi 13t 5tb"
+                      - option "Xiaomi 13t Pro 16gb"
+                      - option "Xiaomi 13t Pro 8gb"
+                      - option "Xiaomi 14 128gb"
+                      - option "Xiaomi 14 16gb"
+                      - option "Xiaomi 14 1tb"
+                      - option "Xiaomi 14 2tb"
+                      - option "Xiaomi 14 32gb"
+                      - option "Xiaomi 14 4gb"
+                      - option "Xiaomi 14 512gb"
+                      - option "Xiaomi 14 5tb"
+                      - option "Xiaomi 14 64gb"
+                      - option "Xiaomi 14 8gb"
+                      - option "Xiaomi 14 Pro 5tb"
+                      - option "Xiaomi 15"
+                      - option "Xiaomi 15 Pro"
+                      - option "Xiaomi Mi 5"
+                      - option "Xperia 1 Ii"
+                      - option "Xperia 1 Iii"
+                      - option "Xperia 1 Iv"
+                      - option "Zte Axon 40 Ultra 32gb"
+                      - option "iPad (10th generation)"
+                      - option "iPad (5th generation)"
+                      - option "iPad (6th generation)"
+                      - option "iPad (7th generation)"
+                      - option "iPad (8th generation)"
+                      - option "iPad (9th generation)"
+                      - option "iPad Air"
+                      - option "iPad Air (3rd generation)"
+                      - option "iPad Air (4th generation)"
+                      - option "iPad Air (5th generation)"
+                      - option "iPad Air 13-inch (M2)"
+                      - option "iPad Air 2"
+                      - option "iPad Pro (10.5-inch)"
+                      - option "iPad Pro (12.9-inch)"
+                      - option "iPad Pro (9.7-inch)"
+                      - option "iPad Pro 11-inch"
+                      - option "iPad Pro 11-inch (2nd generation)"
+                      - option "iPad Pro 11-inch (3rd generation)"
+                      - option "iPad Pro 11-inch (4th generation)"
+                      - option "iPad Pro 12.9-inch (3rd generation)"
+                      - option "iPad Pro 12.9-inch (4th generation)"
+                      - option "iPad Pro 12.9-inch (5th generation)"
+                      - option "iPad Pro 12.9-inch (6th generation)"
+                      - option "iPad mini"
+                      - option "iPad mini (5th generation)"
+                      - option "iPad mini (6th generation)"
+                      - option "iPad mini 4"
+                      - option "iPhone 11"
+                      - option "iPhone 11 1tb"
+                      - option "iPhone 11 512gb"
+                      - option "iPhone 11 5tb"
+                      - option "iPhone 11 Pro"
+                      - option "iPhone 11 Pro 512gb"
+                      - option "iPhone 11 Pro Max"
+                      - option "iPhone 11 Pro Max 5tb"
+                      - option "iPhone 12"
+                      - option "iPhone 12 128gb"
+                      - option "iPhone 12 Mini"
+                      - option "iPhone 12 Mini 2tb"
+                      - option "iPhone 12 Mini 32gb"
+                      - option "iPhone 12 Mini 5tb"
+                      - option "iPhone 12 Pro"
+                      - option "iPhone 12 Pro 10gb"
+                      - option "iPhone 12 Pro Max"
+                      - option "iPhone 12 Pro Max 1tb"
+                      - option "iPhone 12 Pro Max 2tb"
+                      - option "iPhone 13"
+                      - option "iPhone 13 10gb"
+                      - option "iPhone 13 16gb"
+                      - option "iPhone 13 1tb"
+                      - option "iPhone 13 256gb"
+                      - option "iPhone 13 32gb"
+                      - option "iPhone 13 512gb"
+                      - option "iPhone 13 Mini"
+                      - option "iPhone 13 Mini 10gb"
+                      - option "iPhone 13 Mini 256gb"
+                      - option "iPhone 13 Mini 32gb"
+                      - option "iPhone 13 Mini 512gb"
+                      - option "iPhone 13 Mini 64gb"
+                      - option "iPhone 13 Pro"
+                      - option "iPhone 13 Pro 10gb"
+                      - option "iPhone 13 Pro 16gb"
+                      - option "iPhone 13 Pro 1tb"
+                      - option "iPhone 13 Pro 256gb"
+                      - option "iPhone 13 Pro 512gb"
+                      - option "iPhone 13 Pro 8gb"
+                      - option "iPhone 13 Pro Max"
+                      - option "iPhone 13 Pro Max 1tb"
+                      - option "iPhone 13 Pro Max 256gb"
+                      - option "iPhone 13 Pro Max 2tb"
+                      - option "iPhone 13 Pro Max 512gb"
+                      - option "iPhone 137"
+                      - option "iPhone 14"
+                      - option "iPhone 14 128gb"
+                      - option "iPhone 14 16gb"
+                      - option "iPhone 14 256gb"
+                      - option "iPhone 14 2tb"
+                      - option "iPhone 14 512gb"
+                      - option "iPhone 14 5tb"
+                      - option "iPhone 14 64gb"
+                      - option "iPhone 14 Plus"
+                      - option "iPhone 14 Plus 10gb"
+                      - option "iPhone 14 Plus 256gb"
+                      - option "iPhone 14 Plus 2tb"
+                      - option "iPhone 14 Plus 512gb"
+                      - option "iPhone 14 Plus 64gb"
+                      - option "iPhone 14 Plus 8gb"
+                      - option "iPhone 14 Pro"
+                      - option "iPhone 14 Pro 128gb"
+                      - option "iPhone 14 Pro 16gb"
+                      - option "iPhone 14 Pro 1tb"
+                      - option "iPhone 14 Pro 256gb"
+                      - option "iPhone 14 Pro 512gb"
+                      - option "iPhone 14 Pro 5tb"
+                      - option "iPhone 14 Pro Max"
+                      - option "iPhone 14 Pro Max 16gb"
+                      - option "iPhone 14 Pro Max 1tb"
+                      - option "iPhone 14 Pro Max 256gb"
+                      - option "iPhone 14 Pro Max 512gb"
+                      - option "iPhone 15"
+                      - option "iPhone 15 4gb"
+                      - option "iPhone 15 Plus"
+                      - option "iPhone 15 Plus 64gb"
+                      - option "iPhone 15 Pro"
+                      - option "iPhone 15 Pro 256gb"
+                      - option "iPhone 15 Pro 32gb"
+                      - option "iPhone 15 Pro Max"
+                      - option "iPhone 15 Pro Max 10gb"
+                      - option "iPhone 15 Pro Max 128gb"
+                      - option "iPhone 15 Pro Max 1tb"
+                      - option "iPhone 15 Pro Max 256gb"
+                      - option "iPhone 15 Pro Max 32gb"
+                      - option "iPhone 15 Pro Max 4gb"
+                      - option "iPhone 15 Pro Max 512gb"
+                      - option "iPhone 15 Pro Max 5tb"
+                      - option "iPhone 16"
+                      - option "iPhone 16 Plus"
+                      - option "iPhone 16 Pro"
+                      - option "iPhone 16 Pro Max"
+                      - option "iPhone 16e"
+                      - option "iPhone 17 Pro"
+                      - option "iPhone 17 Pro Max"
+                      - option "iPhone 241"
+                      - option "iPhone 314"
+                      - option "iPhone 5"
+                      - option "iPhone 676"
+                      - option "iPhone 6s Plus"
+                      - option "iPhone 8 5tb"
+                      - option "iPhone 8 Plus"
+                      - option "iPhone 817"
+                      - option "iPhone SE (2nd generation)"
+                      - option "iPhone SE (3rd generation)"
+                      - option "iPhone Se (2022) 10gb"
+                      - option "iPhone Se (2022) 32gb"
+                      - option "iPhone Se (2022) 64gb"
+                      - option "iPhone X"
+                      - option "iPhone X 10gb"
+                      - option "iPhone XR"
+                      - option "iPhone XS"
+                      - option "iPhone XS Max"
+                      - option "iPhone Xr"
+                      - option "iPhone Xr 256gb"
+                      - option "iPhone Xr 512gb"
+                      - option "iPhone Xr 5tb"
+                      - option "iPhone Xr 8gb"
+                      - option "iPhone Xs 64gb"
+                      - option "iPhone Xs Max"
+                      - option "iPhone Xs Max 128gb"
+                      - option "iPhone Xs Max 16gb"
+                      - option "iPhone Xs Max 256gb"
+                      - option "iPhone Xs Max 2tb"
+                      - option "iPhone Xs Max 32gb"
+                      - option "iPhone Xs Max 8gb"
+                      - option "iphone 11"
+                  - columnheader "Search" [ref=e136]:
+                    - combobox [ref=e137] [cursor=pointer]:
+                      - option "Search" [selected]
+                  - columnheader "Search" [ref=e138]:
+                    - combobox [ref=e139] [cursor=pointer]:
+                      - option "Search" [selected]
+                      - option "(3rd generation) 256GB (Unlocked)"
+                      - option "(3rd generation) 256GB (WiFi)"
+                      - option "(3rd generation) 64GB (Unlocked)"
+                      - option "(3rd generation) 64GB (WiFi)"
+                      - option "(4th generation) 256GB (Unlocked)"
+                      - option "(4th generation) 256GB (WiFi)"
+                      - option "(4th generation) 64GB (Unlocked)"
+                      - option "(4th generation) 64GB (WiFi)"
+                      - option "(5th generation) 256GB (Unlocked)"
+                      - option "(5th generation) 256GB (WiFi)"
+                      - option "(5th generation) 64GB (Unlocked)"
+                      - option "(5th generation) 64GB (WiFi)"
+                      - option "(6th generation) 256GB (Unlocked)"
+                      - option "(6th generation) 256GB (WiFi)"
+                      - option "(6th generation) 64GB (Unlocked)"
+                      - option "(6th generation) 64GB (WiFi)"
+                      - option "(A17 Pro) 128GB (Unlocked)"
+                      - option "(A17 Pro) 128GB (WiFi)"
+                      - option "(A17 Pro) 256GB (Unlocked)"
+                      - option "(A17 Pro) 256GB (WiFi)"
+                      - option "(A17 Pro) 512GB (Unlocked)"
+                      - option "(A17 Pro) 512GB (WiFi)"
+                      - option "10GB"
+                      - option "11-inch (2nd generation) 128GB (Unlocked)"
+                      - option "11-inch (2nd generation) 128GB (WiFi)"
+                      - option "11-inch (2nd generation) 1TB (Unlocked)"
+                      - option "11-inch (2nd generation) 1TB (WiFi)"
+                      - option "11-inch (2nd generation) 256GB (Unlocked)"
+                      - option "11-inch (2nd generation) 256GB (WiFi)"
+                      - option "11-inch (2nd generation) 512GB (Unlocked)"
+                      - option "11-inch (2nd generation) 512GB (WiFi)"
+                      - option "11-inch (3rd generation) 128GB (Unlocked)"
+                      - option "11-inch (3rd generation) 128GB (WiFi)"
+                      - option "11-inch (3rd generation) 1TB (Unlocked)"
+                      - option "11-inch (3rd generation) 1TB (WiFi)"
+                      - option "11-inch (3rd generation) 256GB (Unlocked)"
+                      - option "11-inch (3rd generation) 256GB (WiFi)"
+                      - option "11-inch (3rd generation) 2TB (Unlocked)"
+                      - option "11-inch (3rd generation) 2TB (WiFi)"
+                      - option "11-inch (3rd generation) 512GB (Unlocked)"
+                      - option "11-inch (3rd generation) 512GB (WiFi)"
+                      - option "11-inch (4th generation) 128GB (Unlocked)"
+                      - option "11-inch (4th generation) 128GB (WiFi)"
+                      - option "11-inch (4th generation) 1TB (Unlocked)"
+                      - option "11-inch (4th generation) 1TB (WiFi)"
+                      - option "11-inch (4th generation) 256GB (Unlocked)"
+                      - option "11-inch (4th generation) 256GB (WiFi)"
+                      - option "11-inch (4th generation) 2TB (Unlocked)"
+                      - option "11-inch (4th generation) 2TB (WiFi)"
+                      - option "11-inch (4th generation) 512GB (Unlocked)"
+                      - option "11-inch (4th generation) 512GB (WiFi)"
+                      - option "11-inch (M2) 128GB (Unlocked)"
+                      - option "11-inch (M2) 128GB (WiFi)"
+                      - option "11-inch (M2) 1TB (Unlocked)"
+                      - option "11-inch (M2) 1TB (WiFi)"
+                      - option "11-inch (M2) 256GB (Unlocked)"
+                      - option "11-inch (M2) 256GB (WiFi)"
+                      - option "11-inch (M2) 512GB (Unlocked)"
+                      - option "11-inch (M2) 512GB (WiFi)"
+                      - option "11-inch (M3) 128GB (Unlocked)"
+                      - option "11-inch (M3) 128GB (WiFi)"
+                      - option "11-inch (M3) 1TB (Unlocked)"
+                      - option "11-inch (M3) 1TB (WiFi)"
+                      - option "11-inch (M3) 256GB (Unlocked)"
+                      - option "11-inch (M3) 256GB (WiFi)"
+                      - option "11-inch (M3) 512GB (Unlocked)"
+                      - option "11-inch (M3) 512GB (WiFi)"
+                      - option "11-inch (M4) 1TB (Unlocked)"
+                      - option "11-inch (M4) 1TB (WiFi)"
+                      - option "11-inch (M4) 256GB (Unlocked)"
+                      - option "11-inch (M4) 256GB (WiFi)"
+                      - option "11-inch (M4) 2TB (Unlocked)"
+                      - option "11-inch (M4) 2TB (WiFi)"
+                      - option "11-inch (M4) 512GB (Unlocked)"
+                      - option "11-inch (M4) 512GB (WiFi)"
+                      - option "11-inch 1TB (Unlocked)"
+                      - option "11-inch 1TB (WiFi)"
+                      - option "11-inch 256GB (Unlocked)"
+                      - option "11-inch 256GB (WiFi)"
+                      - option "11-inch 512GB (Unlocked)"
+                      - option "11-inch 512GB (WiFi)"
+                      - option "11-inch 64GB (Unlocked)"
+                      - option "11-inch 64GB (WiFi)"
+                      - option "12"
+                      - option "128GB"
+                      - option "128GB (Unlocked)"
+                      - option "128GB (WiFi)"
+                      - option "13-inch (M2) 128GB (Unlocked)"
+                      - option "13-inch (M2) 128GB (WiFi)"
+                      - option "13-inch (M2) 256GB (WiFi)"
+                      - option "13-inch (M3) 128GB (Unlocked)"
+                      - option "13-inch (M3) 128GB (WiFi)"
+                      - option "13-inch (M3) 1TB (Unlocked)"
+                      - option "13-inch (M3) 1TB (WiFi)"
+                      - option "13-inch (M3) 256GB (Unlocked)"
+                      - option "13-inch (M3) 256GB (WiFi)"
+                      - option "13-inch (M3) 512GB (Unlocked)"
+                      - option "13-inch (M3) 512GB (WiFi)"
+                      - option "13-inch (M4) 1TB (Unlocked)"
+                      - option "13-inch (M4) 1TB (WiFi)"
+                      - option "13-inch (M4) 256GB (Unlocked)"
+                      - option "13-inch (M4) 256GB (WiFi)"
+                      - option "13-inch (M4) 2TB (Unlocked)"
+                      - option "13-inch (M4) 2TB (WiFi)"
+                      - option "13-inch (M4) 512GB (Unlocked)"
+                      - option "13-inch (M4) 512GB (WiFi)"
+                      - option "16GB"
+                      - option "1TB"
+                      - option "256B"
+                      - option "256GB"
+                      - option "256GB (Unlocked)"
+                      - option "256GB (WiFi)"
+                      - option "2TB"
+                      - option "32GB"
+                      - option "4GB"
+                      - option "512GB"
+                      - option "512GB (Unlocked)"
+                      - option "512GB (WiFi)"
+                      - option "5TB"
+                      - option "64GB"
+                      - option "8GB"
+                      - option "IPHONE"
+                      - option "Wifi"
+                      - option "generation) 128GB (Unlocked)"
+                      - option "generation) 128GB (WiFi)"
+                      - option "generation) 256GB (Unlocked)"
+                      - option "generation) 256GB (WiFi)"
+                      - option "generation) 32GB (Unlocked)"
+                      - option "generation) 32GB (WiFi)"
+                      - option "generation) 64GB (Unlocked)"
+                      - option "generation) 64GB (WiFi)"
+                  - columnheader "Search" [ref=e140]:
+                    - combobox [ref=e141] [cursor=pointer]:
+                      - option "Search" [selected]
+                      - option "(Product)Red"
+                      - option "(product)red"
+                      - option "128gb"
+                      - option "1tb"
+                      - option "20 Count Case Pack"
+                      - option "256gb"
+                      - option "2tb"
+                      - option "512gb"
+                      - option "64gb"
+                      - option ":Pink"
+                      - option "Aloe"
+                      - option "Alpine Green"
+                      - option "Alpine White"
+                      - option "Amber Yellow"
+                      - option "Aura Black"
+                      - option "Aura Blue"
+                      - option "Aura Glow"
+                      - option "Aura Pink"
+                      - option "Aura Red"
+                      - option "Aura White"
+                      - option "Barely Blue"
+                      - option "Bay"
+                      - option "Beige"
+                      - option "Black"
+                      - option "Black Coral"
+                      - option "Black Titanium"
+                      - option "Black/blue"
+                      - option "Blue"
+                      - option "Blue Black"
+                      - option "Blue Titanium"
+                      - option "Blueblack"
+                      - option "Bora Purple"
+                      - option "Burgundy"
+                      - option "Canary Yellow"
+                      - option "Cardinal Red"
+                      - option "Ceramic Black"
+                      - option "Ceramic White"
+                      - option "Chalk"
+                      - option "Charcoal"
+                      - option "Clearly White"
+                      - option "Cloud Blue"
+                      - option "Cloud Lavender"
+                      - option "Cloud Mint"
+                      - option "Cloud Navy"
+                      - option "Cloud Orange"
+                      - option "Cloud Pink"
+                      - option "Cloud Red"
+                      - option "Cloud White"
+                      - option "Cloudy White"
+                      - option "Cobalt Violet"
+                      - option "Coral"
+                      - option "Coralred"
+                      - option "Cosmic Black"
+                      - option "Cosmic Grey"
+                      - option "Cream"
+                      - option "Crown Silver"
+                      - option "Deep Purple"
+                      - option "Desert Titanium"
+                      - option "Flamingo Pink"
+                      - option "Glacier Blue"
+                      - option "Gold"
+                      - option "Graphite"
+                      - option "Gray"
+                      - option "Graygreen"
+                      - option "Green"
+                      - option "Grey"
+                      - option "Hazel"
+                      - option "Icy Blue"
+                      - option "Indigo"
+                      - option "Infinite Black"
+                      - option "Iris"
+                      - option "Jade Green"
+                      - option "Just Black"
+                      - option "Khaki"
+                      - option "Kinda Coral"
+                      - option "Lavender"
+                      - option "Lavender Purple"
+                      - option "Lemongrass"
+                      - option "Light Gray"
+                      - option "Lime"
+                      - option "Majestic Black"
+                      - option "Marble Grey"
+                      - option "Metallic Copper"
+                      - option "Midnight"
+                      - option "Midnight Black"
+                      - option "Midnight Green"
+                      - option "Midnightgreen"
+                      - option "Mink Green"
+                      - option "Mint"
+                      - option "Mint Navy"
+                      - option "Moonstone"
+                      - option "Moonstone Gray"
+                      - option "Mostly Black"
+                      - option "Mystic Black"
+                      - option "Mystic Blue"
+                      - option "Mystic Bronze"
+                      - option "Mystic Gray"
+                      - option "Mystic Green"
+                      - option "Mystic Red"
+                      - option "Mystic White"
+                      - option "Na"
+                      - option "Natural Black"
+                      - option "Natural Blue"
+                      - option "Natural Coral"
+                      - option "Natural Gray"
+                      - option "Natural Greenish"
+                      - option "Natural Reddish"
+                      - option "Natural Titanium"
+                      - option "Navy"
+                      - option "Obsidian"
+                      - option "Ocean Blue"
+                      - option "Oh So Orange"
+                      - option "Olive"
+                      - option "Onyx Black"
+                      - option "Pacific Blue"
+                      - option "Palegreen"
+                      - option "Peach"
+                      - option "Peony"
+                      - option "Phantom Black"
+                      - option "Phantom Brown"
+                      - option "Phantom Gold"
+                      - option "Phantom Gray"
+                      - option "Phantom Green"
+                      - option "Phantom Navy"
+                      - option "Phantom Pink"
+                      - option "Phantom Red"
+                      - option "Phantom Silver"
+                      - option "Phantom Titanium"
+                      - option "Phantom Violet"
+                      - option "Phantom White"
+                      - option "Pink"
+                      - option "Pink Gold"
+                      - option "Pinkgold"
+                      - option "Platinum Silver"
+                      - option "Porcelain"
+                      - option "Prism Black"
+                      - option "Prism Blue"
+                      - option "Prism Green"
+                      - option "Prism White"
+                      - option "Pure White"
+                      - option "Purple"
+                      - option "Red"
+                      - option "Rose"
+                      - option "Rose Gold"
+                      - option "Rose Quartz"
+                      - option "Royal Gold"
+                      - option "Sage"
+                      - option "Sandstone Orange"
+                      - option "Sapphire Blue"
+                      - option "Sea"
+                      - option "Sierra Blue"
+                      - option "Silver"
+                      - option "Silver Shadow"
+                      - option "Sky Blue"
+                      - option "Smoke Blue"
+                      - option "Snow"
+                      - option "Sorta Sage"
+                      - option "Sorta Seafoam"
+                      - option "Sorta Sunny"
+                      - option "Space Black"
+                      - option "Space Gray"
+                      - option "Spacegray"
+                      - option "Starlight"
+                      - option "Stormy Black"
+                      - option "Sunny"
+                      - option "Tangerine"
+                      - option "Tea Green"
+                      - option "Teal"
+                      - option "Thom Browne Edition"
+                      - option "Titanium"
+                      - option "Titanium Black"
+                      - option "Titanium Blue"
+                      - option "Titanium Gray"
+                      - option "Titanium Green"
+                      - option "Titanium Icyblue"
+                      - option "Titanium Jadegreen"
+                      - option "Titanium Jetblack"
+                      - option "Titanium Orange"
+                      - option "Titanium Pinkgold"
+                      - option "Titanium Silver"
+                      - option "Titanium Silverblue"
+                      - option "Titanium Violet"
+                      - option "Titanium Whitesilver"
+                      - option "Titanium Yellow"
+                      - option "Ultramarine"
+                      - option "Violet"
+                      - option "White"
+                      - option "White Blue"
+                      - option "White Titanium"
+                      - option "Wintergreen"
+                      - option "Yellow"
+                  - columnheader "Search" [ref=e142]:
+                    - combobox [ref=e143] [cursor=pointer]:
+                      - option "Search" [selected]
+                  - columnheader [ref=e144]:
+                    - spinbutton [ref=e145]
+                  - columnheader [ref=e146]:
+                    - spinbutton [ref=e147]
+              - rowgroup [ref=e148]:
+                - row "PWS000000100308 $1250.00 0" [ref=e149] [cursor=pointer]:
+                  - cell "PWS000000100308" [ref=e150]
+                  - cell [ref=e151]
+                  - cell [ref=e152]
+                  - cell [ref=e153]
+                  - cell [ref=e154]
+                  - cell [ref=e155]
+                  - cell [ref=e156]
+                  - cell [ref=e157]
+                  - cell "$1250.00" [ref=e158]
+                  - cell "0" [ref=e159]
+                - row "PWS00000058333 Tablet Apple iPad Air 2 16GB Silver $1250.00 0" [ref=e160] [cursor=pointer]:
+                  - cell "PWS00000058333" [ref=e161]
+                  - cell "Tablet" [ref=e162]
+                  - cell "Apple" [ref=e163]
+                  - cell "iPad Air 2" [ref=e164]
+                  - cell [ref=e165]
+                  - cell "16GB" [ref=e166]
+                  - cell "Silver" [ref=e167]
+                  - cell [ref=e168]
+                  - cell "$1250.00" [ref=e169]
+                  - cell "0" [ref=e170]
+                - row "PWS00000058434 Tablet Apple iPad Air 2 16GB Space Gray $1250.00 0" [ref=e171] [cursor=pointer]:
+                  - cell "PWS00000058434" [ref=e172]
+                  - cell "Tablet" [ref=e173]
+                  - cell "Apple" [ref=e174]
+                  - cell "iPad Air 2" [ref=e175]
+                  - cell [ref=e176]
+                  - cell "16GB" [ref=e177]
+                  - cell "Space Gray" [ref=e178]
+                  - cell [ref=e179]
+                  - cell "$1250.00" [ref=e180]
+                  - cell "0" [ref=e181]
+                - row "PWS00000058470 Tablet Apple iPad Air 2 16GB Gold $1250.00 0" [ref=e182] [cursor=pointer]:
+                  - cell "PWS00000058470" [ref=e183]
+                  - cell "Tablet" [ref=e184]
+                  - cell "Apple" [ref=e185]
+                  - cell "iPad Air 2" [ref=e186]
+                  - cell [ref=e187]
+                  - cell "16GB" [ref=e188]
+                  - cell "Gold" [ref=e189]
+                  - cell [ref=e190]
+                  - cell "$1250.00" [ref=e191]
+                  - cell "0" [ref=e192]
+                - row "PWS00000060478 Tablet Apple iPad Air 2 128GB Gold $1250.00 0" [ref=e193] [cursor=pointer]:
+                  - cell "PWS00000060478" [ref=e194]
+                  - cell "Tablet" [ref=e195]
+                  - cell "Apple" [ref=e196]
+                  - cell "iPad Air 2" [ref=e197]
+                  - cell [ref=e198]
+                  - cell "128GB" [ref=e199]
+                  - cell "Gold" [ref=e200]
+                  - cell [ref=e201]
+                  - cell "$1250.00" [ref=e202]
+                  - cell "0" [ref=e203]
+                - row "PWS00000075203 Tablet Apple iPad Pro (12.9-inch) 128GB Space Gray $1250.00 0" [ref=e204] [cursor=pointer]:
+                  - cell "PWS00000075203" [ref=e205]
+                  - cell "Tablet" [ref=e206]
+                  - cell "Apple" [ref=e207]
+                  - cell "iPad Pro (12.9-inch)" [ref=e208]
+                  - cell [ref=e209]
+                  - cell "128GB" [ref=e210]
+                  - cell "Space Gray" [ref=e211]
+                  - cell [ref=e212]
+                  - cell "$1250.00" [ref=e213]
+                  - cell "0" [ref=e214]
+                - row "PWS00000075389 Tablet Apple iPad mini 4 128GB Gold $1250.00 0" [ref=e215] [cursor=pointer]:
+                  - cell "PWS00000075389" [ref=e216]
+                  - cell "Tablet" [ref=e217]
+                  - cell "Apple" [ref=e218]
+                  - cell "iPad mini 4" [ref=e219]
+                  - cell [ref=e220]
+                  - cell "128GB" [ref=e221]
+                  - cell "Gold" [ref=e222]
+                  - cell [ref=e223]
+                  - cell "$1250.00" [ref=e224]
+                  - cell "0" [ref=e225]
+                - row "PWS00000075729 Tablet Apple iPad mini 4 128GB Space Gray $1250.00 0" [ref=e226] [cursor=pointer]:
+                  - cell "PWS00000075729" [ref=e227]
+                  - cell "Tablet" [ref=e228]
+                  - cell "Apple" [ref=e229]
+                  - cell "iPad mini 4" [ref=e230]
+                  - cell [ref=e231]
+                  - cell "128GB" [ref=e232]
+                  - cell "Space Gray" [ref=e233]
+                  - cell [ref=e234]
+                  - cell "$1250.00" [ref=e235]
+                  - cell "0" [ref=e236]
+                - row "PWS00000077529 Tablet Apple iPad Pro (9.7-inch) 128GB Space Gray $1250.00 96" [ref=e237] [cursor=pointer]:
+                  - cell "PWS00000077529" [ref=e238]
+                  - cell "Tablet" [ref=e239]
+                  - cell "Apple" [ref=e240]
+                  - cell "iPad Pro (9.7-inch)" [ref=e241]
+                  - cell [ref=e242]
+                  - cell "128GB" [ref=e243]
+                  - cell "Space Gray" [ref=e244]
+                  - cell [ref=e245]
+                  - cell "$1250.00" [ref=e246]
+                  - cell "96" [ref=e247]
+                - row "PWS00000077862 Tablet Apple iPad mini 4 128GB Space Gray $1250.00 0" [ref=e248] [cursor=pointer]:
+                  - cell "PWS00000077862" [ref=e249]
+                  - cell "Tablet" [ref=e250]
+                  - cell "Apple" [ref=e251]
+                  - cell "iPad mini 4" [ref=e252]
+                  - cell [ref=e253]
+                  - cell "128GB" [ref=e254]
+                  - cell "Space Gray" [ref=e255]
+                  - cell [ref=e256]
+                  - cell "$1250.00" [ref=e257]
+                  - cell "0" [ref=e258]
+                - row "PWS00000078228 Tablet Apple iPad mini 4 64GB Space Gray $1250.00 99" [ref=e259] [cursor=pointer]:
+                  - cell "PWS00000078228" [ref=e260]
+                  - cell "Tablet" [ref=e261]
+                  - cell "Apple" [ref=e262]
+                  - cell "iPad mini 4" [ref=e263]
+                  - cell [ref=e264]
+                  - cell "64GB" [ref=e265]
+                  - cell "Space Gray" [ref=e266]
+                  - cell [ref=e267]
+                  - cell "$1250.00" [ref=e268]
+                  - cell "99" [ref=e269]
+                - row "PWS00000078536 Tablet Apple iPad Pro (9.7-inch) 32GB Rose Gold $1250.00 99" [ref=e270] [cursor=pointer]:
+                  - cell "PWS00000078536" [ref=e271]
+                  - cell "Tablet" [ref=e272]
+                  - cell "Apple" [ref=e273]
+                  - cell "iPad Pro (9.7-inch)" [ref=e274]
+                  - cell [ref=e275]
+                  - cell "32GB" [ref=e276]
+                  - cell "Rose Gold" [ref=e277]
+                  - cell [ref=e278]
+                  - cell "$1250.00" [ref=e279]
+                  - cell "99" [ref=e280]
+                - row "PWS00000079268 Tablet Apple iPad Pro (9.7-inch) 32GB Space Gray $1250.00 99" [ref=e281] [cursor=pointer]:
+                  - cell "PWS00000079268" [ref=e282]
+                  - cell "Tablet" [ref=e283]
+                  - cell "Apple" [ref=e284]
+                  - cell "iPad Pro (9.7-inch)" [ref=e285]
+                  - cell [ref=e286]
+                  - cell "32GB" [ref=e287]
+                  - cell "Space Gray" [ref=e288]
+                  - cell [ref=e289]
+                  - cell "$1250.00" [ref=e290]
+                  - cell "99" [ref=e291]
+                - row "PWS00000079281 Tablet Apple iPad Pro (9.7-inch) 256GB Gold $1250.00 0" [ref=e292] [cursor=pointer]:
+                  - cell "PWS00000079281" [ref=e293]
+                  - cell "Tablet" [ref=e294]
+                  - cell "Apple" [ref=e295]
+                  - cell "iPad Pro (9.7-inch)" [ref=e296]
+                  - cell [ref=e297]
+                  - cell "256GB" [ref=e298]
+                  - cell "Gold" [ref=e299]
+                  - cell [ref=e300]
+                  - cell "$1250.00" [ref=e301]
+                  - cell "0" [ref=e302]
+                - row "PWS00000079535 Tablet Apple iPad mini 4 128GB Space Gray $1250.00 99" [ref=e303] [cursor=pointer]:
+                  - cell "PWS00000079535" [ref=e304]
+                  - cell "Tablet" [ref=e305]
+                  - cell "Apple" [ref=e306]
+                  - cell "iPad mini 4" [ref=e307]
+                  - cell [ref=e308]
+                  - cell "128GB" [ref=e309]
+                  - cell "Space Gray" [ref=e310]
+                  - cell [ref=e311]
+                  - cell "$1250.00" [ref=e312]
+                  - cell "99" [ref=e313]
+                - row "PWS00000082348 Tablet Apple iPad mini 4 128GB Silver $1250.00 0" [ref=e314] [cursor=pointer]:
+                  - cell "PWS00000082348" [ref=e315]
+                  - cell "Tablet" [ref=e316]
+                  - cell "Apple" [ref=e317]
+                  - cell "iPad mini 4" [ref=e318]
+                  - cell [ref=e319]
+                  - cell "128GB" [ref=e320]
+                  - cell "Silver" [ref=e321]
+                  - cell [ref=e322]
+                  - cell "$1250.00" [ref=e323]
+                  - cell "0" [ref=e324]
+                - row "PWS00000083915 Tablet Apple iPad mini 4 128GB Silver $1250.00 80" [ref=e325] [cursor=pointer]:
+                  - cell "PWS00000083915" [ref=e326]
+                  - cell "Tablet" [ref=e327]
+                  - cell "Apple" [ref=e328]
+                  - cell "iPad mini 4" [ref=e329]
+                  - cell [ref=e330]
+                  - cell "128GB" [ref=e331]
+                  - cell "Silver" [ref=e332]
+                  - cell [ref=e333]
+                  - cell "$1250.00" [ref=e334]
+                  - cell "80" [ref=e335]
+                - row "PWS00000085103 Tablet Apple iPad (5th generation) 32GB Gold $1250.00 90" [ref=e336] [cursor=pointer]:
+                  - cell "PWS00000085103" [ref=e337]
+                  - cell "Tablet" [ref=e338]
+                  - cell "Apple" [ref=e339]
+                  - cell "iPad (5th generation)" [ref=e340]
+                  - cell [ref=e341]
+                  - cell "32GB" [ref=e342]
+                  - cell "Gold" [ref=e343]
+                  - cell [ref=e344]
+                  - cell "$1250.00" [ref=e345]
+                  - cell "90" [ref=e346]
+                - row "PWS00000085137 Tablet Apple iPad (5th generation) 32GB Space Gray $1250.00 99" [ref=e347] [cursor=pointer]:
+                  - cell "PWS00000085137" [ref=e348]
+                  - cell "Tablet" [ref=e349]
+                  - cell "Apple" [ref=e350]
+                  - cell "iPad (5th generation)" [ref=e351]
+                  - cell [ref=e352]
+                  - cell "32GB" [ref=e353]
+                  - cell "Space Gray" [ref=e354]
+                  - cell [ref=e355]
+                  - cell "$1250.00" [ref=e356]
+                  - cell "99" [ref=e357]
+                - row "PWS00000085148 Tablet Apple iPad Air 2 32GB Space Gray $1250.00 95" [ref=e358] [cursor=pointer]:
+                  - cell "PWS00000085148" [ref=e359]
+                  - cell "Tablet" [ref=e360]
+                  - cell "Apple" [ref=e361]
+                  - cell "iPad Air 2" [ref=e362]
+                  - cell [ref=e363]
+                  - cell "32GB" [ref=e364]
+                  - cell "Space Gray" [ref=e365]
+                  - cell [ref=e366]
+                  - cell "$1250.00" [ref=e367]
+                  - cell "95" [ref=e368]
+                - row "PWS00000085230 Tablet Apple iPad (5th generation) 32GB Space Gray $1250.00 95" [ref=e369] [cursor=pointer]:
+                  - cell "PWS00000085230" [ref=e370]
+                  - cell "Tablet" [ref=e371]
+                  - cell "Apple" [ref=e372]
+                  - cell "iPad (5th generation)" [ref=e373]
+                  - cell [ref=e374]
+                  - cell "32GB" [ref=e375]
+                  - cell "Space Gray" [ref=e376]
+                  - cell [ref=e377]
+                  - cell "$1250.00" [ref=e378]
+                  - cell "95" [ref=e379]
+                - row "PWS00000085513 Tablet Apple iPad (5th generation) 32GB Silver $1250.00 0" [ref=e380] [cursor=pointer]:
+                  - cell "PWS00000085513" [ref=e381]
+                  - cell "Tablet" [ref=e382]
+                  - cell "Apple" [ref=e383]
+                  - cell "iPad (5th generation)" [ref=e384]
+                  - cell [ref=e385]
+                  - cell "32GB" [ref=e386]
+                  - cell "Silver" [ref=e387]
+                  - cell [ref=e388]
+                  - cell "$1250.00" [ref=e389]
+                  - cell "0" [ref=e390]
+                - row "PWS00000085881 Tablet Apple iPad (5th generation) 32GB Gold $1250.00 10" [ref=e391] [cursor=pointer]:
+                  - cell "PWS00000085881" [ref=e392]
+                  - cell "Tablet" [ref=e393]
+                  - cell "Apple" [ref=e394]
+                  - cell "iPad (5th generation)" [ref=e395]
+                  - cell [ref=e396]
+                  - cell "32GB" [ref=e397]
+                  - cell "Gold" [ref=e398]
+                  - cell [ref=e399]
+                  - cell "$1250.00" [ref=e400]
+                  - cell "10" [ref=e401]
+                - row "PWS00000085900 Tablet Apple iPad (5th generation) 32GB Space Gray $1250.00 1" [ref=e402] [cursor=pointer]:
+                  - cell "PWS00000085900" [ref=e403]
+                  - cell "Tablet" [ref=e404]
+                  - cell "Apple" [ref=e405]
+                  - cell "iPad (5th generation)" [ref=e406]
+                  - cell [ref=e407]
+                  - cell "32GB" [ref=e408]
+                  - cell "Space Gray" [ref=e409]
+                  - cell [ref=e410]
+                  - cell "$1250.00" [ref=e411]
+                  - cell "1" [ref=e412]
+                - row "PWS00000086212 Tablet Apple iPad Pro (10.5-inch) 64GB Rose Gold $1250.00 0" [ref=e413] [cursor=pointer]:
+                  - cell "PWS00000086212" [ref=e414]
+                  - cell "Tablet" [ref=e415]
+                  - cell "Apple" [ref=e416]
+                  - cell "iPad Pro (10.5-inch)" [ref=e417]
+                  - cell [ref=e418]
+                  - cell "64GB" [ref=e419]
+                  - cell "Rose Gold" [ref=e420]
+                  - cell [ref=e421]
+                  - cell "$1250.00" [ref=e422]
+                  - cell "0" [ref=e423]
+                - row "PWS00000086684 Tablet Apple iPad (5th generation) 32GB Gold $1250.00 0" [ref=e424] [cursor=pointer]:
+                  - cell "PWS00000086684" [ref=e425]
+                  - cell "Tablet" [ref=e426]
+                  - cell "Apple" [ref=e427]
+                  - cell "iPad (5th generation)" [ref=e428]
+                  - cell [ref=e429]
+                  - cell "32GB" [ref=e430]
+                  - cell "Gold" [ref=e431]
+                  - cell [ref=e432]
+                  - cell "$1250.00" [ref=e433]
+                  - cell "0" [ref=e434]
+                - row "PWS00000086686 Tablet Apple iPad (5th generation) 32GB Gold $1250.00 2" [ref=e435] [cursor=pointer]:
+                  - cell "PWS00000086686" [ref=e436]
+                  - cell "Tablet" [ref=e437]
+                  - cell "Apple" [ref=e438]
+                  - cell "iPad (5th generation)" [ref=e439]
+                  - cell [ref=e440]
+                  - cell "32GB" [ref=e441]
+                  - cell "Gold" [ref=e442]
+                  - cell [ref=e443]
+                  - cell "$1250.00" [ref=e444]
+                  - cell "2" [ref=e445]
+                - row "PWS00000086689 Tablet Apple iPad (5th generation) 32GB Space Gray $1250.00 10" [ref=e446] [cursor=pointer]:
+                  - cell "PWS00000086689" [ref=e447]
+                  - cell "Tablet" [ref=e448]
+                  - cell "Apple" [ref=e449]
+                  - cell "iPad (5th generation)" [ref=e450]
+                  - cell [ref=e451]
+                  - cell "32GB" [ref=e452]
+                  - cell "Space Gray" [ref=e453]
+                  - cell [ref=e454]
+                  - cell "$1250.00" [ref=e455]
+                  - cell "10" [ref=e456]
+                - row "PWS00000086691 Tablet Apple iPad (5th generation) 32GB Silver $1250.00 10" [ref=e457] [cursor=pointer]:
+                  - cell "PWS00000086691" [ref=e458]
+                  - cell "Tablet" [ref=e459]
+                  - cell "Apple" [ref=e460]
+                  - cell "iPad (5th generation)" [ref=e461]
+                  - cell [ref=e462]
+                  - cell "32GB" [ref=e463]
+                  - cell "Silver" [ref=e464]
+                  - cell [ref=e465]
+                  - cell "$1250.00" [ref=e466]
+                  - cell "10" [ref=e467]
+                - row "PWS00000087692 Tablet $1250.00 20" [ref=e468] [cursor=pointer]:
+                  - cell "PWS00000087692" [ref=e469]
+                  - cell "Tablet" [ref=e470]
+                  - cell [ref=e471]
+                  - cell [ref=e472]
+                  - cell [ref=e473]
+                  - cell [ref=e474]
+                  - cell [ref=e475]
+                  - cell [ref=e476]
+                  - cell "$1250.00" [ref=e477]
+                  - cell "20" [ref=e478]
+                - row "PWS00000088556 Tablet Apple iPad mini 4 32GB Gold $1250.00 0" [ref=e479] [cursor=pointer]:
+                  - cell "PWS00000088556" [ref=e480]
+                  - cell "Tablet" [ref=e481]
+                  - cell "Apple" [ref=e482]
+                  - cell "iPad mini 4" [ref=e483]
+                  - cell [ref=e484]
+                  - cell "32GB" [ref=e485]
+                  - cell "Gold" [ref=e486]
+                  - cell [ref=e487]
+                  - cell "$1250.00" [ref=e488]
+                  - cell "0" [ref=e489]
+                - row "PWS00000088570 Tablet Apple iPad Pro (10.5-inch) 256GB Rose Gold $1250.00 0" [ref=e490] [cursor=pointer]:
+                  - cell "PWS00000088570" [ref=e491]
+                  - cell "Tablet" [ref=e492]
+                  - cell "Apple" [ref=e493]
+                  - cell "iPad Pro (10.5-inch)" [ref=e494]
+                  - cell [ref=e495]
+                  - cell "256GB" [ref=e496]
+                  - cell "Rose Gold" [ref=e497]
+                  - cell [ref=e498]
+                  - cell "$1250.00" [ref=e499]
+                  - cell "0" [ref=e500]
+                - row "PWS00000089209 Tablet Apple iPad (6th generation) 32GB Space Gray $1250.00 0" [ref=e501] [cursor=pointer]:
+                  - cell "PWS00000089209" [ref=e502]
+                  - cell "Tablet" [ref=e503]
+                  - cell "Apple" [ref=e504]
+                  - cell "iPad (6th generation)" [ref=e505]
+                  - cell [ref=e506]
+                  - cell "32GB" [ref=e507]
+                  - cell "Space Gray" [ref=e508]
+                  - cell [ref=e509]
+                  - cell "$1250.00" [ref=e510]
+                  - cell "0" [ref=e511]
+                - row "PWS00000089213 Tablet Apple iPad (6th generation) 128GB Space Gray $1250.00 2" [ref=e512] [cursor=pointer]:
+                  - cell "PWS00000089213" [ref=e513]
+                  - cell "Tablet" [ref=e514]
+                  - cell "Apple" [ref=e515]
+                  - cell "iPad (6th generation)" [ref=e516]
+                  - cell [ref=e517]
+                  - cell "128GB" [ref=e518]
+                  - cell "Space Gray" [ref=e519]
+                  - cell [ref=e520]
+                  - cell "$1250.00" [ref=e521]
+                  - cell "2" [ref=e522]
+                - row "PWS00000089325 Tablet Apple iPad (6th generation) 32GB Gold $1250.00 8" [ref=e523] [cursor=pointer]:
+                  - cell "PWS00000089325" [ref=e524]
+                  - cell "Tablet" [ref=e525]
+                  - cell "Apple" [ref=e526]
+                  - cell "iPad (6th generation)" [ref=e527]
+                  - cell [ref=e528]
+                  - cell "32GB" [ref=e529]
+                  - cell "Gold" [ref=e530]
+                  - cell [ref=e531]
+                  - cell "$1250.00" [ref=e532]
+                  - cell "8" [ref=e533]
+                - row "PWS00000089526 Tablet Apple iPad (5th generation) 32GB Space Gray $1250.00 2" [ref=e534] [cursor=pointer]:
+                  - cell "PWS00000089526" [ref=e535]
+                  - cell "Tablet" [ref=e536]
+                  - cell "Apple" [ref=e537]
+                  - cell "iPad (5th generation)" [ref=e538]
+                  - cell [ref=e539]
+                  - cell "32GB" [ref=e540]
+                  - cell "Space Gray" [ref=e541]
+                  - cell [ref=e542]
+                  - cell "$1250.00" [ref=e543]
+                  - cell "2" [ref=e544]
+                - row "PWS00000089637 Tablet Apple iPad (6th generation) 128GB Space Gray $1250.00 10" [ref=e545] [cursor=pointer]:
+                  - cell "PWS00000089637" [ref=e546]
+                  - cell "Tablet" [ref=e547]
+                  - cell "Apple" [ref=e548]
+                  - cell "iPad (6th generation)" [ref=e549]
+                  - cell [ref=e550]
+                  - cell "128GB" [ref=e551]
+                  - cell "Space Gray" [ref=e552]
+                  - cell [ref=e553]
+                  - cell "$1250.00" [ref=e554]
+                  - cell "10" [ref=e555]
+                - row "PWS00000089708 Tablet Apple iPad (6th generation) 32GB Silver $1250.00 9" [ref=e556] [cursor=pointer]:
+                  - cell "PWS00000089708" [ref=e557]
+                  - cell "Tablet" [ref=e558]
+                  - cell "Apple" [ref=e559]
+                  - cell "iPad (6th generation)" [ref=e560]
+                  - cell [ref=e561]
+                  - cell "32GB" [ref=e562]
+                  - cell "Silver" [ref=e563]
+                  - cell [ref=e564]
+                  - cell "$1250.00" [ref=e565]
+                  - cell "9" [ref=e566]
+                - row "PWS00000089764 Tablet Apple iPad (5th generation) 128GB Space Gray $1250.00 10" [ref=e567] [cursor=pointer]:
+                  - cell "PWS00000089764" [ref=e568]
+                  - cell "Tablet" [ref=e569]
+                  - cell "Apple" [ref=e570]
+                  - cell "iPad (5th generation)" [ref=e571]
+                  - cell [ref=e572]
+                  - cell "128GB" [ref=e573]
+                  - cell "Space Gray" [ref=e574]
+                  - cell [ref=e575]
+                  - cell "$1250.00" [ref=e576]
+                  - cell "10" [ref=e577]
+                - row "PWS00000091109 Tablet Apple iPad (6th generation) 32GB Silver $1250.00 10" [ref=e578] [cursor=pointer]:
+                  - cell "PWS00000091109" [ref=e579]
+                  - cell "Tablet" [ref=e580]
+                  - cell "Apple" [ref=e581]
+                  - cell "iPad (6th generation)" [ref=e582]
+                  - cell [ref=e583]
+                  - cell "32GB" [ref=e584]
+                  - cell "Silver" [ref=e585]
+                  - cell [ref=e586]
+                  - cell "$1250.00" [ref=e587]
+                  - cell "10" [ref=e588]
+                - row "PWS00000091234 Tablet Apple iPad (6th generation) 128GB Silver $1250.00 0" [ref=e589] [cursor=pointer]:
+                  - cell "PWS00000091234" [ref=e590]
+                  - cell "Tablet" [ref=e591]
+                  - cell "Apple" [ref=e592]
+                  - cell "iPad (6th generation)" [ref=e593]
+                  - cell [ref=e594]
+                  - cell "128GB" [ref=e595]
+                  - cell "Silver" [ref=e596]
+                  - cell [ref=e597]
+                  - cell "$1250.00" [ref=e598]
+                  - cell "0" [ref=e599]
+                - row "PWS00000091318 Tablet Apple iPad Air 2 32GB Space Gray $1250.00 0" [ref=e600] [cursor=pointer]:
+                  - cell "PWS00000091318" [ref=e601]
+                  - cell "Tablet" [ref=e602]
+                  - cell "Apple" [ref=e603]
+                  - cell "iPad Air 2" [ref=e604]
+                  - cell [ref=e605]
+                  - cell "32GB" [ref=e606]
+                  - cell "Space Gray" [ref=e607]
+                  - cell [ref=e608]
+                  - cell "$1250.00" [ref=e609]
+                  - cell "0" [ref=e610]
+                - row "PWS00000091766 Tablet Apple iPad Air 2 32GB Space Gray $1250.00 15" [ref=e611] [cursor=pointer]:
+                  - cell "PWS00000091766" [ref=e612]
+                  - cell "Tablet" [ref=e613]
+                  - cell "Apple" [ref=e614]
+                  - cell "iPad Air 2" [ref=e615]
+                  - cell [ref=e616]
+                  - cell "32GB" [ref=e617]
+                  - cell "Space Gray" [ref=e618]
+                  - cell [ref=e619]
+                  - cell "$1250.00" [ref=e620]
+                  - cell "15" [ref=e621]
+                - row "PWS00000091853 Tablet Apple iPad (6th generation) 32GB Space Gray $1250.00 0" [ref=e622] [cursor=pointer]:
+                  - cell "PWS00000091853" [ref=e623]
+                  - cell "Tablet" [ref=e624]
+                  - cell "Apple" [ref=e625]
+                  - cell "iPad (6th generation)" [ref=e626]
+                  - cell [ref=e627]
+                  - cell "32GB" [ref=e628]
+                  - cell "Space Gray" [ref=e629]
+                  - cell [ref=e630]
+                  - cell "$1250.00" [ref=e631]
+                  - cell "0" [ref=e632]
+                - row "PWS00000091856 Tablet Apple iPad (6th generation) 32GB Gold $1250.00 7" [ref=e633] [cursor=pointer]:
+                  - cell "PWS00000091856" [ref=e634]
+                  - cell "Tablet" [ref=e635]
+                  - cell "Apple" [ref=e636]
+                  - cell "iPad (6th generation)" [ref=e637]
+                  - cell [ref=e638]
+                  - cell "32GB" [ref=e639]
+                  - cell "Gold" [ref=e640]
+                  - cell [ref=e641]
+                  - cell "$1250.00" [ref=e642]
+                  - cell "7" [ref=e643]
+                - row "PWS00000092168 Tablet Apple iPad Pro 11-inch 64GB Space Gray $1250.00 0" [ref=e644] [cursor=pointer]:
+                  - cell "PWS00000092168" [ref=e645]
+                  - cell "Tablet" [ref=e646]
+                  - cell "Apple" [ref=e647]
+                  - cell "iPad Pro 11-inch" [ref=e648]
+                  - cell [ref=e649]
+                  - cell "64GB" [ref=e650]
+                  - cell "Space Gray" [ref=e651]
+                  - cell [ref=e652]
+                  - cell "$1250.00" [ref=e653]
+                  - cell "0" [ref=e654]
+                - row "PWS00000092848 Tablet Apple iPad Pro 11-inch 64GB Silver $1250.00 9977" [ref=e655] [cursor=pointer]:
+                  - cell "PWS00000092848" [ref=e656]
+                  - cell "Tablet" [ref=e657]
+                  - cell "Apple" [ref=e658]
+                  - cell "iPad Pro 11-inch" [ref=e659]
+                  - cell [ref=e660]
+                  - cell "64GB" [ref=e661]
+                  - cell "Silver" [ref=e662]
+                  - cell [ref=e663]
+                  - cell "$1250.00" [ref=e664]
+                  - cell "9977" [ref=e665]
+                - row "PWS00000093803 Tablet Apple iPad Pro 11-inch 512GB Silver $1250.00 0" [ref=e666] [cursor=pointer]:
+                  - cell "PWS00000093803" [ref=e667]
+                  - cell "Tablet" [ref=e668]
+                  - cell "Apple" [ref=e669]
+                  - cell "iPad Pro 11-inch" [ref=e670]
+                  - cell [ref=e671]
+                  - cell "512GB" [ref=e672]
+                  - cell "Silver" [ref=e673]
+                  - cell [ref=e674]
+                  - cell "$1250.00" [ref=e675]
+                  - cell "0" [ref=e676]
+                - row "PWS00000094052 Tablet Apple iPad Pro 11-inch 256GB Silver $1250.00 0" [ref=e677] [cursor=pointer]:
+                  - cell "PWS00000094052" [ref=e678]
+                  - cell "Tablet" [ref=e679]
+                  - cell "Apple" [ref=e680]
+                  - cell "iPad Pro 11-inch" [ref=e681]
+                  - cell [ref=e682]
+                  - cell "256GB" [ref=e683]
+                  - cell "Silver" [ref=e684]
+                  - cell [ref=e685]
+                  - cell "$1250.00" [ref=e686]
+                  - cell "0" [ref=e687]
+                - row "PWS00000094154 Tablet Apple iPad Pro 11-inch 64GB Space Gray $1250.00 0" [ref=e688] [cursor=pointer]:
+                  - cell "PWS00000094154" [ref=e689]
+                  - cell "Tablet" [ref=e690]
+                  - cell "Apple" [ref=e691]
+                  - cell "iPad Pro 11-inch" [ref=e692]
+                  - cell [ref=e693]
+                  - cell "64GB" [ref=e694]
+                  - cell "Space Gray" [ref=e695]
+                  - cell [ref=e696]
+                  - cell "$1250.00" [ref=e697]
+                  - cell "0" [ref=e698]
+            - generic [ref=e699]:
+              - button [disabled] [ref=e700]:
+                - img [ref=e701]
+              - button [disabled] [ref=e704]:
+                - img [ref=e705]
+              - generic [ref=e707]: 1 to 50 of 22445
+              - button [ref=e708] [cursor=pointer]:
+                - img [ref=e709]
+              - button [ref=e711] [cursor=pointer]:
+                - img [ref=e712]
+  - alert [ref=e56]

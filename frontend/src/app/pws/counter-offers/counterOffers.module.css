@@ -23,11 +23,11 @@
   margin-bottom: 20px;
 }
 
-/* QA: 36px, weight 300, #3c3c3c */
+/* QA: 40px, weight 500, #1c1b1c */
 .pageTitle {
-  font-size: 36px;
-  font-weight: 300;
-  color: #3c3c3c;
+  font-size: 40px;
+  font-weight: 500;
+  color: #1c1b1c;
   font-family: "Founders Grotesk", sans-serif;
   margin: 0;
   padding-top: 4px;
@@ -232,9 +232,9 @@
   white-space: nowrap;
 }
 
-/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, border-bottom 1px solid #CED0D3, padding 6px 6px 5px 19px */
+/* QA: bg #EFEBE4, color #3C3C3C, font 16px 400, border-bottom 1px solid #CED0D3, padding 6px 6px 5.25px 19px */
 .dataGrid td {
-  padding: 6px 6px 5px 19px;
+  padding: 6px 6px 5.25px 19px;
   font-size: 16px;
   font-weight: 400;
   color: #3c3c3c;
@@ -528,7 +528,7 @@
 }
 
 .offerListGrid td {
-  padding: 6px 6px 5px 19px;
+  padding: 6px 6px 5.25px 19px;
   font-size: 16px;
   font-weight: 400;
   color: #3c3c3c;

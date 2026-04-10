@@ -1,0 +1,292 @@
+/* =================================================================
+   PWS Order History — pixel-matched to QA Mendix PWS_OrderHistory
+   Shares styling patterns with pricing.module.css & offerReview.module.css
+   Font: "Founders Grotesk" throughout
+   Grid bg: #efebe4 (warm beige)
+   Grid cell border: 1px solid #ced0d3
+   ================================================================= */
+
+.pageContainer {
+  padding: 16px 24px;
+  background: #efebe4;
+  min-height: 100%;
+  font-family: "Founders Grotesk", "Brandon Grotesque", "Open Sans", Arial, sans-serif;
+  color: #3c3c3c;
+}
+
+/* ---- Page header ---- */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 40px;
+  font-weight: 500;
+  color: #1c1b1c;
+  margin: 0;
+  white-space: nowrap;
+  line-height: 47px;
+}
+
+.headerActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.exportBtn {
+  padding: 10.8px 18px;
+  border: 1px solid #102e33;
+  border-radius: 50px;
+  background: #102e33;
+  color: #fff;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.exportBtn:hover {
+  background: #1a4a51;
+}
+
+.exportBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---- Tab bar ---- */
+.tabBar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+}
+
+.tab {
+  padding: 10px 20px;
+  border: 2px solid #d2cdcd;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: #e8e3db;
+}
+
+.tabActive {
+  background: transparent;
+  font-weight: 600;
+  border-bottom: 3px solid #407874;
+}
+
+.tabActive:hover {
+  background: transparent;
+}
+
+.tabCount {
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* ---- Data grid ---- */
+.gridWrapper {
+  background: #efebe4;
+  min-height: 0;
+  flex: 1;
+}
+
+.dataGrid {
+  width: 100%;
+  border-collapse: collapse;
+  background: #f7f7f7;
+  font-family: "Founders Grotesk", sans-serif;
+}
+
+/* Column headers */
+.dataGrid th {
+  background: #efebe4;
+  font-size: 16px;
+  font-weight: 600;
+  color: #3c3c3c;
+  text-transform: none;
+  letter-spacing: normal;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  border-bottom: 1px solid #ced0d3;
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dataGrid th:hover {
+  background: #e8e3db;
+}
+
+/* Grid cells */
+.dataGrid td {
+  padding: 6px 6px 5.25px 19px;
+  font-size: 16px;
+  font-weight: 400;
+  color: #3c3c3c;
+  border-bottom: 1px solid #ced0d3;
+  vertical-align: middle;
+  background: #efebe4;
+}
+
+.dataGrid tbody tr {
+  cursor: pointer;
+}
+
+.dataGrid tbody tr:hover td {
+  background: #e5e1da;
+}
+
+/* Column alignment overrides */
+.colCenter {
+  text-align: center;
+}
+
+.colRight {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ---- Sortable header ---- */
+.sortableHeader {
+  display: flex;
+  align-items: baseline;
+  cursor: pointer;
+  gap: 4px;
+  user-select: none;
+}
+
+.sortIcon {
+  display: inline-block;
+  font-size: 10px;
+  color: #3c3c3c;
+  opacity: 0.5;
+  margin-left: 2px;
+  line-height: 1;
+}
+
+.sortIconActive {
+  opacity: 1;
+  color: #407874;
+}
+
+/* ---- Status badges (QA-matched: only 3 colored, rest plain text) ---- */
+.statusBadge {
+  display: inline;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Offer Pending — darkorange pill */
+.statusOfferPending {
+  background: rgb(242, 107, 33);
+  border-radius: 6px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* Shipped — seagreen pill */
+.statusShipped {
+  background: rgb(65, 121, 116);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* Order Cancelled — red pill */
+.statusCancelled {
+  background: rgb(235, 51, 0);
+  border-radius: 4px;
+  padding: 4px 8px;
+  color: #f3f0eb;
+}
+
+/* All other statuses — plain text, no badge */
+.statusNone {
+  /* no badge styling */
+}
+
+/* ---- Pagination ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+  padding: 4px 8px;
+  height: 42px;
+  background: #efebe4;
+}
+
+.pageBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 41px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  color: #3c3c3c;
+  padding: 6px;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background: #e8e3db;
+}
+
+.pageBtn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.pageInfo {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #3b4251;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+/* ---- Empty state ---- */
+.emptyState {
+  text-align: center;
+  padding: 35px 16px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  font-weight: 500;
+  color: #3c3c3c;
+}
+
+/* ---- Loading ---- */
+.loadingState {
+  text-align: center;
+  padding: 48px;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 18px;
+  color: #888;
+  background: #efebe4;
+}

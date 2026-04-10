@@ -1,0 +1,15 @@
+- generic [ref=e6]:
+  - heading "Sign in" [level=2] [ref=e7]
+  - generic [ref=e9]:
+    - generic [ref=e22]: The username or password you entered is incorrect.
+    - generic [ref=e10]:
+      - generic [ref=e11]: User name
+      - generic [ref=e12]:
+        - textbox "User name" [ref=e13]: ashirwadmittal
+        - generic [ref=e14]: 
+    - generic [ref=e15]:
+      - generic [ref=e16]: Password
+      - generic [ref=e17]:
+        - textbox "Password" [ref=e18]: Password 123#
+        - generic [ref=e19]: 
+    - button "Sign in" [ref=e20] [cursor=pointer]

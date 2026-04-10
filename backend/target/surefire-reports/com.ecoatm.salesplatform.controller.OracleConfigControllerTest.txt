@@ -1,4 +1,4 @@
 -------------------------------------------------------------------------------
 Test set: com.ecoatm.salesplatform.controller.OracleConfigControllerTest
 -------------------------------------------------------------------------------
-Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.351 s -- in com.ecoatm.salesplatform.controller.OracleConfigControllerTest
+Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.152 s -- in com.ecoatm.salesplatform.controller.OracleConfigControllerTest

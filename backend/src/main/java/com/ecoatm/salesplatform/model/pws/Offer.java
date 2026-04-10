@@ -71,6 +71,9 @@ public class Offer {
     @Column(name = "counter_response_submitted_on")
     private LocalDateTime counterResponseSubmittedOn;
 
+    @Column(name = "visible_in_history", nullable = false)
+    private boolean visibleInHistory = true;
+
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
 
@@ -158,6 +161,9 @@ public class Offer {
 
     public LocalDateTime getCounterResponseSubmittedOn() { return counterResponseSubmittedOn; }
     public void setCounterResponseSubmittedOn(LocalDateTime counterResponseSubmittedOn) { this.counterResponseSubmittedOn = counterResponseSubmittedOn; }
+
+    public boolean isVisibleInHistory() { return visibleInHistory; }
+    public void setVisibleInHistory(boolean visibleInHistory) { this.visibleInHistory = visibleInHistory; }
 
     public List<OfferItem> getItems() { return items; }
     public void setItems(List<OfferItem> items) { this.items = items; }

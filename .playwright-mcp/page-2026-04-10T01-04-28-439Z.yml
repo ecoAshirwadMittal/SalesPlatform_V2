@@ -1,0 +1,180 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - generic [ref=e108]:
+          - generic [ref=e109]: View As
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - combobox "View As" [ref=e114]
+              - generic [ref=e115]: NB_PWS Nadia Boonnayanont
+            - img [ref=e118] [cursor=pointer]: 
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e148]:
+          - generic [ref=e151]:
+            - generic [ref=e154]: Order History
+            - button "Download" [ref=e158] [cursor=pointer]:
+              - generic [ref=e159]: 
+              - text: Download
+          - generic [ref=e161]:
+            - generic [ref=e162]:
+              - button "All (3)" [ref=e163] [cursor=pointer]
+              - button "Recent (0)" [ref=e164] [cursor=pointer]
+              - button "In Process (1)" [ref=e165] [cursor=pointer]
+              - button "Complete (2)" [active] [ref=e166] [cursor=pointer]
+            - generic [ref=e498]:
+              - grid [ref=e500]:
+                - rowgroup [ref=e501]:
+                  - row "sort Order Number sort Offer Date sort Order Date sort Buyer sort Company sort Order Status sort Ship Date sort Ship Method sort SKUs sort Qty sort Total Price" [ref=e502]:
+                    - columnheader "sort Order Number" [ref=e503]:
+                      - button "sort Order Number" [ref=e505] [cursor=pointer]:
+                        - generic [ref=e506]: Order Number
+                        - img [ref=e507]
+                    - columnheader "sort Offer Date" [ref=e509]:
+                      - button "sort Offer Date" [ref=e511] [cursor=pointer]:
+                        - generic [ref=e512]: Offer Date
+                        - img [ref=e513]
+                    - columnheader "sort Order Date" [ref=e515]:
+                      - button "sort Order Date" [ref=e517] [cursor=pointer]:
+                        - generic [ref=e518]: Order Date
+                        - img [ref=e519]
+                    - columnheader "sort Buyer" [ref=e521]:
+                      - button "sort Buyer" [ref=e523] [cursor=pointer]:
+                        - generic [ref=e524]: Buyer
+                        - img [ref=e525]
+                    - columnheader "sort Company" [ref=e527]:
+                      - button "sort Company" [ref=e529] [cursor=pointer]:
+                        - generic [ref=e530]: Company
+                        - img [ref=e531]
+                    - columnheader "sort Order Status" [ref=e533]:
+                      - button "sort Order Status" [ref=e535] [cursor=pointer]:
+                        - generic [ref=e536]: Order Status
+                        - img [ref=e537]
+                    - columnheader "sort Ship Date" [ref=e539]:
+                      - button "sort Ship Date" [ref=e541] [cursor=pointer]:
+                        - generic [ref=e542]: Ship Date
+                        - img [ref=e543]
+                    - columnheader "sort Ship Method" [ref=e545]:
+                      - button "sort Ship Method" [ref=e547] [cursor=pointer]:
+                        - generic [ref=e548]: Ship Method
+                        - img [ref=e549]
+                    - columnheader "sort SKUs" [ref=e551]:
+                      - button "sort SKUs" [ref=e553] [cursor=pointer]:
+                        - generic [ref=e554]: SKUs
+                        - img [ref=e555]
+                    - columnheader "sort Qty" [ref=e557]:
+                      - button "sort Qty" [ref=e559] [cursor=pointer]:
+                        - generic [ref=e560]: Qty
+                        - img [ref=e561]
+                    - columnheader "sort Total Price" [ref=e563]:
+                      - button "sort Total Price" [ref=e565] [cursor=pointer]:
+                        - generic [ref=e566]: Total Price
+                        - img [ref=e567]
+                - rowgroup [ref=e569]:
+                  - row "NB_PWS26003 3/4/2026 03/04/2026 NB_PWS Nadia Boonnayanont Shipped --- --- $" [ref=e570]:
+                    - gridcell "NB_PWS26003" [ref=e571] [cursor=pointer]:
+                      - generic [ref=e572]: NB_PWS26003
+                    - gridcell "3/4/2026" [ref=e573] [cursor=pointer]:
+                      - generic [ref=e574]: 3/4/2026
+                    - gridcell "03/04/2026" [ref=e575] [cursor=pointer]:
+                      - generic [ref=e576]: 03/04/2026
+                    - gridcell "NB_PWS" [ref=e577] [cursor=pointer]:
+                      - generic [ref=e578]: NB_PWS
+                    - gridcell "Nadia Boonnayanont" [ref=e579] [cursor=pointer]:
+                      - generic [ref=e580]: Nadia Boonnayanont
+                    - gridcell "Shipped" [ref=e581] [cursor=pointer]:
+                      - generic [ref=e584]: Shipped
+                    - gridcell "---" [ref=e585] [cursor=pointer]:
+                      - generic [ref=e586]: "---"
+                    - gridcell "---" [ref=e587] [cursor=pointer]:
+                      - generic [ref=e588]: "---"
+                    - gridcell [ref=e589] [cursor=pointer]
+                    - gridcell [ref=e590] [cursor=pointer]
+                    - gridcell "$" [ref=e591] [cursor=pointer]:
+                      - generic [ref=e592]: $
+                  - row "NB_PWS26002 2/6/2026 02/06/2026 NB_PWS Nadia Boonnayanont Shipped --- --- $" [ref=e593]:
+                    - gridcell "NB_PWS26002" [ref=e594] [cursor=pointer]:
+                      - generic [ref=e595]: NB_PWS26002
+                    - gridcell "2/6/2026" [ref=e596] [cursor=pointer]:
+                      - generic [ref=e597]: 2/6/2026
+                    - gridcell "02/06/2026" [ref=e598] [cursor=pointer]:
+                      - generic [ref=e599]: 02/06/2026
+                    - gridcell "NB_PWS" [ref=e600] [cursor=pointer]:
+                      - generic [ref=e601]: NB_PWS
+                    - gridcell "Nadia Boonnayanont" [ref=e602] [cursor=pointer]:
+                      - generic [ref=e603]: Nadia Boonnayanont
+                    - gridcell "Shipped" [ref=e604] [cursor=pointer]:
+                      - generic [ref=e607]: Shipped
+                    - gridcell "---" [ref=e608] [cursor=pointer]:
+                      - generic [ref=e609]: "---"
+                    - gridcell "---" [ref=e610] [cursor=pointer]:
+                      - generic [ref=e611]: "---"
+                    - gridcell [ref=e612] [cursor=pointer]
+                    - gridcell [ref=e613] [cursor=pointer]
+                    - gridcell "$" [ref=e614] [cursor=pointer]:
+                      - generic [ref=e615]: $
+              - generic "Pagination" [ref=e617]:
+                - button "Go to first page" [disabled]:
+                  - generic:
+                    - img
+                - button "Go to previous page" [disabled]:
+                  - generic:
+                    - img
+                - generic [ref=e618]: Currently showing 1 to 2 of 2
+                - generic [ref=e619]: 1 to 2 of 2
+                - button "Go to next page" [disabled]:
+                  - generic:
+                    - img
+                - button "Go to last page" [disabled]:
+                  - generic:
+                    - img
+        - text: 
+  - status [ref=e315]

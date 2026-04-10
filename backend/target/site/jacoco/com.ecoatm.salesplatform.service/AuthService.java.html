@@ -6,7 +6,6 @@ import com.ecoatm.salesplatform.model.User;
 import com.ecoatm.salesplatform.repository.UserRepository;
 import com.ecoatm.salesplatform.security.JwtService;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,41 +15,41 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-<span class="fc" id="L19">@RequiredArgsConstructor</span>
+@RequiredArgsConstructor
 public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final EntityManager em;
 
     @Transactional(readOnly = true)
     public LoginResponse authenticateLocalUser(LoginRequest request) {
         // Mendix ACT_Login_ExternalUser logic representation
 
-<span class="fc" id="L33">        Optional&lt;User&gt; userOpt = userRepository.findByNameIgnoreCase(request.getEmail());</span>
+<span class="fc" id="L30">        Optional&lt;User&gt; userOpt = userRepository.findByNameIgnoreCase(request.getEmail());</span>
 
-<span class="fc bfc" id="L35" title="All 2 branches covered.">        if (userOpt.isEmpty()) {</span>
-<span class="fc" id="L36">            return new LoginResponse(false, &quot;No account with this email&quot;, null);</span>
+<span class="fc bfc" id="L32" title="All 2 branches covered.">        if (userOpt.isEmpty()) {</span>
+<span class="fc" id="L33">            return new LoginResponse(false, &quot;No account with this email&quot;, null);</span>
         }
 
-<span class="fc" id="L39">        User user = userOpt.get();</span>
+<span class="fc" id="L36">        User user = userOpt.get();</span>
 
-<span class="fc bfc" id="L41" title="All 4 branches covered.">        if (!user.isActive() || user.isBlocked()) {</span>
-<span class="fc" id="L42">            return new LoginResponse(false, &quot;Account is disabled or locked.&quot;, null);</span>
+<span class="fc bfc" id="L38" title="All 4 branches covered.">        if (!user.isActive() || user.isBlocked()) {</span>
+<span class="fc" id="L39">            return new LoginResponse(false, &quot;Account is disabled or locked.&quot;, null);</span>
         }
 
         // Validate BCrypt password stored by Mendix
-<span class="fc bfc" id="L46" title="All 2 branches covered.">        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {</span>
-<span class="fc" id="L47">            List&lt;String&gt; roles = getUserRoles(user.getId());</span>
-<span class="fc" id="L48">            String token = jwtService.generateToken(user.getId(), user.getName(), roles, request.isRememberMe());</span>
-<span class="fc" id="L49">            LoginResponse resp = new LoginResponse(true, &quot;Authentication successful&quot;, token);</span>
-<span class="fc" id="L50">            resp.setUser(buildUserInfo(user.getId(), user.getName()));</span>
-<span class="fc" id="L51">            return resp;</span>
+<span class="fc bfc" id="L43" title="All 2 branches covered.">        if (passwordEncoder.matches(request.getPassword(), user.getPassword())) {</span>
+<span class="fc" id="L44">            List&lt;String&gt; roles = getUserRoles(user.getId());</span>
+<span class="fc" id="L45">            String token = jwtService.generateToken(user.getId(), user.getName(), roles, request.isRememberMe());</span>
+<span class="fc" id="L46">            LoginResponse resp = new LoginResponse(true, &quot;Authentication successful&quot;, token);</span>
+<span class="fc" id="L47">            LoginResponse.UserInfo userInfo = buildUserInfo(user.getId(), user.getName());</span>
+<span class="fc" id="L48">            userInfo.setRoles(roles);</span>
+<span class="fc" id="L49">            resp.setUser(userInfo);</span>
+<span class="fc" id="L50">            return resp;</span>
         } else {
-<span class="fc" id="L53">            return new LoginResponse(false, &quot;Incorrect Password&quot;, null);</span>
+<span class="fc" id="L52">            return new LoginResponse(false, &quot;Incorrect Password&quot;, null);</span>
         }
     }
 
@@ -60,65 +59,67 @@ public class AuthService {
      */
     @Transactional(readOnly = true)
     public LoginResponse.UserInfo getCurrentUser(Long userId) {
-<span class="fc" id="L63">        User user = userRepository.findById(userId)</span>
-<span class="fc" id="L64">                .orElseThrow(() -&gt; new RuntimeException(&quot;User not found: &quot; + userId));</span>
-<span class="fc" id="L65">        return buildUserInfo(user.getId(), user.getName());</span>
+<span class="fc" id="L62">        User user = userRepository.findById(userId)</span>
+<span class="fc" id="L63">                .orElseThrow(() -&gt; new RuntimeException(&quot;User not found: &quot; + userId));</span>
+<span class="fc" id="L64">        LoginResponse.UserInfo userInfo = buildUserInfo(user.getId(), user.getName());</span>
+<span class="fc" id="L65">        userInfo.setRoles(getUserRoles(userId));</span>
+<span class="fc" id="L66">        return userInfo;</span>
     }
 
     @SuppressWarnings(&quot;unchecked&quot;)
     private List&lt;String&gt; getUserRoles(Long userId) {
         // Single-column native query returns List&lt;Object&gt; (scalars), not List&lt;Object[]&gt;
-<span class="fc" id="L71">        List&lt;Object&gt; rows = em.createNativeQuery(</span>
-                &quot;SELECT ur.name FROM identity.user_roles ur &quot; +
+<span class="fc" id="L72">        List&lt;Object&gt; rows = em.createNativeQuery(</span>
+<span class="fc" id="L73">                &quot;SELECT ur.name FROM identity.user_roles ur &quot; +</span>
                 &quot;JOIN identity.user_role_assignments ura ON ura.role_id = ur.id &quot; +
                 &quot;WHERE ura.user_id = :userId&quot;)
-<span class="fc" id="L75">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L76">                .getResultList();</span>
-<span class="fc" id="L77">        return rows.stream().map(r -&gt; (String) r).toList();</span>
+<span class="fc" id="L76">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L77">                .getResultList();</span>
+<span class="fc" id="L78">        return rows.stream().map(r -&gt; (String) r).toList();</span>
     }
 
     private LoginResponse.UserInfo buildUserInfo(Long userId, String loginName) {
         // Join ecoatm_direct_users + accounts for full name / first / last
-<span class="fc" id="L82">        List&lt;Object[]&gt; rows = em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L83">        List&lt;Object[]&gt; rows = em.createNativeQuery(&quot;&quot;&quot;</span>
             SELECT edu.first_name, edu.last_name, a.full_name, a.email
             FROM user_mgmt.ecoatm_direct_users edu
             JOIN identity.accounts a ON a.user_id = edu.user_id
             WHERE edu.user_id = :userId
             &quot;&quot;&quot;)
-<span class="fc" id="L88">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L89">                .getResultList();</span>
+<span class="fc" id="L89">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L90">                .getResultList();</span>
 
-<span class="fc" id="L91">        String firstName = &quot;&quot;;</span>
-<span class="fc" id="L92">        String lastName = &quot;&quot;;</span>
-<span class="fc" id="L93">        String fullName = loginName;</span>
-<span class="fc" id="L94">        String email = loginName;</span>
+<span class="fc" id="L92">        String firstName = &quot;&quot;;</span>
+<span class="fc" id="L93">        String lastName = &quot;&quot;;</span>
+<span class="fc" id="L94">        String fullName = loginName;</span>
+<span class="fc" id="L95">        String email = loginName;</span>
 
-<span class="pc bpc" id="L96" title="1 of 2 branches missed.">        if (!rows.isEmpty()) {</span>
-<span class="fc" id="L97">            Object[] row = rows.get(0);</span>
-<span class="pc bpc" id="L98" title="1 of 2 branches missed.">            firstName = row[0] != null ? (String) row[0] : &quot;&quot;;</span>
-<span class="pc bpc" id="L99" title="1 of 2 branches missed.">            lastName = row[1] != null ? (String) row[1] : &quot;&quot;;</span>
-<span class="pc bpc" id="L100" title="1 of 2 branches missed.">            fullName = row[2] != null ? (String) row[2] : loginName;</span>
-<span class="pc bpc" id="L101" title="1 of 2 branches missed.">            email = row[3] != null ? (String) row[3] : loginName;</span>
+<span class="pc bpc" id="L97" title="1 of 2 branches missed.">        if (!rows.isEmpty()) {</span>
+<span class="fc" id="L98">            Object[] row = rows.get(0);</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">            firstName = row[0] != null ? (String) row[0] : &quot;&quot;;</span>
+<span class="pc bpc" id="L100" title="1 of 2 branches missed.">            lastName = row[1] != null ? (String) row[1] : &quot;&quot;;</span>
+<span class="pc bpc" id="L101" title="1 of 2 branches missed.">            fullName = row[2] != null ? (String) row[2] : loginName;</span>
+<span class="pc bpc" id="L102" title="1 of 2 branches missed.">            email = row[3] != null ? (String) row[3] : loginName;</span>
         }
 
         // Mendix initials logic: if(Name = 'MxAdmin') then 'MX' else FirstName[0]+LastName[0]
         String initials;
-<span class="pc bpc" id="L106" title="1 of 2 branches missed.">        if (&quot;MxAdmin&quot;.equalsIgnoreCase(loginName)) {</span>
-<span class="nc" id="L107">            initials = &quot;MX&quot;;</span>
-<span class="pc bpc" id="L108" title="2 of 4 branches missed.">        } else if (!firstName.isEmpty() &amp;&amp; !lastName.isEmpty()) {</span>
-<span class="fc" id="L109">            initials = (&quot;&quot; + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();</span>
-<span class="nc bnc" id="L110" title="All 4 branches missed.">        } else if (fullName != null &amp;&amp; !fullName.isBlank()) {</span>
-<span class="nc" id="L111">            String[] parts = fullName.trim().split(&quot;\\s+&quot;);</span>
-<span class="nc bnc" id="L112" title="All 2 branches missed.">            if (parts.length &gt;= 2) {</span>
-<span class="nc" id="L113">                initials = (&quot;&quot; + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();</span>
-            } else {
-<span class="nc" id="L115">                initials = fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();</span>
+<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        if (&quot;MxAdmin&quot;.equalsIgnoreCase(loginName)) {</span>
+<span class="nc" id="L108">            initials = &quot;MX&quot;;</span>
+<span class="pc bpc" id="L109" title="2 of 4 branches missed.">        } else if (!firstName.isEmpty() &amp;&amp; !lastName.isEmpty()) {</span>
+<span class="fc" id="L110">            initials = (&quot;&quot; + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();</span>
+<span class="pc bnc" id="L111" title="All 4 branches missed.">        } else if (fullName != null &amp;&amp; !fullName.isBlank()) {</span>
+<span class="nc" id="L112">            String[] parts = fullName.trim().split(&quot;\\s+&quot;);</span>
+<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (parts.length &gt;= 2) {</span>
+<span class="nc" id="L114">                initials = (&quot;&quot; + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();</span>
+<span class="nc" id="L115">            } else {</span>
+<span class="nc" id="L116">                initials = fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();</span>
             }
-<span class="nc" id="L117">        } else {</span>
-<span class="nc" id="L118">            initials = &quot;??&quot;;</span>
+<span class="nc" id="L118">        } else {</span>
+<span class="nc" id="L119">            initials = &quot;??&quot;;</span>
         }
 
-<span class="fc" id="L121">        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials);</span>
+<span class="fc" id="L122">        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials, null);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

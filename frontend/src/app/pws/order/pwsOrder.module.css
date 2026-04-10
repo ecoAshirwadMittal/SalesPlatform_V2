@@ -3,6 +3,7 @@
    Font: "Founders Grotesk" throughout
    Grid bg: #efebe4 (warm beige)
    Grid cell border: 1px solid #ced0d3
+   Updated: 2026-04-09
    ================================================================= */
 
 .pageWrapper {
@@ -46,7 +47,7 @@
   width: 100%;
   height: 36px;
   padding: 4px 36px 4px 16px;
-  border: 1px solid rgba(0, 0, 0, 0.22);
+  border: none;
   border-radius: 50px;
   font-size: 18px;
   font-family: "Founders Grotesk", sans-serif;
@@ -56,7 +57,7 @@
 }
 
 .searchInput:focus {
-  border-color: #407874;
+  outline: 1px solid #407874;
 }
 
 .searchIconSvg {
@@ -195,20 +196,24 @@
 
 .datagrid {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
 }
 
-/* Column header — bg #efebe4, 16px, wt 400, #3c3c3c, padding 6px 6px 6px 15px */
+/* Column header — bg #efebe4, 16px, wt 600, #3c3c3c, padding 6px 6px 6px 15px */
 .datagrid thead tr:first-child th {
   background-color: #efebe4;
   color: #3c3c3c;
   font-family: "Founders Grotesk", sans-serif;
   font-size: 16px;
-  font-weight: 400;
+  font-weight: 600;
   padding: 6px 6px 6px 15px;
   white-space: nowrap;
+  border-top: 1px solid #ced0d3;
+  border-left: 1px solid #ced0d3;
   border-bottom: none;
+  border-right: none;
   cursor: pointer;
   user-select: none;
 }
@@ -235,7 +240,10 @@
 .filterRow th {
   background-color: #efebe4;
   padding: 4px 6px 4px 15px;
+  border-top: none;
   border-bottom: none;
+  border-left: 1px solid #ced0d3;
+  border-right: none;
   font-weight: normal;
 }
 
@@ -278,14 +286,17 @@
   text-align: center;
 }
 
-/* Grid cells — bg #efebe4, 16px, #3c3c3c, padding 6px 6px 5px 19px, border-bottom 1px solid #ced0d3, line-height ~23px */
+/* Grid cells — bg #efebe4, 16px, #3c3c3c, padding 6px 6px 5px 19px, border 1px solid #ced0d3, line-height ~23px */
 .datagrid td {
   background-color: #efebe4;
   color: #3c3c3c;
   font-family: "Founders Grotesk", sans-serif;
   font-size: 16px;
-  padding: 6px 6px 5px 19px;
+  padding: 6px 6px 5.25px 19px;
+  border-top: 1px solid #ced0d3;
   border-bottom: 1px solid #ced0d3;
+  border-left: 1px solid #ced0d3;
+  border-right: none;
   line-height: 23px;
 }
 
@@ -294,14 +305,22 @@
 }
 
 .numberInput {
-  width: 60px;
+  width: 55px;
   height: 30px;
   padding: 2px 4px;
-  border: 1px solid #d0d0d0;
+  border: none;
   border-radius: 0;
   font-size: 16px;
   font-family: "Founders Grotesk", sans-serif;
+  font-weight: 500;
   background: #f7f7f7;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.numberInput::-webkit-outer-spin-button,
+.numberInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 /* ---- Pagination — right-aligned, height ~42px ---- */
@@ -581,7 +600,180 @@
 
 /* Mendix: user-data-cells text-bold pws-no-bg-color — editable/computed cells with no bg tint */
 .userDataCell {
-  background: #fff !important;
-  font-weight: 600;
-  text-align: center;
+  background: #f7f7f7 !important;
+  font-weight: 500;
+}
+
+/* ---- Default offer price display (bold text, matches QA $1,250 style) ---- */
+.offerPriceDefault {
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 500;
+  color: #3c3c3c;
+  white-space: nowrap;
+}
+
+/* text-dollar wrapper: renders $ before the input via ::before */
+.textDollar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.textDollar::before {
+  content: "$";
+  font-size: 16px;
+  font-weight: normal;
+  line-height: 1;
+  align-self: center;
+}
+
+/* Cart Qty with value: inherit color from state (red-orange when exceed) */
+.cartQtyActive {
+  color: rgb(235, 51, 0);
+  font-weight: 500;
+}
+.cartQtyActive input {
+  color: rgb(235, 51, 0);
+}
+
+/* ---- Offer price color-coding (CAL_BuyerOfferItem_CSSStyle) ---- */
+/* OfferPrice < CurrentListPrice → needs sales review */
+.offerPriceOrange {
+  color: rgb(225, 115, 56) !important;
+  font-weight: bold;
+  border-radius: 3px;
+  background: rgb(244, 229, 219) !important;
+}
+.offerPriceOrange input {
+  color: rgb(225, 115, 56);
+  background: rgb(244, 229, 219) !important;
+  border: none;
+}
+/* OfferPrice >= CurrentListPrice → auto-approved */
+.offerPriceGreen {
+  color: rgb(64, 120, 116) !important;
+  font-weight: bold;
+  border-radius: 3px;
+  background: rgb(215, 228, 217) !important;
+}
+.offerPriceGreen input {
+  color: rgb(64, 120, 116);
+  background: rgb(215, 228, 217) !important;
+  border: none;
+}
+
+/* ---- Exceed qty warning (IsExceedQty) ---- */
+.exceedQtyInput {
+  border-color: #d32f2f !important;
+  background: #fff0f0 !important;
+}
+.exceedQtyHint {
+  color: #d32f2f;
+  font-size: 11px;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+/* ---- pws-font-animation equivalent ---- */
+@keyframes pwsFontPulse {
+  0%   { opacity: 1; transform: scale(1); }
+  30%  { opacity: 0.7; transform: scale(1.03); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animatePulse {
+  animation: pwsFontPulse 0.35s ease;
+}
+
+/* ---- Column min-widths for input columns ---- */
+.colOfferPrice {
+  min-width: 120px;
+}
+.colCartQty {
+  min-width: 75px;
+}
+.colTotal {
+  min-width: 90px;
+  font-weight: 500;
+}
+
+/* ---- Multi-select checkbox dropdown filter ---- */
+.multiSelectWrapper {
+  position: relative;
+  width: 100%;
+}
+.multiSelectTrigger {
+  width: 100%;
+  height: 30px;
+  padding: 2px 20px 2px 4px;
+  border: 1px solid #d0d0d0;
+  border-radius: 0;
+  font-size: 14px;
+  font-family: "Founders Grotesk", sans-serif;
+  color: #3c3c3c;
+  background: #f7f7f7;
+  cursor: pointer;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  appearance: none;
+  min-width: 75px;
+}
+.multiSelectTrigger::after {
+  content: '▾';
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #666;
+  pointer-events: none;
+}
+.multiSelectDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  max-height: 240px;
+  overflow-y: auto;
+  background: #fff;
+  border: 1px solid #d0d0d0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  z-index: 150;
+}
+.multiSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  cursor: pointer;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  white-space: nowrap;
+}
+.multiSelectOption:hover {
+  background: #f0f0f0;
+}
+.multiSelectCheckbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #407874;
+  flex-shrink: 0;
+}
+.multiSelectClear {
+  display: block;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 13px;
+  color: #407874;
+  cursor: pointer;
+  text-align: left;
+}
+.multiSelectClear:hover {
+  background: #f0f0f0;
 }

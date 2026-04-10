@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderHistoryResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">OrderHistoryResponse.java</span></div><h1>OrderHistoryResponse.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
+
+import com.ecoatm.salesplatform.model.pws.OrderHistoryView;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+<span class="fc" id="L8">public record OrderHistoryResponse(</span>
+        Long id,
+        String orderNumber,
+        LocalDateTime offerDate,
+        LocalDateTime orderDate,
+        String orderStatus,
+        LocalDateTime shipDate,
+        String shipMethod,
+        Integer skuCount,
+        Integer totalQuantity,
+        BigDecimal totalPrice,
+        String buyer,
+        String company,
+        LocalDateTime lastUpdateDate,
+        String offerOrderType,
+        Long offerId
+) {
+    public static OrderHistoryResponse from(OrderHistoryView v) {
+<span class="fc" id="L26">        return new OrderHistoryResponse(</span>
+<span class="fc" id="L27">                v.getId(),</span>
+<span class="fc" id="L28">                v.getOrderNumber(),</span>
+<span class="fc" id="L29">                v.getOfferDate(),</span>
+<span class="fc" id="L30">                v.getOrderDate(),</span>
+<span class="fc" id="L31">                v.getOrderStatus(),</span>
+<span class="fc" id="L32">                v.getShipDate(),</span>
+<span class="fc" id="L33">                v.getShipMethod(),</span>
+<span class="fc" id="L34">                v.getSkuCount(),</span>
+<span class="fc" id="L35">                v.getTotalQuantity(),</span>
+<span class="fc" id="L36">                v.getTotalPrice(),</span>
+<span class="fc" id="L37">                v.getBuyer(),</span>
+<span class="fc" id="L38">                v.getCompany(),</span>
+<span class="fc" id="L39">                v.getLastUpdateDate(),</span>
+<span class="fc" id="L40">                v.getOfferOrderType(),</span>
+<span class="fc" id="L41">                v.getOfferId()</span>
+        );
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

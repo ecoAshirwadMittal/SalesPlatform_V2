@@ -1,0 +1,155 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]: Sales
+      - link "Inventory" [ref=e5] [cursor=pointer]:
+        - /url: /pws/inventory
+        - img [ref=e7]
+        - generic [ref=e10]: Inventory
+      - link "Offer Review" [ref=e11] [cursor=pointer]:
+        - /url: /pws/offer-review
+        - img [ref=e13]
+        - generic [ref=e16]: Offer Review
+      - link "RMA Review" [ref=e17] [cursor=pointer]:
+        - /url: /pws/rma-review
+        - img [ref=e19]
+        - generic [ref=e23]: RMA Review
+      - link "Pricing" [ref=e24] [cursor=pointer]:
+        - /url: /pws/pricing
+        - img [ref=e26]
+        - generic [ref=e28]: Pricing
+      - generic [ref=e29]: Buyers
+      - link "Shop" [ref=e30] [cursor=pointer]:
+        - /url: /pws/order
+        - img [ref=e32]
+        - generic [ref=e36]: Shop
+      - link "Counters" [ref=e37] [cursor=pointer]:
+        - /url: /pws/counter-offers
+        - img [ref=e39]
+        - generic [ref=e44]: Counters
+      - link "Orders" [ref=e45] [cursor=pointer]:
+        - /url: /pws/orders
+        - img [ref=e47]
+        - generic [ref=e50]: Orders
+      - link "RMAs" [ref=e51] [cursor=pointer]:
+        - /url: /pws/rma-requests
+        - img [ref=e53]
+        - generic [ref=e56]: RMAs
+      - link "FAQ's" [ref=e57] [cursor=pointer]:
+        - /url: /pws/faqs
+        - img [ref=e59]
+        - generic [ref=e62]: FAQ's
+      - link "Grading" [ref=e63] [cursor=pointer]:
+        - /url: /pws/grading
+        - img [ref=e65]
+        - generic [ref=e67]: Grading
+    - generic [ref=e68]:
+      - banner [ref=e69]:
+        - generic [ref=e70]:
+          - img "ecoATM" [ref=e71]
+          - generic [ref=e72]: Premium Wholesale
+        - generic [ref=e87]:
+          - generic [ref=e88]: View As
+          - button "Select buyer code" [ref=e89] [cursor=pointer]:
+            - generic [ref=e90]: 22379 Bidder User
+            - img [ref=e91]
+        - button "User menu" [ref=e74] [cursor=pointer]:
+          - img [ref=e75]
+      - main [ref=e78]:
+        - generic [ref=e79]:
+          - generic [ref=e80]:
+            - heading "Offers" [level=2] [ref=e81]
+            - generic [ref=e93]:
+              - 'button "Sales Review: 331 SKUs Qty Price 409 320,632 $15,593,391.00" [ref=e94] [cursor=pointer]':
+                - generic [ref=e95]:
+                  - text: "Sales Review:"
+                  - strong [ref=e96]: "331"
+                - table [ref=e98]:
+                  - rowgroup [ref=e99]:
+                    - row "SKUs Qty Price" [ref=e100]:
+                      - cell "SKUs" [ref=e101]
+                      - cell "Qty" [ref=e102]
+                      - cell "Price" [ref=e103]
+                  - rowgroup [ref=e104]:
+                    - row "409 320,632 $15,593,391.00" [ref=e105]:
+                      - cell "409" [ref=e106]
+                      - cell "320,632" [ref=e107]
+                      - cell "$15,593,391.00" [ref=e108]
+              - 'button "Buyer Acceptance: 16 SKUs Qty Price 32 164 $35,960.00" [ref=e109] [cursor=pointer]':
+                - generic [ref=e110]:
+                  - text: "Buyer Acceptance:"
+                  - strong [ref=e111]: "16"
+                - table [ref=e113]:
+                  - rowgroup [ref=e114]:
+                    - row "SKUs Qty Price" [ref=e115]:
+                      - cell "SKUs" [ref=e116]
+                      - cell "Qty" [ref=e117]
+                      - cell "Price" [ref=e118]
+                  - rowgroup [ref=e119]:
+                    - row "32 164 $35,960.00" [ref=e120]:
+                      - cell "32" [ref=e121]
+                      - cell "164" [ref=e122]
+                      - cell "$35,960.00" [ref=e123]
+              - 'button "Ordered: 572 SKUs Qty Price 1,292 56,703 $21,762,835.00" [ref=e124] [cursor=pointer]':
+                - generic [ref=e125]:
+                  - text: "Ordered:"
+                  - strong [ref=e126]: "572"
+                - table [ref=e128]:
+                  - rowgroup [ref=e129]:
+                    - row "SKUs Qty Price" [ref=e130]:
+                      - cell "SKUs" [ref=e131]
+                      - cell "Qty" [ref=e132]
+                      - cell "Price" [ref=e133]
+                  - rowgroup [ref=e134]:
+                    - row "1,292 56,703 $21,762,835.00" [ref=e135]:
+                      - cell "1,292" [ref=e136]
+                      - cell "56,703" [ref=e137]
+                      - cell "$21,762,835.00" [ref=e138]
+              - 'button "Pending Order: 119 SKUs Qty Price 233 13,713 $14,001,220.00" [ref=e139] [cursor=pointer]':
+                - generic [ref=e140]:
+                  - text: "Pending Order:"
+                  - strong [ref=e141]: "119"
+                - table [ref=e143]:
+                  - rowgroup [ref=e144]:
+                    - row "SKUs Qty Price" [ref=e145]:
+                      - cell "SKUs" [ref=e146]
+                      - cell "Qty" [ref=e147]
+                      - cell "Price" [ref=e148]
+                  - rowgroup [ref=e149]:
+                    - row "233 13,713 $14,001,220.00" [ref=e150]:
+                      - cell "233" [ref=e151]
+                      - cell "13,713" [ref=e152]
+                      - cell "$14,001,220.00" [ref=e153]
+              - 'button "Declined: 153 SKUs Qty Price 249 1,004,252 $1,003,417,276.00" [ref=e154] [cursor=pointer]':
+                - generic [ref=e155]:
+                  - text: "Declined:"
+                  - strong [ref=e156]: "153"
+                - table [ref=e158]:
+                  - rowgroup [ref=e159]:
+                    - row "SKUs Qty Price" [ref=e160]:
+                      - cell "SKUs" [ref=e161]
+                      - cell "Qty" [ref=e162]
+                      - cell "Price" [ref=e163]
+                  - rowgroup [ref=e164]:
+                    - row "249 1,004,252 $1,003,417,276.00" [ref=e165]:
+                      - cell "249" [ref=e166]
+                      - cell "1,004,252" [ref=e167]
+                      - cell "$1,003,417,276.00" [ref=e168]
+              - 'button "Total: 1191 SKUs Qty Price 2,215 1,395,464 $1,054,810,682.00" [ref=e169] [cursor=pointer]':
+                - generic [ref=e170]:
+                  - text: "Total:"
+                  - strong [ref=e171]: "1191"
+                - table [ref=e173]:
+                  - rowgroup [ref=e174]:
+                    - row "SKUs Qty Price" [ref=e175]:
+                      - cell "SKUs" [ref=e176]
+                      - cell "Qty" [ref=e177]
+                      - cell "Price" [ref=e178]
+                  - rowgroup [ref=e179]:
+                    - row "2,215 1,395,464 $1,054,810,682.00" [ref=e180]:
+                      - cell "2,215" [ref=e181]
+                      - cell "1,395,464" [ref=e182]
+                      - cell "$1,054,810,682.00" [ref=e183]
+          - button "⇩ Download" [ref=e83] [cursor=pointer]
+          - generic [ref=e84]: No offers found for this status.
+  - alert [ref=e85]

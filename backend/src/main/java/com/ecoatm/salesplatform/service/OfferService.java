@@ -17,7 +17,6 @@ import com.ecoatm.salesplatform.repository.pws.OrderRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -78,9 +77,8 @@ public class OfferService {
     private final OracleConfigRepository oracleConfigRepository;
     private final CaseLotRepository caseLotRepository;
     private final ObjectMapper objectMapper;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final BuyerCodeLookupService buyerCodeLookup;
+    private final EntityManager em;
 
     public OfferService(OfferRepository offerRepository,
                         OfferItemRepository offerItemRepository,
@@ -88,7 +86,9 @@ public class OfferService {
                         OrderRepository orderRepository,
                         OracleConfigRepository oracleConfigRepository,
                         CaseLotRepository caseLotRepository,
-                        ObjectMapper objectMapper) {
+                        ObjectMapper objectMapper,
+                        BuyerCodeLookupService buyerCodeLookup,
+                        EntityManager em) {
         this.offerRepository = offerRepository;
         this.offerItemRepository = offerItemRepository;
         this.deviceRepository = deviceRepository;
@@ -96,6 +96,8 @@ public class OfferService {
         this.oracleConfigRepository = oracleConfigRepository;
         this.caseLotRepository = caseLotRepository;
         this.objectMapper = objectMapper;
+        this.buyerCodeLookup = buyerCodeLookup;
+        this.em = em;
     }
 
     @Transactional
@@ -533,13 +535,8 @@ public class OfferService {
     private String prepareOraclePayload(Offer offer, List<OfferItem> acceptedItems,
                                          Map<Long, Device> deviceMap, String originSystemUser) {
         // Retrieve buyer code string for the payload
-        String buyerCode;
-        try {
-            buyerCode = (String) em.createNativeQuery(
-                    "SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id")
-                    .setParameter("id", offer.getBuyerCodeId())
-                    .getSingleResult();
-        } catch (Exception e) {
+        String buyerCode = buyerCodeLookup.findCodeById(offer.getBuyerCodeId());
+        if (buyerCode == null) {
             buyerCode = String.valueOf(offer.getBuyerCodeId());
         }
 
@@ -933,10 +930,10 @@ public class OfferService {
      */
     private String generateOfferNumber(Long buyerCodeId) {
         // 1. Get the buyer code string
-        String buyerCode = (String) em.createNativeQuery(
-                "SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id")
-                .setParameter("id", buyerCodeId)
-                .getSingleResult();
+        String buyerCode = buyerCodeLookup.findCodeById(buyerCodeId);
+        if (buyerCode == null) {
+            throw new IllegalStateException("Buyer code not found: " + buyerCodeId);
+        }
 
         // 2. Current 2-digit year
         String yearPrefix = String.format("%02d", Year.now().getValue() % 100);

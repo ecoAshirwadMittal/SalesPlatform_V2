@@ -10,8 +10,7 @@ import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.Query;
+import com.ecoatm.salesplatform.service.BuyerCodeLookupService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,12 +20,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,17 +35,10 @@ class CounterOfferServiceTest {
     @Mock private DeviceRepository deviceRepository;
     @Mock private CaseLotRepository caseLotRepository;
     @Mock private OfferService offerService;
-    @Mock private EntityManager em;
+    @Mock private BuyerCodeLookupService buyerCodeLookup;
 
     @InjectMocks
     private CounterOfferService counterOfferService;
-
-    @BeforeEach
-    void injectEntityManager() throws Exception {
-        Field emField = CounterOfferService.class.getDeclaredField("em");
-        emField.setAccessible(true);
-        emField.set(counterOfferService, em);
-    }
 
     // --- Helpers ---
 
@@ -93,12 +81,8 @@ class CounterOfferServiceTest {
             when(offerRepository.findByStatusAndBuyerCodeIdOrderByUpdatedDateDesc("Buyer_Acceptance", 100L))
                     .thenReturn(List.of(offer));
 
-            Query codeQuery = mock(Query.class);
-            when(em.createNativeQuery(contains("buyer_codes bc"))).thenReturn(codeQuery);
-            when(codeQuery.setParameter(anyString(), any())).thenReturn(codeQuery);
-            List<Object[]> codeRows = new ArrayList<>();
-            codeRows.add(new Object[]{100L, "BC-001"});
-            when(codeQuery.getResultList()).thenReturn(codeRows);
+            when(buyerCodeLookup.findCodesByIds(Set.of(100L)))
+                    .thenReturn(Map.of(100L, "BC-001"));
 
             List<OfferListItem> result = counterOfferService.listCounterOffers(100L);
 

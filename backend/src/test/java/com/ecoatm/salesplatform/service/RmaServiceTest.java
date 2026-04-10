@@ -10,6 +10,7 @@ import com.ecoatm.salesplatform.model.pws.RmaItem;
 import com.ecoatm.salesplatform.model.pws.RmaStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaItemRepository;
+import com.ecoatm.salesplatform.repository.pws.RmaReasonRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaStatusRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,10 +38,17 @@ class RmaServiceTest {
     @Mock private RmaRepository rmaRepository;
     @Mock private RmaItemRepository rmaItemRepository;
     @Mock private RmaStatusRepository rmaStatusRepository;
+    @Mock private RmaReasonRepository rmaReasonRepository;
     @Mock private DeviceRepository deviceRepository;
+    @Mock private BuyerCodeLookupService buyerCodeLookup;
 
-    @InjectMocks
     private RmaService rmaService;
+
+    @BeforeEach
+    void setUp() {
+        rmaService = new RmaService(rmaRepository, rmaItemRepository,
+                rmaStatusRepository, rmaReasonRepository, deviceRepository, buyerCodeLookup);
+    }
 
     // --- Helpers ---
 

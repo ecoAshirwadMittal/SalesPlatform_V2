@@ -1,0 +1,20 @@
+- generic [ref=e12]:
+  - generic [ref=e17]:
+    - generic [ref=e20]: Premium Wholesale & Weekly Auctions
+    - generic [ref=e23]:
+      - textbox "Email" [disabled] [ref=e26]
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - checkbox [disabled] [ref=e32]
+          - text: Remember me?
+        - link "Forgot Password?" [ref=e34] [cursor=pointer]:
+          - /url: "#"
+      - generic [ref=e35]:
+        - button "Login" [disabled]
+      - button "Employee Login" [ref=e37] [cursor=pointer]
+    - generic [ref=e39]: Interested but don’t have an account?
+    - button "Contact Us" [ref=e41] [cursor=pointer]
+  - generic [ref=e44]:
+    - button "Privacy Policy" [ref=e49] [cursor=pointer]
+    - generic [ref=e52]: © 2026 ecoATM, LLC. All Rights Reserved.
+  - text: 

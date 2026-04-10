@@ -1,0 +1,53 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - link "Shop" [ref=e4] [cursor=pointer]:
+        - /url: /pws/order
+        - img [ref=e6]
+        - generic [ref=e10]: Shop
+      - link "Counters" [ref=e11] [cursor=pointer]:
+        - /url: /pws/counter-offers
+        - img [ref=e13]
+        - generic [ref=e18]: Counters
+      - link "Orders" [ref=e19] [cursor=pointer]:
+        - /url: /pws/orders
+        - img [ref=e21]
+        - generic [ref=e24]: Orders
+      - link "RMAs" [ref=e25] [cursor=pointer]:
+        - /url: /pws/rma-requests
+        - img [ref=e27]
+        - generic [ref=e30]: RMAs
+      - link "FAQ's" [ref=e31] [cursor=pointer]:
+        - /url: /pws/faqs
+        - img [ref=e33]
+        - generic [ref=e36]: FAQ's
+      - link "Grading" [ref=e37] [cursor=pointer]:
+        - /url: /pws/grading
+        - img [ref=e39]
+        - generic [ref=e41]: Grading
+      - link "Inventory" [ref=e42] [cursor=pointer]:
+        - /url: /pws/inventory
+        - img [ref=e44]
+        - generic [ref=e47]: Inventory
+      - link "Offer Review" [ref=e48] [cursor=pointer]:
+        - /url: /pws/offer-review
+        - img [ref=e50]
+        - generic [ref=e53]: Offer Review
+      - link "RMA Review" [ref=e54] [cursor=pointer]:
+        - /url: /pws/rma-review
+        - img [ref=e56]
+        - generic [ref=e60]: RMA Review
+      - link "Pricing" [ref=e61] [cursor=pointer]:
+        - /url: /pws/pricing
+        - img [ref=e63]
+        - generic [ref=e65]: Pricing
+    - generic [ref=e66]:
+      - banner [ref=e67]:
+        - generic [ref=e68]:
+          - img "ecoATM" [ref=e69]
+          - generic [ref=e70]: Premium Wholesale
+        - button "User menu" [ref=e72] [cursor=pointer]:
+          - img [ref=e73]
+      - main [ref=e76]:
+        - generic [ref=e77]: Loading inventory...
+  - alert [ref=e78]

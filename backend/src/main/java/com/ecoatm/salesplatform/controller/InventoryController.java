@@ -90,10 +90,16 @@ public class InventoryController {
 
     /**
      * GET /api/v1/inventory/devices
-     * List all active devices.
+     * List active devices with optional filters.
      */
     @GetMapping("/devices")
-    public ResponseEntity<List<DeviceResponse>> listActiveDevices() {
+    public ResponseEntity<List<DeviceResponse>> listActiveDevices(
+            @RequestParam(required = false) String itemType,
+            @RequestParam(required = false) String excludeGrade,
+            @RequestParam(required = false) Integer minAtpQty) {
+        if (itemType != null || excludeGrade != null || minAtpQty != null) {
+            return ResponseEntity.ok(inventoryService.listFilteredDevices(itemType, excludeGrade, minAtpQty));
+        }
         return ResponseEntity.ok(inventoryService.listActiveDevices());
     }
 

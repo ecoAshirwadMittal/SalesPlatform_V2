@@ -7,7 +7,6 @@ import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -45,16 +44,19 @@ public class OfferReviewService {
     private final OfferRepository offerRepository;
     private final DeviceRepository deviceRepository;
     private final OfferService offerService;
-
-    @PersistenceContext
-    private EntityManager em;
+    private final BuyerCodeLookupService buyerCodeLookup;
+    private final EntityManager em;
 
     public OfferReviewService(OfferRepository offerRepository,
                                DeviceRepository deviceRepository,
-                               OfferService offerService) {
+                               OfferService offerService,
+                               BuyerCodeLookupService buyerCodeLookup,
+                               EntityManager em) {
         this.offerRepository = offerRepository;
         this.deviceRepository = deviceRepository;
         this.offerService = offerService;
+        this.buyerCodeLookup = buyerCodeLookup;
+        this.em = em;
     }
 
     /**
@@ -109,8 +111,8 @@ public class OfferReviewService {
 
         // Batch-load buyer code + buyer name + sales rep + order number
         List<Long> offerIds = offers.stream().map(Offer::getId).collect(Collectors.toList());
-        List<Long> buyerCodeIds = offers.stream().map(Offer::getBuyerCodeId)
-                .filter(Objects::nonNull).distinct().collect(Collectors.toList());
+        Set<Long> buyerCodeIds = offers.stream().map(Offer::getBuyerCodeId)
+                .filter(Objects::nonNull).collect(Collectors.toSet());
 
         // Buyer code → code string
         Map<Long, String> buyerCodeMap = new HashMap<>();
@@ -122,44 +124,9 @@ public class OfferReviewService {
         Map<Long, String> orderNumberMap = new HashMap<>();
 
         if (!buyerCodeIds.isEmpty()) {
-            List<Object[]> codeRows = em.createNativeQuery(
-                    "SELECT bc.id, bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id IN :ids")
-                    .setParameter("ids", buyerCodeIds)
-                    .getResultList();
-            for (Object[] row : codeRows) {
-                buyerCodeMap.put(((Number) row[0]).longValue(), (String) row[1]);
-            }
-
-            // Buyer name: buyer_codes → buyer_code_buyers → buyers.company_name
-            try {
-                List<Object[]> buyerRows = em.createNativeQuery("""
-                    SELECT bcb.buyer_code_id, b.company_name
-                    FROM buyer_mgmt.buyer_code_buyers bcb
-                    JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
-                    WHERE bcb.buyer_code_id IN :ids
-                    """).setParameter("ids", buyerCodeIds).getResultList();
-                for (Object[] row : buyerRows) {
-                    buyerNameMap.put(((Number) row[0]).longValue(), (String) row[1]);
-                }
-            } catch (Exception e) {
-                log.debug("Could not load buyer names: {}", e.getMessage());
-            }
-
-            // Sales rep
-            try {
-                List<Object[]> repRows = em.createNativeQuery("""
-                    SELECT bsr.buyer_code_id, sr.first_name, sr.last_name
-                    FROM buyer_mgmt.buyer_sales_reps bsr
-                    JOIN buyer_mgmt.sales_reps sr ON sr.id = bsr.sales_rep_id
-                    WHERE bsr.buyer_code_id IN :ids
-                    """).setParameter("ids", buyerCodeIds).getResultList();
-                for (Object[] row : repRows) {
-                    String name = (row[1] != null ? row[1] : "") + " " + (row[2] != null ? row[2] : "");
-                    salesRepMap.put(((Number) row[0]).longValue(), name.trim());
-                }
-            } catch (Exception e) {
-                log.debug("Could not load sales reps: {}", e.getMessage());
-            }
+            buyerCodeMap.putAll(buyerCodeLookup.findCodesByIds(buyerCodeIds));
+            buyerNameMap.putAll(buyerCodeLookup.findCompanyNamesByIds(buyerCodeIds));
+            salesRepMap.putAll(buyerCodeLookup.findSalesRepsByIds(buyerCodeIds));
         }
 
         if (!offerIds.isEmpty()) {

@@ -117,6 +117,12 @@ Seeded by Flyway migration `V15__seed_dev_roles_and_users.sql` — available on 
 - `@ecoatm.com` emails trigger SSO redirect (Employee Login flow)
 - Passwords are BCrypt-hashed in `identity.users`; Spring `BCryptPasswordEncoder` validates them
 
+### QA Environment (Buyer / PWS Layout)
+- **URL**: `https://buy-qa.ecoatmdirect.com/p/login/web`
+- **Email**: `nadia.ecoatm@gmail.com`
+- **Password**: `Test100%`
+- **Buyer code**: `NB_PWS`
+
 ### Database Credentials (Dev)
 | Key | Value |
 |-----|-------|

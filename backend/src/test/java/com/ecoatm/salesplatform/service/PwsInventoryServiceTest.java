@@ -10,7 +10,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -187,6 +189,67 @@ class PwsInventoryServiceTest {
 
             assertThat(result).hasSize(2);
             assertThat(result.get(0).getSku()).isEqualTo("A");
+        }
+    }
+
+    // ── listFilteredDevices ────────────────────────────────────────
+
+    @Nested
+    @DisplayName("listFilteredDevices")
+    class ListFilteredDevices {
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("returns devices when all filters provided")
+        void listFilteredDevices_allFilters_returnsDevices() {
+            Device d = makeDevice(1L, "PWS-001");
+            d.setItemType("PWS");
+            d.setAtpQty(10);
+            d.setIsActive(true);
+            when(deviceRepository.findAll(any(Specification.class))).thenReturn(List.of(d));
+
+            List<DeviceResponse> result = pwsInventoryService.listFilteredDevices("PWS", "A_YYY", 0);
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getSku()).isEqualTo("PWS-001");
+            verify(deviceRepository).findAll(any(Specification.class));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("passes specification to repository")
+        void listFilteredDevices_passesSpecification() {
+            when(deviceRepository.findAll(any(Specification.class))).thenReturn(List.of());
+
+            pwsInventoryService.listFilteredDevices("PWS", "A_YYY", 0);
+
+            ArgumentCaptor<Specification<Device>> captor = ArgumentCaptor.forClass(Specification.class);
+            verify(deviceRepository).findAll(captor.capture());
+            assertThat(captor.getValue()).isNotNull();
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("works with no filters (all null)")
+        void listFilteredDevices_noFilters_returnsAll() {
+            Device d = makeDevice(1L, "ANY");
+            d.setIsActive(true);
+            when(deviceRepository.findAll(any(Specification.class))).thenReturn(List.of(d));
+
+            List<DeviceResponse> result = pwsInventoryService.listFilteredDevices(null, null, null);
+
+            assertThat(result).hasSize(1);
+        }
+
+        @SuppressWarnings("unchecked")
+        @Test
+        @DisplayName("returns empty list when repository returns empty")
+        void listFilteredDevices_empty() {
+            when(deviceRepository.findAll(any(Specification.class))).thenReturn(List.of());
+
+            List<DeviceResponse> result = pwsInventoryService.listFilteredDevices("PWS", "A_YYY", 0);
+
+            assertThat(result).isEmpty();
         }
     }
 

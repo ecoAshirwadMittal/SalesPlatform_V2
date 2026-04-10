@@ -1,0 +1,671 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - button "Show/Hide Navigation" [ref=e8] [cursor=pointer]:
+        - img [ref=e9]
+      - menu [ref=e13]:
+        - menuitem "Users" [ref=e14] [cursor=pointer]
+        - menuitem "Buyers" [ref=e15] [cursor=pointer]
+        - menuitem "Inventory" [ref=e16] [cursor=pointer]
+        - menuitem "Purchase Order" [ref=e17] [cursor=pointer]
+        - menuitem "Reserved Bids (EB)" [ref=e18] [cursor=pointer]
+        - menuitem "Auction Scheduling" [ref=e19] [cursor=pointer]
+        - menuitem "Bid as Bidder" [ref=e20] [cursor=pointer]:
+          - generic [ref=e21]: 
+          - text: Bid as Bidder
+        - menuitem "Auction" [ref=e22] [cursor=pointer]
+        - menuitem "Reports" [ref=e23] [cursor=pointer]: Reports
+        - text:    
+        - menuitem "Settings" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: 
+          - text: Settings
+        - text:  
+        - menuitem "Admin" [ref=e28] [cursor=pointer]:
+          - generic [ref=e29]: 
+          - text: Admin
+        - text:   
+        - menuitem "Buyer User Guide" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: 
+          - text: Buyer User Guide
+    - generic [ref=e35]:
+      - button [ref=e58] [cursor=pointer]
+      - generic [ref=e60]:
+        - generic [ref=e66]:
+          - generic [ref=e69]:
+            - generic [ref=e72]:
+              - heading "Inventory" [level=2] [ref=e75]
+              - generic [ref=e84]:
+                - generic [ref=e85]:
+                  - combobox [active] [ref=e86]
+                  - generic: 2026 / Wk16
+                - img [ref=e89] [cursor=pointer]: 
+              - generic [ref=e92]:
+                - button "Create Auction" [ref=e93] [cursor=pointer]
+                - button "Refresh" [ref=e94] [cursor=pointer]
+              - generic [ref=e100]:
+                - generic [ref=e102]: "Last synced:"
+                - generic [ref=e104]: 4/9/2026, 3:50 PM
+            - generic [ref=e108]:
+              - generic [ref=e109]:
+                - generic [ref=e110]: Total Quantity
+                - generic [ref=e112]: 151,917
+              - generic [ref=e113]:
+                - generic [ref=e114]: Total Payout
+                - generic [ref=e116]: $1,731,085
+              - generic [ref=e117]:
+                - generic [ref=e118]: Average Target Price
+                - generic [ref=e120]: $49.02
+              - generic [ref=e121]:
+                - generic [ref=e122]: DW Total Quantity
+                - generic [ref=e124]: 48,638
+              - generic [ref=e125]:
+                - generic [ref=e126]: DW Total Payout
+                - generic [ref=e128]: $4,755,153
+              - generic [ref=e129]:
+                - generic [ref=e130]: DW Average Target Price
+                - generic [ref=e132]: $223.59
+          - generic [ref=e133]:
+            - grid [ref=e135]:
+              - rowgroup [ref=e136]:
+                - row "sort Product ID sort Grades sort Brand sort Model sort Model Name sort Carrier sort DW Qty sort DW Target Price sort Total Qty sort Target Price Column selector" [ref=e137]:
+                  - columnheader "sort Product ID" [ref=e138]:
+                    - generic [ref=e139]:
+                      - button "sort Product ID" [ref=e140] [cursor=pointer]:
+                        - generic [ref=e141]: Product ID
+                        - img [ref=e142]
+                      - generic [ref=e145]:
+                        - combobox "Equal" [ref=e148] [cursor=pointer]: 
+                        - textbox [ref=e149]
+                  - columnheader "sort Grades" [ref=e152]:
+                    - generic [ref=e153]:
+                      - button "sort Grades" [ref=e154] [cursor=pointer]:
+                        - generic [ref=e155]: Grades
+                        - img [ref=e156]
+                      - generic [ref=e159]:
+                        - combobox "Contains" [ref=e162] [cursor=pointer]: 
+                        - textbox [ref=e163]
+                  - columnheader "sort Brand" [ref=e166]:
+                    - generic [ref=e167]:
+                      - button "sort Brand" [ref=e168] [cursor=pointer]:
+                        - generic [ref=e169]: Brand
+                        - img [ref=e170]
+                      - generic [ref=e173]:
+                        - combobox "Contains" [ref=e176] [cursor=pointer]: 
+                        - textbox [ref=e177]
+                  - columnheader "sort Model" [ref=e180]:
+                    - generic [ref=e181]:
+                      - button "sort Model" [ref=e182] [cursor=pointer]:
+                        - generic [ref=e183]: Model
+                        - img [ref=e184]
+                      - generic [ref=e187]:
+                        - combobox "Contains" [ref=e190] [cursor=pointer]: 
+                        - textbox [ref=e191]
+                  - columnheader "sort Model Name" [ref=e194]:
+                    - generic [ref=e195]:
+                      - button "sort Model Name" [ref=e196] [cursor=pointer]:
+                        - generic [ref=e197]: Model Name
+                        - img [ref=e198]
+                      - generic [ref=e201]:
+                        - combobox "Contains" [ref=e204] [cursor=pointer]: 
+                        - textbox [ref=e205]
+                  - columnheader "sort Carrier" [ref=e208]:
+                    - generic [ref=e209]:
+                      - button "sort Carrier" [ref=e210] [cursor=pointer]:
+                        - generic [ref=e211]: Carrier
+                        - img [ref=e212]
+                      - generic [ref=e215]:
+                        - combobox "Contains" [ref=e218] [cursor=pointer]: 
+                        - textbox [ref=e219]
+                  - columnheader "sort DW Qty" [ref=e222]:
+                    - generic [ref=e223]:
+                      - button "sort DW Qty" [ref=e224] [cursor=pointer]:
+                        - generic [ref=e225]: DW Qty
+                        - img [ref=e226]
+                      - generic [ref=e229]:
+                        - combobox "Equal" [ref=e232] [cursor=pointer]: 
+                        - textbox [ref=e233]
+                  - columnheader "sort DW Target Price" [ref=e236]:
+                    - generic [ref=e237]:
+                      - button "sort DW Target Price" [ref=e238] [cursor=pointer]:
+                        - generic [ref=e239]: DW Target Price
+                        - img [ref=e240]
+                      - generic [ref=e243]:
+                        - combobox "Equal" [ref=e246] [cursor=pointer]: 
+                        - textbox [ref=e247]
+                  - columnheader "sort Total Qty" [ref=e250]:
+                    - generic [ref=e251]:
+                      - button "sort Total Qty" [ref=e252] [cursor=pointer]:
+                        - generic [ref=e253]: Total Qty
+                        - img [ref=e254]
+                      - generic [ref=e257]:
+                        - combobox "Equal" [ref=e260] [cursor=pointer]: 
+                        - textbox [ref=e261]
+                  - columnheader "sort Target Price" [ref=e264]:
+                    - generic [ref=e265]:
+                      - button "sort Target Price" [ref=e266] [cursor=pointer]:
+                        - generic [ref=e267]: Target Price
+                        - img [ref=e268]
+                      - generic [ref=e271]:
+                        - combobox "Equal" [ref=e274] [cursor=pointer]: 
+                        - textbox [ref=e275]
+                  - columnheader [ref=e278]
+                  - columnheader "Column selector" [ref=e279]:
+                    - button "Column selector" [ref=e281] [cursor=pointer]:
+                      - img [ref=e282]
+              - rowgroup [ref=e284]:
+                - row "55 A_YYY Alcatel Other OT-E207 Other 0 $ 0.00 4 $ 2.00" [ref=e285]:
+                  - gridcell "55" [ref=e286]:
+                    - generic [ref=e287]: "55"
+                  - gridcell "A_YYY" [ref=e288]:
+                    - generic [ref=e289]: A_YYY
+                  - gridcell "Alcatel" [ref=e290]:
+                    - generic [ref=e291]: Alcatel
+                  - gridcell "Other" [ref=e292]:
+                    - generic [ref=e293]: Other
+                  - gridcell "OT-E207" [ref=e294]:
+                    - generic [ref=e295]: OT-E207
+                  - gridcell "Other" [ref=e296]:
+                    - generic [ref=e297]: Other
+                  - gridcell "0" [ref=e298]:
+                    - generic [ref=e299]: "0"
+                  - gridcell "$ 0.00" [ref=e300]:
+                    - text: $
+                    - generic [ref=e301]: "0.00"
+                  - gridcell "4" [ref=e302]:
+                    - generic [ref=e303]: "4"
+                  - gridcell "$ 2.00" [ref=e304]:
+                    - text: $
+                    - generic [ref=e305]: "2.00"
+                  - gridcell [ref=e306]
+                  - gridcell [ref=e307]
+                - row "75 A_YYY Apple iPhone 3G IPHONE 3G 8GB A1241/A1324 AT&T 0 $ 0.00 10 $ 2.30" [ref=e308]:
+                  - gridcell "75" [ref=e309]:
+                    - generic [ref=e310]: "75"
+                  - gridcell "A_YYY" [ref=e311]:
+                    - generic [ref=e312]: A_YYY
+                  - gridcell "Apple" [ref=e313]:
+                    - generic [ref=e314]: Apple
+                  - gridcell "iPhone 3G" [ref=e315]:
+                    - generic [ref=e316]: iPhone 3G
+                  - gridcell "IPHONE 3G 8GB A1241/A1324" [ref=e317]:
+                    - generic [ref=e318]: IPHONE 3G 8GB A1241/A1324
+                  - gridcell "AT&T" [ref=e319]:
+                    - generic [ref=e320]: AT&T
+                  - gridcell "0" [ref=e321]:
+                    - generic [ref=e322]: "0"
+                  - gridcell "$ 0.00" [ref=e323]:
+                    - text: $
+                    - generic [ref=e324]: "0.00"
+                  - gridcell "10" [ref=e325]:
+                    - generic [ref=e326]: "10"
+                  - gridcell "$ 2.30" [ref=e327]:
+                    - text: $
+                    - generic [ref=e328]: "2.30"
+                  - gridcell [ref=e329]
+                  - gridcell [ref=e330]
+                - row "75 E_YYN Apple iPhone 3G IPHONE 3G 8GB A1241/A1324 AT&T 0 $ 0.00 7 $ 0.63" [ref=e331]:
+                  - gridcell "75" [ref=e332]:
+                    - generic [ref=e333]: "75"
+                  - gridcell "E_YYN" [ref=e334]:
+                    - generic [ref=e335]: E_YYN
+                  - gridcell "Apple" [ref=e336]:
+                    - generic [ref=e337]: Apple
+                  - gridcell "iPhone 3G" [ref=e338]:
+                    - generic [ref=e339]: iPhone 3G
+                  - gridcell "IPHONE 3G 8GB A1241/A1324" [ref=e340]:
+                    - generic [ref=e341]: IPHONE 3G 8GB A1241/A1324
+                  - gridcell "AT&T" [ref=e342]:
+                    - generic [ref=e343]: AT&T
+                  - gridcell "0" [ref=e344]:
+                    - generic [ref=e345]: "0"
+                  - gridcell "$ 0.00" [ref=e346]:
+                    - text: $
+                    - generic [ref=e347]: "0.00"
+                  - gridcell "7" [ref=e348]:
+                    - generic [ref=e349]: "7"
+                  - gridcell "$ 0.63" [ref=e350]:
+                    - text: $
+                    - generic [ref=e351]: "0.63"
+                  - gridcell [ref=e352]
+                  - gridcell [ref=e353]
+                - row "78 E_YYN Apple iPhone 4GB iPhone 4GB A1203 DEFAULT 0 $ 0.00 2 $ 2.55" [ref=e354]:
+                  - gridcell "78" [ref=e355]:
+                    - generic [ref=e356]: "78"
+                  - gridcell "E_YYN" [ref=e357]:
+                    - generic [ref=e358]: E_YYN
+                  - gridcell "Apple" [ref=e359]:
+                    - generic [ref=e360]: Apple
+                  - gridcell "iPhone 4GB" [ref=e361]:
+                    - generic [ref=e362]: iPhone 4GB
+                  - gridcell "iPhone 4GB A1203" [ref=e363]:
+                    - generic [ref=e364]: iPhone 4GB A1203
+                  - gridcell "DEFAULT" [ref=e365]:
+                    - generic [ref=e366]: DEFAULT
+                  - gridcell "0" [ref=e367]:
+                    - generic [ref=e368]: "0"
+                  - gridcell "$ 0.00" [ref=e369]:
+                    - text: $
+                    - generic [ref=e370]: "0.00"
+                  - gridcell "2" [ref=e371]:
+                    - generic [ref=e372]: "2"
+                  - gridcell "$ 2.55" [ref=e373]:
+                    - text: $
+                    - generic [ref=e374]: "2.55"
+                  - gridcell [ref=e375]
+                  - gridcell [ref=e376]
+                - row "79 A_YYY Apple iPhone 8GB iPhone 8GB A1203 DEFAULT 0 $ 0.00 2 $ 20.40" [ref=e377]:
+                  - gridcell "79" [ref=e378]:
+                    - generic [ref=e379]: "79"
+                  - gridcell "A_YYY" [ref=e380]:
+                    - generic [ref=e381]: A_YYY
+                  - gridcell "Apple" [ref=e382]:
+                    - generic [ref=e383]: Apple
+                  - gridcell "iPhone 8GB" [ref=e384]:
+                    - generic [ref=e385]: iPhone 8GB
+                  - gridcell "iPhone 8GB A1203" [ref=e386]:
+                    - generic [ref=e387]: iPhone 8GB A1203
+                  - gridcell "DEFAULT" [ref=e388]:
+                    - generic [ref=e389]: DEFAULT
+                  - gridcell "0" [ref=e390]:
+                    - generic [ref=e391]: "0"
+                  - gridcell "$ 0.00" [ref=e392]:
+                    - text: $
+                    - generic [ref=e393]: "0.00"
+                  - gridcell "2" [ref=e394]:
+                    - generic [ref=e395]: "2"
+                  - gridcell "$ 20.40" [ref=e396]:
+                    - text: $
+                    - generic [ref=e397]: "20.40"
+                  - gridcell [ref=e398]
+                  - gridcell [ref=e399]
+                - row "79 C_YNY/G_YNN Apple iPhone 8GB iPhone 8GB A1203 DEFAULT 0 $ 0.00 2 $ 20.40" [ref=e400]:
+                  - gridcell "79" [ref=e401]:
+                    - generic [ref=e402]: "79"
+                  - gridcell "C_YNY/G_YNN" [ref=e403]:
+                    - generic [ref=e404]: C_YNY/G_YNN
+                  - gridcell "Apple" [ref=e405]:
+                    - generic [ref=e406]: Apple
+                  - gridcell "iPhone 8GB" [ref=e407]:
+                    - generic [ref=e408]: iPhone 8GB
+                  - gridcell "iPhone 8GB A1203" [ref=e409]:
+                    - generic [ref=e410]: iPhone 8GB A1203
+                  - gridcell "DEFAULT" [ref=e411]:
+                    - generic [ref=e412]: DEFAULT
+                  - gridcell "0" [ref=e413]:
+                    - generic [ref=e414]: "0"
+                  - gridcell "$ 0.00" [ref=e415]:
+                    - text: $
+                    - generic [ref=e416]: "0.00"
+                  - gridcell "2" [ref=e417]:
+                    - generic [ref=e418]: "2"
+                  - gridcell "$ 20.40" [ref=e419]:
+                    - text: $
+                    - generic [ref=e420]: "20.40"
+                  - gridcell [ref=e421]
+                  - gridcell [ref=e422]
+                - row "79 E_YYN Apple iPhone 8GB iPhone 8GB A1203 DEFAULT 0 $ 0.00 1 $ 20.40" [ref=e423]:
+                  - gridcell "79" [ref=e424]:
+                    - generic [ref=e425]: "79"
+                  - gridcell "E_YYN" [ref=e426]:
+                    - generic [ref=e427]: E_YYN
+                  - gridcell "Apple" [ref=e428]:
+                    - generic [ref=e429]: Apple
+                  - gridcell "iPhone 8GB" [ref=e430]:
+                    - generic [ref=e431]: iPhone 8GB
+                  - gridcell "iPhone 8GB A1203" [ref=e432]:
+                    - generic [ref=e433]: iPhone 8GB A1203
+                  - gridcell "DEFAULT" [ref=e434]:
+                    - generic [ref=e435]: DEFAULT
+                  - gridcell "0" [ref=e436]:
+                    - generic [ref=e437]: "0"
+                  - gridcell "$ 0.00" [ref=e438]:
+                    - text: $
+                    - generic [ref=e439]: "0.00"
+                  - gridcell "1" [ref=e440]:
+                    - generic [ref=e441]: "1"
+                  - gridcell "$ 20.40" [ref=e442]:
+                    - text: $
+                    - generic [ref=e443]: "20.40"
+                  - gridcell [ref=e444]
+                  - gridcell [ref=e445]
+                - row "99 A_YYY Audiovox Other CDM120SP Other 0 $ 0.00 1 $ 0.00" [ref=e446]:
+                  - gridcell "99" [ref=e447]:
+                    - generic [ref=e448]: "99"
+                  - gridcell "A_YYY" [ref=e449]:
+                    - generic [ref=e450]: A_YYY
+                  - gridcell "Audiovox" [ref=e451]:
+                    - generic [ref=e452]: Audiovox
+                  - gridcell "Other" [ref=e453]:
+                    - generic [ref=e454]: Other
+                  - gridcell "CDM120SP" [ref=e455]:
+                    - generic [ref=e456]: CDM120SP
+                  - gridcell "Other" [ref=e457]:
+                    - generic [ref=e458]: Other
+                  - gridcell "0" [ref=e459]:
+                    - generic [ref=e460]: "0"
+                  - gridcell "$ 0.00" [ref=e461]:
+                    - text: $
+                    - generic [ref=e462]: "0.00"
+                  - gridcell "1" [ref=e463]:
+                    - generic [ref=e464]: "1"
+                  - gridcell "$ 0.00" [ref=e465]:
+                    - text: $
+                    - generic [ref=e466]: "0.00"
+                  - gridcell [ref=e467]
+                  - gridcell [ref=e468]
+                - row "111 A_YYY Audiovox Other CDM-8300 Other 0 $ 0.00 1 $ 1.68" [ref=e469]:
+                  - gridcell "111" [ref=e470]:
+                    - generic [ref=e471]: "111"
+                  - gridcell "A_YYY" [ref=e472]:
+                    - generic [ref=e473]: A_YYY
+                  - gridcell "Audiovox" [ref=e474]:
+                    - generic [ref=e475]: Audiovox
+                  - gridcell "Other" [ref=e476]:
+                    - generic [ref=e477]: Other
+                  - gridcell "CDM-8300" [ref=e478]:
+                    - generic [ref=e479]: CDM-8300
+                  - gridcell "Other" [ref=e480]:
+                    - generic [ref=e481]: Other
+                  - gridcell "0" [ref=e482]:
+                    - generic [ref=e483]: "0"
+                  - gridcell "$ 0.00" [ref=e484]:
+                    - text: $
+                    - generic [ref=e485]: "0.00"
+                  - gridcell "1" [ref=e486]:
+                    - generic [ref=e487]: "1"
+                  - gridcell "$ 1.68" [ref=e488]:
+                    - text: $
+                    - generic [ref=e489]: "1.68"
+                  - gridcell [ref=e490]
+                  - gridcell [ref=e491]
+                - row "115 A_YYY Audiovox Other CDM-8500 Other 0 $ 0.00 1 $ 0.00" [ref=e492]:
+                  - gridcell "115" [ref=e493]:
+                    - generic [ref=e494]: "115"
+                  - gridcell "A_YYY" [ref=e495]:
+                    - generic [ref=e496]: A_YYY
+                  - gridcell "Audiovox" [ref=e497]:
+                    - generic [ref=e498]: Audiovox
+                  - gridcell "Other" [ref=e499]:
+                    - generic [ref=e500]: Other
+                  - gridcell "CDM-8500" [ref=e501]:
+                    - generic [ref=e502]: CDM-8500
+                  - gridcell "Other" [ref=e503]:
+                    - generic [ref=e504]: Other
+                  - gridcell "0" [ref=e505]:
+                    - generic [ref=e506]: "0"
+                  - gridcell "$ 0.00" [ref=e507]:
+                    - text: $
+                    - generic [ref=e508]: "0.00"
+                  - gridcell "1" [ref=e509]:
+                    - generic [ref=e510]: "1"
+                  - gridcell "$ 0.00" [ref=e511]:
+                    - text: $
+                    - generic [ref=e512]: "0.00"
+                  - gridcell [ref=e513]
+                  - gridcell [ref=e514]
+                - row "116 A_YYY Audiovox Other CDM-8600 Other 0 $ 0.00 1 $ 0.00" [ref=e515]:
+                  - gridcell "116" [ref=e516]:
+                    - generic [ref=e517]: "116"
+                  - gridcell "A_YYY" [ref=e518]:
+                    - generic [ref=e519]: A_YYY
+                  - gridcell "Audiovox" [ref=e520]:
+                    - generic [ref=e521]: Audiovox
+                  - gridcell "Other" [ref=e522]:
+                    - generic [ref=e523]: Other
+                  - gridcell "CDM-8600" [ref=e524]:
+                    - generic [ref=e525]: CDM-8600
+                  - gridcell "Other" [ref=e526]:
+                    - generic [ref=e527]: Other
+                  - gridcell "0" [ref=e528]:
+                    - generic [ref=e529]: "0"
+                  - gridcell "$ 0.00" [ref=e530]:
+                    - text: $
+                    - generic [ref=e531]: "0.00"
+                  - gridcell "1" [ref=e532]:
+                    - generic [ref=e533]: "1"
+                  - gridcell "$ 0.00" [ref=e534]:
+                    - text: $
+                    - generic [ref=e535]: "0.00"
+                  - gridcell [ref=e536]
+                  - gridcell [ref=e537]
+                - row "119 A_YYY Audiovox Other CDM-8900AU Other 0 $ 0.00 1 $ 0.00" [ref=e538]:
+                  - gridcell "119" [ref=e539]:
+                    - generic [ref=e540]: "119"
+                  - gridcell "A_YYY" [ref=e541]:
+                    - generic [ref=e542]: A_YYY
+                  - gridcell "Audiovox" [ref=e543]:
+                    - generic [ref=e544]: Audiovox
+                  - gridcell "Other" [ref=e545]:
+                    - generic [ref=e546]: Other
+                  - gridcell "CDM-8900AU" [ref=e547]:
+                    - generic [ref=e548]: CDM-8900AU
+                  - gridcell "Other" [ref=e549]:
+                    - generic [ref=e550]: Other
+                  - gridcell "0" [ref=e551]:
+                    - generic [ref=e552]: "0"
+                  - gridcell "$ 0.00" [ref=e553]:
+                    - text: $
+                    - generic [ref=e554]: "0.00"
+                  - gridcell "1" [ref=e555]:
+                    - generic [ref=e556]: "1"
+                  - gridcell "$ 0.00" [ref=e557]:
+                    - text: $
+                    - generic [ref=e558]: "0.00"
+                  - gridcell [ref=e559]
+                  - gridcell [ref=e560]
+                - row "120 A_YYY Audiovox Other CDM-8910 Other 0 $ 0.00 2 $ 0.00" [ref=e561]:
+                  - gridcell "120" [ref=e562]:
+                    - generic [ref=e563]: "120"
+                  - gridcell "A_YYY" [ref=e564]:
+                    - generic [ref=e565]: A_YYY
+                  - gridcell "Audiovox" [ref=e566]:
+                    - generic [ref=e567]: Audiovox
+                  - gridcell "Other" [ref=e568]:
+                    - generic [ref=e569]: Other
+                  - gridcell "CDM-8910" [ref=e570]:
+                    - generic [ref=e571]: CDM-8910
+                  - gridcell "Other" [ref=e572]:
+                    - generic [ref=e573]: Other
+                  - gridcell "0" [ref=e574]:
+                    - generic [ref=e575]: "0"
+                  - gridcell "$ 0.00" [ref=e576]:
+                    - text: $
+                    - generic [ref=e577]: "0.00"
+                  - gridcell "2" [ref=e578]:
+                    - generic [ref=e579]: "2"
+                  - gridcell "$ 0.00" [ref=e580]:
+                    - text: $
+                    - generic [ref=e581]: "0.00"
+                  - gridcell [ref=e582]
+                  - gridcell [ref=e583]
+                - row "121 A_YYY Audiovox Other CDM-8912 Other 0 $ 0.00 1 $ 0.00" [ref=e584]:
+                  - gridcell "121" [ref=e585]:
+                    - generic [ref=e586]: "121"
+                  - gridcell "A_YYY" [ref=e587]:
+                    - generic [ref=e588]: A_YYY
+                  - gridcell "Audiovox" [ref=e589]:
+                    - generic [ref=e590]: Audiovox
+                  - gridcell "Other" [ref=e591]:
+                    - generic [ref=e592]: Other
+                  - gridcell "CDM-8912" [ref=e593]:
+                    - generic [ref=e594]: CDM-8912
+                  - gridcell "Other" [ref=e595]:
+                    - generic [ref=e596]: Other
+                  - gridcell "0" [ref=e597]:
+                    - generic [ref=e598]: "0"
+                  - gridcell "$ 0.00" [ref=e599]:
+                    - text: $
+                    - generic [ref=e600]: "0.00"
+                  - gridcell "1" [ref=e601]:
+                    - generic [ref=e602]: "1"
+                  - gridcell "$ 0.00" [ref=e603]:
+                    - text: $
+                    - generic [ref=e604]: "0.00"
+                  - gridcell [ref=e605]
+                  - gridcell [ref=e606]
+                - row "171 A_YYY BenQ Other M350 Other 0 $ 0.00 1 $ 0.00" [ref=e607]:
+                  - gridcell "171" [ref=e608]:
+                    - generic [ref=e609]: "171"
+                  - gridcell "A_YYY" [ref=e610]:
+                    - generic [ref=e611]: A_YYY
+                  - gridcell "BenQ" [ref=e612]:
+                    - generic [ref=e613]: BenQ
+                  - gridcell "Other" [ref=e614]:
+                    - generic [ref=e615]: Other
+                  - gridcell "M350" [ref=e616]:
+                    - generic [ref=e617]: M350
+                  - gridcell "Other" [ref=e618]:
+                    - generic [ref=e619]: Other
+                  - gridcell "0" [ref=e620]:
+                    - generic [ref=e621]: "0"
+                  - gridcell "$ 0.00" [ref=e622]:
+                    - text: $
+                    - generic [ref=e623]: "0.00"
+                  - gridcell "1" [ref=e624]:
+                    - generic [ref=e625]: "1"
+                  - gridcell "$ 0.00" [ref=e626]:
+                    - text: $
+                    - generic [ref=e627]: "0.00"
+                  - gridcell [ref=e628]
+                  - gridcell [ref=e629]
+                - row "257 A_YYY Blackberry Other 7290 Other 0 $ 0.00 2 $ 0.00" [ref=e630]:
+                  - gridcell "257" [ref=e631]:
+                    - generic [ref=e632]: "257"
+                  - gridcell "A_YYY" [ref=e633]:
+                    - generic [ref=e634]: A_YYY
+                  - gridcell "Blackberry" [ref=e635]:
+                    - generic [ref=e636]: Blackberry
+                  - gridcell "Other" [ref=e637]:
+                    - generic [ref=e638]: Other
+                  - gridcell "7290" [ref=e639]:
+                    - generic [ref=e640]: "7290"
+                  - gridcell "Other" [ref=e641]:
+                    - generic [ref=e642]: Other
+                  - gridcell "0" [ref=e643]:
+                    - generic [ref=e644]: "0"
+                  - gridcell "$ 0.00" [ref=e645]:
+                    - text: $
+                    - generic [ref=e646]: "0.00"
+                  - gridcell "2" [ref=e647]:
+                    - generic [ref=e648]: "2"
+                  - gridcell "$ 0.00" [ref=e649]:
+                    - text: $
+                    - generic [ref=e650]: "0.00"
+                  - gridcell [ref=e651]
+                  - gridcell [ref=e652]
+                - row "274 A_YYY Blackberry Other WORLD ED 8830 Other 0 $ 0.00 2 $ 0.00" [ref=e653]:
+                  - gridcell "274" [ref=e654]:
+                    - generic [ref=e655]: "274"
+                  - gridcell "A_YYY" [ref=e656]:
+                    - generic [ref=e657]: A_YYY
+                  - gridcell "Blackberry" [ref=e658]:
+                    - generic [ref=e659]: Blackberry
+                  - gridcell "Other" [ref=e660]:
+                    - generic [ref=e661]: Other
+                  - gridcell "WORLD ED 8830" [ref=e662]:
+                    - generic [ref=e663]: WORLD ED 8830
+                  - gridcell "Other" [ref=e664]:
+                    - generic [ref=e665]: Other
+                  - gridcell "0" [ref=e666]:
+                    - generic [ref=e667]: "0"
+                  - gridcell "$ 0.00" [ref=e668]:
+                    - text: $
+                    - generic [ref=e669]: "0.00"
+                  - gridcell "2" [ref=e670]:
+                    - generic [ref=e671]: "2"
+                  - gridcell "$ 0.00" [ref=e672]:
+                    - text: $
+                    - generic [ref=e673]: "0.00"
+                  - gridcell [ref=e674]
+                  - gridcell [ref=e675]
+                - row "277 A_YYY Blackberry Other Curve 8310 Other 0 $ 0.00 2 $ 0.00" [ref=e676]:
+                  - gridcell "277" [ref=e677]:
+                    - generic [ref=e678]: "277"
+                  - gridcell "A_YYY" [ref=e679]:
+                    - generic [ref=e680]: A_YYY
+                  - gridcell "Blackberry" [ref=e681]:
+                    - generic [ref=e682]: Blackberry
+                  - gridcell "Other" [ref=e683]:
+                    - generic [ref=e684]: Other
+                  - gridcell "Curve 8310" [ref=e685]:
+                    - generic [ref=e686]: Curve 8310
+                  - gridcell "Other" [ref=e687]:
+                    - generic [ref=e688]: Other
+                  - gridcell "0" [ref=e689]:
+                    - generic [ref=e690]: "0"
+                  - gridcell "$ 0.00" [ref=e691]:
+                    - text: $
+                    - generic [ref=e692]: "0.00"
+                  - gridcell "2" [ref=e693]:
+                    - generic [ref=e694]: "2"
+                  - gridcell "$ 0.00" [ref=e695]:
+                    - text: $
+                    - generic [ref=e696]: "0.00"
+                  - gridcell [ref=e697]
+                  - gridcell [ref=e698]
+                - row "279 A_YYY Blackberry Other Curve 8330 Other 0 $ 0.00 3 $ 0.00" [ref=e699]:
+                  - gridcell "279" [ref=e700]:
+                    - generic [ref=e701]: "279"
+                  - gridcell "A_YYY" [ref=e702]:
+                    - generic [ref=e703]: A_YYY
+                  - gridcell "Blackberry" [ref=e704]:
+                    - generic [ref=e705]: Blackberry
+                  - gridcell "Other" [ref=e706]:
+                    - generic [ref=e707]: Other
+                  - gridcell "Curve 8330" [ref=e708]:
+                    - generic [ref=e709]: Curve 8330
+                  - gridcell "Other" [ref=e710]:
+                    - generic [ref=e711]: Other
+                  - gridcell "0" [ref=e712]:
+                    - generic [ref=e713]: "0"
+                  - gridcell "$ 0.00" [ref=e714]:
+                    - text: $
+                    - generic [ref=e715]: "0.00"
+                  - gridcell "3" [ref=e716]:
+                    - generic [ref=e717]: "3"
+                  - gridcell "$ 0.00" [ref=e718]:
+                    - text: $
+                    - generic [ref=e719]: "0.00"
+                  - gridcell [ref=e720]
+                  - gridcell [ref=e721]
+                - row "279 E_YYN Blackberry Other Curve 8330 Other 0 $ 0.00 1 $ 0.00" [ref=e722]:
+                  - gridcell "279" [ref=e723]:
+                    - generic [ref=e724]: "279"
+                  - gridcell "E_YYN" [ref=e725]:
+                    - generic [ref=e726]: E_YYN
+                  - gridcell "Blackberry" [ref=e727]:
+                    - generic [ref=e728]: Blackberry
+                  - gridcell "Other" [ref=e729]:
+                    - generic [ref=e730]: Other
+                  - gridcell "Curve 8330" [ref=e731]:
+                    - generic [ref=e732]: Curve 8330
+                  - gridcell "Other" [ref=e733]:
+                    - generic [ref=e734]: Other
+                  - gridcell "0" [ref=e735]:
+                    - generic [ref=e736]: "0"
+                  - gridcell "$ 0.00" [ref=e737]:
+                    - text: $
+                    - generic [ref=e738]: "0.00"
+                  - gridcell "1" [ref=e739]:
+                    - generic [ref=e740]: "1"
+                  - gridcell "$ 0.00" [ref=e741]:
+                    - text: $
+                    - generic [ref=e742]: "0.00"
+                  - gridcell [ref=e743]
+                  - gridcell [ref=e744]
+            - generic "Pagination" [ref=e746]:
+              - button "Go to first page" [disabled]:
+                - generic:
+                  - img
+              - button "Go to previous page" [disabled]:
+                - generic:
+                  - img
+              - generic [ref=e747]: Currently showing 1 to 20 of 11051
+              - generic [ref=e748]: 1 to 20 of 11051
+              - button "Go to next page" [ref=e749] [cursor=pointer]:
+                - img [ref=e751]
+              - button "Go to last page" [ref=e754] [cursor=pointer]:
+                - img [ref=e756]
+          - button "Download" [ref=e762] [cursor=pointer]
+        - text: 
+  - status [ref=e781]

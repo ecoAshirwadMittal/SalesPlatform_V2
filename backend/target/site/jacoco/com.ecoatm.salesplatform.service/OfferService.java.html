@@ -17,7 +17,6 @@ import com.ecoatm.salesplatform.repository.pws.OrderRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -38,7 +37,7 @@ import java.util.stream.Collectors;
 @Service
 public class OfferService {
 
-<span class="fc" id="L41">    private static final Logger log = LoggerFactory.getLogger(OfferService.class);</span>
+<span class="fc" id="L40">    private static final Logger log = LoggerFactory.getLogger(OfferService.class);</span>
 
     private static final String OFFER_TYPE_BUYER = &quot;BUYER&quot;;
     // Mendix ENUM_PWSOfferStatus — normalized to Mixed_Case convention
@@ -69,7 +68,7 @@ public class OfferService {
 
     // Mendix ENUM_CounterStatus values
     private static final String COUNTER_STATUS_ACCEPT = &quot;Accept&quot;;
-    private static final String COUNTER_STATUS_DECLINE = &quot;Decline&quot;;
+<span class="fc" id="L71">    private static final String COUNTER_STATUS_DECLINE = &quot;Decline&quot;;</span>
 
     private final OfferRepository offerRepository;
     private final OfferItemRepository offerItemRepository;
@@ -78,17 +77,18 @@ public class OfferService {
     private final OracleConfigRepository oracleConfigRepository;
     private final CaseLotRepository caseLotRepository;
     private final ObjectMapper objectMapper;
+    private final BuyerCodeLookupService buyerCodeLookup;
+    private final EntityManager em;
 
-    @PersistenceContext
-    private EntityManager em;
-
-    public OfferService(OfferRepository offerRepository,
+<span class="fc" id="L83">    public OfferService(OfferRepository offerRepository,</span>
                         OfferItemRepository offerItemRepository,
                         DeviceRepository deviceRepository,
                         OrderRepository orderRepository,
                         OracleConfigRepository oracleConfigRepository,
                         CaseLotRepository caseLotRepository,
-<span class="fc" id="L91">                        ObjectMapper objectMapper) {</span>
+                        ObjectMapper objectMapper,
+                        BuyerCodeLookupService buyerCodeLookup,
+                        EntityManager em) {
 <span class="fc" id="L92">        this.offerRepository = offerRepository;</span>
 <span class="fc" id="L93">        this.offerItemRepository = offerItemRepository;</span>
 <span class="fc" id="L94">        this.deviceRepository = deviceRepository;</span>
@@ -96,81 +96,83 @@ public class OfferService {
 <span class="fc" id="L96">        this.oracleConfigRepository = oracleConfigRepository;</span>
 <span class="fc" id="L97">        this.caseLotRepository = caseLotRepository;</span>
 <span class="fc" id="L98">        this.objectMapper = objectMapper;</span>
-<span class="fc" id="L99">    }</span>
+<span class="fc" id="L99">        this.buyerCodeLookup = buyerCodeLookup;</span>
+<span class="fc" id="L100">        this.em = em;</span>
+<span class="fc" id="L101">    }</span>
 
     @Transactional
     public OfferResponse getOrCreateCart(Long buyerCodeId) {
-<span class="fc" id="L103">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
-<span class="fc" id="L104">        return buildResponse(offer);</span>
+<span class="fc" id="L105">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
+<span class="fc" id="L106">        return buildResponse(offer);</span>
     }
 
     @Transactional
     public OfferResponse upsertCartItem(Long buyerCodeId, CartItemRequest request) {
-<span class="fc" id="L109">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
+<span class="fc" id="L111">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
 
-<span class="pc bpc" id="L111" title="1 of 4 branches missed.">        if (request.getQuantity() == null || request.getQuantity() &lt;= 0) {</span>
-<span class="fc" id="L112">            offer.getItems().removeIf(i -&gt; i.getSku().equals(request.getSku()));</span>
-        } else {
+<span class="pc bpc" id="L113" title="1 of 4 branches missed.">        if (request.getQuantity() == null || request.getQuantity() &lt;= 0) {</span>
+<span class="fc" id="L114">            offer.getItems().removeIf(i -&gt; i.getSku().equals(request.getSku()));</span>
+<span class="fc" id="L115">        } else {</span>
             // For case lot items, match on both SKU and caseLotId
-<span class="fc" id="L115">            Optional&lt;OfferItem&gt; existing = offer.getItems().stream()</span>
-<span class="pc bpc" id="L116" title="1 of 2 branches missed.">                    .filter(i -&gt; i.getSku().equals(request.getSku())</span>
-<span class="pc bpc" id="L117" title="1 of 2 branches missed.">                            &amp;&amp; Objects.equals(i.getCaseLotId(), request.getCaseLotId()))</span>
-<span class="fc" id="L118">                    .findFirst();</span>
+<span class="fc" id="L117">            Optional&lt;OfferItem&gt; existing = offer.getItems().stream()</span>
+<span class="pc bpc" id="L118" title="1 of 2 branches missed.">                    .filter(i -&gt; i.getSku().equals(request.getSku())</span>
+<span class="pc bpc" id="L119" title="1 of 2 branches missed.">                            &amp;&amp; Objects.equals(i.getCaseLotId(), request.getCaseLotId()))</span>
+<span class="fc" id="L120">                    .findFirst();</span>
 
             // For case lot items: quantity = number of cases, totalPrice = offerPrice × caseLotSize × quantity
             BigDecimal totalPrice;
-<span class="fc bfc" id="L122" title="All 2 branches covered.">            if (request.getCaseLotId() != null) {</span>
-<span class="fc" id="L123">                CaseLot caseLot = caseLotRepository.findById(request.getCaseLotId()).orElse(null);</span>
-<span class="fc bfc" id="L124" title="All 2 branches covered.">                int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
-<span class="fc" id="L125">                totalPrice = request.getOfferPrice()</span>
-<span class="fc" id="L126">                        .multiply(BigDecimal.valueOf(caseLotSize))</span>
-<span class="fc" id="L127">                        .multiply(BigDecimal.valueOf(request.getQuantity()));</span>
-<span class="fc" id="L128">            } else {</span>
-<span class="fc" id="L129">                totalPrice = request.getOfferPrice().multiply(BigDecimal.valueOf(request.getQuantity()));</span>
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            if (request.getCaseLotId() != null) {</span>
+<span class="fc" id="L125">                CaseLot caseLot = caseLotRepository.findById(request.getCaseLotId()).orElse(null);</span>
+<span class="fc bfc" id="L126" title="All 2 branches covered.">                int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
+<span class="fc" id="L127">                totalPrice = request.getOfferPrice()</span>
+<span class="fc" id="L128">                        .multiply(BigDecimal.valueOf(caseLotSize))</span>
+<span class="fc" id="L129">                        .multiply(BigDecimal.valueOf(request.getQuantity()));</span>
+<span class="fc" id="L130">            } else {</span>
+<span class="fc" id="L131">                totalPrice = request.getOfferPrice().multiply(BigDecimal.valueOf(request.getQuantity()));</span>
             }
 
-<span class="fc bfc" id="L132" title="All 2 branches covered.">            if (existing.isPresent()) {</span>
-<span class="fc" id="L133">                OfferItem item = existing.get();</span>
-<span class="fc" id="L134">                item.setPrice(request.getOfferPrice());</span>
-<span class="fc" id="L135">                item.setQuantity(request.getQuantity());</span>
-<span class="fc" id="L136">                item.setTotalPrice(totalPrice);</span>
-<span class="fc" id="L137">                item.setCaseLotId(request.getCaseLotId());</span>
-<span class="fc" id="L138">            } else {</span>
-<span class="fc" id="L139">                OfferItem item = new OfferItem();</span>
-<span class="fc" id="L140">                item.setOffer(offer);</span>
-<span class="fc" id="L141">                item.setSku(request.getSku());</span>
-<span class="fc" id="L142">                item.setDeviceId(request.getDeviceId());</span>
-<span class="fc" id="L143">                item.setCaseLotId(request.getCaseLotId());</span>
-<span class="fc" id="L144">                item.setPrice(request.getOfferPrice());</span>
-<span class="fc" id="L145">                item.setQuantity(request.getQuantity());</span>
-<span class="fc" id="L146">                item.setTotalPrice(totalPrice);</span>
-<span class="fc" id="L147">                item.setItemStatus(STATUS_DRAFT);</span>
-<span class="fc" id="L148">                offer.getItems().add(item);</span>
+<span class="fc bfc" id="L134" title="All 2 branches covered.">            if (existing.isPresent()) {</span>
+<span class="fc" id="L135">                OfferItem item = existing.get();</span>
+<span class="fc" id="L136">                item.setPrice(request.getOfferPrice());</span>
+<span class="fc" id="L137">                item.setQuantity(request.getQuantity());</span>
+<span class="fc" id="L138">                item.setTotalPrice(totalPrice);</span>
+<span class="fc" id="L139">                item.setCaseLotId(request.getCaseLotId());</span>
+<span class="fc" id="L140">            } else {</span>
+<span class="fc" id="L141">                OfferItem item = new OfferItem();</span>
+<span class="fc" id="L142">                item.setOffer(offer);</span>
+<span class="fc" id="L143">                item.setSku(request.getSku());</span>
+<span class="fc" id="L144">                item.setDeviceId(request.getDeviceId());</span>
+<span class="fc" id="L145">                item.setCaseLotId(request.getCaseLotId());</span>
+<span class="fc" id="L146">                item.setPrice(request.getOfferPrice());</span>
+<span class="fc" id="L147">                item.setQuantity(request.getQuantity());</span>
+<span class="fc" id="L148">                item.setTotalPrice(totalPrice);</span>
+<span class="fc" id="L149">                item.setItemStatus(STATUS_DRAFT);</span>
+<span class="fc" id="L150">                offer.getItems().add(item);</span>
             }
         }
 
-<span class="fc" id="L152">        recalcTotals(offer);</span>
-<span class="fc" id="L153">        offerRepository.save(offer);</span>
-<span class="fc" id="L154">        return buildResponse(offer);</span>
+<span class="fc" id="L154">        recalcTotals(offer);</span>
+<span class="fc" id="L155">        offerRepository.save(offer);</span>
+<span class="fc" id="L156">        return buildResponse(offer);</span>
     }
 
     @Transactional
     public OfferResponse removeItem(Long buyerCodeId, String sku) {
-<span class="fc" id="L159">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
-<span class="fc" id="L160">        offer.getItems().removeIf(i -&gt; i.getSku().equals(sku));</span>
-<span class="fc" id="L161">        recalcTotals(offer);</span>
-<span class="fc" id="L162">        offerRepository.save(offer);</span>
-<span class="fc" id="L163">        return buildResponse(offer);</span>
+<span class="fc" id="L161">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
+<span class="fc" id="L162">        offer.getItems().removeIf(i -&gt; i.getSku().equals(sku));</span>
+<span class="fc" id="L163">        recalcTotals(offer);</span>
+<span class="fc" id="L164">        offerRepository.save(offer);</span>
+<span class="fc" id="L165">        return buildResponse(offer);</span>
     }
 
     @Transactional
     public OfferResponse resetCart(Long buyerCodeId) {
-<span class="fc" id="L168">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
-<span class="fc" id="L169">        offer.getItems().clear();</span>
-<span class="fc" id="L170">        offer.setTotalQty(0);</span>
-<span class="fc" id="L171">        offer.setTotalPrice(BigDecimal.ZERO);</span>
-<span class="fc" id="L172">        offerRepository.save(offer);</span>
-<span class="fc" id="L173">        return buildResponse(offer);</span>
+<span class="fc" id="L170">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
+<span class="fc" id="L171">        offer.getItems().clear();</span>
+<span class="fc" id="L172">        offer.setTotalQty(0);</span>
+<span class="fc" id="L173">        offer.setTotalPrice(BigDecimal.ZERO);</span>
+<span class="fc" id="L174">        offerRepository.save(offer);</span>
+<span class="fc" id="L175">        return buildResponse(offer);</span>
     }
 
     /**
@@ -183,80 +185,80 @@ public class OfferService {
     @Transactional
     public SubmitResponse submitCart(Long buyerCodeId, Long userId) {
         // Scenario 1: Already submitted — no DRAFT offer exists for this buyer code
-<span class="fc" id="L186">        Optional&lt;Offer&gt; draftOpt = offerRepository.findByBuyerCodeIdAndOfferTypeAndStatus(</span>
-                buyerCodeId, OFFER_TYPE_BUYER, STATUS_DRAFT);
-<span class="fc bfc" id="L188" title="All 2 branches covered.">        if (draftOpt.isEmpty()) {</span>
-<span class="fc" id="L189">            log.info(&quot;Cart already submitted for buyerCodeId={}&quot;, buyerCodeId);</span>
-<span class="fc" id="L190">            return SubmitResponse.alreadySubmitted();</span>
+<span class="fc" id="L188">        Optional&lt;Offer&gt; draftOpt = offerRepository.findByBuyerCodeIdAndOfferTypeAndStatus(</span>
+<span class="fc" id="L189">                buyerCodeId, OFFER_TYPE_BUYER, STATUS_DRAFT);</span>
+<span class="fc bfc" id="L190" title="All 2 branches covered.">        if (draftOpt.isEmpty()) {</span>
+<span class="fc" id="L191">            log.info(&quot;Cart already submitted for buyerCodeId={}&quot;, buyerCodeId);</span>
+<span class="fc" id="L192">            return SubmitResponse.alreadySubmitted();</span>
         }
 
-<span class="fc" id="L193">        Offer offer = draftOpt.get();</span>
-<span class="fc" id="L194">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
-<span class="pc bpc" id="L195" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
-<span class="pc bpc" id="L196" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
-<span class="fc" id="L197">                .collect(Collectors.toList());</span>
+<span class="fc" id="L195">        Offer offer = draftOpt.get();</span>
+<span class="fc" id="L196">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
+<span class="pc bpc" id="L197" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
+<span class="pc bpc" id="L198" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
+<span class="fc" id="L199">                .collect(Collectors.toList());</span>
 
         // Also check: if offer totals are zero/empty, treat as already submitted
-<span class="fc bfc" id="L200" title="All 2 branches covered.">        if (activeItems.isEmpty()</span>
-<span class="pc bpc" id="L201" title="2 of 4 branches missed.">                || (offer.getTotalQty() != null &amp;&amp; offer.getTotalQty() == 0)</span>
-<span class="pc bpc" id="L202" title="2 of 4 branches missed.">                || (offer.getTotalPrice() != null &amp;&amp; offer.getTotalPrice().compareTo(BigDecimal.ZERO) == 0)) {</span>
+<span class="fc bfc" id="L202" title="All 2 branches covered.">        if (activeItems.isEmpty()</span>
+<span class="pc bpc" id="L203" title="2 of 4 branches missed.">                || (offer.getTotalQty() != null &amp;&amp; offer.getTotalQty() == 0)</span>
+<span class="pc bpc" id="L204" title="2 of 4 branches missed.">                || (offer.getTotalPrice() != null &amp;&amp; offer.getTotalPrice().compareTo(BigDecimal.ZERO) == 0)) {</span>
             // Empty cart — could be already submitted or genuinely empty
-<span class="pc bpc" id="L204" title="1 of 2 branches missed.">            if (activeItems.isEmpty()) {</span>
-<span class="fc" id="L205">                return SubmitResponse.error(List.of(&quot;Cart is empty. Add items before submitting.&quot;));</span>
+<span class="pc bpc" id="L206" title="1 of 2 branches missed.">            if (activeItems.isEmpty()) {</span>
+<span class="fc" id="L207">                return SubmitResponse.error(List.of(&quot;Cart is empty. Add items before submitting.&quot;));</span>
             }
         }
 
-<span class="fc" id="L209">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
+<span class="fc" id="L211">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
 
         // Scenario 2: ATP exceeding check
         // Mendix logic: for each item with TotalPrice &gt; 0, check if qty &gt; ATPQty AND ATPQty &lt;= 100
         // For SPB (case lot) items, check against CaseLot.CaseLotATPQty instead of Device.availableQty
-<span class="fc" id="L214">        List&lt;String&gt; exceedingSkus = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L215" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
-<span class="fc" id="L216">            Device device = deviceMap.get(item.getDeviceId());</span>
-<span class="fc bfc" id="L217" title="All 2 branches covered.">            if (device == null) continue;</span>
+<span class="fc" id="L216">        List&lt;String&gt; exceedingSkus = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L217" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
+<span class="fc" id="L218">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="fc bfc" id="L219" title="All 2 branches covered.">            if (device == null) continue;</span>
 
             Integer atpQty;
-<span class="fc bfc" id="L220" title="All 2 branches covered.">            if (item.getCaseLotId() != null) {</span>
+<span class="fc bfc" id="L222" title="All 2 branches covered.">            if (item.getCaseLotId() != null) {</span>
                 // Case lot item: check against CaseLot.caseLotAtpQty
-<span class="fc" id="L222">                CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
-<span class="pc bpc" id="L223" title="1 of 2 branches missed.">                atpQty = caseLot != null ? caseLot.getCaseLotAtpQty() : device.getAvailableQty();</span>
-<span class="fc" id="L224">            } else {</span>
+<span class="fc" id="L224">                CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
+<span class="pc bpc" id="L225" title="1 of 2 branches missed.">                atpQty = caseLot != null ? caseLot.getCaseLotAtpQty() : device.getAvailableQty();</span>
+<span class="fc" id="L226">            } else {</span>
                 // Regular device: uses Device.availableQty
-<span class="fc" id="L226">                atpQty = device.getAvailableQty();</span>
+<span class="fc" id="L228">                atpQty = device.getAvailableQty();</span>
             }
 
-<span class="pc bpc" id="L229" title="2 of 6 branches missed.">            if (atpQty != null &amp;&amp; atpQty &lt;= ATP_THRESHOLD &amp;&amp; item.getQuantity() &gt; atpQty) {</span>
-<span class="fc" id="L230">                exceedingSkus.add(item.getSku());</span>
+<span class="pc bpc" id="L231" title="2 of 6 branches missed.">            if (atpQty != null &amp;&amp; atpQty &lt;= ATP_THRESHOLD &amp;&amp; item.getQuantity() &gt; atpQty) {</span>
+<span class="fc" id="L232">                exceedingSkus.add(item.getSku());</span>
             }
-<span class="fc" id="L232">        }</span>
+        }
 
-<span class="fc bfc" id="L234" title="All 2 branches covered.">        if (!exceedingSkus.isEmpty()) {</span>
-<span class="fc" id="L235">            log.info(&quot;Cart submit: {} items exceed ATP for buyerCodeId={}&quot;, exceedingSkus.size(), buyerCodeId);</span>
-<span class="fc" id="L236">            return SubmitResponse.exceedingQty(offer.getId(), exceedingSkus);</span>
+<span class="fc bfc" id="L236" title="All 2 branches covered.">        if (!exceedingSkus.isEmpty()) {</span>
+<span class="fc" id="L237">            log.info(&quot;Cart submit: {} items exceed ATP for buyerCodeId={}&quot;, exceedingSkus.size(), buyerCodeId);</span>
+<span class="fc" id="L238">            return SubmitResponse.exceedingQty(offer.getId(), exceedingSkus);</span>
         }
 
         // Scenario 3: Check for items below list price
-<span class="fc" id="L240">        List&lt;OfferItem&gt; belowListPriceItems = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L241" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
-<span class="fc" id="L242">            Device device = deviceMap.get(item.getDeviceId());</span>
-<span class="pc bpc" id="L243" title="1 of 4 branches missed.">            if (device != null &amp;&amp; device.getListPrice() != null</span>
-<span class="pc bpc" id="L244" title="1 of 2 branches missed.">                    &amp;&amp; item.getPrice() != null</span>
-<span class="fc bfc" id="L245" title="All 2 branches covered.">                    &amp;&amp; item.getPrice().compareTo(device.getListPrice()) &lt; 0) {</span>
-<span class="fc" id="L246">                belowListPriceItems.add(item);</span>
+<span class="fc" id="L242">        List&lt;OfferItem&gt; belowListPriceItems = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L243" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
+<span class="fc" id="L244">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="pc bpc" id="L245" title="1 of 4 branches missed.">            if (device != null &amp;&amp; device.getListPrice() != null</span>
+<span class="pc bpc" id="L246" title="1 of 2 branches missed.">                    &amp;&amp; item.getPrice() != null</span>
+<span class="fc bfc" id="L247" title="All 2 branches covered.">                    &amp;&amp; item.getPrice().compareTo(device.getListPrice()) &lt; 0) {</span>
+<span class="fc" id="L248">                belowListPriceItems.add(item);</span>
             }
-<span class="fc" id="L248">        }</span>
+        }
 
-<span class="fc bfc" id="L250" title="All 2 branches covered.">        if (!belowListPriceItems.isEmpty()) {</span>
+<span class="fc bfc" id="L252" title="All 2 branches covered.">        if (!belowListPriceItems.isEmpty()) {</span>
             // Keep offer as DRAFT — user must confirm via &quot;Submit Offer&quot; in the Almost Done modal
-<span class="fc" id="L252">            log.info(&quot;Cart submit: {} items below list price for buyerCodeId={}, showing Almost Done&quot;,</span>
-<span class="fc" id="L253">                    belowListPriceItems.size(), buyerCodeId);</span>
-<span class="fc" id="L254">            return SubmitResponse.salesReview(offer.getId(), belowListPriceItems.size());</span>
+<span class="fc" id="L254">            log.info(&quot;Cart submit: {} items below list price for buyerCodeId={}, showing Almost Done&quot;,</span>
+<span class="fc" id="L255">                    belowListPriceItems.size(), buyerCodeId);</span>
+<span class="fc" id="L256">            return SubmitResponse.salesReview(offer.getId(), belowListPriceItems.size());</span>
         }
 
         // Scenario 4: All items at or above list price → direct order
-<span class="fc" id="L258">        log.info(&quot;Cart submit: direct order for buyerCodeId={}, offerId={}&quot;, buyerCodeId, offer.getId());</span>
-<span class="fc" id="L259">        return createDirectOrder(offer, userId);</span>
+<span class="fc" id="L260">        log.info(&quot;Cart submit: direct order for buyerCodeId={}, offerId={}&quot;, buyerCodeId, offer.getId());</span>
+<span class="fc" id="L261">        return createDirectOrder(offer, userId);</span>
     }
 
     /**
@@ -272,76 +274,76 @@ public class OfferService {
      */
     @Transactional
     public SubmitResponse submitOffer(Long offerId) {
-<span class="fc" id="L275">        Optional&lt;Offer&gt; offerOpt = offerRepository.findById(offerId);</span>
-<span class="fc bfc" id="L276" title="All 2 branches covered.">        if (offerOpt.isEmpty()) {</span>
-<span class="fc" id="L277">            return SubmitResponse.error(List.of(&quot;Offer not found.&quot;));</span>
+<span class="fc" id="L277">        Optional&lt;Offer&gt; offerOpt = offerRepository.findById(offerId);</span>
+<span class="fc bfc" id="L278" title="All 2 branches covered.">        if (offerOpt.isEmpty()) {</span>
+<span class="fc" id="L279">            return SubmitResponse.error(List.of(&quot;Offer not found.&quot;));</span>
         }
 
-<span class="fc" id="L280">        Offer offer = offerOpt.get();</span>
+<span class="fc" id="L282">        Offer offer = offerOpt.get();</span>
 
         // If already submitted, don't re-submit
-<span class="fc bfc" id="L283" title="All 2 branches covered.">        if (!STATUS_DRAFT.equals(offer.getStatus())) {</span>
-<span class="fc" id="L284">            return SubmitResponse.alreadySubmitted();</span>
+<span class="fc bfc" id="L285" title="All 2 branches covered.">        if (!STATUS_DRAFT.equals(offer.getStatus())) {</span>
+<span class="fc" id="L286">            return SubmitResponse.alreadySubmitted();</span>
         }
 
-<span class="fc" id="L287">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
-<span class="pc bpc" id="L288" title="1 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
-<span class="pc bpc" id="L289" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
-<span class="fc" id="L290">                .collect(Collectors.toList());</span>
+<span class="fc" id="L289">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
+<span class="pc bpc" id="L290" title="1 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
+<span class="pc bpc" id="L291" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
+<span class="fc" id="L292">                .collect(Collectors.toList());</span>
 
-<span class="fc bfc" id="L292" title="All 2 branches covered.">        if (activeItems.isEmpty()) {</span>
-<span class="fc" id="L293">            return SubmitResponse.error(List.of(&quot;No items to submit.&quot;));</span>
+<span class="fc bfc" id="L294" title="All 2 branches covered.">        if (activeItems.isEmpty()) {</span>
+<span class="fc" id="L295">            return SubmitResponse.error(List.of(&quot;No items to submit.&quot;));</span>
         }
 
-<span class="fc" id="L296">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
+<span class="fc" id="L298">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
 
         // ── SUB_BuyerOffer_CreateOffer logic ──
         // Set per-item SalesOfferItemStatus based on offerPrice vs device listPrice.
         // Mendix: Accept if offerPrice &gt;= listPrice, Counter if offerPrice &lt; listPrice
-<span class="fc bfc" id="L301" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
-<span class="fc" id="L302">            Device device = deviceMap.get(item.getDeviceId());</span>
-<span class="pc bpc" id="L303" title="1 of 6 branches missed.">            if (device == null || device.getListPrice() == null || item.getPrice() == null) {</span>
-<span class="fc" id="L304">                item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
-<span class="fc" id="L305">                continue;</span>
+<span class="fc bfc" id="L303" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
+<span class="fc" id="L304">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="pc bpc" id="L305" title="1 of 6 branches missed.">            if (device == null || device.getListPrice() == null || item.getPrice() == null) {</span>
+<span class="fc" id="L306">                item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
+<span class="fc" id="L307">                continue;</span>
             }
-<span class="fc bfc" id="L307" title="All 2 branches covered.">            if (item.getPrice().compareTo(device.getListPrice()) &gt;= 0) {</span>
-<span class="fc" id="L308">                item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
-            } else {
-<span class="fc" id="L310">                item.setItemStatus(ITEM_STATUS_COUNTER);</span>
+<span class="fc bfc" id="L309" title="All 2 branches covered.">            if (item.getPrice().compareTo(device.getListPrice()) &gt;= 0) {</span>
+<span class="fc" id="L310">                item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
+<span class="fc" id="L311">            } else {</span>
+<span class="fc" id="L312">                item.setItemStatus(ITEM_STATUS_COUNTER);</span>
                 // Mendix sets CounterQuantity = BuyerOfferItem.Quantity (initial counter = buyer's qty)
-<span class="fc" id="L312">                item.setCounterQty(item.getQuantity());</span>
-<span class="fc" id="L313">                item.setCounterPrice(item.getPrice());</span>
-<span class="fc" id="L314">                item.setCounterTotal(item.getTotalPrice());</span>
+<span class="fc" id="L314">                item.setCounterQty(item.getQuantity());</span>
+<span class="fc" id="L315">                item.setCounterPrice(item.getPrice());</span>
+<span class="fc" id="L316">                item.setCounterTotal(item.getTotalPrice());</span>
             }
-<span class="fc" id="L316">        }</span>
+        }
 
         // Recalculate offer totals from active items
-<span class="fc" id="L319">        recalcTotals(offer);</span>
+<span class="fc" id="L321">        recalcTotals(offer);</span>
 
         // ── ACr_UpdateOfferID — generate human-readable offer number ──
-<span class="fc" id="L322">        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
-<span class="fc" id="L323">        offer.setOfferNumber(offerNumber);</span>
+<span class="fc" id="L324">        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
+<span class="fc" id="L325">        offer.setOfferNumber(offerNumber);</span>
 
         // ── SUB_RetrieveOrderStatus + Update offer ──
-<span class="fc" id="L326">        offer.setStatus(STATUS_SALES_REVIEW);</span>
-<span class="fc" id="L327">        offer.setSubmissionDate(LocalDateTime.now());</span>
+<span class="fc" id="L328">        offer.setStatus(STATUS_SALES_REVIEW);</span>
+<span class="fc" id="L329">        offer.setSubmissionDate(LocalDateTime.now());</span>
 
         // ── SUB_UpdateOfferDrawerStatus (Sales_Review branch) ──
         // Mendix: for Sales_Review, all items get OfferDrawerStatus = Sales_Review
         // Then reserve device quantities
-<span class="fc bfc" id="L332" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
-<span class="fc" id="L333">            item.setOfferDrawerStatus(DRAWER_SALES_REVIEW);</span>
-<span class="fc" id="L334">            reserveDeviceQuantity(item, deviceMap.get(item.getDeviceId()));</span>
-<span class="fc" id="L335">        }</span>
+<span class="fc bfc" id="L334" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
+<span class="fc" id="L335">            item.setOfferDrawerStatus(DRAWER_SALES_REVIEW);</span>
+<span class="fc" id="L336">            reserveDeviceQuantity(item, deviceMap.get(item.getDeviceId()));</span>
+        }
 
-<span class="fc" id="L337">        offerRepository.save(offer);</span>
+<span class="fc" id="L339">        offerRepository.save(offer);</span>
 
         // ── SUB_SendPWSOfferConfirmationEmail (stubbed) ──
         // TODO: Build HTML email with offer item table and send via email service
-<span class="fc" id="L341">        log.info(&quot;Offer {} (offerNumber={}) submitted for sales review (buyerCodeId={})&quot;,</span>
-<span class="fc" id="L342">                offerId, offerNumber, offer.getBuyerCodeId());</span>
+<span class="fc" id="L343">        log.info(&quot;Offer {} (offerNumber={}) submitted for sales review (buyerCodeId={})&quot;,</span>
+<span class="fc" id="L344">                offerId, offerNumber, offer.getBuyerCodeId());</span>
 
-<span class="fc" id="L344">        return SubmitResponse.offerSubmitted(offerId, offerNumber);</span>
+<span class="fc" id="L346">        return SubmitResponse.offerSubmitted(offerId, offerNumber);</span>
     }
 
     /**
@@ -352,88 +354,88 @@ public class OfferService {
      */
     @Transactional
     public SubmitResponse submitOrder(Long offerId, Long userId) {
-<span class="fc" id="L355">        Optional&lt;Offer&gt; offerOpt = offerRepository.findById(offerId);</span>
-<span class="fc bfc" id="L356" title="All 2 branches covered.">        if (offerOpt.isEmpty()) {</span>
-<span class="fc" id="L357">            return SubmitResponse.error(List.of(&quot;Offer not found.&quot;));</span>
+<span class="fc" id="L357">        Optional&lt;Offer&gt; offerOpt = offerRepository.findById(offerId);</span>
+<span class="fc bfc" id="L358" title="All 2 branches covered.">        if (offerOpt.isEmpty()) {</span>
+<span class="fc" id="L359">            return SubmitResponse.error(List.of(&quot;Offer not found.&quot;));</span>
         }
 
-<span class="fc" id="L360">        Offer offer = offerOpt.get();</span>
+<span class="fc" id="L362">        Offer offer = offerOpt.get();</span>
 
         // ACT_Offer_SubmitOrder_2 works with a FinalOffer — typically in SALES_REVIEW
         // or Buyer_Acceptance status after the review cycle is complete
-<span class="fc bfc" id="L364" title="All 4 branches covered.">        if (STATUS_ORDERED.equals(offer.getStatus()) || STATUS_PENDING_ORDER.equals(offer.getStatus())) {</span>
-<span class="fc" id="L365">            return SubmitResponse.error(List.of(&quot;This offer has already been submitted for order.&quot;));</span>
+<span class="fc bfc" id="L366" title="All 4 branches covered.">        if (STATUS_ORDERED.equals(offer.getStatus()) || STATUS_PENDING_ORDER.equals(offer.getStatus())) {</span>
+<span class="fc" id="L367">            return SubmitResponse.error(List.of(&quot;This offer has already been submitted for order.&quot;));</span>
         }
 
-<span class="fc" id="L368">        List&lt;OfferItem&gt; allItems = offer.getItems();</span>
+<span class="fc" id="L370">        List&lt;OfferItem&gt; allItems = offer.getItems();</span>
 
         // SUB_Order_CreateFromOffer: filter items that are accepted for ordering
         // Mendix: SalesOfferItemStatus='Accept' OR (Counter AND BuyerCounterStatus='Accept')
         //         OR SalesOfferItemStatus='Finalize'
-<span class="fc" id="L373">        List&lt;OfferItem&gt; acceptedItems = allItems.stream()</span>
-<span class="fc" id="L374">                .filter(this::isItemAcceptedForOrder)</span>
-<span class="fc" id="L375">                .collect(Collectors.toList());</span>
+<span class="fc" id="L375">        List&lt;OfferItem&gt; acceptedItems = allItems.stream()</span>
+<span class="fc" id="L376">                .filter(this::isItemAcceptedForOrder)</span>
+<span class="fc" id="L377">                .collect(Collectors.toList());</span>
 
-<span class="fc bfc" id="L377" title="All 2 branches covered.">        if (acceptedItems.isEmpty()) {</span>
-<span class="fc" id="L378">            log.warn(&quot;No accepted items for order submission: offerId={}&quot;, offerId);</span>
-<span class="fc" id="L379">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
+<span class="fc bfc" id="L379" title="All 2 branches covered.">        if (acceptedItems.isEmpty()) {</span>
+<span class="fc" id="L380">            log.warn(&quot;No accepted items for order submission: offerId={}&quot;, offerId);</span>
+<span class="fc" id="L381">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
         }
 
-<span class="fc" id="L382">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(acceptedItems);</span>
+<span class="fc" id="L384">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(acceptedItems);</span>
 
         // Generate offer number if not already set
-<span class="pc bpc" id="L385" title="1 of 4 branches missed.">        if (offer.getOfferNumber() == null || offer.getOfferNumber().isBlank()) {</span>
-<span class="fc" id="L386">            String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
-<span class="fc" id="L387">            offer.setOfferNumber(offerNumber);</span>
+<span class="pc bpc" id="L387" title="1 of 4 branches missed.">        if (offer.getOfferNumber() == null || offer.getOfferNumber().isBlank()) {</span>
+<span class="fc" id="L388">            String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
+<span class="fc" id="L389">            offer.setOfferNumber(offerNumber);</span>
         }
 
         // SUB_Offer_CreateOrder — create Order entity linked to Offer and BuyerCode
-<span class="fc" id="L391">        Order order = new Order();</span>
-<span class="fc" id="L392">        order.setOffer(offer);</span>
-<span class="fc" id="L393">        order.setBuyerCodeId(offer.getBuyerCodeId());</span>
-<span class="fc" id="L394">        order.setOrderDate(LocalDateTime.now());</span>
-<span class="fc" id="L395">        orderRepository.save(order);</span>
+<span class="fc" id="L393">        Order order = new Order();</span>
+<span class="fc" id="L394">        order.setOffer(offer);</span>
+<span class="fc" id="L395">        order.setBuyerCodeId(offer.getBuyerCodeId());</span>
+<span class="fc" id="L396">        order.setOrderDate(LocalDateTime.now());</span>
+<span class="fc" id="L397">        orderRepository.save(order);</span>
 
         // SUB_Offer_PrepareOraclePayload — build Oracle request JSON
-<span class="fc" id="L398">        String originSystemUser = resolveUserName(userId);</span>
-<span class="fc" id="L399">        String oraclePayload = prepareOraclePayload(offer, acceptedItems, deviceMap, originSystemUser);</span>
-<span class="fc" id="L400">        order.setJsonContent(oraclePayload);</span>
+<span class="fc" id="L400">        String originSystemUser = resolveUserName(userId);</span>
+<span class="fc" id="L401">        String oraclePayload = prepareOraclePayload(offer, acceptedItems, deviceMap, originSystemUser);</span>
+<span class="fc" id="L402">        order.setJsonContent(oraclePayload);</span>
 
         // SUB_Order_SendOrderToOracle (stubbed)
-<span class="fc" id="L403">        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);</span>
+<span class="fc" id="L405">        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);</span>
 
         // SUB_CreateOrderResponse_ManageResult — handle Oracle response
-<span class="fc" id="L406">        return handleOracleResponse(offer, order, acceptedItems, deviceMap, oracleResponse);</span>
+<span class="fc" id="L408">        return handleOracleResponse(offer, order, acceptedItems, deviceMap, oracleResponse);</span>
     }
 
     public String exportCartCsv(Long buyerCodeId) {
-<span class="fc" id="L410">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
-<span class="fc" id="L411">        List&lt;OfferItem&gt; items = offer.getItems().stream()</span>
-<span class="pc bpc" id="L412" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0)</span>
-<span class="fc" id="L413">                .collect(Collectors.toList());</span>
+<span class="fc" id="L412">        Offer offer = findOrCreateDraft(buyerCodeId);</span>
+<span class="fc" id="L413">        List&lt;OfferItem&gt; items = offer.getItems().stream()</span>
+<span class="pc bpc" id="L414" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0)</span>
+<span class="fc" id="L415">                .collect(Collectors.toList());</span>
 
-<span class="fc" id="L415">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L417">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
 
-<span class="fc" id="L417">        StringBuilder csv = new StringBuilder();</span>
-<span class="fc" id="L418">        csv.append(&quot;SKU,Category,Brand,Model,Carrier,Capacity,Color,Grade,Quantity,List Price,Offer Price,Total\n&quot;);</span>
+<span class="fc" id="L419">        StringBuilder csv = new StringBuilder();</span>
+<span class="fc" id="L420">        csv.append(&quot;SKU,Category,Brand,Model,Carrier,Capacity,Color,Grade,Quantity,List Price,Offer Price,Total\n&quot;);</span>
 
-<span class="fc bfc" id="L420" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
-<span class="fc" id="L421">            Device d = deviceMap.get(item.getDeviceId());</span>
-<span class="fc" id="L422">            csv.append(escapeCsv(item.getSku())).append(',');</span>
-<span class="pc bpc" id="L423" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCategory() != null ? d.getCategory().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L424" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getBrand() != null ? d.getBrand().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L425" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getModel() != null ? d.getModel().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L426" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCarrier() != null ? d.getCarrier().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L427" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCapacity() != null ? d.getCapacity().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L428" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getColor() != null ? d.getColor().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="pc bpc" id="L429" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getGrade() != null ? d.getGrade().getDisplayName() : &quot;&quot;)).append(',');</span>
-<span class="fc" id="L430">            csv.append(item.getQuantity()).append(',');</span>
-<span class="pc bpc" id="L431" title="1 of 4 branches missed.">            csv.append(d != null &amp;&amp; d.getListPrice() != null ? d.getListPrice() : &quot;&quot;).append(',');</span>
-<span class="pc bpc" id="L432" title="1 of 2 branches missed.">            csv.append(item.getPrice() != null ? item.getPrice() : &quot;&quot;).append(',');</span>
-<span class="pc bpc" id="L433" title="1 of 2 branches missed.">            csv.append(item.getTotalPrice() != null ? item.getTotalPrice() : &quot;&quot;);</span>
-<span class="fc" id="L434">            csv.append('\n');</span>
-<span class="fc" id="L435">        }</span>
-<span class="fc" id="L436">        return csv.toString();</span>
+<span class="fc bfc" id="L422" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
+<span class="fc" id="L423">            Device d = deviceMap.get(item.getDeviceId());</span>
+<span class="fc" id="L424">            csv.append(escapeCsv(item.getSku())).append(',');</span>
+<span class="pc bpc" id="L425" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCategory() != null ? d.getCategory().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L426" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getBrand() != null ? d.getBrand().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L427" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getModel() != null ? d.getModel().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L428" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCarrier() != null ? d.getCarrier().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L429" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getCapacity() != null ? d.getCapacity().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L430" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getColor() != null ? d.getColor().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="pc bpc" id="L431" title="1 of 4 branches missed.">            csv.append(escapeCsv(d != null &amp;&amp; d.getGrade() != null ? d.getGrade().getDisplayName() : &quot;&quot;)).append(',');</span>
+<span class="fc" id="L432">            csv.append(item.getQuantity()).append(',');</span>
+<span class="pc bpc" id="L433" title="1 of 4 branches missed.">            csv.append(d != null &amp;&amp; d.getListPrice() != null ? d.getListPrice() : &quot;&quot;).append(',');</span>
+<span class="pc bpc" id="L434" title="1 of 2 branches missed.">            csv.append(item.getPrice() != null ? item.getPrice() : &quot;&quot;).append(',');</span>
+<span class="pc bpc" id="L435" title="1 of 2 branches missed.">            csv.append(item.getTotalPrice() != null ? item.getTotalPrice() : &quot;&quot;);</span>
+<span class="fc" id="L436">            csv.append('\n');</span>
+        }
+<span class="fc" id="L438">        return csv.toString();</span>
     }
 
     // ---- private helpers ----
@@ -457,57 +459,57 @@ public class OfferService {
      *   9. SUB_Offer_UpdateSnowflake — (stubbed: Snowflake analytics sync)
      */
     private SubmitResponse createDirectOrder(Offer offer, Long userId) {
-<span class="fc" id="L460">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
-<span class="pc bpc" id="L461" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
-<span class="pc bpc" id="L462" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
-<span class="fc" id="L463">                .collect(Collectors.toList());</span>
+<span class="fc" id="L462">        List&lt;OfferItem&gt; activeItems = offer.getItems().stream()</span>
+<span class="pc bpc" id="L463" title="2 of 4 branches missed.">                .filter(i -&gt; i.getQuantity() != null &amp;&amp; i.getQuantity() &gt; 0</span>
+<span class="pc bpc" id="L464" title="2 of 4 branches missed.">                        &amp;&amp; i.getTotalPrice() != null &amp;&amp; i.getTotalPrice().compareTo(BigDecimal.ZERO) &gt; 0)</span>
+<span class="fc" id="L465">                .collect(Collectors.toList());</span>
 
-<span class="fc" id="L465">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
+<span class="fc" id="L467">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(activeItems);</span>
 
         // ── Step 1: SUB_BuyerOffer_CreateOffer ──
         // For direct order, all items are at/above list price → all get Accept status
-<span class="fc bfc" id="L469" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
-<span class="fc" id="L470">            item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
-<span class="fc" id="L471">        }</span>
+<span class="fc bfc" id="L471" title="All 2 branches covered.">        for (OfferItem item : activeItems) {</span>
+<span class="fc" id="L472">            item.setItemStatus(ITEM_STATUS_ACCEPT);</span>
+        }
 
         // ── Step 2: ACr_UpdateOfferID — generate human-readable offer number ──
-<span class="fc" id="L474">        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
-<span class="fc" id="L475">        offer.setOfferNumber(offerNumber);</span>
+<span class="fc" id="L476">        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());</span>
+<span class="fc" id="L477">        offer.setOfferNumber(offerNumber);</span>
 
         // ── Step 3: SUB_Order_CreateFromOffer → SUB_Offer_CreateOrder ──
         // Mendix filters: SalesOfferItemStatus='Accept' OR (Counter AND BuyerCounterStatus='Accept')
         //                  OR SalesOfferItemStatus='Finalize'
         // For direct order from cart, all items are Accept, so all are included
-<span class="fc" id="L481">        List&lt;OfferItem&gt; acceptedItems = activeItems.stream()</span>
-<span class="fc" id="L482">                .filter(item -&gt; isItemAcceptedForOrder(item))</span>
-<span class="fc" id="L483">                .collect(Collectors.toList());</span>
+<span class="fc" id="L483">        List&lt;OfferItem&gt; acceptedItems = activeItems.stream()</span>
+<span class="fc" id="L484">                .filter(item -&gt; isItemAcceptedForOrder(item))</span>
+<span class="fc" id="L485">                .collect(Collectors.toList());</span>
 
-<span class="pc bpc" id="L485" title="1 of 2 branches missed.">        if (acceptedItems.isEmpty()) {</span>
-<span class="nc" id="L486">            log.warn(&quot;No accepted items for order: offerId={}&quot;, offer.getId());</span>
-<span class="nc" id="L487">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
+<span class="pc bpc" id="L487" title="1 of 2 branches missed.">        if (acceptedItems.isEmpty()) {</span>
+<span class="nc" id="L488">            log.warn(&quot;No accepted items for order: offerId={}&quot;, offer.getId());</span>
+<span class="nc" id="L489">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
         }
 
-<span class="fc" id="L490">        Order order = new Order();</span>
-<span class="fc" id="L491">        order.setOffer(offer);</span>
-<span class="fc" id="L492">        order.setBuyerCodeId(offer.getBuyerCodeId());</span>
-<span class="fc" id="L493">        order.setOrderDate(LocalDateTime.now());</span>
-<span class="fc" id="L494">        orderRepository.save(order);</span>
+<span class="fc" id="L492">        Order order = new Order();</span>
+<span class="fc" id="L493">        order.setOffer(offer);</span>
+<span class="fc" id="L494">        order.setBuyerCodeId(offer.getBuyerCodeId());</span>
+<span class="fc" id="L495">        order.setOrderDate(LocalDateTime.now());</span>
+<span class="fc" id="L496">        orderRepository.save(order);</span>
 
         // ── Step 4: SUB_Offer_PrepareOraclePayload ──
         // Build the Oracle order request payload (for future Oracle integration)
         // Resolve user name for Oracle originSystemUser field
-<span class="fc" id="L499">        String originSystemUser = resolveUserName(userId);</span>
-<span class="fc" id="L500">        String oraclePayload = prepareOraclePayload(offer, acceptedItems, deviceMap, originSystemUser);</span>
-<span class="fc" id="L501">        order.setJsonContent(oraclePayload);</span>
+<span class="fc" id="L501">        String originSystemUser = resolveUserName(userId);</span>
+<span class="fc" id="L502">        String oraclePayload = prepareOraclePayload(offer, acceptedItems, deviceMap, originSystemUser);</span>
+<span class="fc" id="L503">        order.setJsonContent(oraclePayload);</span>
 
         // ── Step 5: SUB_Order_SendOrderToOracle ──
         // In production, this calls Oracle ERP REST API and returns OracleResponse
         // For now, simulate a successful response
-<span class="fc" id="L506">        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);</span>
+<span class="fc" id="L508">        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);</span>
 
         // ── Step 6: SUB_CreateOrderResponse_ManageResult ──
         // Handle 3 possible Oracle response outcomes
-<span class="fc" id="L510">        return handleOracleResponse(offer, order, acceptedItems, deviceMap, oracleResponse);</span>
+<span class="fc" id="L512">        return handleOracleResponse(offer, order, acceptedItems, deviceMap, oracleResponse);</span>
     }
 
     /**
@@ -517,12 +519,12 @@ public class OfferService {
      *   OR SalesOfferItemStatus='Finalize'
      */
     private boolean isItemAcceptedForOrder(OfferItem item) {
-<span class="fc" id="L520">        String status = item.getItemStatus();</span>
-<span class="fc bfc" id="L521" title="All 2 branches covered.">        if (ITEM_STATUS_ACCEPT.equals(status)) return true;</span>
-<span class="fc bfc" id="L522" title="All 2 branches covered.">        if (ITEM_STATUS_FINALIZE.equals(status)) return true;</span>
-<span class="fc bfc" id="L523" title="All 2 branches covered.">        if (ITEM_STATUS_COUNTER.equals(status)</span>
-<span class="pc bpc" id="L524" title="1 of 2 branches missed.">                &amp;&amp; COUNTER_STATUS_ACCEPT.equals(item.getBuyerCounterStatus())) return true;</span>
-<span class="fc" id="L525">        return false;</span>
+<span class="fc" id="L522">        String status = item.getItemStatus();</span>
+<span class="fc bfc" id="L523" title="All 2 branches covered.">        if (ITEM_STATUS_ACCEPT.equals(status)) return true;</span>
+<span class="fc bfc" id="L524" title="All 2 branches covered.">        if (ITEM_STATUS_FINALIZE.equals(status)) return true;</span>
+<span class="fc bfc" id="L525" title="All 2 branches covered.">        if (ITEM_STATUS_COUNTER.equals(status)</span>
+<span class="pc bpc" id="L526" title="1 of 2 branches missed.">                &amp;&amp; COUNTER_STATUS_ACCEPT.equals(item.getBuyerCounterStatus())) return true;</span>
+<span class="fc" id="L527">        return false;</span>
     }
 
     /**
@@ -533,75 +535,70 @@ public class OfferService {
     private String prepareOraclePayload(Offer offer, List&lt;OfferItem&gt; acceptedItems,
                                          Map&lt;Long, Device&gt; deviceMap, String originSystemUser) {
         // Retrieve buyer code string for the payload
-        String buyerCode;
-        try {
-<span class="fc" id="L538">            buyerCode = (String) em.createNativeQuery(</span>
-                    &quot;SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id&quot;)
-<span class="fc" id="L540">                    .setParameter(&quot;id&quot;, offer.getBuyerCodeId())</span>
-<span class="fc" id="L541">                    .getSingleResult();</span>
-<span class="nc" id="L542">        } catch (Exception e) {</span>
-<span class="nc" id="L543">            buyerCode = String.valueOf(offer.getBuyerCodeId());</span>
-<span class="fc" id="L544">        }</span>
+<span class="fc" id="L538">        String buyerCode = buyerCodeLookup.findCodeById(offer.getBuyerCodeId());</span>
+<span class="pc bpc" id="L539" title="1 of 2 branches missed.">        if (buyerCode == null) {</span>
+<span class="nc" id="L540">            buyerCode = String.valueOf(offer.getBuyerCodeId());</span>
+        }
 
         // Mendix format: yyyyMMddHHmmss (SUB_Offer_PrepareOraclePayload step 5)
-<span class="fc" id="L547">        String orderDate = LocalDateTime.now().format(</span>
-<span class="fc" id="L548">                java.time.format.DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
+<span class="fc" id="L544">        String orderDate = LocalDateTime.now().format(</span>
+<span class="fc" id="L545">                java.time.format.DateTimeFormatter.ofPattern(&quot;yyyyMMddHHmmss&quot;));</span>
 
         // Mendix: EM_CreateOrderRequest — wrapped in { &quot;request&quot;: { ... } }
         try {
-<span class="fc" id="L552">            Map&lt;String, Object&gt; request = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L553">            request.put(&quot;originSystemOrderId&quot;, offer.getOfferNumber());</span>
-<span class="fc" id="L554">            request.put(&quot;orderType&quot;, &quot;PWS&quot;);</span>
-<span class="fc" id="L555">            request.put(&quot;orderDate&quot;, orderDate);</span>
-<span class="fc" id="L556">            request.put(&quot;buyerCode&quot;, buyerCode);</span>
-<span class="pc bpc" id="L557" title="1 of 2 branches missed.">            request.put(&quot;originSystemUser&quot;, originSystemUser != null ? originSystemUser : &quot;&quot;);</span>
-<span class="fc" id="L558">            request.put(&quot;shippingInstructions&quot;, &quot;&quot;);</span>
-<span class="fc" id="L559">            request.put(&quot;freeFormOrd01&quot;, &quot;&quot;);</span>
-<span class="fc" id="L560">            request.put(&quot;freeFormOrd02&quot;, &quot;&quot;);</span>
-<span class="fc" id="L561">            request.put(&quot;freeFormOrd03&quot;, &quot;&quot;);</span>
+<span class="fc" id="L549">            Map&lt;String, Object&gt; request = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L550">            request.put(&quot;originSystemOrderId&quot;, offer.getOfferNumber());</span>
+<span class="fc" id="L551">            request.put(&quot;orderType&quot;, &quot;PWS&quot;);</span>
+<span class="fc" id="L552">            request.put(&quot;orderDate&quot;, orderDate);</span>
+<span class="fc" id="L553">            request.put(&quot;buyerCode&quot;, buyerCode);</span>
+<span class="pc bpc" id="L554" title="1 of 2 branches missed.">            request.put(&quot;originSystemUser&quot;, originSystemUser != null ? originSystemUser : &quot;&quot;);</span>
+<span class="fc" id="L555">            request.put(&quot;shippingInstructions&quot;, &quot;&quot;);</span>
+<span class="fc" id="L556">            request.put(&quot;freeFormOrd01&quot;, &quot;&quot;);</span>
+<span class="fc" id="L557">            request.put(&quot;freeFormOrd02&quot;, &quot;&quot;);</span>
+<span class="fc" id="L558">            request.put(&quot;freeFormOrd03&quot;, &quot;&quot;);</span>
 
-<span class="fc" id="L563">            List&lt;Map&lt;String, Object&gt;&gt; orderLines = new ArrayList&lt;&gt;();</span>
-<span class="fc bfc" id="L564" title="All 2 branches covered.">            for (OfferItem item : acceptedItems) {</span>
-<span class="fc" id="L565">                BigDecimal finalOfferPrice = item.getPrice();</span>
-<span class="fc bfc" id="L566" title="All 2 branches covered.">                if (ITEM_STATUS_COUNTER.equals(item.getItemStatus())</span>
-<span class="pc bpc" id="L567" title="1 of 2 branches missed.">                        &amp;&amp; item.getCounterPrice() != null) {</span>
-<span class="fc" id="L568">                    finalOfferPrice = item.getCounterPrice();</span>
+<span class="fc" id="L560">            List&lt;Map&lt;String, Object&gt;&gt; orderLines = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L561" title="All 2 branches covered.">            for (OfferItem item : acceptedItems) {</span>
+<span class="fc" id="L562">                BigDecimal finalOfferPrice = item.getPrice();</span>
+<span class="fc bfc" id="L563" title="All 2 branches covered.">                if (ITEM_STATUS_COUNTER.equals(item.getItemStatus())</span>
+<span class="pc bpc" id="L564" title="1 of 2 branches missed.">                        &amp;&amp; item.getCounterPrice() != null) {</span>
+<span class="fc" id="L565">                    finalOfferPrice = item.getCounterPrice();</span>
                 }
 
-<span class="pc bpc" id="L571" title="1 of 2 branches missed.">                if (item.getCaseLotId() != null) {</span>
-<span class="nc" id="L572">                    CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
-<span class="nc bnc" id="L573" title="All 2 branches missed.">                    int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
-<span class="nc" id="L574">                    int numCases = item.getQuantity();</span>
+<span class="pc bpc" id="L568" title="1 of 2 branches missed.">                if (item.getCaseLotId() != null) {</span>
+<span class="nc" id="L569">                    CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);</span>
+<span class="nc bnc" id="L570" title="All 2 branches missed.">                    int caseLotSize = caseLot != null ? caseLot.getCaseLotSize() : 1;</span>
+<span class="nc" id="L571">                    int numCases = item.getQuantity();</span>
 
-<span class="nc bnc" id="L576" title="All 2 branches missed.">                    for (int c = 0; c &lt; numCases; c++) {</span>
-<span class="nc" id="L577">                        Map&lt;String, Object&gt; line = new LinkedHashMap&lt;&gt;();</span>
-<span class="nc" id="L578">                        line.put(&quot;item_number&quot;, item.getSku());</span>
-<span class="nc" id="L579">                        line.put(&quot;Quantity&quot;, String.valueOf(caseLotSize));</span>
-<span class="nc" id="L580">                        line.put(&quot;unitSellingPrice&quot;, String.valueOf(finalOfferPrice));</span>
-<span class="nc" id="L581">                        line.put(&quot;originSystemLineId&quot;, &quot;&quot;);</span>
-<span class="nc" id="L582">                        line.put(&quot;freeFormLine01&quot;, &quot;&quot;);</span>
-<span class="nc" id="L583">                        line.put(&quot;freeFormLine02&quot;, &quot;&quot;);</span>
-<span class="nc" id="L584">                        line.put(&quot;freeFormLine03&quot;, &quot;&quot;);</span>
-<span class="nc" id="L585">                        orderLines.add(line);</span>
+<span class="nc bnc" id="L573" title="All 2 branches missed.">                    for (int c = 0; c &lt; numCases; c++) {</span>
+<span class="nc" id="L574">                        Map&lt;String, Object&gt; line = new LinkedHashMap&lt;&gt;();</span>
+<span class="nc" id="L575">                        line.put(&quot;item_number&quot;, item.getSku());</span>
+<span class="nc" id="L576">                        line.put(&quot;Quantity&quot;, String.valueOf(caseLotSize));</span>
+<span class="nc" id="L577">                        line.put(&quot;unitSellingPrice&quot;, String.valueOf(finalOfferPrice));</span>
+<span class="nc" id="L578">                        line.put(&quot;originSystemLineId&quot;, &quot;&quot;);</span>
+<span class="nc" id="L579">                        line.put(&quot;freeFormLine01&quot;, &quot;&quot;);</span>
+<span class="nc" id="L580">                        line.put(&quot;freeFormLine02&quot;, &quot;&quot;);</span>
+<span class="nc" id="L581">                        line.put(&quot;freeFormLine03&quot;, &quot;&quot;);</span>
+<span class="nc" id="L582">                        orderLines.add(line);</span>
                     }
-<span class="nc" id="L587">                } else {</span>
-<span class="fc" id="L588">                    Map&lt;String, Object&gt; line = new LinkedHashMap&lt;&gt;();</span>
-<span class="fc" id="L589">                    line.put(&quot;item_number&quot;, item.getSku());</span>
-<span class="fc" id="L590">                    line.put(&quot;Quantity&quot;, String.valueOf(item.getQuantity()));</span>
-<span class="fc" id="L591">                    line.put(&quot;unitSellingPrice&quot;, String.valueOf(finalOfferPrice));</span>
-<span class="fc" id="L592">                    line.put(&quot;originSystemLineId&quot;, &quot;&quot;);</span>
-<span class="fc" id="L593">                    line.put(&quot;freeFormLine01&quot;, &quot;&quot;);</span>
-<span class="fc" id="L594">                    line.put(&quot;freeFormLine02&quot;, &quot;&quot;);</span>
-<span class="fc" id="L595">                    line.put(&quot;freeFormLine03&quot;, &quot;&quot;);</span>
-<span class="fc" id="L596">                    orderLines.add(line);</span>
+<span class="nc" id="L584">                } else {</span>
+<span class="fc" id="L585">                    Map&lt;String, Object&gt; line = new LinkedHashMap&lt;&gt;();</span>
+<span class="fc" id="L586">                    line.put(&quot;item_number&quot;, item.getSku());</span>
+<span class="fc" id="L587">                    line.put(&quot;Quantity&quot;, String.valueOf(item.getQuantity()));</span>
+<span class="fc" id="L588">                    line.put(&quot;unitSellingPrice&quot;, String.valueOf(finalOfferPrice));</span>
+<span class="fc" id="L589">                    line.put(&quot;originSystemLineId&quot;, &quot;&quot;);</span>
+<span class="fc" id="L590">                    line.put(&quot;freeFormLine01&quot;, &quot;&quot;);</span>
+<span class="fc" id="L591">                    line.put(&quot;freeFormLine02&quot;, &quot;&quot;);</span>
+<span class="fc" id="L592">                    line.put(&quot;freeFormLine03&quot;, &quot;&quot;);</span>
+<span class="fc" id="L593">                    orderLines.add(line);</span>
                 }
-<span class="fc" id="L598">            }</span>
+            }
 
-<span class="fc" id="L600">            request.put(&quot;orderLine&quot;, orderLines);</span>
-<span class="fc" id="L601">            Map&lt;String, Object&gt; wrapper = Map.of(&quot;request&quot;, request);</span>
-<span class="fc" id="L602">            return objectMapper.writeValueAsString(wrapper);</span>
-<span class="nc" id="L603">        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {</span>
-<span class="nc" id="L604">            throw new RuntimeException(&quot;Failed to serialize Oracle payload&quot;, e);</span>
+<span class="fc" id="L597">            request.put(&quot;orderLine&quot;, orderLines);</span>
+<span class="fc" id="L598">            Map&lt;String, Object&gt; wrapper = Map.of(&quot;request&quot;, request);</span>
+<span class="fc" id="L599">            return objectMapper.writeValueAsString(wrapper);</span>
+<span class="nc" id="L600">        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {</span>
+<span class="nc" id="L601">            throw new RuntimeException(&quot;Failed to serialize Oracle payload&quot;, e);</span>
         }
     }
 
@@ -614,46 +611,46 @@ public class OfferService {
      *   4. Parse response into OracleResponse
      */
     private OracleResponse sendOrderToOracle(String jsonPayload) {
-<span class="fc" id="L617">        OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);</span>
+<span class="fc" id="L614">        OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);</span>
 
-<span class="pc bpc" id="L619" title="3 of 4 branches missed.">        if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {</span>
-<span class="fc" id="L620">            log.warn(&quot;Oracle Create Order API is toggled off or config missing&quot;);</span>
-<span class="fc" id="L621">            OracleResponse r = new OracleResponse();</span>
-<span class="fc" id="L622">            r.setReturnMessage(&quot;Toggle Turned Off&quot;);</span>
-<span class="fc" id="L623">            return r;</span>
+<span class="pc bpc" id="L616" title="3 of 4 branches missed.">        if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {</span>
+<span class="fc" id="L617">            log.warn(&quot;Oracle Create Order API is toggled off or config missing&quot;);</span>
+<span class="fc" id="L618">            OracleResponse r = new OracleResponse();</span>
+<span class="fc" id="L619">            r.setReturnMessage(&quot;Toggle Turned Off&quot;);</span>
+<span class="fc" id="L620">            return r;</span>
         }
 
-<span class="nc bnc" id="L626" title="All 2 branches missed.">        int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;</span>
-<span class="nc" id="L627">        HttpClient client = HttpClient.newBuilder()</span>
-<span class="nc" id="L628">                .connectTimeout(Duration.ofMillis(timeout))</span>
-<span class="nc" id="L629">                .build();</span>
+<span class="nc bnc" id="L623" title="All 2 branches missed.">        int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;</span>
+<span class="nc" id="L624">        HttpClient client = HttpClient.newBuilder()</span>
+<span class="nc" id="L625">                .connectTimeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L626">                .build();</span>
 
         // Step 1: Get bearer token (CWS_PostToken)
         String token;
         try {
-<span class="nc" id="L634">            token = fetchOracleToken(client, config, timeout);</span>
-<span class="nc" id="L635">        } catch (Exception e) {</span>
-<span class="nc" id="L636">            log.error(&quot;Oracle token request failed&quot;, e);</span>
-<span class="nc" id="L637">            OracleResponse r = new OracleResponse();</span>
-<span class="nc" id="L638">            r.setReturnMessage(&quot;No Token Generated: &quot; + e.getMessage());</span>
-<span class="nc" id="L639">            return r;</span>
-<span class="nc" id="L640">        }</span>
+<span class="nc" id="L631">            token = fetchOracleToken(client, config, timeout);</span>
+<span class="nc" id="L632">        } catch (Exception e) {</span>
+<span class="nc" id="L633">            log.error(&quot;Oracle token request failed&quot;, e);</span>
+<span class="nc" id="L634">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L635">            r.setReturnMessage(&quot;No Token Generated: &quot; + e.getMessage());</span>
+<span class="nc" id="L636">            return r;</span>
+        }
 
-<span class="nc bnc" id="L642" title="All 4 branches missed.">        if (token == null || token.isBlank()) {</span>
-<span class="nc" id="L643">            log.error(&quot;Oracle returned empty token&quot;);</span>
-<span class="nc" id="L644">            OracleResponse r = new OracleResponse();</span>
-<span class="nc" id="L645">            r.setReturnMessage(&quot;No Token Generated&quot;);</span>
-<span class="nc" id="L646">            return r;</span>
+<span class="nc bnc" id="L639" title="All 4 branches missed.">        if (token == null || token.isBlank()) {</span>
+<span class="nc" id="L640">            log.error(&quot;Oracle returned empty token&quot;);</span>
+<span class="nc" id="L641">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L642">            r.setReturnMessage(&quot;No Token Generated&quot;);</span>
+<span class="nc" id="L643">            return r;</span>
         }
 
         // Step 2: Create order (CWS_PostCreateOrder)
         try {
-<span class="nc" id="L651">            return postCreateOrder(client, config, token, jsonPayload, timeout);</span>
-<span class="nc" id="L652">        } catch (Exception e) {</span>
-<span class="nc" id="L653">            log.error(&quot;Oracle create order request failed&quot;, e);</span>
-<span class="nc" id="L654">            OracleResponse r = new OracleResponse();</span>
-<span class="nc" id="L655">            r.setReturnMessage(&quot;Oracle API call failed: &quot; + e.getMessage());</span>
-<span class="nc" id="L656">            return r;</span>
+<span class="nc" id="L648">            return postCreateOrder(client, config, token, jsonPayload, timeout);</span>
+<span class="nc" id="L649">        } catch (Exception e) {</span>
+<span class="nc" id="L650">            log.error(&quot;Oracle create order request failed&quot;, e);</span>
+<span class="nc" id="L651">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L652">            r.setReturnMessage(&quot;Oracle API call failed: &quot; + e.getMessage());</span>
+<span class="nc" id="L653">            return r;</span>
         }
     }
 
@@ -664,24 +661,24 @@ public class OfferService {
     private String fetchOracleToken(HttpClient client, OracleConfig config, int timeout) throws Exception {
         // Mendix CWS_PostToken: body is only &quot;grant_type=client_credentials&quot;
         // username (client_id) and password (client_secret) go as Basic Auth header
-<span class="nc" id="L667">        String authBody = &quot;grant_type=client_credentials&quot;;</span>
-<span class="nc" id="L668">        String basicAuth = Base64.getEncoder().encodeToString(</span>
-<span class="nc" id="L669">                (config.getUsername() + &quot;:&quot; + config.getPasswordHash()).getBytes());</span>
+<span class="nc" id="L664">        String authBody = &quot;grant_type=client_credentials&quot;;</span>
+<span class="nc" id="L665">        String basicAuth = Base64.getEncoder().encodeToString(</span>
+<span class="nc" id="L666">                (config.getUsername() + &quot;:&quot; + config.getPasswordHash()).getBytes());</span>
 
-<span class="nc" id="L671">        HttpRequest request = HttpRequest.newBuilder()</span>
-<span class="nc" id="L672">                .uri(URI.create(config.getAuthPath()))</span>
-<span class="nc" id="L673">                .timeout(Duration.ofMillis(timeout))</span>
-<span class="nc" id="L674">                .header(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;)</span>
-<span class="nc" id="L675">                .header(&quot;Authorization&quot;, &quot;Basic &quot; + basicAuth)</span>
-<span class="nc" id="L676">                .POST(HttpRequest.BodyPublishers.ofString(authBody))</span>
-<span class="nc" id="L677">                .build();</span>
+<span class="nc" id="L668">        HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L669">                .uri(URI.create(config.getAuthPath()))</span>
+<span class="nc" id="L670">                .timeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L671">                .header(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;)</span>
+<span class="nc" id="L672">                .header(&quot;Authorization&quot;, &quot;Basic &quot; + basicAuth)</span>
+<span class="nc" id="L673">                .POST(HttpRequest.BodyPublishers.ofString(authBody))</span>
+<span class="nc" id="L674">                .build();</span>
 
-<span class="nc" id="L679">        log.info(&quot;Oracle token request → {}&quot;, config.getAuthPath());</span>
-<span class="nc" id="L680">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
-<span class="nc" id="L681">        log.info(&quot;Oracle token response HTTP {}&quot;, response.statusCode());</span>
+<span class="nc" id="L676">        log.info(&quot;Oracle token request → {}&quot;, config.getAuthPath());</span>
+<span class="nc" id="L677">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L678">        log.info(&quot;Oracle token response HTTP {}&quot;, response.statusCode());</span>
 
-<span class="nc" id="L683">        JsonNode json = objectMapper.readTree(response.body());</span>
-<span class="nc bnc" id="L684" title="All 2 branches missed.">        return json.has(&quot;access_token&quot;) ? json.get(&quot;access_token&quot;).asText() : null;</span>
+<span class="nc" id="L680">        JsonNode json = objectMapper.readTree(response.body());</span>
+<span class="nc bnc" id="L681" title="All 2 branches missed.">        return json.has(&quot;access_token&quot;) ? json.get(&quot;access_token&quot;).asText() : null;</span>
     }
 
     /**
@@ -692,45 +689,45 @@ public class OfferService {
      */
     private OracleResponse postCreateOrder(HttpClient client, OracleConfig config,
                                             String token, String jsonPayload, int timeout) throws Exception {
-<span class="nc" id="L695">        HttpRequest request = HttpRequest.newBuilder()</span>
-<span class="nc" id="L696">                .uri(URI.create(config.getCreateOrderPath()))</span>
-<span class="nc" id="L697">                .timeout(Duration.ofMillis(timeout))</span>
-<span class="nc" id="L698">                .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
-<span class="nc" id="L699">                .header(&quot;Authorization&quot;, &quot;Bearer &quot; + token)</span>
-<span class="nc" id="L700">                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))</span>
-<span class="nc" id="L701">                .build();</span>
+<span class="nc" id="L692">        HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L693">                .uri(URI.create(config.getCreateOrderPath()))</span>
+<span class="nc" id="L694">                .timeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L695">                .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
+<span class="nc" id="L696">                .header(&quot;Authorization&quot;, &quot;Bearer &quot; + token)</span>
+<span class="nc" id="L697">                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))</span>
+<span class="nc" id="L698">                .build();</span>
 
-<span class="nc" id="L703">        log.info(&quot;Oracle create order request → {}&quot;, config.getCreateOrderPath());</span>
-<span class="nc" id="L704">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
-<span class="nc" id="L705">        log.info(&quot;Oracle create order response HTTP {} body={}&quot;, response.statusCode(), response.body());</span>
+<span class="nc" id="L700">        log.info(&quot;Oracle create order request → {}&quot;, config.getCreateOrderPath());</span>
+<span class="nc" id="L701">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L702">        log.info(&quot;Oracle create order response HTTP {} body={}&quot;, response.statusCode(), response.body());</span>
 
-<span class="nc" id="L707">        OracleResponse oracleResponse = new OracleResponse();</span>
-<span class="nc" id="L708">        oracleResponse.setHttpCode(response.statusCode());</span>
-<span class="nc" id="L709">        oracleResponse.setJsonResponse(response.body());</span>
+<span class="nc" id="L704">        OracleResponse oracleResponse = new OracleResponse();</span>
+<span class="nc" id="L705">        oracleResponse.setHttpCode(response.statusCode());</span>
+<span class="nc" id="L706">        oracleResponse.setJsonResponse(response.body());</span>
 
         try {
-<span class="nc" id="L712">            JsonNode json = objectMapper.readTree(response.body());</span>
+<span class="nc" id="L709">            JsonNode json = objectMapper.readTree(response.body());</span>
             // Oracle response structure: { response: { returnCode, returnMessage, orderNumber, orderId } }
-<span class="nc bnc" id="L714" title="All 2 branches missed.">            JsonNode resp = json.has(&quot;response&quot;) ? json.get(&quot;response&quot;) : json;</span>
+<span class="nc bnc" id="L711" title="All 2 branches missed.">            JsonNode resp = json.has(&quot;response&quot;) ? json.get(&quot;response&quot;) : json;</span>
             // Handle both camelCase and PascalCase keys from Oracle
-<span class="nc" id="L716">            oracleResponse.setReturnCode(</span>
-<span class="nc bnc" id="L717" title="All 2 branches missed.">                    resp.has(&quot;returnCode&quot;) ? resp.get(&quot;returnCode&quot;).asText()</span>
-<span class="nc bnc" id="L718" title="All 2 branches missed.">                    : resp.has(&quot;ReturnCode&quot;) ? resp.get(&quot;ReturnCode&quot;).asText() : null);</span>
-<span class="nc" id="L719">            oracleResponse.setReturnMessage(</span>
-<span class="nc bnc" id="L720" title="All 2 branches missed.">                    resp.has(&quot;returnMessage&quot;) ? resp.get(&quot;returnMessage&quot;).asText()</span>
-<span class="nc bnc" id="L721" title="All 2 branches missed.">                    : resp.has(&quot;ReturnMessage&quot;) ? resp.get(&quot;ReturnMessage&quot;).asText() : null);</span>
-<span class="nc" id="L722">            oracleResponse.setOrderNumber(</span>
-<span class="nc bnc" id="L723" title="All 2 branches missed.">                    resp.has(&quot;orderNumber&quot;) ? resp.get(&quot;orderNumber&quot;).asText()</span>
-<span class="nc bnc" id="L724" title="All 2 branches missed.">                    : resp.has(&quot;OrderNumber&quot;) ? resp.get(&quot;OrderNumber&quot;).asText() : null);</span>
-<span class="nc" id="L725">            oracleResponse.setOrderId(</span>
-<span class="nc bnc" id="L726" title="All 2 branches missed.">                    resp.has(&quot;orderId&quot;) ? resp.get(&quot;orderId&quot;).asText()</span>
-<span class="nc bnc" id="L727" title="All 2 branches missed.">                    : resp.has(&quot;OrderId&quot;) ? resp.get(&quot;OrderId&quot;).asText() : null);</span>
-<span class="nc" id="L728">        } catch (Exception e) {</span>
-<span class="nc" id="L729">            log.warn(&quot;Failed to parse Oracle response JSON&quot;, e);</span>
-<span class="nc" id="L730">            oracleResponse.setReturnMessage(&quot;Failed to parse Oracle response: &quot; + e.getMessage());</span>
-<span class="nc" id="L731">        }</span>
+<span class="nc" id="L713">            oracleResponse.setReturnCode(</span>
+<span class="nc bnc" id="L714" title="All 2 branches missed.">                    resp.has(&quot;returnCode&quot;) ? resp.get(&quot;returnCode&quot;).asText()</span>
+<span class="nc bnc" id="L715" title="All 2 branches missed.">                    : resp.has(&quot;ReturnCode&quot;) ? resp.get(&quot;ReturnCode&quot;).asText() : null);</span>
+<span class="nc" id="L716">            oracleResponse.setReturnMessage(</span>
+<span class="nc bnc" id="L717" title="All 2 branches missed.">                    resp.has(&quot;returnMessage&quot;) ? resp.get(&quot;returnMessage&quot;).asText()</span>
+<span class="nc bnc" id="L718" title="All 2 branches missed.">                    : resp.has(&quot;ReturnMessage&quot;) ? resp.get(&quot;ReturnMessage&quot;).asText() : null);</span>
+<span class="nc" id="L719">            oracleResponse.setOrderNumber(</span>
+<span class="nc bnc" id="L720" title="All 2 branches missed.">                    resp.has(&quot;orderNumber&quot;) ? resp.get(&quot;orderNumber&quot;).asText()</span>
+<span class="nc bnc" id="L721" title="All 2 branches missed.">                    : resp.has(&quot;OrderNumber&quot;) ? resp.get(&quot;OrderNumber&quot;).asText() : null);</span>
+<span class="nc" id="L722">            oracleResponse.setOrderId(</span>
+<span class="nc bnc" id="L723" title="All 2 branches missed.">                    resp.has(&quot;orderId&quot;) ? resp.get(&quot;orderId&quot;).asText()</span>
+<span class="nc bnc" id="L724" title="All 2 branches missed.">                    : resp.has(&quot;OrderId&quot;) ? resp.get(&quot;OrderId&quot;).asText() : null);</span>
+<span class="nc" id="L725">        } catch (Exception e) {</span>
+<span class="nc" id="L726">            log.warn(&quot;Failed to parse Oracle response JSON&quot;, e);</span>
+<span class="nc" id="L727">            oracleResponse.setReturnMessage(&quot;Failed to parse Oracle response: &quot; + e.getMessage());</span>
+        }
 
-<span class="nc" id="L733">        return oracleResponse;</span>
+<span class="nc" id="L730">        return oracleResponse;</span>
     }
 
     /**
@@ -744,48 +741,48 @@ public class OfferService {
                                                  List&lt;OfferItem&gt; acceptedItems,
                                                  Map&lt;Long, Device&gt; deviceMap,
                                                  OracleResponse oracleResponse) {
-<span class="fc" id="L747">        LocalDateTime now = LocalDateTime.now();</span>
-<span class="fc" id="L748">        offer.setFinalOfferSubmittedOn(now);</span>
+<span class="fc" id="L744">        LocalDateTime now = LocalDateTime.now();</span>
+<span class="fc" id="L745">        offer.setFinalOfferSubmittedOn(now);</span>
 
-<span class="pc bpc" id="L750" title="1 of 2 branches missed.">        if (oracleResponse == null) {</span>
+<span class="pc bpc" id="L747" title="1 of 2 branches missed.">        if (oracleResponse == null) {</span>
             // ── Outcome 3: Oracle unreachable — empty response ──
             // Mendix: set Order → Offer link, set status Pending_Order
-<span class="nc" id="L753">            log.warn(&quot;Oracle response empty for offerId={} — setting Pending_Order&quot;, offer.getId());</span>
+<span class="nc" id="L750">            log.warn(&quot;Oracle response empty for offerId={} — setting Pending_Order&quot;, offer.getId());</span>
 
-<span class="nc" id="L755">            offer.setStatus(STATUS_PENDING_ORDER);</span>
-<span class="nc" id="L756">            offer.setSubmissionDate(now);</span>
-<span class="nc" id="L757">            offerRepository.save(offer);</span>
+<span class="nc" id="L752">            offer.setStatus(STATUS_PENDING_ORDER);</span>
+<span class="nc" id="L753">            offer.setSubmissionDate(now);</span>
+<span class="nc" id="L754">            offerRepository.save(offer);</span>
 
-<span class="nc" id="L759">            orderRepository.save(order);</span>
+<span class="nc" id="L756">            orderRepository.save(order);</span>
 
             // SUB_UpdateOfferDrawerStatus (Pending_Order branch — same logic as Ordered)
-<span class="nc" id="L762">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
-<span class="nc" id="L763">            offerRepository.save(offer);</span>
+<span class="nc" id="L759">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
+<span class="nc" id="L760">            offerRepository.save(offer);</span>
 
-<span class="nc" id="L765">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
+<span class="nc" id="L762">            return SubmitResponse.error(List.of(&quot;Order is not placed. Please try Re-Submitting the Order&quot;));</span>
         }
 
-<span class="pc bpc" id="L768" title="1 of 2 branches missed.">        if (&quot;00&quot;.equals(oracleResponse.getReturnCode())) {</span>
+<span class="pc bpc" id="L765" title="1 of 2 branches missed.">        if (&quot;00&quot;.equals(oracleResponse.getReturnCode())) {</span>
             // ── Outcome 1: Oracle success — ReturnCode='00' ──
-<span class="nc" id="L770">            log.info(&quot;Oracle success for offerId={}, oracleOrderNumber={}&quot;,</span>
-<span class="nc" id="L771">                    offer.getId(), oracleResponse.getOrderNumber());</span>
+<span class="nc" id="L767">            log.info(&quot;Oracle success for offerId={}, oracleOrderNumber={}&quot;,</span>
+<span class="nc" id="L768">                    offer.getId(), oracleResponse.getOrderNumber());</span>
 
             // Update offer status to Ordered
-<span class="nc" id="L774">            offer.setStatus(STATUS_ORDERED);</span>
-<span class="nc" id="L775">            offer.setSubmissionDate(now);</span>
+<span class="nc" id="L771">            offer.setStatus(STATUS_ORDERED);</span>
+<span class="nc" id="L772">            offer.setSubmissionDate(now);</span>
 
             // Update order with Oracle response fields
-<span class="nc" id="L778">            order.setOrderNumber(oracleResponse.getOrderNumber());</span>
-<span class="nc" id="L779">            order.setOracleStatus(oracleResponse.getReturnMessage());</span>
-<span class="nc" id="L780">            order.setOrderLine(oracleResponse.getOrderId());</span>
-<span class="nc" id="L781">            order.setOracleHttpCode(oracleResponse.getHttpCode());</span>
-<span class="nc" id="L782">            order.setOracleJsonResponse(oracleResponse.getJsonResponse());</span>
-<span class="nc" id="L783">            order.setIsSuccessful(true);</span>
-<span class="nc" id="L784">            orderRepository.save(order);</span>
+<span class="nc" id="L775">            order.setOrderNumber(oracleResponse.getOrderNumber());</span>
+<span class="nc" id="L776">            order.setOracleStatus(oracleResponse.getReturnMessage());</span>
+<span class="nc" id="L777">            order.setOrderLine(oracleResponse.getOrderId());</span>
+<span class="nc" id="L778">            order.setOracleHttpCode(oracleResponse.getHttpCode());</span>
+<span class="nc" id="L779">            order.setOracleJsonResponse(oracleResponse.getJsonResponse());</span>
+<span class="nc" id="L780">            order.setIsSuccessful(true);</span>
+<span class="nc" id="L781">            orderRepository.save(order);</span>
 
             // SUB_UpdateOfferDrawerStatus (Ordered branch)
-<span class="nc" id="L787">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
-<span class="nc" id="L788">            offerRepository.save(offer);</span>
+<span class="nc" id="L784">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
+<span class="nc" id="L785">            offerRepository.save(offer);</span>
 
             // SUB_SendPWSOrderConfirmationEmail (stubbed)
             // TODO: Send order confirmation email with order details
@@ -793,39 +790,39 @@ public class OfferService {
             // SUB_Offer_UpdateSnowflake (stubbed)
             // TODO: Sync offer data to Snowflake analytics
 
-<span class="nc" id="L796">            log.info(&quot;Direct order created: offerId={}, orderNumber={}, items={}&quot;,</span>
-<span class="nc" id="L797">                    offer.getId(), order.getOrderNumber(), acceptedItems.size());</span>
-<span class="nc" id="L798">            return SubmitResponse.submitted(offer.getId(), order.getOrderNumber());</span>
+<span class="nc" id="L793">            log.info(&quot;Direct order created: offerId={}, orderNumber={}, items={}&quot;,</span>
+<span class="nc" id="L794">                    offer.getId(), order.getOrderNumber(), acceptedItems.size());</span>
+<span class="nc" id="L795">            return SubmitResponse.submitted(offer.getId(), order.getOrderNumber());</span>
 
         } else {
             // ── Outcome 2: Oracle error — ReturnCode!='00' ──
-<span class="fc" id="L802">            log.warn(&quot;Oracle error for offerId={}: code={}, message={}&quot;,</span>
-<span class="fc" id="L803">                    offer.getId(), oracleResponse.getReturnCode(), oracleResponse.getReturnMessage());</span>
+<span class="fc" id="L799">            log.warn(&quot;Oracle error for offerId={}: code={}, message={}&quot;,</span>
+<span class="fc" id="L800">                    offer.getId(), oracleResponse.getReturnCode(), oracleResponse.getReturnMessage());</span>
 
             // Update offer status to Pending_Order
-<span class="fc" id="L806">            offer.setStatus(STATUS_PENDING_ORDER);</span>
-<span class="fc" id="L807">            offer.setSubmissionDate(now);</span>
+<span class="fc" id="L803">            offer.setStatus(STATUS_PENDING_ORDER);</span>
+<span class="fc" id="L804">            offer.setSubmissionDate(now);</span>
 
             // Update order with Oracle error details
-<span class="fc" id="L810">            order.setOrderNumber(oracleResponse.getOrderNumber());</span>
-<span class="fc" id="L811">            order.setOracleStatus(oracleResponse.getReturnMessage());</span>
-<span class="fc" id="L812">            order.setOrderLine(oracleResponse.getOrderId());</span>
-<span class="fc" id="L813">            order.setOracleHttpCode(oracleResponse.getHttpCode());</span>
-<span class="fc" id="L814">            order.setOracleJsonResponse(oracleResponse.getJsonResponse());</span>
-<span class="fc" id="L815">            order.setIsSuccessful(false);</span>
-<span class="fc" id="L816">            orderRepository.save(order);</span>
+<span class="fc" id="L807">            order.setOrderNumber(oracleResponse.getOrderNumber());</span>
+<span class="fc" id="L808">            order.setOracleStatus(oracleResponse.getReturnMessage());</span>
+<span class="fc" id="L809">            order.setOrderLine(oracleResponse.getOrderId());</span>
+<span class="fc" id="L810">            order.setOracleHttpCode(oracleResponse.getHttpCode());</span>
+<span class="fc" id="L811">            order.setOracleJsonResponse(oracleResponse.getJsonResponse());</span>
+<span class="fc" id="L812">            order.setIsSuccessful(false);</span>
+<span class="fc" id="L813">            orderRepository.save(order);</span>
 
             // SUB_UpdateOfferDrawerStatus (Pending_Order branch — same as Ordered)
-<span class="fc" id="L819">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
-<span class="fc" id="L820">            offerRepository.save(offer);</span>
+<span class="fc" id="L816">            updateDrawerStatusOrdered(acceptedItems, deviceMap);</span>
+<span class="fc" id="L817">            offerRepository.save(offer);</span>
 
             // SUB_SendPWSPendingOrderEmail (stubbed)
             // TODO: Send pending order email notification
 
             // SUB_PWSErrorCode_GetMessage — look up user-friendly error message
-<span class="fc" id="L826">            String userMessage = lookupErrorMessage(oracleResponse.getReturnCode(), &quot;ORACLE&quot;);</span>
+<span class="fc" id="L823">            String userMessage = lookupErrorMessage(oracleResponse.getReturnCode(), &quot;ORACLE&quot;);</span>
 
-<span class="fc" id="L828">            return SubmitResponse.error(List.of(userMessage));</span>
+<span class="fc" id="L825">            return SubmitResponse.error(List.of(userMessage));</span>
         }
     }
 
@@ -839,12 +836,12 @@ public class OfferService {
      * Also reserves device quantities for each item.
      */
     private void updateDrawerStatusOrdered(List&lt;OfferItem&gt; items, Map&lt;Long, Device&gt; deviceMap) {
-<span class="fc bfc" id="L842" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
-<span class="fc" id="L843">            String drawerStatus = resolveDrawerStatusForOrdered(item);</span>
-<span class="fc" id="L844">            item.setOfferDrawerStatus(drawerStatus);</span>
-<span class="fc" id="L845">            reserveDeviceQuantity(item, deviceMap.get(item.getDeviceId()));</span>
-<span class="fc" id="L846">        }</span>
-<span class="fc" id="L847">    }</span>
+<span class="fc bfc" id="L839" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
+<span class="fc" id="L840">            String drawerStatus = resolveDrawerStatusForOrdered(item);</span>
+<span class="fc" id="L841">            item.setOfferDrawerStatus(drawerStatus);</span>
+<span class="fc" id="L842">            reserveDeviceQuantity(item, deviceMap.get(item.getDeviceId()));</span>
+        }
+<span class="fc" id="L844">    }</span>
 
     /**
      * Resolve the OfferDrawerStatus for an item in the Ordered/Pending_Order branch.
@@ -856,22 +853,22 @@ public class OfferService {
      *   else → null
      */
     private String resolveDrawerStatusForOrdered(OfferItem item) {
-<span class="fc" id="L859">        String status = item.getItemStatus();</span>
-<span class="fc bfc" id="L860" title="All 2 branches covered.">        if (ITEM_STATUS_ACCEPT.equals(status)) {</span>
-<span class="fc" id="L861">            return DRAWER_ORDERED;</span>
+<span class="fc" id="L856">        String status = item.getItemStatus();</span>
+<span class="fc bfc" id="L857" title="All 2 branches covered.">        if (ITEM_STATUS_ACCEPT.equals(status)) {</span>
+<span class="fc" id="L858">            return DRAWER_ORDERED;</span>
         }
-<span class="pc bpc" id="L863" title="1 of 2 branches missed.">        if (ITEM_STATUS_DECLINE.equals(status)) {</span>
-<span class="nc" id="L864">            return DRAWER_SELLER_DECLINED;</span>
+<span class="pc bpc" id="L860" title="1 of 2 branches missed.">        if (ITEM_STATUS_DECLINE.equals(status)) {</span>
+<span class="nc" id="L861">            return DRAWER_SELLER_DECLINED;</span>
         }
-<span class="fc bfc" id="L866" title="All 2 branches covered.">        if (ITEM_STATUS_COUNTER.equals(status)) {</span>
-<span class="pc bpc" id="L867" title="1 of 2 branches missed.">            if (COUNTER_STATUS_ACCEPT.equals(item.getBuyerCounterStatus())) {</span>
-<span class="fc" id="L868">                return DRAWER_ORDERED;</span>
+<span class="fc bfc" id="L863" title="All 2 branches covered.">        if (ITEM_STATUS_COUNTER.equals(status)) {</span>
+<span class="pc bpc" id="L864" title="1 of 2 branches missed.">            if (COUNTER_STATUS_ACCEPT.equals(item.getBuyerCounterStatus())) {</span>
+<span class="fc" id="L865">                return DRAWER_ORDERED;</span>
             }
-<span class="nc bnc" id="L870" title="All 2 branches missed.">            if (COUNTER_STATUS_DECLINE.equals(item.getBuyerCounterStatus())) {</span>
-<span class="nc" id="L871">                return DRAWER_BUYER_DECLINED;</span>
+<span class="nc bnc" id="L867" title="All 2 branches missed.">            if (COUNTER_STATUS_DECLINE.equals(item.getBuyerCounterStatus())) {</span>
+<span class="nc" id="L868">                return DRAWER_BUYER_DECLINED;</span>
             }
         }
-<span class="fc" id="L874">        return null;</span>
+<span class="fc" id="L871">        return null;</span>
     }
 
     /**
@@ -880,17 +877,17 @@ public class OfferService {
      * Mendix uses $currentUser/Name which is the user's email/login name.
      */
     private String resolveUserName(Long userId) {
-<span class="pc bpc" id="L883" title="1 of 2 branches missed.">        if (userId == null) return &quot;system&quot;;</span>
+<span class="pc bpc" id="L880" title="1 of 2 branches missed.">        if (userId == null) return &quot;system&quot;;</span>
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="fc" id="L886">            List&lt;String&gt; results = em.createNativeQuery(</span>
-                    &quot;SELECT u.name FROM identity.users u WHERE u.id = :id&quot;)
-<span class="fc" id="L888">                    .setParameter(&quot;id&quot;, userId)</span>
-<span class="fc" id="L889">                    .getResultList();</span>
-<span class="pc bpc" id="L890" title="1 of 2 branches missed.">            return results.isEmpty() ? &quot;user-&quot; + userId : results.get(0);</span>
-<span class="nc" id="L891">        } catch (Exception e) {</span>
-<span class="nc" id="L892">            log.warn(&quot;Could not resolve user name for userId={}&quot;, userId);</span>
-<span class="nc" id="L893">            return &quot;user-&quot; + userId;</span>
+<span class="fc" id="L883">            List&lt;String&gt; results = em.createNativeQuery(</span>
+<span class="fc" id="L884">                    &quot;SELECT u.name FROM identity.users u WHERE u.id = :id&quot;)</span>
+<span class="fc" id="L885">                    .setParameter(&quot;id&quot;, userId)</span>
+<span class="fc" id="L886">                    .getResultList();</span>
+<span class="pc bpc" id="L887" title="1 of 2 branches missed.">            return results.isEmpty() ? &quot;user-&quot; + userId : results.get(0);</span>
+<span class="nc" id="L888">        } catch (Exception e) {</span>
+<span class="nc" id="L889">            log.warn(&quot;Could not resolve user name for userId={}&quot;, userId);</span>
+<span class="nc" id="L890">            return &quot;user-&quot; + userId;</span>
         }
     }
 
@@ -901,28 +898,28 @@ public class OfferService {
     private String lookupErrorMessage(String errorCode, String sourceSystem) {
         try {
             @SuppressWarnings(&quot;unchecked&quot;)
-<span class="fc" id="L904">            List&lt;Object[]&gt; results = em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="pc" id="L901">            List&lt;Object[]&gt; results = em.createNativeQuery(&quot;&quot;&quot;</span>
                     SELECT user_error_code, user_error_message, bypass_for_user
                     FROM integration.error_mapping
                     WHERE source_system = :src AND source_error_code = :code
                     &quot;&quot;&quot;)
-<span class="fc" id="L909">                    .setParameter(&quot;src&quot;, sourceSystem)</span>
-<span class="pc bpc" id="L910" title="1 of 2 branches missed.">                    .setParameter(&quot;code&quot;, errorCode != null ? errorCode : &quot;&quot;)</span>
-<span class="nc" id="L911">                    .getResultList();</span>
+<span class="fc" id="L906">                    .setParameter(&quot;src&quot;, sourceSystem)</span>
+<span class="pc bpc" id="L907" title="1 of 2 branches missed.">                    .setParameter(&quot;code&quot;, errorCode != null ? errorCode : &quot;&quot;)</span>
+<span class="nc" id="L908">                    .getResultList();</span>
 
-<span class="nc bnc" id="L913" title="All 2 branches missed.">            if (!results.isEmpty()) {</span>
-<span class="nc" id="L914">                Object[] row = results.get(0);</span>
-<span class="nc bnc" id="L915" title="All 4 branches missed.">                boolean bypassForUser = row[2] != null &amp;&amp; (Boolean) row[2];</span>
-<span class="nc bnc" id="L916" title="All 2 branches missed.">                if (!bypassForUser) {</span>
-<span class="nc" id="L917">                    return row[0] + &quot; - &quot; + row[1];</span>
+<span class="nc bnc" id="L910" title="All 2 branches missed.">            if (!results.isEmpty()) {</span>
+<span class="nc" id="L911">                Object[] row = results.get(0);</span>
+<span class="nc bnc" id="L912" title="All 4 branches missed.">                boolean bypassForUser = row[2] != null &amp;&amp; (Boolean) row[2];</span>
+<span class="nc bnc" id="L913" title="All 2 branches missed.">                if (!bypassForUser) {</span>
+<span class="nc" id="L914">                    return row[0] + &quot; - &quot; + row[1];</span>
                 }
-<span class="nc" id="L919">            } else {</span>
-<span class="nc" id="L920">                log.warn(&quot;No error mapping found for source={}, code={}&quot;, sourceSystem, errorCode);</span>
+            } else {
+<span class="nc" id="L917">                log.warn(&quot;No error mapping found for source={}, code={}&quot;, sourceSystem, errorCode);</span>
             }
-<span class="fc" id="L922">        } catch (Exception e) {</span>
-<span class="fc" id="L923">            log.warn(&quot;Error looking up error mapping for source={}, code={}: {}&quot;, sourceSystem, errorCode, e.getMessage());</span>
-<span class="nc" id="L924">        }</span>
-<span class="fc" id="L925">        return &quot;Order is not placed. Please try Re-Submitting the Order&quot;;</span>
+<span class="pc" id="L919">        } catch (Exception e) {</span>
+<span class="fc" id="L920">            log.warn(&quot;Error looking up error mapping for source={}, code={}: {}&quot;, sourceSystem, errorCode, e.getMessage());</span>
+        }
+<span class="fc" id="L922">        return &quot;Order is not placed. Please try Re-Submitting the Order&quot;;</span>
     }
 
     /**
@@ -933,37 +930,37 @@ public class OfferService {
      */
     private String generateOfferNumber(Long buyerCodeId) {
         // 1. Get the buyer code string
-<span class="fc" id="L936">        String buyerCode = (String) em.createNativeQuery(</span>
-                &quot;SELECT bc.code FROM buyer_mgmt.buyer_codes bc WHERE bc.id = :id&quot;)
-<span class="fc" id="L938">                .setParameter(&quot;id&quot;, buyerCodeId)</span>
-<span class="fc" id="L939">                .getSingleResult();</span>
+<span class="fc" id="L933">        String buyerCode = buyerCodeLookup.findCodeById(buyerCodeId);</span>
+<span class="pc bpc" id="L934" title="1 of 2 branches missed.">        if (buyerCode == null) {</span>
+<span class="nc" id="L935">            throw new IllegalStateException(&quot;Buyer code not found: &quot; + buyerCodeId);</span>
+        }
 
         // 2. Current 2-digit year
-<span class="fc" id="L942">        String yearPrefix = String.format(&quot;%02d&quot;, Year.now().getValue() % 100);</span>
+<span class="fc" id="L939">        String yearPrefix = String.format(&quot;%02d&quot;, Year.now().getValue() % 100);</span>
 
         // 3. Atomically increment sequence (INSERT on conflict UPDATE)
-<span class="fc" id="L945">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L942">        em.createNativeQuery(&quot;&quot;&quot;</span>
                 INSERT INTO pws.offer_id_sequence (buyer_code_id, year_prefix, max_sequence)
                 VALUES (:bcId, :yp, 1)
                 ON CONFLICT (buyer_code_id, year_prefix)
                 DO UPDATE SET max_sequence = pws.offer_id_sequence.max_sequence + 1
                 &quot;&quot;&quot;)
-<span class="fc" id="L951">                .setParameter(&quot;bcId&quot;, buyerCodeId)</span>
-<span class="fc" id="L952">                .setParameter(&quot;yp&quot;, yearPrefix)</span>
-<span class="fc" id="L953">                .executeUpdate();</span>
+<span class="fc" id="L948">                .setParameter(&quot;bcId&quot;, buyerCodeId)</span>
+<span class="fc" id="L949">                .setParameter(&quot;yp&quot;, yearPrefix)</span>
+<span class="fc" id="L950">                .executeUpdate();</span>
 
         // 4. Read back the current sequence
-<span class="fc" id="L956">        int seq = ((Number) em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L953">        int seq = ((Number) em.createNativeQuery(&quot;&quot;&quot;</span>
                 SELECT max_sequence FROM pws.offer_id_sequence
                 WHERE buyer_code_id = :bcId AND year_prefix = :yp
                 &quot;&quot;&quot;)
-<span class="fc" id="L960">                .setParameter(&quot;bcId&quot;, buyerCodeId)</span>
-<span class="fc" id="L961">                .setParameter(&quot;yp&quot;, yearPrefix)</span>
-<span class="fc" id="L962">                .getSingleResult()).intValue();</span>
+<span class="fc" id="L957">                .setParameter(&quot;bcId&quot;, buyerCodeId)</span>
+<span class="fc" id="L958">                .setParameter(&quot;yp&quot;, yearPrefix)</span>
+<span class="fc" id="L959">                .getSingleResult()).intValue();</span>
 
         // 5. Format: {BuyerCode}{YY}{LeftPad(seq, 3, '0')}
-<span class="fc" id="L965">        String paddedSeq = String.format(&quot;%03d&quot;, seq);</span>
-<span class="fc" id="L966">        return buyerCode + yearPrefix + paddedSeq;</span>
+<span class="fc" id="L962">        String paddedSeq = String.format(&quot;%03d&quot;, seq);</span>
+<span class="fc" id="L963">        return buyerCode + yearPrefix + paddedSeq;</span>
     }
 
     /**
@@ -972,76 +969,76 @@ public class OfferService {
      * and increments Device.reservedQty by the item quantity.
      */
     private void reserveDeviceQuantity(OfferItem item, Device device) {
-<span class="pc bpc" id="L975" title="1 of 4 branches missed.">        if (device == null || item.getQuantity() == null) return;</span>
+<span class="pc bpc" id="L972" title="1 of 4 branches missed.">        if (device == null || item.getQuantity() == null) return;</span>
 
-<span class="fc" id="L977">        int qty = item.getQuantity();</span>
-<span class="pc bpc" id="L978" title="1 of 2 branches missed.">        int currentAvail = device.getAvailableQty() != null ? device.getAvailableQty() : 0;</span>
-<span class="pc bpc" id="L979" title="1 of 2 branches missed.">        int currentReserved = device.getReservedQty() != null ? device.getReservedQty() : 0;</span>
+<span class="fc" id="L974">        int qty = item.getQuantity();</span>
+<span class="pc bpc" id="L975" title="1 of 2 branches missed.">        int currentAvail = device.getAvailableQty() != null ? device.getAvailableQty() : 0;</span>
+<span class="pc bpc" id="L976" title="1 of 2 branches missed.">        int currentReserved = device.getReservedQty() != null ? device.getReservedQty() : 0;</span>
 
-<span class="fc" id="L981">        device.setAvailableQty(Math.max(0, currentAvail - qty));</span>
-<span class="fc" id="L982">        device.setReservedQty(currentReserved + qty);</span>
-<span class="fc" id="L983">        deviceRepository.save(device);</span>
+<span class="fc" id="L978">        device.setAvailableQty(Math.max(0, currentAvail - qty));</span>
+<span class="fc" id="L979">        device.setReservedQty(currentReserved + qty);</span>
+<span class="fc" id="L980">        deviceRepository.save(device);</span>
 
-<span class="fc" id="L985">        log.debug(&quot;Reserved qty {} for device {} (sku={}): avail {} → {}, reserved {} → {}&quot;,</span>
-<span class="fc" id="L986">                qty, device.getId(), device.getSku(),</span>
-<span class="fc" id="L987">                currentAvail, device.getAvailableQty(),</span>
-<span class="fc" id="L988">                currentReserved, device.getReservedQty());</span>
-<span class="fc" id="L989">    }</span>
+<span class="fc" id="L982">        log.debug(&quot;Reserved qty {} for device {} (sku={}): avail {} → {}, reserved {} → {}&quot;,</span>
+<span class="fc" id="L983">                qty, device.getId(), device.getSku(),</span>
+<span class="fc" id="L984">                currentAvail, device.getAvailableQty(),</span>
+<span class="fc" id="L985">                currentReserved, device.getReservedQty());</span>
+<span class="fc" id="L986">    }</span>
 
     private Offer findOrCreateDraft(Long buyerCodeId) {
-<span class="fc" id="L992">        return offerRepository.findByBuyerCodeIdAndOfferTypeAndStatus(buyerCodeId, OFFER_TYPE_BUYER, STATUS_DRAFT)</span>
-<span class="fc" id="L993">                .orElseGet(() -&gt; {</span>
-<span class="fc" id="L994">                    Offer offer = new Offer();</span>
-<span class="fc" id="L995">                    offer.setOfferType(OFFER_TYPE_BUYER);</span>
-<span class="fc" id="L996">                    offer.setStatus(STATUS_DRAFT);</span>
-<span class="fc" id="L997">                    offer.setBuyerCodeId(buyerCodeId);</span>
-<span class="fc" id="L998">                    offer.setTotalQty(0);</span>
-<span class="fc" id="L999">                    offer.setTotalPrice(BigDecimal.ZERO);</span>
-<span class="fc" id="L1000">                    return offerRepository.save(offer);</span>
+<span class="fc" id="L989">        return offerRepository.findByBuyerCodeIdAndOfferTypeAndStatus(buyerCodeId, OFFER_TYPE_BUYER, STATUS_DRAFT)</span>
+<span class="fc" id="L990">                .orElseGet(() -&gt; {</span>
+<span class="fc" id="L991">                    Offer offer = new Offer();</span>
+<span class="fc" id="L992">                    offer.setOfferType(OFFER_TYPE_BUYER);</span>
+<span class="fc" id="L993">                    offer.setStatus(STATUS_DRAFT);</span>
+<span class="fc" id="L994">                    offer.setBuyerCodeId(buyerCodeId);</span>
+<span class="fc" id="L995">                    offer.setTotalQty(0);</span>
+<span class="fc" id="L996">                    offer.setTotalPrice(BigDecimal.ZERO);</span>
+<span class="fc" id="L997">                    return offerRepository.save(offer);</span>
                 });
     }
 
     private void recalcTotals(Offer offer) {
-<span class="fc" id="L1005">        int totalQty = 0;</span>
-<span class="fc" id="L1006">        BigDecimal totalPrice = BigDecimal.ZERO;</span>
-<span class="fc bfc" id="L1007" title="All 2 branches covered.">        for (OfferItem item : offer.getItems()) {</span>
-<span class="pc bpc" id="L1008" title="3 of 6 branches missed.">            if (item.getQuantity() != null &amp;&amp; item.getQuantity() &gt; 0 &amp;&amp; item.getTotalPrice() != null) {</span>
-<span class="fc" id="L1009">                totalQty += item.getQuantity();</span>
-<span class="fc" id="L1010">                totalPrice = totalPrice.add(item.getTotalPrice());</span>
+<span class="fc" id="L1002">        int totalQty = 0;</span>
+<span class="fc" id="L1003">        BigDecimal totalPrice = BigDecimal.ZERO;</span>
+<span class="fc bfc" id="L1004" title="All 2 branches covered.">        for (OfferItem item : offer.getItems()) {</span>
+<span class="pc bpc" id="L1005" title="3 of 6 branches missed.">            if (item.getQuantity() != null &amp;&amp; item.getQuantity() &gt; 0 &amp;&amp; item.getTotalPrice() != null) {</span>
+<span class="fc" id="L1006">                totalQty += item.getQuantity();</span>
+<span class="fc" id="L1007">                totalPrice = totalPrice.add(item.getTotalPrice());</span>
             }
-<span class="fc" id="L1012">        }</span>
-<span class="fc" id="L1013">        offer.setTotalQty(totalQty);</span>
-<span class="fc" id="L1014">        offer.setTotalPrice(totalPrice);</span>
-<span class="fc" id="L1015">    }</span>
+        }
+<span class="fc" id="L1010">        offer.setTotalQty(totalQty);</span>
+<span class="fc" id="L1011">        offer.setTotalPrice(totalPrice);</span>
+<span class="fc" id="L1012">    }</span>
 
     private OfferResponse buildResponse(Offer offer) {
-<span class="fc" id="L1018">        List&lt;OfferItem&gt; items = offer.getItems();</span>
-<span class="fc" id="L1019">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L1015">        List&lt;OfferItem&gt; items = offer.getItems();</span>
+<span class="fc" id="L1016">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
 
-<span class="fc" id="L1021">        List&lt;OfferItemResponse&gt; itemResponses = items.stream()</span>
-<span class="fc" id="L1022">                .map(item -&gt; OfferItemResponse.fromEntity(item, deviceMap.get(item.getDeviceId())))</span>
-<span class="fc" id="L1023">                .collect(Collectors.toList());</span>
+<span class="fc" id="L1018">        List&lt;OfferItemResponse&gt; itemResponses = items.stream()</span>
+<span class="fc" id="L1019">                .map(item -&gt; OfferItemResponse.fromEntity(item, deviceMap.get(item.getDeviceId())))</span>
+<span class="fc" id="L1020">                .collect(Collectors.toList());</span>
 
-<span class="fc" id="L1025">        return OfferResponse.fromEntity(offer, itemResponses);</span>
+<span class="fc" id="L1022">        return OfferResponse.fromEntity(offer, itemResponses);</span>
     }
 
     private Map&lt;Long, Device&gt; loadDeviceMap(List&lt;OfferItem&gt; items) {
-<span class="fc" id="L1029">        Set&lt;Long&gt; deviceIds = items.stream()</span>
-<span class="fc" id="L1030">                .map(OfferItem::getDeviceId)</span>
-<span class="fc" id="L1031">                .filter(Objects::nonNull)</span>
-<span class="fc" id="L1032">                .collect(Collectors.toSet());</span>
-<span class="fc bfc" id="L1033" title="All 2 branches covered.">        if (deviceIds.isEmpty()) return Map.of();</span>
+<span class="fc" id="L1026">        Set&lt;Long&gt; deviceIds = items.stream()</span>
+<span class="fc" id="L1027">                .map(OfferItem::getDeviceId)</span>
+<span class="fc" id="L1028">                .filter(Objects::nonNull)</span>
+<span class="fc" id="L1029">                .collect(Collectors.toSet());</span>
+<span class="fc bfc" id="L1030" title="All 2 branches covered.">        if (deviceIds.isEmpty()) return Map.of();</span>
 
-<span class="fc" id="L1035">        return deviceRepository.findAllById(deviceIds).stream()</span>
-<span class="fc" id="L1036">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
+<span class="fc" id="L1032">        return deviceRepository.findAllById(deviceIds).stream()</span>
+<span class="fc" id="L1033">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
     }
 
     private String escapeCsv(String value) {
-<span class="pc bpc" id="L1040" title="1 of 2 branches missed.">        if (value == null) return &quot;&quot;;</span>
-<span class="pc bpc" id="L1041" title="3 of 6 branches missed.">        if (value.contains(&quot;,&quot;) || value.contains(&quot;\&quot;&quot;) || value.contains(&quot;\n&quot;)) {</span>
-<span class="nc" id="L1042">            return &quot;\&quot;&quot; + value.replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;) + &quot;\&quot;&quot;;</span>
+<span class="pc bpc" id="L1037" title="1 of 2 branches missed.">        if (value == null) return &quot;&quot;;</span>
+<span class="pc bpc" id="L1038" title="3 of 6 branches missed.">        if (value.contains(&quot;,&quot;) || value.contains(&quot;\&quot;&quot;) || value.contains(&quot;\n&quot;)) {</span>
+<span class="nc" id="L1039">            return &quot;\&quot;&quot; + value.replace(&quot;\&quot;&quot;, &quot;\&quot;\&quot;&quot;) + &quot;\&quot;&quot;;</span>
         }
-<span class="fc" id="L1044">        return value;</span>
+<span class="fc" id="L1041">        return value;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

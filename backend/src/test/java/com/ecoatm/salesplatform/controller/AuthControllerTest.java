@@ -42,7 +42,7 @@ class AuthControllerTest {
     @Test
     void login_withValidCredentials_returnsToken() throws Exception {
         LoginResponse successResponse = new LoginResponse(true, "Authentication successful", "jwt-token-here");
-        successResponse.setUser(new LoginResponse.UserInfo(1L, "John", "Doe", "John Doe", "john@test.com", "JD"));
+        successResponse.setUser(new LoginResponse.UserInfo(1L, "John", "Doe", "John Doe", "john@test.com", "JD", null));
         when(authService.authenticateLocalUser(any())).thenReturn(successResponse);
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -69,7 +69,7 @@ class AuthControllerTest {
     @Test
     void login_withValidCredentials_returnsUserInfoWithInitials() throws Exception {
         LoginResponse successResponse = new LoginResponse(true, "Authentication successful", "jwt-token");
-        successResponse.setUser(new LoginResponse.UserInfo(9001L, "Admin", "User", "Admin User", "admin@test.com", "AU"));
+        successResponse.setUser(new LoginResponse.UserInfo(9001L, "Admin", "User", "Admin User", "admin@test.com", "AU", null));
         when(authService.authenticateLocalUser(any())).thenReturn(successResponse);
 
         mockMvc.perform(post("/api/v1/auth/login")
@@ -116,7 +116,7 @@ class AuthControllerTest {
     @Test
     void me_withValidToken_returnsUserInfo() throws Exception {
         String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
-        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(42L, "Test", "User", "Test User", "test@test.com", "TU");
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(42L, "Test", "User", "Test User", "test@test.com", "TU", null);
         when(authService.getCurrentUser(42L)).thenReturn(userInfo);
 
         mockMvc.perform(get("/api/v1/auth/me")

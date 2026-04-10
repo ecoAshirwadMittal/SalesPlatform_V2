@@ -1,0 +1,502 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [active] [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e3778]:
+          - generic [ref=e3781]:
+            - generic [ref=e3784]: PWS Pricing
+            - textbox [ref=e3791]
+            - generic [ref=e3794]:
+              - generic [ref=e3796]:
+                - generic [ref=e3797]: "Current:"
+                - generic [ref=e3798]: Apr 9, 2026
+              - generic [ref=e3800]:
+                - generic [ref=e3801]: Oct 21, 2025
+                - button [ref=e3802] [cursor=pointer]
+            - generic [ref=e3805]:
+              - button "Submit" [ref=e3807] [cursor=pointer]
+              - button [ref=e3810] [cursor=pointer]
+          - grid [ref=e3812]:
+            - rowgroup [ref=e3813]:
+              - 'row "sort SKU sort Category Current filter values: Show options sort Brand Current filter values: Show options sort Model Family Current filter values: Show options sort Carrier Current filter values: Show options sort Capacity Current filter values: Show options sort Color Current filter values: Show options sort Grade Current filter values: Show options sort Current List Price sort New List Price sort Current Min Price sort New Min Price sort SKU Status Column selector" [ref=e3814]':
+                - columnheader "sort SKU" [ref=e3815]:
+                  - generic [ref=e3816]:
+                    - button "sort SKU" [ref=e3817] [cursor=pointer]:
+                      - generic [ref=e3818]: SKU
+                      - img [ref=e3819]
+                    - textbox [ref=e3823]
+                - 'columnheader "sort Category Current filter values: Show options" [ref=e3826]':
+                  - generic [ref=e3827]:
+                    - button "sort Category" [ref=e3828] [cursor=pointer]:
+                      - generic [ref=e3829]: Category
+                      - img [ref=e3830]
+                    - generic [ref=e3833]:
+                      - generic [ref=e3834]: "Current filter values:"
+                      - combobox "Search" [ref=e3836]
+                      - button "Show options" [ref=e3837] [cursor=pointer]:
+                        - img [ref=e3838]
+                - 'columnheader "sort Brand Current filter values: Show options" [ref=e3842]':
+                  - generic [ref=e3843]:
+                    - button "sort Brand" [ref=e3844] [cursor=pointer]:
+                      - generic [ref=e3845]: Brand
+                      - img [ref=e3846]
+                    - generic [ref=e3849]:
+                      - generic [ref=e3850]: "Current filter values:"
+                      - combobox "Search" [ref=e3852]
+                      - button "Show options" [ref=e3853] [cursor=pointer]:
+                        - img [ref=e3854]
+                - 'columnheader "sort Model Family Current filter values: Show options" [ref=e3858]':
+                  - generic [ref=e3859]:
+                    - button "sort Model Family" [ref=e3860] [cursor=pointer]:
+                      - generic [ref=e3861]: Model Family
+                      - img [ref=e3862]
+                    - generic [ref=e3865]:
+                      - generic [ref=e3866]: "Current filter values:"
+                      - combobox "Search" [ref=e3868]
+                      - button "Show options" [ref=e3869] [cursor=pointer]:
+                        - img [ref=e3870]
+                - 'columnheader "sort Carrier Current filter values: Show options" [ref=e3874]':
+                  - generic [ref=e3875]:
+                    - button "sort Carrier" [ref=e3876] [cursor=pointer]:
+                      - generic [ref=e3877]: Carrier
+                      - img [ref=e3878]
+                    - generic [ref=e3881]:
+                      - generic [ref=e3882]: "Current filter values:"
+                      - combobox "Search" [ref=e3884]
+                      - button "Show options" [ref=e3885] [cursor=pointer]:
+                        - img [ref=e3886]
+                - 'columnheader "sort Capacity Current filter values: Show options" [ref=e3890]':
+                  - generic [ref=e3891]:
+                    - button "sort Capacity" [ref=e3892] [cursor=pointer]:
+                      - generic [ref=e3893]: Capacity
+                      - img [ref=e3894]
+                    - generic [ref=e3897]:
+                      - generic [ref=e3898]: "Current filter values:"
+                      - combobox "Search" [ref=e3900]
+                      - button "Show options" [ref=e3901] [cursor=pointer]:
+                        - img [ref=e3902]
+                - 'columnheader "sort Color Current filter values: Show options" [ref=e3906]':
+                  - generic [ref=e3907]:
+                    - button "sort Color" [ref=e3908] [cursor=pointer]:
+                      - generic [ref=e3909]: Color
+                      - img [ref=e3910]
+                    - generic [ref=e3913]:
+                      - generic [ref=e3914]: "Current filter values:"
+                      - combobox "Search" [ref=e3916]
+                      - button "Show options" [ref=e3917] [cursor=pointer]:
+                        - img [ref=e3918]
+                - 'columnheader "sort Grade Current filter values: Show options" [ref=e3922]':
+                  - generic [ref=e3923]:
+                    - button "sort Grade" [ref=e3924] [cursor=pointer]:
+                      - generic [ref=e3925]: Grade
+                      - img [ref=e3926]
+                    - generic [ref=e3929]:
+                      - generic [ref=e3930]: "Current filter values:"
+                      - combobox "Search" [ref=e3932]
+                      - button "Show options" [ref=e3933] [cursor=pointer]:
+                        - img [ref=e3934]
+                - columnheader "sort Current List Price" [ref=e3938]:
+                  - generic [ref=e3939]:
+                    - button "sort Current List Price" [ref=e3940] [cursor=pointer]:
+                      - generic [ref=e3941]: Current List Price
+                      - img [ref=e3942]
+                    - generic [ref=e3945]:
+                      - combobox "Equal" [ref=e3948] [cursor=pointer]: 
+                      - textbox [ref=e3949]
+                - columnheader "sort New List Price" [ref=e3952]:
+                  - generic [ref=e3953]:
+                    - button "sort New List Price" [ref=e3954] [cursor=pointer]:
+                      - generic [ref=e3955]: New List Price
+                      - img [ref=e3956]
+                    - generic [ref=e3959]:
+                      - combobox "Equal" [ref=e3962] [cursor=pointer]: 
+                      - textbox [ref=e3963]
+                - columnheader "sort Current Min Price" [ref=e3966]:
+                  - generic [ref=e3967]:
+                    - button "sort Current Min Price" [ref=e3968] [cursor=pointer]:
+                      - generic [ref=e3969]: Current Min Price
+                      - img [ref=e3970]
+                    - generic [ref=e3973]:
+                      - combobox "Equal" [ref=e3976] [cursor=pointer]: 
+                      - textbox [ref=e3977]
+                - columnheader "sort New Min Price" [ref=e3980]:
+                  - generic [ref=e3981]:
+                    - button "sort New Min Price" [ref=e3982] [cursor=pointer]:
+                      - generic [ref=e3983]: New Min Price
+                      - img [ref=e3984]
+                    - generic [ref=e3987]:
+                      - combobox "Equal" [ref=e3990] [cursor=pointer]: 
+                      - textbox [ref=e3991]
+                - columnheader "sort SKU Status" [ref=e3994]:
+                  - generic [ref=e3995]:
+                    - button "sort SKU Status" [ref=e3996] [cursor=pointer]:
+                      - generic [ref=e3997]: SKU Status
+                      - img [ref=e3998]
+                    - textbox [ref=e4002]
+                - columnheader "Column selector" [ref=e4003]:
+                  - button "Column selector" [ref=e4005] [cursor=pointer]:
+                    - img [ref=e4006]
+            - rowgroup [ref=e4008]:
+              - row [ref=e4009]:
+                - gridcell [ref=e4010]
+                - gridcell [ref=e4013]
+                - gridcell [ref=e4016]
+                - gridcell [ref=e4019]
+                - gridcell [ref=e4022]
+                - gridcell [ref=e4025]
+                - gridcell [ref=e4028]
+                - gridcell [ref=e4031]
+                - gridcell [ref=e4034]
+                - gridcell [ref=e4037]
+                - gridcell [ref=e4040]
+                - gridcell [ref=e4043]
+                - gridcell [ref=e4046]
+                - gridcell [ref=e4049]
+              - row [ref=e4050]:
+                - gridcell [ref=e4051]
+                - gridcell [ref=e4054]
+                - gridcell [ref=e4057]
+                - gridcell [ref=e4060]
+                - gridcell [ref=e4063]
+                - gridcell [ref=e4066]
+                - gridcell [ref=e4069]
+                - gridcell [ref=e4072]
+                - gridcell [ref=e4075]
+                - gridcell [ref=e4078]
+                - gridcell [ref=e4081]
+                - gridcell [ref=e4084]
+                - gridcell [ref=e4087]
+                - gridcell [ref=e4090]
+              - row [ref=e4091]:
+                - gridcell [ref=e4092]
+                - gridcell [ref=e4095]
+                - gridcell [ref=e4098]
+                - gridcell [ref=e4101]
+                - gridcell [ref=e4104]
+                - gridcell [ref=e4107]
+                - gridcell [ref=e4110]
+                - gridcell [ref=e4113]
+                - gridcell [ref=e4116]
+                - gridcell [ref=e4119]
+                - gridcell [ref=e4122]
+                - gridcell [ref=e4125]
+                - gridcell [ref=e4128]
+                - gridcell [ref=e4131]
+              - row [ref=e4132]:
+                - gridcell [ref=e4133]
+                - gridcell [ref=e4136]
+                - gridcell [ref=e4139]
+                - gridcell [ref=e4142]
+                - gridcell [ref=e4145]
+                - gridcell [ref=e4148]
+                - gridcell [ref=e4151]
+                - gridcell [ref=e4154]
+                - gridcell [ref=e4157]
+                - gridcell [ref=e4160]
+                - gridcell [ref=e4163]
+                - gridcell [ref=e4166]
+                - gridcell [ref=e4169]
+                - gridcell [ref=e4172]
+              - row [ref=e4173]:
+                - gridcell [ref=e4174]
+                - gridcell [ref=e4177]
+                - gridcell [ref=e4180]
+                - gridcell [ref=e4183]
+                - gridcell [ref=e4186]
+                - gridcell [ref=e4189]
+                - gridcell [ref=e4192]
+                - gridcell [ref=e4195]
+                - gridcell [ref=e4198]
+                - gridcell [ref=e4201]
+                - gridcell [ref=e4204]
+                - gridcell [ref=e4207]
+                - gridcell [ref=e4210]
+                - gridcell [ref=e4213]
+              - row [ref=e4214]:
+                - gridcell [ref=e4215]
+                - gridcell [ref=e4218]
+                - gridcell [ref=e4221]
+                - gridcell [ref=e4224]
+                - gridcell [ref=e4227]
+                - gridcell [ref=e4230]
+                - gridcell [ref=e4233]
+                - gridcell [ref=e4236]
+                - gridcell [ref=e4239]
+                - gridcell [ref=e4242]
+                - gridcell [ref=e4245]
+                - gridcell [ref=e4248]
+                - gridcell [ref=e4251]
+                - gridcell [ref=e4254]
+              - row [ref=e4255]:
+                - gridcell [ref=e4256]
+                - gridcell [ref=e4259]
+                - gridcell [ref=e4262]
+                - gridcell [ref=e4265]
+                - gridcell [ref=e4268]
+                - gridcell [ref=e4271]
+                - gridcell [ref=e4274]
+                - gridcell [ref=e4277]
+                - gridcell [ref=e4280]
+                - gridcell [ref=e4283]
+                - gridcell [ref=e4286]
+                - gridcell [ref=e4289]
+                - gridcell [ref=e4292]
+                - gridcell [ref=e4295]
+              - row [ref=e4296]:
+                - gridcell [ref=e4297]
+                - gridcell [ref=e4300]
+                - gridcell [ref=e4303]
+                - gridcell [ref=e4306]
+                - gridcell [ref=e4309]
+                - gridcell [ref=e4312]
+                - gridcell [ref=e4315]
+                - gridcell [ref=e4318]
+                - gridcell [ref=e4321]
+                - gridcell [ref=e4324]
+                - gridcell [ref=e4327]
+                - gridcell [ref=e4330]
+                - gridcell [ref=e4333]
+                - gridcell [ref=e4336]
+              - row [ref=e4337]:
+                - gridcell [ref=e4338]
+                - gridcell [ref=e4341]
+                - gridcell [ref=e4344]
+                - gridcell [ref=e4347]
+                - gridcell [ref=e4350]
+                - gridcell [ref=e4353]
+                - gridcell [ref=e4356]
+                - gridcell [ref=e4359]
+                - gridcell [ref=e4362]
+                - gridcell [ref=e4365]
+                - gridcell [ref=e4368]
+                - gridcell [ref=e4371]
+                - gridcell [ref=e4374]
+                - gridcell [ref=e4377]
+              - row [ref=e4378]:
+                - gridcell [ref=e4379]
+                - gridcell [ref=e4382]
+                - gridcell [ref=e4385]
+                - gridcell [ref=e4388]
+                - gridcell [ref=e4391]
+                - gridcell [ref=e4394]
+                - gridcell [ref=e4397]
+                - gridcell [ref=e4400]
+                - gridcell [ref=e4403]
+                - gridcell [ref=e4406]
+                - gridcell [ref=e4409]
+                - gridcell [ref=e4412]
+                - gridcell [ref=e4415]
+                - gridcell [ref=e4418]
+              - row [ref=e4419]:
+                - gridcell [ref=e4420]
+                - gridcell [ref=e4423]
+                - gridcell [ref=e4426]
+                - gridcell [ref=e4429]
+                - gridcell [ref=e4432]
+                - gridcell [ref=e4435]
+                - gridcell [ref=e4438]
+                - gridcell [ref=e4441]
+                - gridcell [ref=e4444]
+                - gridcell [ref=e4447]
+                - gridcell [ref=e4450]
+                - gridcell [ref=e4453]
+                - gridcell [ref=e4456]
+                - gridcell [ref=e4459]
+              - row [ref=e4460]:
+                - gridcell [ref=e4461]
+                - gridcell [ref=e4464]
+                - gridcell [ref=e4467]
+                - gridcell [ref=e4470]
+                - gridcell [ref=e4473]
+                - gridcell [ref=e4476]
+                - gridcell [ref=e4479]
+                - gridcell [ref=e4482]
+                - gridcell [ref=e4485]
+                - gridcell [ref=e4488]
+                - gridcell [ref=e4491]
+                - gridcell [ref=e4494]
+                - gridcell [ref=e4497]
+                - gridcell [ref=e4500]
+              - row [ref=e4501]:
+                - gridcell [ref=e4502]
+                - gridcell [ref=e4505]
+                - gridcell [ref=e4508]
+                - gridcell [ref=e4511]
+                - gridcell [ref=e4514]
+                - gridcell [ref=e4517]
+                - gridcell [ref=e4520]
+                - gridcell [ref=e4523]
+                - gridcell [ref=e4526]
+                - gridcell [ref=e4529]
+                - gridcell [ref=e4532]
+                - gridcell [ref=e4535]
+                - gridcell [ref=e4538]
+                - gridcell [ref=e4541]
+              - row [ref=e4542]:
+                - gridcell [ref=e4543]
+                - gridcell [ref=e4546]
+                - gridcell [ref=e4549]
+                - gridcell [ref=e4552]
+                - gridcell [ref=e4555]
+                - gridcell [ref=e4558]
+                - gridcell [ref=e4561]
+                - gridcell [ref=e4564]
+                - gridcell [ref=e4567]
+                - gridcell [ref=e4570]
+                - gridcell [ref=e4573]
+                - gridcell [ref=e4576]
+                - gridcell [ref=e4579]
+                - gridcell [ref=e4582]
+              - row [ref=e4583]:
+                - gridcell [ref=e4584]
+                - gridcell [ref=e4587]
+                - gridcell [ref=e4590]
+                - gridcell [ref=e4593]
+                - gridcell [ref=e4596]
+                - gridcell [ref=e4599]
+                - gridcell [ref=e4602]
+                - gridcell [ref=e4605]
+                - gridcell [ref=e4608]
+                - gridcell [ref=e4611]
+                - gridcell [ref=e4614]
+                - gridcell [ref=e4617]
+                - gridcell [ref=e4620]
+                - gridcell [ref=e4623]
+              - row [ref=e4624]:
+                - gridcell [ref=e4625]
+                - gridcell [ref=e4628]
+                - gridcell [ref=e4631]
+                - gridcell [ref=e4634]
+                - gridcell [ref=e4637]
+                - gridcell [ref=e4640]
+                - gridcell [ref=e4643]
+                - gridcell [ref=e4646]
+                - gridcell [ref=e4649]
+                - gridcell [ref=e4652]
+                - gridcell [ref=e4655]
+                - gridcell [ref=e4658]
+                - gridcell [ref=e4661]
+                - gridcell [ref=e4664]
+              - row [ref=e4665]:
+                - gridcell [ref=e4666]
+                - gridcell [ref=e4669]
+                - gridcell [ref=e4672]
+                - gridcell [ref=e4675]
+                - gridcell [ref=e4678]
+                - gridcell [ref=e4681]
+                - gridcell [ref=e4684]
+                - gridcell [ref=e4687]
+                - gridcell [ref=e4690]
+                - gridcell [ref=e4693]
+                - gridcell [ref=e4696]
+                - gridcell [ref=e4699]
+                - gridcell [ref=e4702]
+                - gridcell [ref=e4705]
+              - row [ref=e4706]:
+                - gridcell [ref=e4707]
+                - gridcell [ref=e4710]
+                - gridcell [ref=e4713]
+                - gridcell [ref=e4716]
+                - gridcell [ref=e4719]
+                - gridcell [ref=e4722]
+                - gridcell [ref=e4725]
+                - gridcell [ref=e4728]
+                - gridcell [ref=e4731]
+                - gridcell [ref=e4734]
+                - gridcell [ref=e4737]
+                - gridcell [ref=e4740]
+                - gridcell [ref=e4743]
+                - gridcell [ref=e4746]
+              - row [ref=e4747]:
+                - gridcell [ref=e4748]
+                - gridcell [ref=e4751]
+                - gridcell [ref=e4754]
+                - gridcell [ref=e4757]
+                - gridcell [ref=e4760]
+                - gridcell [ref=e4763]
+                - gridcell [ref=e4766]
+                - gridcell [ref=e4769]
+                - gridcell [ref=e4772]
+                - gridcell [ref=e4775]
+                - gridcell [ref=e4778]
+                - gridcell [ref=e4781]
+                - gridcell [ref=e4784]
+                - gridcell [ref=e4787]
+              - row [ref=e4788]:
+                - gridcell [ref=e4789]
+                - gridcell [ref=e4792]
+                - gridcell [ref=e4795]
+                - gridcell [ref=e4798]
+                - gridcell [ref=e4801]
+                - gridcell [ref=e4804]
+                - gridcell [ref=e4807]
+                - gridcell [ref=e4810]
+                - gridcell [ref=e4813]
+                - gridcell [ref=e4816]
+                - gridcell [ref=e4819]
+                - gridcell [ref=e4822]
+                - gridcell [ref=e4825]
+                - gridcell [ref=e4828]
+          - generic "Pagination" [ref=e4830]:
+            - button "Go to first page" [disabled]:
+              - generic:
+                - img
+            - button "Go to previous page" [disabled]:
+              - generic:
+                - img
+            - generic [ref=e4831]: Currently showing 1 to 20
+            - generic [ref=e4832]: 1 to 20
+            - button "Go to next page" [disabled]:
+              - generic:
+                - img
+        - text: 
+  - status [ref=e2972]

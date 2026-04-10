@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderHistoryView.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.pws</a> &gt; <span class="el_source">OrderHistoryView.java</span></div><h1>OrderHistoryView.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.pws;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import org.hibernate.annotations.Immutable;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Immutable
+@Table(name = &quot;offer_and_orders_view&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L15">public class OrderHistoryView {</span>
+
+    @Id
+    private Long id;
+
+    @Column(name = &quot;order_number&quot;)
+    private String orderNumber;
+
+    @Column(name = &quot;offer_date&quot;)
+    private LocalDateTime offerDate;
+
+    @Column(name = &quot;order_date&quot;)
+    private LocalDateTime orderDate;
+
+    @Column(name = &quot;order_status&quot;)
+    private String orderStatus;
+
+    @Column(name = &quot;ship_date&quot;)
+    private LocalDateTime shipDate;
+
+    @Column(name = &quot;ship_method&quot;)
+    private String shipMethod;
+
+    @Column(name = &quot;sku_count&quot;)
+    private Integer skuCount;
+
+    @Column(name = &quot;total_quantity&quot;)
+    private Integer totalQuantity;
+
+    @Column(name = &quot;total_price&quot;)
+    private BigDecimal totalPrice;
+
+    @Column(name = &quot;buyer&quot;)
+    private String buyer;
+
+    @Column(name = &quot;company&quot;)
+    private String company;
+
+    @Column(name = &quot;last_update_date&quot;)
+    private LocalDateTime lastUpdateDate;
+
+    @Column(name = &quot;offer_order_type&quot;)
+    private String offerOrderType;
+
+    @Column(name = &quot;buyer_code_id&quot;)
+    private Long buyerCodeId;
+
+    @Column(name = &quot;offer_id&quot;)
+    private Long offerId;
+
+<span class="fc" id="L65">    public Long getId() { return id; }</span>
+<span class="fc" id="L66">    public String getOrderNumber() { return orderNumber; }</span>
+<span class="fc" id="L67">    public LocalDateTime getOfferDate() { return offerDate; }</span>
+<span class="fc" id="L68">    public LocalDateTime getOrderDate() { return orderDate; }</span>
+<span class="fc" id="L69">    public String getOrderStatus() { return orderStatus; }</span>
+<span class="fc" id="L70">    public LocalDateTime getShipDate() { return shipDate; }</span>
+<span class="fc" id="L71">    public String getShipMethod() { return shipMethod; }</span>
+<span class="fc" id="L72">    public Integer getSkuCount() { return skuCount; }</span>
+<span class="fc" id="L73">    public Integer getTotalQuantity() { return totalQuantity; }</span>
+<span class="fc" id="L74">    public BigDecimal getTotalPrice() { return totalPrice; }</span>
+<span class="fc" id="L75">    public String getBuyer() { return buyer; }</span>
+<span class="fc" id="L76">    public String getCompany() { return company; }</span>
+<span class="fc" id="L77">    public LocalDateTime getLastUpdateDate() { return lastUpdateDate; }</span>
+<span class="fc" id="L78">    public String getOfferOrderType() { return offerOrderType; }</span>
+<span class="nc" id="L79">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
+<span class="fc" id="L80">    public Long getOfferId() { return offerId; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

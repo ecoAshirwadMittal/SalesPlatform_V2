@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PricingController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.controller</a> &gt; <span class="el_source">PricingController.java</span></div><h1>PricingController.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.controller;
+
+import com.ecoatm.salesplatform.dto.CsvUploadResult;
+import com.ecoatm.salesplatform.dto.PriceHistoryResponse;
+import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
+import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
+import com.ecoatm.salesplatform.service.PricingService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping(&quot;/api/v1/pws/pricing&quot;)
+public class PricingController {
+
+    private final PricingService pricingService;
+
+<span class="fc" id="L25">    public PricingController(PricingService pricingService) {</span>
+<span class="fc" id="L26">        this.pricingService = pricingService;</span>
+<span class="fc" id="L27">    }</span>
+
+    @GetMapping(&quot;/devices&quot;)
+    public ResponseEntity&lt;Page&lt;PricingDeviceResponse&gt;&gt; listPricingDevices(
+            @RequestParam(defaultValue = &quot;0&quot;) int page,
+            @RequestParam(defaultValue = &quot;20&quot;) int size,
+            @RequestParam(required = false) String sku,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String carrier,
+            @RequestParam(required = false) String capacity,
+            @RequestParam(required = false) String color,
+            @RequestParam(required = false) String grade,
+            @RequestParam(required = false) BigDecimal currentListPrice,
+            @RequestParam(required = false) BigDecimal futureListPrice,
+            @RequestParam(required = false) BigDecimal currentMinPrice,
+            @RequestParam(required = false) BigDecimal futureMinPrice) {
+
+<span class="fc" id="L46">        Page&lt;PricingDeviceResponse&gt; result = pricingService.listPricingDevices(</span>
+<span class="fc" id="L47">                PageRequest.of(page, size), sku, category, brand, model, carrier, capacity, color, grade,</span>
+                currentListPrice, futureListPrice, currentMinPrice, futureMinPrice);
+<span class="fc" id="L49">        return ResponseEntity.ok(result);</span>
+    }
+
+    @PutMapping(&quot;/devices/{id}&quot;)
+    public ResponseEntity&lt;?&gt; updateFuturePrices(
+            @PathVariable Long id,
+            @RequestBody PricingUpdateRequest request) {
+        try {
+<span class="fc" id="L57">            PricingDeviceResponse result = pricingService.updateFuturePrices(</span>
+<span class="fc" id="L58">                    id, request.getFutureListPrice(), request.getFutureMinPrice());</span>
+<span class="fc" id="L59">            return ResponseEntity.ok(result);</span>
+<span class="fc" id="L60">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L61">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, e.getMessage()));</span>
+        }
+    }
+
+    private static final int MAX_BULK_SIZE = 1000;
+
+    @PutMapping(&quot;/devices/bulk&quot;)
+    public ResponseEntity&lt;?&gt; bulkUpdateFuturePrices(@RequestBody List&lt;PricingUpdateRequest&gt; requests) {
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (requests.size() &gt; MAX_BULK_SIZE) {</span>
+<span class="fc" id="L70">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;,</span>
+<span class="fc" id="L71">                    &quot;Bulk update limited to &quot; + MAX_BULK_SIZE + &quot; items, received &quot; + requests.size()));</span>
+        }
+        try {
+<span class="fc" id="L74">            List&lt;PricingDeviceResponse&gt; results = pricingService.bulkUpdateFuturePrices(requests);</span>
+<span class="fc" id="L75">            return ResponseEntity.ok(results);</span>
+<span class="fc" id="L76">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L77">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, e.getMessage()));</span>
+        }
+    }
+
+    @GetMapping(&quot;/devices/{id}/history&quot;)
+    public ResponseEntity&lt;List&lt;PriceHistoryResponse&gt;&gt; getDevicePriceHistory(@PathVariable Long id) {
+<span class="fc" id="L83">        List&lt;PriceHistoryResponse&gt; history = pricingService.getPriceHistory(id);</span>
+<span class="fc" id="L84">        return ResponseEntity.ok(history);</span>
+    }
+
+    private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
+
+    @PostMapping(value = &quot;/devices/upload&quot;, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity&lt;?&gt; uploadPricingCsv(@RequestParam(&quot;file&quot;) MultipartFile file) {
+<span class="fc bfc" id="L91" title="All 2 branches covered.">        if (file.isEmpty()) {</span>
+<span class="fc" id="L92">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, &quot;File is empty&quot;));</span>
+        }
+<span class="pc bpc" id="L94" title="1 of 2 branches missed.">        if (file.getSize() &gt; MAX_UPLOAD_SIZE) {</span>
+<span class="nc" id="L95">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, &quot;File exceeds maximum size of 10 MB&quot;));</span>
+        }
+<span class="fc" id="L97">        String contentType = file.getContentType();</span>
+<span class="pc bpc" id="L98" title="1 of 6 branches missed.">        if (contentType != null &amp;&amp; !contentType.equals(&quot;text/csv&quot;) &amp;&amp; !contentType.equals(&quot;text/plain&quot;)</span>
+<span class="pc bpc" id="L99" title="1 of 2 branches missed.">                &amp;&amp; !contentType.equals(&quot;application/vnd.ms-excel&quot;)) {</span>
+<span class="fc" id="L100">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, &quot;File must be a CSV (text/csv)&quot;));</span>
+        }
+        try {
+<span class="fc" id="L103">            CsvUploadResult result = pricingService.processPricingCsv(file.getInputStream());</span>
+<span class="fc" id="L104">            return ResponseEntity.ok(result);</span>
+<span class="nc" id="L105">        } catch (Exception e) {</span>
+<span class="nc" id="L106">            return ResponseEntity.badRequest().body(Map.of(&quot;error&quot;, &quot;Failed to process file: &quot; + e.getMessage()));</span>
+        }
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

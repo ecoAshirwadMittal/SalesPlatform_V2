@@ -2,7 +2,6 @@ package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.BuyerCodeResponse;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,8 +22,11 @@ import java.util.stream.Collectors;
 @Service
 public class BuyerCodeService {
 
-    @PersistenceContext
-    private EntityManager em;
+    private final EntityManager em;
+
+    public BuyerCodeService(EntityManager em) {
+        this.em = em;
+    }
 
     /**
      * Load buyer codes for the given user, split by role.

@@ -90,11 +90,17 @@ public class InventoryController {
 
     /**
      * GET /api/v1/inventory/devices
-     * List all active devices.
+     * List active devices with optional filters.
      */
     @GetMapping(&quot;/devices&quot;)
-    public ResponseEntity&lt;List&lt;DeviceResponse&gt;&gt; listActiveDevices() {
-<span class="fc" id="L97">        return ResponseEntity.ok(inventoryService.listActiveDevices());</span>
+    public ResponseEntity&lt;List&lt;DeviceResponse&gt;&gt; listActiveDevices(
+            @RequestParam(required = false) String itemType,
+            @RequestParam(required = false) String excludeGrade,
+            @RequestParam(required = false) Integer minAtpQty) {
+<span class="pc bpc" id="L100" title="3 of 6 branches missed.">        if (itemType != null || excludeGrade != null || minAtpQty != null) {</span>
+<span class="nc" id="L101">            return ResponseEntity.ok(inventoryService.listFilteredDevices(itemType, excludeGrade, minAtpQty));</span>
+        }
+<span class="fc" id="L103">        return ResponseEntity.ok(inventoryService.listActiveDevices());</span>
     }
 
     /**
@@ -103,11 +109,11 @@ public class InventoryController {
      */
     @GetMapping(&quot;/case-lots&quot;)
     public ResponseEntity&lt;List&lt;CaseLotResponse&gt;&gt; listActiveCaseLots() {
-<span class="fc" id="L106">        List&lt;CaseLotResponse&gt; responses = caseLotRepository.findByIsActiveTrueOrderByIdAsc()</span>
-<span class="fc" id="L107">                .stream()</span>
-<span class="fc" id="L108">                .map(CaseLotResponse::fromEntity)</span>
-<span class="fc" id="L109">                .collect(Collectors.toList());</span>
-<span class="fc" id="L110">        return ResponseEntity.ok(responses);</span>
+<span class="fc" id="L112">        List&lt;CaseLotResponse&gt; responses = caseLotRepository.findByIsActiveTrueOrderByIdAsc()</span>
+<span class="fc" id="L113">                .stream()</span>
+<span class="fc" id="L114">                .map(CaseLotResponse::fromEntity)</span>
+<span class="fc" id="L115">                .collect(Collectors.toList());</span>
+<span class="fc" id="L116">        return ResponseEntity.ok(responses);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,124 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [active] [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - generic [ref=e2988]:
+          - generic [ref=e2989]: View As
+          - generic [ref=e2992]:
+            - generic [ref=e2993]:
+              - combobox "View As" [ref=e2994]
+              - generic [ref=e2995]: 21999 PWSUser6 Automation
+            - img [ref=e2998] [cursor=pointer]: 
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e3010]:
+          - generic [ref=e3014]:
+            - generic [ref=e3017]: RMA Requests
+            - textbox "Search" [ref=e3023]:
+              - /placeholder: ""
+            - button "Request an RMA" [ref=e3027] [cursor=pointer]
+            - button [ref=e3033] [cursor=pointer]
+          - grid [ref=e3035]:
+            - rowgroup [ref=e3036]:
+              - row "sort RMA Number sort Submit Date sort Buyer sort Company sort RMA Status sort SKUs sort Qty sort Original Total Column selector" [ref=e3037]:
+                - columnheader "sort RMA Number" [ref=e3038]:
+                  - button "sort RMA Number" [ref=e3040] [cursor=pointer]:
+                    - generic [ref=e3041]: RMA Number
+                    - img [ref=e3042]
+                - columnheader "sort Submit Date" [ref=e3046]:
+                  - button "sort Submit Date" [ref=e3048] [cursor=pointer]:
+                    - generic [ref=e3049]: Submit Date
+                    - img [ref=e3050]
+                - columnheader "sort Buyer" [ref=e3054]:
+                  - button "sort Buyer" [ref=e3056] [cursor=pointer]:
+                    - generic [ref=e3057]: Buyer
+                    - img [ref=e3058]
+                - columnheader "sort Company" [ref=e3062]:
+                  - button "sort Company" [ref=e3064] [cursor=pointer]:
+                    - generic [ref=e3065]: Company
+                    - img [ref=e3066]
+                - columnheader "sort RMA Status" [ref=e3070]:
+                  - button "sort RMA Status" [ref=e3072] [cursor=pointer]:
+                    - generic [ref=e3073]: RMA Status
+                    - img [ref=e3074]
+                - columnheader "sort SKUs" [ref=e3078]:
+                  - button "sort SKUs" [ref=e3080] [cursor=pointer]:
+                    - generic [ref=e3081]: SKUs
+                    - img [ref=e3082]
+                - columnheader "sort Qty" [ref=e3086]:
+                  - button "sort Qty" [ref=e3088] [cursor=pointer]:
+                    - generic [ref=e3089]: Qty
+                    - img [ref=e3090]
+                - columnheader "sort Original Total" [ref=e3094]:
+                  - button "sort Original Total" [ref=e3096] [cursor=pointer]:
+                    - generic [ref=e3097]: Original Total
+                    - img [ref=e3098]
+                - columnheader "Column selector" [ref=e3100]:
+                  - button "Column selector" [ref=e3102] [cursor=pointer]:
+                    - img [ref=e3103]
+            - rowgroup [ref=e3105]:
+              - generic [ref=e3109]: There are currently no RMA requests
+          - generic "Pagination" [ref=e3111]:
+            - button "Go to first page" [disabled]:
+              - generic:
+                - img
+            - button "Go to previous page" [disabled]:
+              - generic:
+                - img
+            - generic [ref=e3112]: Currently showing 0 to 0 of 0
+            - generic [ref=e3113]: 0 to 0 of 0
+            - button "Go to next page" [disabled]:
+              - generic:
+                - img
+            - button "Go to last page" [disabled]:
+              - generic:
+                - img
+        - text: 
+  - status [ref=e2972]

@@ -1,0 +1,111 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - generic [ref=e2861]:
+          - generic [ref=e2862]: View As
+          - generic [ref=e2865]:
+            - generic [ref=e2866]:
+              - combobox "View As" [ref=e2867]
+              - generic [ref=e2868]: 21999 PWSUser6 Automation
+            - img [ref=e2871] [cursor=pointer]: 
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e2879]:
+          - generic [ref=e2881]: Counter Offers
+          - generic [ref=e2883]:
+            - generic [ref=e2885]:
+              - generic [ref=e2887]:
+                - generic [ref=e2888]: Buyer
+                - generic [ref=e2891]: ashirwadmittal
+              - generic [ref=e2893]:
+                - generic [ref=e2894]: Buyer Code
+                - generic [ref=e2895]: "21999"
+              - generic [ref=e2897]:
+                - generic [ref=e2898]: Company
+                - generic [ref=e2899]: PWSUser6 Automation
+            - grid [ref=e2904]:
+              - rowgroup [ref=e2905]:
+                - row "sort Offer ID sort Offer Status sort SKUs sort Qty sort Offer Price sort Offer Date sort Last Updated Column selector" [ref=e2906]:
+                  - columnheader "sort Offer ID" [ref=e2907]:
+                    - button "sort Offer ID" [ref=e2909] [cursor=pointer]:
+                      - generic [ref=e2910]: Offer ID
+                      - img [ref=e2911]
+                  - columnheader "sort Offer Status" [ref=e2915]:
+                    - button "sort Offer Status" [ref=e2917] [cursor=pointer]:
+                      - generic [ref=e2918]: Offer Status
+                      - img [ref=e2919]
+                  - columnheader "sort SKUs" [ref=e2923]:
+                    - button "sort SKUs" [ref=e2925] [cursor=pointer]:
+                      - generic [ref=e2926]: SKUs
+                      - img [ref=e2927]
+                  - columnheader "sort Qty" [ref=e2931]:
+                    - button "sort Qty" [ref=e2933] [cursor=pointer]:
+                      - generic [ref=e2934]: Qty
+                      - img [ref=e2935]
+                  - columnheader "sort Offer Price" [ref=e2939]:
+                    - button "sort Offer Price" [ref=e2941] [cursor=pointer]:
+                      - generic [ref=e2942]: Offer Price
+                      - img [ref=e2943]
+                  - columnheader "sort Offer Date" [ref=e2947]:
+                    - button "sort Offer Date" [ref=e2949] [cursor=pointer]:
+                      - generic [ref=e2950]: Offer Date
+                      - img [ref=e2951]
+                  - columnheader "sort Last Updated" [ref=e2955]:
+                    - button "sort Last Updated" [ref=e2957] [cursor=pointer]:
+                      - generic [ref=e2958]: Last Updated
+                      - img [ref=e2959]
+                  - columnheader "Column selector" [ref=e2961]:
+                    - button "Column selector" [active] [ref=e2963] [cursor=pointer]:
+                      - img [ref=e2964]
+              - rowgroup [ref=e2966]:
+                - heading "There are currently no counter offers" [level=1] [ref=e2971]
+        - text: 
+  - status [ref=e2972]

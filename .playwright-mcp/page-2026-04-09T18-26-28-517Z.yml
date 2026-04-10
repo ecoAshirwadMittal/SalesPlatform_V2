@@ -1,0 +1,85 @@
+- generic [ref=e1]:
+  - generic [ref=e5]:
+    - generic [ref=e8]:
+      - generic [ref=e10]: SALES
+      - list [ref=e12]:
+        - listitem [ref=e13]:
+          - button " Inventory" [ref=e16] [cursor=pointer]:
+            - generic [ref=e17]: 
+            - generic [ref=e18]: Inventory
+        - listitem [ref=e19]:
+          - button " Offer Review" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 
+            - generic [ref=e24]: Offer Review
+        - listitem [ref=e25]:
+          - button " RMA Review" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: 
+            - generic [ref=e30]: RMA Review
+        - listitem [ref=e31]:
+          - button " Pricing" [ref=e34] [cursor=pointer]:
+            - generic [ref=e35]: 
+            - generic [ref=e36]: Pricing
+      - generic [ref=e38]: BUYERS
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - button " Shop" [ref=e44] [cursor=pointer]:
+            - generic [ref=e45]: 
+            - generic [ref=e46]: Shop
+        - listitem [ref=e47]:
+          - button " Counters" [ref=e50] [cursor=pointer]:
+            - generic [ref=e51]: 
+            - generic [ref=e52]: Counters
+        - listitem [ref=e53]:
+          - button " Orders" [ref=e56] [cursor=pointer]:
+            - generic [ref=e57]: 
+            - generic [ref=e58]: Orders
+        - listitem [ref=e59]:
+          - button " RMAs" [ref=e62] [cursor=pointer]:
+            - generic [ref=e63]: 
+            - generic [ref=e64]: RMAs
+        - listitem [ref=e65]:
+          - button " FAQ's" [ref=e68] [cursor=pointer]:
+            - generic [ref=e69]: 
+            - generic [ref=e70]: FAQ's
+        - listitem [ref=e71]:
+          - button " Grading" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+            - generic [ref=e76]: Grading
+    - generic [ref=e79]:
+      - generic [ref=e85]:
+        - generic [ref=e89]: Premium Wholesale
+        - generic [ref=e108]:
+          - generic [ref=e109]: View As
+          - generic [ref=e112]:
+            - generic [ref=e113]:
+              - combobox "View As" [active] [ref=e114]
+              - generic [ref=e115]: Choose Buyer Code
+            - img [ref=e118] [cursor=pointer]: 
+        - button [ref=e130] [cursor=pointer]:
+          - generic [ref=e131]: 
+      - generic [ref=e133]:
+        - generic [ref=e154]:
+          - generic [ref=e157]:
+            - generic [ref=e160]: Shop
+            - textbox [ref=e166]
+            - generic [ref=e170]:
+              - generic [ref=e172]:
+                - generic [ref=e173]: SKUs
+                - generic [ref=e174]: "0"
+              - generic [ref=e176]:
+                - generic [ref=e177]: Qty
+                - generic [ref=e178]: "0"
+              - generic [ref=e180]:
+                - generic [ref=e181]: Total
+                - generic [ref=e182]: $0
+              - button "Cart" [ref=e184] [cursor=pointer]:
+                - generic [ref=e188]: Cart
+            - button [ref=e194] [cursor=pointer]
+          - generic [ref=e195]:
+            - tablist [ref=e196]:
+              - tab "Functional Devices" [selected] [ref=e197]
+              - tab "Functional Case Lots" [ref=e198] [cursor=pointer]
+            - tabpanel "Functional Devices" [ref=e200]:
+              - generic [ref=e202]: Please choose a buyer code above to get started
+        - text: 
+  - status [ref=e203]

@@ -1,8 +1,8 @@
 'use client';
-
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './pwsOrder.module.css';
+import MultiSelectFilter from './MultiSelectFilter';
 import { apiFetch } from '@/lib/apiFetch';
 
 const API_BASE = '/api/v1';
@@ -25,22 +25,24 @@ interface DeviceItem {
 
 interface ColumnFilters {
   sku: string;
-  category: string;
-  brand: string;
-  model: string;
-  carrier: string;
-  capacity: string;
-  color: string;
-  grade: string;
+  category: string[];
+  brand: string[];
+  model: string[];
+  carrier: string[];
+  capacity: string[];
+  color: string[];
+  grade: string[];
   availableQty: string;
   price: string;
 }
 
 const emptyFilters: ColumnFilters = {
-  sku: '', category: '', brand: '', model: '',
-  carrier: '', capacity: '', color: '', grade: '',
+  sku: '', category: [], brand: [], model: [],
+  carrier: [], capacity: [], color: [], grade: [],
   availableQty: '', price: '',
 };
+
+type MultiSelectField = 'category' | 'brand' | 'model' | 'carrier' | 'capacity' | 'color' | 'grade';
 
 type SortField = keyof DeviceItem | null;
 type SortDir = 'asc' | 'desc';
@@ -62,11 +64,11 @@ interface CaseLotItem {
 
 interface CLColumnFilters {
   sku: string;
-  model: string;
-  carrier: string;
-  capacity: string;
-  color: string;
-  grade: string;
+  model: string[];
+  carrier: string[];
+  capacity: string[];
+  color: string[];
+  grade: string[];
   caseLotSize: string;
   caseLotAtpQty: string;
   unitPrice: string;
@@ -74,7 +76,7 @@ interface CLColumnFilters {
 }
 
 const emptyCLFilters: CLColumnFilters = {
-  sku: '', model: '', carrier: '', capacity: '', color: '', grade: '',
+  sku: '', model: [], carrier: [], capacity: [], color: [], grade: [],
   caseLotSize: '', caseLotAtpQty: '', unitPrice: '', caseLotPrice: '',
 };
 
@@ -147,6 +149,10 @@ export default function PwsOrderPage() {
   const [clCartItems, setCLCartItems] = useState<Record<number, CLCartEntry>>({});
   const clDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Animation pulse tracking (pws-font-animation equivalent)
+  const [animatingSkus, setAnimatingSkus] = useState<Set<string>>(new Set());
+  const [cartSummaryAnimate, setCartSummaryAnimate] = useState(false);
+
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [buyerCodes, setBuyerCodes] = useState<BuyerCode[]>([]);
@@ -181,7 +187,7 @@ export default function PwsOrderPage() {
 
   async function loadInventory() {
     try {
-      const res = await apiFetch(`${API_BASE}/inventory/devices`);
+      const res = await apiFetch(`${API_BASE}/inventory/devices?itemType=PWS&minAtpQty=1&excludeGrade=FMIP`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -318,15 +324,16 @@ export default function PwsOrderPage() {
   }
 
   // ── Case lots: distinct values, filtering, sorting, pagination ──
+  type CLMultiField = 'model' | 'carrier' | 'capacity' | 'color' | 'grade';
   const clDistinctValues = useMemo(() => {
-    const fields = ['model', 'carrier', 'capacity', 'color', 'grade'] as const;
+    const fields: CLMultiField[] = ['model', 'carrier', 'capacity', 'color', 'grade'];
     const result: Record<string, string[]> = {};
     for (const field of fields) {
       const filtered = caseLots.filter(cl => {
         if (cl.caseLotAtpQty <= 0) return false;
         for (const f of fields) {
           if (f === field) continue;
-          if (clFilters[f] && cl[f] !== clFilters[f]) return false;
+          if (clFilters[f].length > 0 && !clFilters[f].includes(cl[f])) return false;
         }
         if (clFilters.sku && !cl.sku.toLowerCase().includes(clFilters.sku.toLowerCase())) return false;
         return true;
@@ -342,11 +349,11 @@ export default function PwsOrderPage() {
     let result = caseLots.filter(cl => {
       if (cl.caseLotAtpQty <= 0) return false;
       if (clFilters.sku && !cl.sku.toLowerCase().includes(clFilters.sku.toLowerCase())) return false;
-      if (clFilters.model && cl.model !== clFilters.model) return false;
-      if (clFilters.carrier && cl.carrier !== clFilters.carrier) return false;
-      if (clFilters.capacity && cl.capacity !== clFilters.capacity) return false;
-      if (clFilters.color && cl.color !== clFilters.color) return false;
-      if (clFilters.grade && cl.grade !== clFilters.grade) return false;
+      if (clFilters.model.length > 0 && !clFilters.model.includes(cl.model)) return false;
+      if (clFilters.carrier.length > 0 && !clFilters.carrier.includes(cl.carrier)) return false;
+      if (clFilters.capacity.length > 0 && !clFilters.capacity.includes(cl.capacity)) return false;
+      if (clFilters.color.length > 0 && !clFilters.color.includes(cl.color)) return false;
+      if (clFilters.grade.length > 0 && !clFilters.grade.includes(cl.grade)) return false;
       if (clFilters.caseLotSize) {
         const num = parseInt(clFilters.caseLotSize, 10);
         if (!isNaN(num) && cl.caseLotSize !== num) return false;
@@ -386,7 +393,12 @@ export default function PwsOrderPage() {
     return filteredCaseLots.slice(start, start + PAGE_SIZE);
   }, [filteredCaseLots, clPage]);
 
-  const updateCLFilter = useCallback((field: keyof CLColumnFilters, value: string) => {
+  const updateCLFilter = useCallback((field: 'sku' | 'caseLotSize' | 'caseLotAtpQty' | 'unitPrice' | 'caseLotPrice', value: string) => {
+    setCLFilters(prev => ({ ...prev, [field]: value }));
+    setCLPage(1);
+  }, []);
+
+  const updateCLMultiFilter = useCallback((field: CLMultiField, value: string[]) => {
     setCLFilters(prev => ({ ...prev, [field]: value }));
     setCLPage(1);
   }, []);
@@ -401,18 +413,32 @@ export default function PwsOrderPage() {
   }, [clSortField]);
 
   const handleCLCartChange = (cl: CaseLotItem, field: 'numCases' | 'unitOffer', value: string) => {
-    const parsed = parseFloat(value);
-    const numVal = isNaN(parsed) ? 0 : parsed;
+    let numVal: number;
+    if (field === 'numCases') {
+      numVal = parseInt(value, 10);
+      numVal = isNaN(numVal) ? 0 : Math.max(0, numVal);
+    } else {
+      numVal = parseFloat(value);
+      numVal = isNaN(numVal) ? 0 : Math.max(0, numVal);
+    }
 
     setCLCartItems(prev => {
       const existing = prev[cl.id] || { numCases: 0, unitOffer: cl.unitPrice };
       const updated = { ...existing, [field]: numVal };
 
-      if (field === 'numCases' && numVal > 0 && !prev[cl.id]) {
+      if (field === 'numCases' && numVal > 0 && (updated.unitOffer === 0 || !prev[cl.id])) {
         updated.unitOffer = cl.unitPrice;
       }
 
       const next = { ...prev, [cl.id]: updated };
+
+      // Trigger animation
+      setAnimatingSkus(prev => new Set(prev).add(`cl-${cl.id}`));
+      setCartSummaryAnimate(true);
+      setTimeout(() => {
+        setAnimatingSkus(prev => { const n = new Set(prev); n.delete(`cl-${cl.id}`); return n; });
+        setCartSummaryAnimate(false);
+      }, 350);
 
       if (clDebounceRef.current) clearTimeout(clDebounceRef.current);
       clDebounceRef.current = setTimeout(() => {
@@ -440,10 +466,9 @@ export default function PwsOrderPage() {
   // Distinct values for dropdown filters — cascading: each dropdown shows only
   // values that exist in the dataset after applying all OTHER active filters.
   const distinctValues = useMemo(() => {
-    const fields = ['category', 'brand', 'model', 'carrier', 'capacity', 'color', 'grade'] as const;
+    const fields: MultiSelectField[] = ['category', 'brand', 'model', 'carrier', 'capacity', 'color', 'grade'];
     const result: Record<string, string[]> = {};
     for (const field of fields) {
-      // Filter devices by all active filters EXCEPT the current field
       const filtered = devices.filter(d => {
         if (d.availableQty <= 0) return false;
         if (searchTerm) {
@@ -452,8 +477,8 @@ export default function PwsOrderPage() {
           if (!searchable.includes(term)) return false;
         }
         for (const f of fields) {
-          if (f === field) continue; // skip the current dropdown's own filter
-          if (filters[f] && d[f] !== filters[f]) return false;
+          if (f === field) continue;
+          if (filters[f].length > 0 && !filters[f].includes(d[f])) return false;
         }
         if (filters.sku && !d.sku.toLowerCase().includes(filters.sku.toLowerCase())) return false;
         if (filters.availableQty) {
@@ -486,13 +511,13 @@ export default function PwsOrderPage() {
       }
 
       if (filters.sku && !d.sku.toLowerCase().includes(filters.sku.toLowerCase())) return false;
-      if (filters.category && d.category !== filters.category) return false;
-      if (filters.brand && d.brand !== filters.brand) return false;
-      if (filters.model && d.model !== filters.model) return false;
-      if (filters.carrier && d.carrier !== filters.carrier) return false;
-      if (filters.capacity && d.capacity !== filters.capacity) return false;
-      if (filters.color && d.color !== filters.color) return false;
-      if (filters.grade && d.grade !== filters.grade) return false;
+      if (filters.category.length > 0 && !filters.category.includes(d.category)) return false;
+      if (filters.brand.length > 0 && !filters.brand.includes(d.brand)) return false;
+      if (filters.model.length > 0 && !filters.model.includes(d.model)) return false;
+      if (filters.carrier.length > 0 && !filters.carrier.includes(d.carrier)) return false;
+      if (filters.capacity.length > 0 && !filters.capacity.includes(d.capacity)) return false;
+      if (filters.color.length > 0 && !filters.color.includes(d.color)) return false;
+      if (filters.grade.length > 0 && !filters.grade.includes(d.grade)) return false;
       if (filters.availableQty) {
         const num = parseInt(filters.availableQty, 10);
         if (!isNaN(num) && d.availableQty !== num) return false;
@@ -527,7 +552,12 @@ export default function PwsOrderPage() {
     return filteredDevices.slice(start, start + PAGE_SIZE);
   }, [filteredDevices, page]);
 
-  const updateFilter = useCallback((field: keyof ColumnFilters, value: string) => {
+  const updateFilter = useCallback((field: 'sku' | 'availableQty' | 'price', value: string) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPage(1);
+  }, []);
+
+  const updateMultiFilter = useCallback((field: MultiSelectField, value: string[]) => {
     setFilters(prev => ({ ...prev, [field]: value }));
     setPage(1);
   }, []);
@@ -542,21 +572,37 @@ export default function PwsOrderPage() {
   }, [sortField]);
 
   const handleCartChange = (device: DeviceItem, field: 'offerPrice' | 'cartQty', value: string) => {
-    const parsed = parseFloat(value);
-    const numVal = isNaN(parsed) ? 0 : parsed;
+    let numVal: number;
+    if (field === 'cartQty') {
+      numVal = parseInt(value, 10);
+      numVal = isNaN(numVal) ? 0 : Math.max(0, numVal);
+    } else {
+      numVal = parseFloat(value);
+      numVal = isNaN(numVal) ? 0 : Math.max(0, numVal);
+    }
 
     setCartItems(prev => {
       const existing = prev[device.sku] || { offerPrice: device.listPrice, cartQty: 0 };
       const updated = { ...existing, [field]: numVal };
 
-      // Default offerPrice to listPrice when first setting qty
-      if (field === 'cartQty' && numVal > 0 && !prev[device.sku]) {
+      // Re-default offerPrice to listPrice when price is 0/empty or first setting qty
+      if (field === 'cartQty' && numVal > 0 && (updated.offerPrice === 0 || !prev[device.sku])) {
+        updated.offerPrice = device.listPrice;
+      }
+      if (field === 'offerPrice' && numVal === 0 && updated.cartQty > 0) {
         updated.offerPrice = device.listPrice;
       }
 
       const next = { ...prev, [device.sku]: updated };
 
-      // Debounced save to API
+      // Trigger animation pulse
+      setAnimatingSkus(prev => new Set(prev).add(device.sku));
+      setCartSummaryAnimate(true);
+      setTimeout(() => {
+        setAnimatingSkus(prev => { const n = new Set(prev); n.delete(device.sku); return n; });
+        setCartSummaryAnimate(false);
+      }, 350);
+
       if (debounceRef.current) clearTimeout(debounceRef.current);
       debounceRef.current = setTimeout(() => {
         saveItemToApi(device.sku, device.id, updated.offerPrice, updated.cartQty);
@@ -773,7 +819,7 @@ export default function PwsOrderPage() {
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
           </div>
-          <div className={styles.cartSummary}>
+          <div className={`${styles.cartSummary} ${cartSummaryAnimate ? styles.animatePulse : ''}`}>
             <div className={styles.cartStat}>
               <span className={styles.cartStatLabel}>SKUs</span>
               <span className={styles.cartStatValue}>{cartSkuCount}</span>
@@ -830,19 +876,19 @@ export default function PwsOrderPage() {
                       <th onClick={() => handleSort('grade')}>Grade {sortIcon('grade')}</th>
                       <th onClick={() => handleSort('availableQty')}>Avl. Qty {sortIcon('availableQty')}</th>
                       <th onClick={() => handleSort('listPrice')}>Price {sortIcon('listPrice')}</th>
-                      <th>Offer Price</th>
-                      <th>Cart Qty</th>
-                      <th>Total</th>
+                      <th className={styles.colOfferPrice}>Offer Price</th>
+                      <th className={styles.colCartQty}>Cart Qty</th>
+                      <th className={styles.colTotal}>Total</th>
                     </tr>
                     <tr className={styles.filterRow}>
                       <th><input className={styles.filterInput} type="text" value={filters.sku} onChange={e => updateFilter('sku', e.target.value)} /></th>
-                      <th><select className={styles.filterSelect} value={filters.category} onChange={e => updateFilter('category', e.target.value)}><option value="">Search</option>{distinctValues.category?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.brand} onChange={e => updateFilter('brand', e.target.value)}><option value="">Search</option>{distinctValues.brand?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.model} onChange={e => updateFilter('model', e.target.value)}><option value="">Search</option>{distinctValues.model?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.carrier} onChange={e => updateFilter('carrier', e.target.value)}><option value="">Search</option>{distinctValues.carrier?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.capacity} onChange={e => updateFilter('capacity', e.target.value)}><option value="">Search</option>{distinctValues.capacity?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.color} onChange={e => updateFilter('color', e.target.value)}><option value="">Search</option>{distinctValues.color?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={filters.grade} onChange={e => updateFilter('grade', e.target.value)}><option value="">Search</option>{distinctValues.grade?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
+                      <th><MultiSelectFilter options={distinctValues.category || []} selected={filters.category} onChange={v => updateMultiFilter('category', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.brand || []} selected={filters.brand} onChange={v => updateMultiFilter('brand', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.model || []} selected={filters.model} onChange={v => updateMultiFilter('model', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.carrier || []} selected={filters.carrier} onChange={v => updateMultiFilter('carrier', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.capacity || []} selected={filters.capacity} onChange={v => updateMultiFilter('capacity', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.color || []} selected={filters.color} onChange={v => updateMultiFilter('color', v)} /></th>
+                      <th><MultiSelectFilter options={distinctValues.grade || []} selected={filters.grade} onChange={v => updateMultiFilter('grade', v)} /></th>
                       <th><input className={styles.filterInputNumber} type="number" placeholder="=" value={filters.availableQty} onChange={e => updateFilter('availableQty', e.target.value)} /></th>
                       <th><input className={styles.filterInputNumber} type="number" placeholder="=" value={filters.price} onChange={e => updateFilter('price', e.target.value)} /></th>
                       <th></th>
@@ -851,40 +897,67 @@ export default function PwsOrderPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {pageDevices.map(device => (
-                      <tr key={device.sku}>
-                        <td>{device.sku}</td>
-                        <td>{device.category}</td>
-                        <td>{device.brand}</td>
-                        <td>{device.model}</td>
-                        <td>{device.carrier}</td>
-                        <td>{device.capacity}</td>
-                        <td>{device.color}</td>
-                        <td>{device.grade}</td>
-                        <td>{device.availableQty}</td>
-                        <td>${device.listPrice.toFixed(2)}</td>
-                        <td>
-                          <input
-                            type="number"
-                            className={styles.numberInput}
-                            value={cartItems[device.sku]?.offerPrice || ''}
-                            onChange={e => handleCartChange(device, 'offerPrice', e.target.value)}
-                            placeholder="0.00"
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            className={styles.numberInput}
-                            value={cartItems[device.sku]?.cartQty || ''}
-                            onChange={e => handleCartChange(device, 'cartQty', e.target.value)}
-                            placeholder="0"
-                            max={device.availableQty}
-                          />
-                        </td>
-                        <td><strong>${calculateTotal(device.sku).toFixed(2)}</strong></td>
-                      </tr>
-                    ))}
+                    {pageDevices.map(device => {
+                      const cart = cartItems[device.sku];
+                      const hasQty = cart && cart.cartQty > 0;
+                      const hasPrice = cart && cart.offerPrice > 0;
+                      const isExceedQty = hasQty && device.availableQty <= 100 && cart.cartQty > device.availableQty;
+                      const isAnimating = animatingSkus.has(device.sku);
+
+                      // CAL_BuyerOfferItem_CSSStyle: color-coding based on offer vs list price
+                      let priceClass = '';
+                      if (hasPrice && hasQty && device.listPrice > 0) {
+                        priceClass = cart.offerPrice < device.listPrice
+                          ? styles.offerPriceOrange
+                          : styles.offerPriceGreen;
+                      }
+
+                      return (
+                        <tr key={device.sku} className={isAnimating ? styles.animatePulse : ''}>
+                          <td>{device.sku}</td>
+                          <td>{device.category}</td>
+                          <td>{device.brand}</td>
+                          <td>{device.model}</td>
+                          <td>{device.carrier}</td>
+                          <td>{device.capacity}</td>
+                          <td>{device.color}</td>
+                          <td>{device.grade}</td>
+                          <td>{device.availableQty > 100 ? '100+' : device.availableQty}</td>
+                          <td>${device.listPrice.toLocaleString()}</td>
+                          <td className={`${styles.userDataCell} ${priceClass}`}>
+                            {hasQty ? (
+                              <div className={styles.textDollar}>
+                                <input
+                                  type="number"
+                                  className={styles.numberInput}
+                                  value={cart?.offerPrice || ''}
+                                  onChange={e => handleCartChange(device, 'offerPrice', e.target.value)}
+                                  placeholder=""
+                                  min={0}
+                                  step="0.01"
+                                />
+                              </div>
+                            ) : (
+                              <span className={styles.offerPriceDefault}>${device.listPrice.toLocaleString()}</span>
+                            )}
+                          </td>
+                          <td className={`${styles.userDataCell} ${hasQty ? styles.cartQtyActive : ''}`}>
+                            <input
+                              type="number"
+                              className={`${styles.numberInput} ${isExceedQty ? styles.exceedQtyInput : ''}`}
+                              value={cart?.cartQty || ''}
+                              onChange={e => handleCartChange(device, 'cartQty', e.target.value)}
+                              placeholder=""
+                              min={0}
+                              step="1"
+                              max={device.availableQty}
+                            />
+                            {isExceedQty && <div className={styles.exceedQtyHint}>Exceeds available</div>}
+                          </td>
+                          <td className={styles.colTotal}>{hasQty ? `$${calculateTotal(device.sku).toLocaleString()}` : ''}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
 
@@ -931,11 +1004,11 @@ export default function PwsOrderPage() {
                     </tr>
                     <tr className={styles.filterRow}>
                       <th><input className={styles.filterInput} type="text" value={clFilters.sku} onChange={e => updateCLFilter('sku', e.target.value)} /></th>
-                      <th><select className={styles.filterSelect} value={clFilters.model} onChange={e => updateCLFilter('model', e.target.value)}><option value="">Search</option>{clDistinctValues.model?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={clFilters.carrier} onChange={e => updateCLFilter('carrier', e.target.value)}><option value="">Search</option>{clDistinctValues.carrier?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={clFilters.capacity} onChange={e => updateCLFilter('capacity', e.target.value)}><option value="">Search</option>{clDistinctValues.capacity?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={clFilters.color} onChange={e => updateCLFilter('color', e.target.value)}><option value="">Search</option>{clDistinctValues.color?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
-                      <th><select className={styles.filterSelect} value={clFilters.grade} onChange={e => updateCLFilter('grade', e.target.value)}><option value="">Search</option>{clDistinctValues.grade?.map(v => <option key={v} value={v}>{v}</option>)}</select></th>
+                      <th><MultiSelectFilter options={clDistinctValues.model || []} selected={clFilters.model} onChange={v => updateCLMultiFilter('model', v)} /></th>
+                      <th><MultiSelectFilter options={clDistinctValues.carrier || []} selected={clFilters.carrier} onChange={v => updateCLMultiFilter('carrier', v)} /></th>
+                      <th><MultiSelectFilter options={clDistinctValues.capacity || []} selected={clFilters.capacity} onChange={v => updateCLMultiFilter('capacity', v)} /></th>
+                      <th><MultiSelectFilter options={clDistinctValues.color || []} selected={clFilters.color} onChange={v => updateCLMultiFilter('color', v)} /></th>
+                      <th><MultiSelectFilter options={clDistinctValues.grade || []} selected={clFilters.grade} onChange={v => updateCLMultiFilter('grade', v)} /></th>
                       <th><input className={styles.filterInputNumber} type="number" placeholder="=" value={clFilters.caseLotSize} onChange={e => updateCLFilter('caseLotSize', e.target.value)} /></th>
                       <th><input className={styles.filterInputNumber} type="number" placeholder="=" value={clFilters.caseLotAtpQty} onChange={e => updateCLFilter('caseLotAtpQty', e.target.value)} /></th>
                       <th><input className={styles.filterInputNumber} type="number" placeholder="=" value={clFilters.unitPrice} onChange={e => updateCLFilter('unitPrice', e.target.value)} /></th>
@@ -951,8 +1024,20 @@ export default function PwsOrderPage() {
                       const entry = clCartItems[cl.id];
                       const caseOffer = entry ? entry.unitOffer * cl.caseLotSize : 0;
                       const totalOffer = entry ? entry.unitOffer * cl.caseLotSize * entry.numCases : 0;
+                      const hasNumCases = entry && entry.numCases > 0;
+                      const hasUnitOffer = entry && entry.unitOffer > 0;
+                      const isExceedCL = hasNumCases && cl.caseLotAtpQty <= 100 && entry.numCases > cl.caseLotAtpQty;
+                      const isAnimatingCL = animatingSkus.has(`cl-${cl.id}`);
+
+                      let clPriceClass = '';
+                      if (hasUnitOffer && hasNumCases && cl.unitPrice > 0) {
+                        clPriceClass = entry.unitOffer < cl.unitPrice
+                          ? styles.offerPriceOrange
+                          : styles.offerPriceGreen;
+                      }
+
                       return (
-                        <tr key={cl.id}>
+                        <tr key={cl.id} className={isAnimatingCL ? styles.animatePulse : ''}>
                           <td>{cl.sku}</td>
                           <td>{cl.model}</td>
                           <td>{cl.carrier}</td>
@@ -961,29 +1046,40 @@ export default function PwsOrderPage() {
                           <td>{cl.grade}</td>
                           <td>{cl.caseLotSize}</td>
                           <td>{cl.caseLotAtpQty}</td>
-                          <td>${cl.unitPrice.toFixed(2)}</td>
-                          <td>${cl.caseLotPrice.toFixed(2)}</td>
-                          <td className={styles.userDataCell}>
+                          <td>${cl.unitPrice.toLocaleString()}</td>
+                          <td>${cl.caseLotPrice.toLocaleString()}</td>
+                          <td className={`${styles.userDataCell} ${hasNumCases ? styles.cartQtyActive : ''}`}>
                             <input
                               type="number"
-                              className={styles.numberInput}
+                              className={`${styles.numberInput} ${isExceedCL ? styles.exceedQtyInput : ''}`}
                               value={entry?.numCases || ''}
                               onChange={e => handleCLCartChange(cl, 'numCases', e.target.value)}
-                              placeholder="0"
+                              placeholder=""
+                              min={0}
+                              step="1"
                               max={cl.caseLotAtpQty}
                             />
+                            {isExceedCL && <div className={styles.exceedQtyHint}>Exceeds available</div>}
                           </td>
-                          <td className={styles.userDataCell}>
-                            <input
-                              type="number"
-                              className={styles.numberInput}
-                              value={entry?.unitOffer || ''}
-                              onChange={e => handleCLCartChange(cl, 'unitOffer', e.target.value)}
-                              placeholder="0.00"
-                            />
+                          <td className={`${styles.userDataCell} ${clPriceClass}`}>
+                            {hasNumCases ? (
+                              <div className={styles.textDollar}>
+                                <input
+                                  type="number"
+                                  className={styles.numberInput}
+                                  value={entry?.unitOffer || ''}
+                                  onChange={e => handleCLCartChange(cl, 'unitOffer', e.target.value)}
+                                  placeholder=""
+                                  min={0}
+                                  step="0.01"
+                                />
+                              </div>
+                            ) : (
+                              <span className={styles.offerPriceDefault}>${cl.unitPrice.toLocaleString()}</span>
+                            )}
                           </td>
-                          <td className={styles.userDataCell}><strong>${caseOffer.toFixed(2)}</strong></td>
-                          <td className={styles.userDataCell}><strong>${totalOffer.toFixed(2)}</strong></td>
+                          <td className={styles.userDataCell}>{hasNumCases ? `$${caseOffer.toLocaleString()}` : ''}</td>
+                          <td className={`${styles.userDataCell} ${styles.colTotal}`}>{hasNumCases ? `$${totalOffer.toLocaleString()}` : ''}</td>
                         </tr>
                       );
                     })}

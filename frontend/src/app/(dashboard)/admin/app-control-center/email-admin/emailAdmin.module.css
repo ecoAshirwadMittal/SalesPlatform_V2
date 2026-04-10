@@ -1,0 +1,276 @@
+/* ===================================================================
+   Email Admin — Tab bar, form grids, status badges, modal, log filters
+   Extends admin.module.css shared styles
+   ================================================================= */
+
+/* ── Tab Bar ── */
+.tabBar {
+  display: flex;
+  gap: 0;
+  margin-bottom: 0;
+  border-bottom: 2px solid #ddd;
+}
+
+.tab {
+  padding: 12px 24px;
+  border: none;
+  background: transparent;
+  color: #666;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  color: #3c3c3c;
+}
+
+.tabActive {
+  color: #407874;
+  border-bottom-color: #407874;
+}
+
+/* ── Form Grid (2-3 col responsive) ── */
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0 20px;
+}
+
+.toggleGrid {
+  display: flex;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+/* ── Test Connection button ── */
+.testBtn {
+  padding: 10px 28px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 44px;
+}
+
+/* ── Template name link ── */
+.templateLink {
+  background: none;
+  border: none;
+  color: #407874;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.templateLink:hover {
+  color: #2d5450;
+}
+
+/* ── Detail editor panel (below template table) ── */
+.detailEditor {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #eee;
+}
+
+/* ── Content sub-tabs (HTML / Plain Text) ── */
+.contentTabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 8px;
+}
+
+.contentTab {
+  padding: 6px 16px;
+  border: 1px solid #d0d0d0;
+  background: #f8f8f8;
+  color: #666;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.contentTab:first-child {
+  border-radius: 4px 0 0 4px;
+}
+
+.contentTab:last-child {
+  border-radius: 0 4px 4px 0;
+  border-left: none;
+}
+
+.contentTabActive {
+  background: #407874;
+  color: #fff;
+  border-color: #407874;
+}
+
+/* ── Email Log — filter row ── */
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filterSelect {
+  padding: 6px 12px;
+  border: 1px solid #d0d0d0;
+  border-radius: 4px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+  background: #fff;
+}
+
+.countLabel {
+  font-size: 13px;
+  color: #888;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ── Status badges ── */
+.statusBadge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.statusSENT {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.statusQUEUED {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.statusFAILED {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.statusERROR {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+/* ── Truncated text in table cells ── */
+.truncate {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0 0;
+}
+
+.pageInfo {
+  font-size: 13px;
+  color: #666;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ── Detail Modal (email log viewer) ── */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 700px;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid #eee;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #3c3c3c;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.modalClose:hover {
+  color: #333;
+}
+
+.modalBody {
+  padding: 20px 24px;
+  overflow-y: auto;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3c3c3c;
+}
+
+.detailRow {
+  margin-bottom: 8px;
+}
+
+.detailRow strong {
+  display: inline-block;
+  width: 100px;
+  color: #555;
+}
+
+.errorText {
+  color: #991b1b;
+}
+
+.htmlPreview {
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 16px;
+  background: #fafafa;
+  max-height: 300px;
+  overflow-y: auto;
+  font-size: 13px;
+}

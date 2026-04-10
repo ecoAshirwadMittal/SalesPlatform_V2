@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PriceHistory.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.model.mdm</a> &gt; <span class="el_source">PriceHistory.java</span></div><h1>PriceHistory.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.model.mdm;
+
+import jakarta.persistence.*;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(name = &quot;price_history&quot;, schema = &quot;mdm&quot;)
+<span class="fc" id="L10">public class PriceHistory {</span>
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = &quot;legacy_id&quot;, unique = true)
+    private Long legacyId;
+
+    @Column(name = &quot;device_id&quot;)
+    private Long deviceId;
+
+    @Column(name = &quot;list_price&quot;)
+    private BigDecimal listPrice;
+
+    @Column(name = &quot;min_price&quot;)
+    private BigDecimal minPrice;
+
+    @Column(name = &quot;expiration_date&quot;)
+    private LocalDateTime expirationDate;
+
+    @Column(name = &quot;created_date&quot;, updatable = false)
+    private LocalDateTime createdDate;
+
+    @Column(name = &quot;updated_date&quot;)
+    private LocalDateTime updatedDate;
+
+<span class="fc" id="L37">    public Long getId() { return id; }</span>
+<span class="fc" id="L38">    public void setId(Long id) { this.id = id; }</span>
+
+<span class="fc" id="L40">    public Long getLegacyId() { return legacyId; }</span>
+<span class="fc" id="L41">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+
+<span class="nc" id="L43">    public Long getDeviceId() { return deviceId; }</span>
+<span class="fc" id="L44">    public void setDeviceId(Long deviceId) { this.deviceId = deviceId; }</span>
+
+<span class="fc" id="L46">    public BigDecimal getListPrice() { return listPrice; }</span>
+<span class="fc" id="L47">    public void setListPrice(BigDecimal listPrice) { this.listPrice = listPrice; }</span>
+
+<span class="fc" id="L49">    public BigDecimal getMinPrice() { return minPrice; }</span>
+<span class="fc" id="L50">    public void setMinPrice(BigDecimal minPrice) { this.minPrice = minPrice; }</span>
+
+<span class="fc" id="L52">    public LocalDateTime getExpirationDate() { return expirationDate; }</span>
+<span class="fc" id="L53">    public void setExpirationDate(LocalDateTime expirationDate) { this.expirationDate = expirationDate; }</span>
+
+<span class="fc" id="L55">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L56">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+
+<span class="fc" id="L58">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="fc" id="L59">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>
