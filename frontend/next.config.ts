@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: path.resolve(__dirname),
   },
+  // Dev-only: allow cross-origin HMR / RSC chunk requests from ngrok tunnels
+  // so the frontend can be exposed via `ngrok http 3000` for external testing.
+  allowedDevOrigins: ['*.ngrok-free.dev', '*.ngrok-free.app', '*.ngrok.app'],
   async rewrites() {
     return [
       {
