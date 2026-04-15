@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implements Mendix DS_PWS_BuyerCodes microflow logic.
@@ -31,46 +30,42 @@ public class BuyerCodeService {
     /**
      * Load buyer codes for the given user, split by role.
      * Mirrors DS_PWS_BuyerCodes decision logic.
+     * Uses a single CTE query to check role and fetch codes in one round-trip.
      */
     @Transactional(readOnly = true)
     @SuppressWarnings("unchecked")
     public List<BuyerCodeResponse> getBuyerCodesForUser(Long userId) {
-        boolean isBuyerRole = isBuyerRole(userId);
-
-        List<Object[]> rows;
-
-        if (isBuyerRole) {
-            // Bidder: get codes linked to user's buyers, exclude PO types
-            rows = em.createNativeQuery("""
+        List<Object[]> rows = em.createNativeQuery("""
+                WITH role_check AS (
+                    SELECT COALESCE(
+                        (SELECT edu.is_buyer_role
+                         FROM user_mgmt.ecoatm_direct_users edu
+                         WHERE edu.user_id = :userId),
+                        false
+                    ) AS is_buyer
+                )
                 SELECT DISTINCT bc.id, bc.code, b.company_name, bc.buyer_code_type
                 FROM buyer_mgmt.buyer_codes bc
                 JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
                 JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
-                JOIN user_mgmt.user_buyers ub ON ub.buyer_id = b.id
-                WHERE ub.user_id = :userId
-                  AND bc.status = 'Active'
-                  AND bc.soft_delete = false
-                  AND b.status = 'Active'
-                  AND bc.buyer_code_type NOT IN ('Purchasing_Order', 'Purchasing_Order_Data_Wipe')
-                ORDER BY bc.code
-                """)
-                    .setParameter("userId", userId)
-                    .getResultList();
-        } else {
-            // Admin/SalesRep: all active PWS codes from active buyers
-            rows = em.createNativeQuery("""
-                SELECT DISTINCT bc.id, bc.code, b.company_name, bc.buyer_code_type
-                FROM buyer_mgmt.buyer_codes bc
-                JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
-                JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
+                LEFT JOIN user_mgmt.user_buyers ub
+                    ON ub.buyer_id = b.id AND ub.user_id = :userId
+                CROSS JOIN role_check rc
                 WHERE bc.status = 'Active'
                   AND bc.soft_delete = false
                   AND b.status = 'Active'
-                  AND bc.buyer_code_type IN ('Premium_Wholesale', 'Wholesale')
+                  AND (
+                      (rc.is_buyer
+                       AND ub.user_id IS NOT NULL
+                       AND bc.buyer_code_type NOT IN ('Purchasing_Order', 'Purchasing_Order_Data_Wipe'))
+                      OR
+                      (NOT rc.is_buyer
+                       AND bc.buyer_code_type IN ('Premium_Wholesale', 'Wholesale'))
+                  )
                 ORDER BY bc.code
                 """)
-                    .getResultList();
-        }
+                .setParameter("userId", userId)
+                .getResultList();
 
         return rows.stream()
                 .map(r -> new BuyerCodeResponse(
@@ -79,7 +74,7 @@ public class BuyerCodeService {
                         (String) r[2],
                         (String) r[3]
                 ))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

@@ -401,8 +401,9 @@ class OrderHistoryServiceTest {
                     new BigDecimal("25.00"), new BigDecimal("125.00"));
             when(offerItemRepository.findByOfferId(100L)).thenReturn(List.of(item));
             Device device = new Device();
+            device.setId(10L);
             device.setDescription("iPhone 14 Pro 128GB");
-            when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
+            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
 
             List<OrderDetailBySkuResponse> result = orderHistoryService.getDetailsBySku(100L);
 
@@ -423,7 +424,7 @@ class OrderHistoryServiceTest {
             OfferItem item = makeOfferItem(2L, "SKU-002", 999L, 1, 0,
                     new BigDecimal("10.00"), new BigDecimal("10.00"));
             when(offerItemRepository.findByOfferId(100L)).thenReturn(List.of(item));
-            when(deviceRepository.findById(999L)).thenReturn(Optional.empty());
+            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of());
 
             List<OrderDetailBySkuResponse> result = orderHistoryService.getDetailsBySku(100L);
 
@@ -442,7 +443,7 @@ class OrderHistoryServiceTest {
 
             assertThat(result).hasSize(1);
             assertThat(result.get(0).description()).isNull();
-            verify(deviceRepository, never()).findById(any());
+            verify(deviceRepository, never()).findAllById(any());
         }
 
         @Test
@@ -463,10 +464,9 @@ class OrderHistoryServiceTest {
             OfferItem item2 = makeOfferItem(2L, "SKU-B", 20L, 3, 0,
                     new BigDecimal("30.00"), new BigDecimal("90.00"));
             when(offerItemRepository.findByOfferId(100L)).thenReturn(List.of(item1, item2));
-            Device d1 = new Device(); d1.setDescription("Device A");
-            Device d2 = new Device(); d2.setDescription("Device B");
-            when(deviceRepository.findById(10L)).thenReturn(Optional.of(d1));
-            when(deviceRepository.findById(20L)).thenReturn(Optional.of(d2));
+            Device d1 = new Device(); d1.setId(10L); d1.setDescription("Device A");
+            Device d2 = new Device(); d2.setId(20L); d2.setDescription("Device B");
+            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(d1, d2));
 
             List<OrderDetailBySkuResponse> result = orderHistoryService.getDetailsBySku(100L);
 
@@ -520,8 +520,8 @@ class OrderHistoryServiceTest {
             ShipmentDetail sd = makeShipment("1Z999AA", "https://ups.com/track/1Z999AA");
             ImeiDetail detail = makeImeiDetail(100L, "353456789012345", "SN-001", "BOX-A", item, sd);
             when(imeiDetailRepository.findByOfferItemOfferId(50L)).thenReturn(List.of(detail));
-            Device device = new Device(); device.setDescription("iPhone 14");
-            when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
+            Device device = new Device(); device.setId(10L); device.setDescription("iPhone 14");
+            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
 
             List<OrderDetailByDeviceResponse> result = orderHistoryService.getDetailsByDevice(50L);
 
@@ -544,8 +544,8 @@ class OrderHistoryServiceTest {
             OfferItem item = makeItem(1L, "SKU-001", 10L, new BigDecimal("25.00"));
             ImeiDetail detail = makeImeiDetail(101L, "IMEI-002", "SN-002", "BOX-B", item, null);
             when(imeiDetailRepository.findByOfferItemOfferId(50L)).thenReturn(List.of(detail));
-            Device device = new Device(); device.setDescription("Galaxy S24");
-            when(deviceRepository.findById(10L)).thenReturn(Optional.of(device));
+            Device device = new Device(); device.setId(10L); device.setDescription("Galaxy S24");
+            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
 
             List<OrderDetailByDeviceResponse> result = orderHistoryService.getDetailsByDevice(50L);
 

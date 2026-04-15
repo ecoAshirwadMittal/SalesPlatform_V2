@@ -1,9 +1,14 @@
 package com.ecoatm.salesplatform.dto;
 
 import com.ecoatm.salesplatform.model.pws.RmaItem;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 public class RmaItemResponse {
 
     private Long id;
@@ -11,7 +16,7 @@ public class RmaItemResponse {
     private String imei;
     private String orderNumber;
     private LocalDateTime shipDate;
-    private Integer salePrice;
+    private BigDecimal salePrice;
     private String returnReason;
     private String status;
     private String statusDisplay;
@@ -36,26 +41,4 @@ public class RmaItemResponse {
         r.declineReason = item.getDeclineReason();
         return r;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public Long getRmaId() { return rmaId; }
-    public String getImei() { return imei; }
-    public String getOrderNumber() { return orderNumber; }
-    public LocalDateTime getShipDate() { return shipDate; }
-    public Integer getSalePrice() { return salePrice; }
-    public String getReturnReason() { return returnReason; }
-    public String getStatus() { return status; }
-    public String getStatusDisplay() { return statusDisplay; }
-    public String getDeclineReason() { return declineReason; }
-    public String getSku() { return sku; }
-    public String getDeviceDescription() { return deviceDescription; }
-    public String getGrade() { return grade; }
-    public String getItemType() { return itemType; }
-
-    // Setters for device enrichment
-    public void setSku(String sku) { this.sku = sku; }
-    public void setDeviceDescription(String deviceDescription) { this.deviceDescription = deviceDescription; }
-    public void setGrade(String grade) { this.grade = grade; }
-    public void setItemType(String itemType) { this.itemType = itemType; }
 }

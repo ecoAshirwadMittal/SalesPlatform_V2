@@ -102,23 +102,25 @@ public class AuthService {
             email = row[3] != null ? (String) row[3] : loginName;
         }
 
-        // Mendix initials logic: if(Name = 'MxAdmin') then 'MX' else FirstName[0]+LastName[0]
-        String initials;
-        if ("MxAdmin".equalsIgnoreCase(loginName)) {
-            initials = "MX";
-        } else if (!firstName.isEmpty() && !lastName.isEmpty()) {
-            initials = ("" + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
-        } else if (fullName != null && !fullName.isBlank()) {
-            String[] parts = fullName.trim().split("\\s+");
-            if (parts.length >= 2) {
-                initials = ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-            } else {
-                initials = fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();
-            }
-        } else {
-            initials = "??";
-        }
-
+        String initials = computeInitials(loginName, firstName, lastName, fullName);
         return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials, null);
+    }
+
+    // Mendix initials logic: if(Name = 'MxAdmin') then 'MX' else FirstName[0]+LastName[0]
+    private static String computeInitials(String loginName, String firstName, String lastName, String fullName) {
+        if ("MxAdmin".equalsIgnoreCase(loginName)) {
+            return "MX";
+        }
+        if (!firstName.isEmpty() && !lastName.isEmpty()) {
+            return ("" + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();
+        }
+        if (fullName == null || fullName.isBlank()) {
+            return "??";
+        }
+        String[] parts = fullName.trim().split("\\s+");
+        if (parts.length >= 2) {
+            return ("" + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+        }
+        return fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();
     }
 }

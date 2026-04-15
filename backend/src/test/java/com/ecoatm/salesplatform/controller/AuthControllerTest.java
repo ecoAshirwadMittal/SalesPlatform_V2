@@ -16,8 +16,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import jakarta.servlet.http.Cookie;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -29,7 +31,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
     "app.jwt.secret=test-secret-key-must-be-at-least-32-bytes-long-for-hmac!!",
     "app.jwt.expiration-ms=3600000",
-    "app.jwt.remember-me-expiration-ms=7200000"
+    "app.jwt.remember-me-expiration-ms=7200000",
+    "auth.cookie.secure=true"
 })
 class AuthControllerTest {
 
@@ -40,18 +43,69 @@ class AuthControllerTest {
     @MockBean private BuyerCodeService buyerCodeService;
 
     @Test
-    void login_withValidCredentials_returnsToken() throws Exception {
+    void login_withValidCredentials_setsHttpOnlyCookieAndOmitsTokenFromBody() throws Exception {
         LoginResponse successResponse = new LoginResponse(true, "Authentication successful", "jwt-token-here");
         successResponse.setUser(new LoginResponse.UserInfo(1L, "John", "Doe", "John Doe", "john@test.com", "JD", null));
         when(authService.authenticateLocalUser(any())).thenReturn(successResponse);
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        var result = mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"email\":\"john@test.com\",\"password\":\"Password123!\"}"))
+                        .content("{\"email\":\"john@test.com\",\"password\":\"Password123!\",\"rememberMe\":false}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.token").value("jwt-token-here"))
-                .andExpect(jsonPath("$.user.userId").value(1));
+                .andExpect(jsonPath("$.token").doesNotExist())
+                .andExpect(jsonPath("$.user.userId").value(1))
+                .andReturn();
+
+        String setCookie = result.getResponse().getHeader("Set-Cookie");
+        assertThat(setCookie).isNotNull();
+        assertThat(setCookie).contains("auth_token=jwt-token-here");
+        assertThat(setCookie).contains("HttpOnly");
+        assertThat(setCookie).contains("Secure");
+        assertThat(setCookie).contains("SameSite=Strict");
+        assertThat(setCookie).contains("Path=/");
+        // Default TTL is 8h for non-rememberMe logins
+        assertThat(setCookie).contains("Max-Age=28800");
+    }
+
+    @Test
+    void login_withRememberMe_setsLongerMaxAge() throws Exception {
+        LoginResponse successResponse = new LoginResponse(true, "ok", "jwt");
+        successResponse.setUser(new LoginResponse.UserInfo(1L, "a", "b", "a b", "a@b.c", "AB", null));
+        when(authService.authenticateLocalUser(any())).thenReturn(successResponse);
+
+        var result = mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"a@b.c\",\"password\":\"P\",\"rememberMe\":true}"))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        // 24h = 86400s
+        assertThat(result.getResponse().getHeader("Set-Cookie")).contains("Max-Age=86400");
+    }
+
+    @Test
+    void logout_clearsCookie() throws Exception {
+        var result = mockMvc.perform(post("/api/v1/auth/logout"))
+                .andExpect(status().isNoContent())
+                .andReturn();
+
+        String setCookie = result.getResponse().getHeader("Set-Cookie");
+        assertThat(setCookie).isNotNull();
+        assertThat(setCookie).contains("auth_token=");
+        assertThat(setCookie).contains("Max-Age=0");
+        assertThat(setCookie).contains("HttpOnly");
+    }
+
+    @Test
+    void me_withCookieToken_returnsUserInfo() throws Exception {
+        String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
+        LoginResponse.UserInfo userInfo = new LoginResponse.UserInfo(42L, "Test", "User", "Test User", "test@test.com", "TU", null);
+        when(authService.getCurrentUser(42L)).thenReturn(userInfo);
+
+        mockMvc.perform(get("/api/v1/auth/me").cookie(new Cookie("auth_token", token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userId").value(42));
     }
 
     @Test

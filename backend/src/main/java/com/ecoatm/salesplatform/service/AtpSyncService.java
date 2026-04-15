@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.InventoryPage;
 import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.ItemInventory;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.OfferItemRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class AtpSyncService {
     private static final Logger log = LoggerFactory.getLogger(AtpSyncService.class);
 
     private final DeviceRepository deviceRepository;
+    private final OfferItemRepository offerItemRepository;
     private final RestTemplate restTemplate;
 
     @Value("${deposco.base-url:https://api.deposco.com}")
@@ -51,85 +53,24 @@ public class AtpSyncService {
     @Value("${deposco.page-size:1000}")
     private int pageSize;
 
-    public AtpSyncService(DeviceRepository deviceRepository) {
+    public AtpSyncService(DeviceRepository deviceRepository, OfferItemRepository offerItemRepository) {
         this.deviceRepository = deviceRepository;
+        this.offerItemRepository = offerItemRepository;
         this.restTemplate = new RestTemplate();
     }
 
     /**
      * Execute a full ATP inventory sync.
      * Mirrors the legacy ACT_FullInventorySync microflow (ignoring feature flags).
+     * Delegates to applyAtpUpdates() to avoid double-loading all devices.
      */
     @Transactional
     public AtpSyncResult fullInventorySync() {
         LocalDateTime syncBeginTime = LocalDateTime.now();
         log.info("PWS Full Inventory Sync started at {}", syncBeginTime);
 
-        // Step 1: Fetch all inventory data from Deposco (paginated)
         Map<String, Integer> deposcoAtpBySku = fetchAllDeposcoInventory();
-
-        // Step 2: Load all active devices into a lookup map
-        List<Device> allDevices = deviceRepository.findByIsActiveTrue();
-        Map<String, Device> deviceBySku = new HashMap<>();
-        for (Device d : allDevices) {
-            if (d.getSku() != null) {
-                deviceBySku.put(d.getSku(), d);
-            }
-        }
-
-        // Step 3: Walk Deposco items and apply ATP deltas
-        int devicesUpdated = 0;
-        List<String> missingSkus = new ArrayList<>();
-        List<Device> updatedDevices = new ArrayList<>();
-
-        for (Map.Entry<String, Integer> entry : deposcoAtpBySku.entrySet()) {
-            String itemNumber = entry.getKey();
-            int newAtp = entry.getValue();
-
-            Device device = deviceBySku.get(itemNumber);
-            if (device == null) {
-                missingSkus.add(itemNumber);
-                continue;
-            }
-
-            int currentQty = device.getAvailableQty() != null ? device.getAvailableQty() : 0;
-            if (currentQty != newAtp) {
-                log.debug("Updating ATP for SKU:{} Current:{} New:{}", itemNumber, currentQty, newAtp);
-                device.setAvailableQty(newAtp);
-                device.setAtpQty(newAtp);
-                device.setLastSyncTime(syncBeginTime);
-                updatedDevices.add(device);
-                devicesUpdated++;
-            }
-        }
-
-        // Step 4: Batch-save updated devices
-        if (!updatedDevices.isEmpty()) {
-            deviceRepository.saveAll(updatedDevices);
-            log.info("Saved {} device ATP updates", updatedDevices.size());
-        }
-
-        // Step 5: Recalculate reserved quantities
-        // (Legacy: SUB_UpdateReservedQuanityPerDevice)
-        updateReservedQuantities(updatedDevices);
-
-        if (!missingSkus.isEmpty()) {
-            log.warn("Deposco items not found in MDM: {}", missingSkus.size());
-        }
-
-        LocalDateTime syncEndTime = LocalDateTime.now();
-        log.info("PWS Full Inventory Sync completed at {}. Updated {} devices, {} missing SKUs.",
-                syncEndTime, devicesUpdated, missingSkus.size());
-
-        // Build result
-        AtpSyncResult result = new AtpSyncResult();
-        result.setSyncStartTime(syncBeginTime);
-        result.setSyncEndTime(syncEndTime);
-        result.setTotalItemsReceived(deposcoAtpBySku.size());
-        result.setDevicesUpdated(devicesUpdated);
-        result.setDevicesMissing(missingSkus.size());
-        result.setMissingSkus(missingSkus.size() > 50 ? missingSkus.subList(0, 50) : missingSkus);
-        return result;
+        return applyAtpUpdates(deposcoAtpBySku, syncBeginTime);
     }
 
     /**
@@ -305,17 +246,12 @@ public class AtpSyncService {
      * Mirrors legacy SUB_UpdateReservedQuanityPerDevice:
      *   - reservedQty = min(sum of ordered-offer-item quantities, availableQty)
      *   - atpQty = availableQty - reservedQty
-     *
-     * TODO: Wire to OfferItem repository once offer flow is active.
-     * For now, sets reservedQty = 0 and atpQty = availableQty.
      */
     private void updateReservedQuantities(List<Device> devices) {
         for (Device device : devices) {
             int available = device.getAvailableQty() != null ? device.getAvailableQty() : 0;
 
-            // TODO: Replace with actual offer-item reservation query:
-            // int totalReserved = offerItemRepository.sumReservedQtyByDevice(device.getId());
-            int totalReserved = 0;
+            int totalReserved = offerItemRepository.sumReservedQtyByDeviceId(device.getId());
 
             int reservedQty = Math.min(totalReserved, available);
             int atpQty = available - reservedQty;

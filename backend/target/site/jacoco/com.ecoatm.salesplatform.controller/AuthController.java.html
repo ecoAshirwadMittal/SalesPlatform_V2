@@ -7,29 +7,53 @@ import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Duration;
 import java.util.List;
 
 @RestController
 @RequestMapping(&quot;/api/v1/auth&quot;)
-@RequiredArgsConstructor
+<span class="fc" id="L22">@RequiredArgsConstructor</span>
 public class AuthController {
+
+    public static final String AUTH_COOKIE_NAME = &quot;auth_token&quot;;
+<span class="fc" id="L26">    private static final Duration DEFAULT_TTL = Duration.ofHours(8);</span>
+<span class="fc" id="L27">    private static final Duration REMEMBER_ME_TTL = Duration.ofHours(24);</span>
 
     private final AuthService authService;
     private final BuyerCodeService buyerCodeService;
 
+    @Value(&quot;${auth.cookie.secure:true}&quot;)
+    private boolean cookieSecure;
+
     @PostMapping(&quot;/login&quot;)
     public ResponseEntity&lt;LoginResponse&gt; loginExternalUser(@Valid @RequestBody LoginRequest request) {
-<span class="fc" id="L26">        LoginResponse response = authService.authenticateLocalUser(request);</span>
+<span class="fc" id="L37">        LoginResponse response = authService.authenticateLocalUser(request);</span>
 
-<span class="fc bfc" id="L28" title="All 2 branches covered.">        if (response.isSuccess()) {</span>
-<span class="fc" id="L29">            return ResponseEntity.ok(response);</span>
-        } else {
-<span class="fc" id="L31">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);</span>
+<span class="fc bfc" id="L39" title="All 2 branches covered.">        if (!response.isSuccess()) {</span>
+<span class="fc" id="L40">            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);</span>
         }
+
+<span class="fc" id="L43">        ResponseCookie cookie = buildAuthCookie(</span>
+<span class="fc" id="L44">                response.getToken(),</span>
+<span class="fc bfc" id="L45" title="All 2 branches covered.">                request.isRememberMe() ? REMEMBER_ME_TTL : DEFAULT_TTL);</span>
+<span class="fc" id="L46">        return ResponseEntity.ok()</span>
+<span class="fc" id="L47">                .header(HttpHeaders.SET_COOKIE, cookie.toString())</span>
+<span class="fc" id="L48">                .body(response);</span>
+    }
+
+    @PostMapping(&quot;/logout&quot;)
+    public ResponseEntity&lt;Void&gt; logout() {
+<span class="fc" id="L53">        ResponseCookie expired = buildAuthCookie(&quot;&quot;, Duration.ZERO);</span>
+<span class="fc" id="L54">        return ResponseEntity.noContent()</span>
+<span class="fc" id="L55">                .header(HttpHeaders.SET_COOKIE, expired.toString())</span>
+<span class="fc" id="L56">                .build();</span>
     }
 
     /**
@@ -40,8 +64,8 @@ public class AuthController {
     @GetMapping(&quot;/me&quot;)
     public ResponseEntity&lt;LoginResponse.UserInfo&gt; getCurrentUser(
             @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
-<span class="fc" id="L43">        LoginResponse.UserInfo user = authService.getCurrentUser(userId);</span>
-<span class="fc" id="L44">        return ResponseEntity.ok(user);</span>
+<span class="fc" id="L67">        LoginResponse.UserInfo user = authService.getCurrentUser(userId);</span>
+<span class="fc" id="L68">        return ResponseEntity.ok(user);</span>
     }
 
     /**
@@ -52,17 +76,37 @@ public class AuthController {
     @GetMapping(&quot;/buyer-codes&quot;)
     public ResponseEntity&lt;List&lt;BuyerCodeResponse&gt;&gt; getBuyerCodes(
             @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
-<span class="fc" id="L55">        List&lt;BuyerCodeResponse&gt; codes = buyerCodeService.getBuyerCodesForUser(userId);</span>
-<span class="fc" id="L56">        return ResponseEntity.ok(codes);</span>
+<span class="fc" id="L79">        List&lt;BuyerCodeResponse&gt; codes = buyerCodeService.getBuyerCodesForUser(userId);</span>
+<span class="fc" id="L80">        return ResponseEntity.ok(codes);</span>
     }
 
     @GetMapping(&quot;/sso&quot;)
     public ResponseEntity&lt;?&gt; handleSSORedirect(@RequestParam String target) {
-        // Stub for ACT_Login_InternalUser / OpenURL functionality
-        // This will be replaced by standard Spring Security OAuth2 / SAML endpoints
-<span class="nc" id="L63">        return ResponseEntity.status(HttpStatus.FOUND)</span>
-<span class="nc" id="L64">                .header(&quot;Location&quot;, &quot;https://login.microsoftonline.com/ecoatm-sso-stub&quot;)</span>
-<span class="nc" id="L65">                .build();</span>
+        // Stub for ACT_Login_InternalUser / OpenURL functionality.
+        // This will be replaced by standard Spring Security OAuth2 / SAML endpoints.
+        // TODO(Theme 3): when the real SSO callback lands, it MUST issue the JWT
+        // via buildAuthCookie(token, DEFAULT_TTL) and attach it as a Set-Cookie
+        // header — matching the /login flow. Do NOT return the token in the
+        // redirect URL, query string, or response body.
+<span class="nc" id="L91">        return ResponseEntity.status(HttpStatus.FOUND)</span>
+<span class="nc" id="L92">                .header(&quot;Location&quot;, &quot;https://login.microsoftonline.com/ecoatm-sso-stub&quot;)</span>
+<span class="nc" id="L93">                .build();</span>
+    }
+
+    /**
+     * Builds the HttpOnly auth cookie used by /login, /logout, and (when
+     * implemented) the SSO callback. Any new authenticated entrypoint must
+     * reuse this helper so cookie attributes stay consistent — changing
+     * SameSite/Secure/Path in one place is a cross-cutting security setting.
+     */
+    private ResponseCookie buildAuthCookie(String value, Duration maxAge) {
+<span class="fc" id="L103">        return ResponseCookie.from(AUTH_COOKIE_NAME, value)</span>
+<span class="fc" id="L104">                .httpOnly(true)</span>
+<span class="fc" id="L105">                .secure(cookieSecure)</span>
+<span class="fc" id="L106">                .sameSite(&quot;Strict&quot;)</span>
+<span class="fc" id="L107">                .path(&quot;/&quot;)</span>
+<span class="fc" id="L108">                .maxAge(maxAge)</span>
+<span class="fc" id="L109">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

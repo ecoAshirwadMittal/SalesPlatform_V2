@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './rmaReview.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/rma';
+const BASE = `${API_BASE}/pws/rma`;
 const PAGE_SIZE = 20;
 
 interface RmaSummary {
@@ -88,8 +89,8 @@ export default function RmaReviewPage() {
     try {
       const statusParam = status !== 'Total' ? `&status=${encodeURIComponent(status)}` : '';
       const [sumRes, listRes] = await Promise.all([
-        apiFetch(`${API_BASE}/summary`),
-        apiFetch(`${API_BASE}?${statusParam}`),
+        apiFetch(`${BASE}/summary`),
+        apiFetch(`${BASE}?${statusParam}`),
       ]);
       if (sumRes.ok) setSummaries(await sumRes.json());
       if (listRes.ok) setRmas(await listRes.json());

@@ -11,10 +11,9 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
-<span class="fc" id="L17">@RequiredArgsConstructor</span>
+<span class="fc" id="L16">@RequiredArgsConstructor</span>
 public class DirectUserService {
 
     private final EcoATMDirectUserRepository directUserRepository;
@@ -27,116 +26,116 @@ public class DirectUserService {
             String name, String buyer, String roles, String email, String status,
             int page, int pageSize) {
 
-<span class="fc" id="L30">        name = blankToNull(name);</span>
-<span class="fc" id="L31">        buyer = blankToNull(buyer);</span>
-<span class="fc" id="L32">        roles = blankToNull(roles);</span>
-<span class="fc" id="L33">        email = blankToNull(email);</span>
-<span class="fc" id="L34">        status = blankToNull(status);</span>
+<span class="fc" id="L29">        name = blankToNull(name);</span>
+<span class="fc" id="L30">        buyer = blankToNull(buyer);</span>
+<span class="fc" id="L31">        roles = blankToNull(roles);</span>
+<span class="fc" id="L32">        email = blankToNull(email);</span>
+<span class="fc" id="L33">        status = blankToNull(status);</span>
 
-<span class="fc" id="L36">        int offset = page * pageSize;</span>
+<span class="fc" id="L35">        int offset = page * pageSize;</span>
 
-<span class="fc" id="L38">        List&lt;Object[]&gt; rows = directUserRepository.findDirectUsersFiltered(</span>
+<span class="fc" id="L37">        List&lt;Object[]&gt; rows = directUserRepository.findDirectUsersFiltered(</span>
                 name, buyer, roles, email, status, pageSize, offset);
 
-<span class="fc" id="L41">        long totalElements = directUserRepository.countDirectUsersFiltered(</span>
+<span class="fc" id="L40">        long totalElements = directUserRepository.countDirectUsersFiltered(</span>
                 name, buyer, roles, email, status);
 
-<span class="fc" id="L44">        List&lt;DirectUserListResponse&gt; content = rows.stream()</span>
-<span class="fc" id="L45">                .map(this::mapListRow)</span>
-<span class="fc" id="L46">                .collect(Collectors.toList());</span>
+<span class="fc" id="L43">        List&lt;DirectUserListResponse&gt; content = rows.stream()</span>
+<span class="fc" id="L44">                .map(this::mapListRow)</span>
+<span class="fc" id="L45">                .toList();</span>
 
-<span class="fc" id="L48">        int totalPages = (int) Math.ceil((double) totalElements / pageSize);</span>
+<span class="fc" id="L47">        int totalPages = (int) Math.ceil((double) totalElements / pageSize);</span>
 
-<span class="fc" id="L50">        return new DirectUserPageResponse(content, page, pageSize, totalElements, totalPages);</span>
+<span class="fc" id="L49">        return new DirectUserPageResponse(content, page, pageSize, totalElements, totalPages);</span>
     }
 
     // ── Detail ───────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public DirectUserDetailResponse getDirectUserDetail(Long userId) {
-<span class="fc" id="L57">        List&lt;Object[]&gt; rows = directUserRepository.findDirectUserDetail(userId);</span>
-<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (rows.isEmpty()) {</span>
-<span class="fc" id="L59">            throw new RuntimeException(&quot;User not found: &quot; + userId);</span>
+<span class="fc" id="L56">        List&lt;Object[]&gt; rows = directUserRepository.findDirectUserDetail(userId);</span>
+<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (rows.isEmpty()) {</span>
+<span class="fc" id="L58">            throw new RuntimeException(&quot;User not found: &quot; + userId);</span>
         }
-<span class="fc" id="L61">        Object[] row = rows.get(0);</span>
-<span class="fc" id="L62">        List&lt;Long&gt; roleIds = directUserRepository.findRoleIdsByUserId(userId);</span>
-<span class="fc" id="L63">        List&lt;Long&gt; buyerIds = directUserRepository.findBuyerIdsByUserId(userId);</span>
+<span class="fc" id="L60">        Object[] row = rows.get(0);</span>
+<span class="fc" id="L61">        List&lt;Long&gt; roleIds = directUserRepository.findRoleIdsByUserId(userId);</span>
+<span class="fc" id="L62">        List&lt;Long&gt; buyerIds = directUserRepository.findBuyerIdsByUserId(userId);</span>
 
-<span class="fc" id="L65">        DirectUserDetailResponse dto = new DirectUserDetailResponse();</span>
-<span class="fc" id="L66">        dto.setUserId(((Number) row[0]).longValue());</span>
-<span class="fc" id="L67">        dto.setFirstName((String) row[1]);</span>
-<span class="fc" id="L68">        dto.setLastName((String) row[2]);</span>
-<span class="fc" id="L69">        dto.setFullName((String) row[3]);</span>
-<span class="fc" id="L70">        dto.setEmail((String) row[4]);</span>
-<span class="fc" id="L71">        dto.setOverallUserStatus((String) row[5]);</span>
-<span class="fc" id="L72">        dto.setUserStatus((String) row[6]);</span>
-<span class="pc bpc" id="L73" title="2 of 4 branches missed.">        dto.setInactive(row[7] != null &amp;&amp; (Boolean) row[7]);</span>
-<span class="pc bpc" id="L74" title="2 of 4 branches missed.">        dto.setLocalUser(row[8] != null &amp;&amp; (Boolean) row[8]);</span>
-<span class="pc bpc" id="L75" title="2 of 4 branches missed.">        dto.setBuyerRole(row[9] != null &amp;&amp; (Boolean) row[9]);</span>
-<span class="fc" id="L76">        dto.setLandingPagePreference((String) row[10]);</span>
-<span class="fc" id="L77">        dto.setInvitedDate(toLocalDateTime(row[11]));</span>
-<span class="fc" id="L78">        dto.setLastInviteSent(toLocalDateTime(row[12]));</span>
-<span class="fc" id="L79">        dto.setActivationDate(toLocalDateTime(row[13]));</span>
-<span class="fc" id="L80">        dto.setLastLogin(toLocalDateTime(row[14]));</span>
-<span class="fc" id="L81">        dto.setRoleIds(roleIds);</span>
-<span class="fc" id="L82">        dto.setBuyerIds(buyerIds);</span>
-<span class="fc" id="L83">        return dto;</span>
+<span class="fc" id="L64">        DirectUserDetailResponse dto = new DirectUserDetailResponse();</span>
+<span class="fc" id="L65">        dto.setUserId(((Number) row[0]).longValue());</span>
+<span class="fc" id="L66">        dto.setFirstName((String) row[1]);</span>
+<span class="fc" id="L67">        dto.setLastName((String) row[2]);</span>
+<span class="fc" id="L68">        dto.setFullName((String) row[3]);</span>
+<span class="fc" id="L69">        dto.setEmail((String) row[4]);</span>
+<span class="fc" id="L70">        dto.setOverallUserStatus((String) row[5]);</span>
+<span class="fc" id="L71">        dto.setUserStatus((String) row[6]);</span>
+<span class="pc bpc" id="L72" title="2 of 4 branches missed.">        dto.setInactive(row[7] != null &amp;&amp; (Boolean) row[7]);</span>
+<span class="pc bpc" id="L73" title="2 of 4 branches missed.">        dto.setLocalUser(row[8] != null &amp;&amp; (Boolean) row[8]);</span>
+<span class="pc bpc" id="L74" title="2 of 4 branches missed.">        dto.setBuyerRole(row[9] != null &amp;&amp; (Boolean) row[9]);</span>
+<span class="fc" id="L75">        dto.setLandingPagePreference((String) row[10]);</span>
+<span class="fc" id="L76">        dto.setInvitedDate(toLocalDateTime(row[11]));</span>
+<span class="fc" id="L77">        dto.setLastInviteSent(toLocalDateTime(row[12]));</span>
+<span class="fc" id="L78">        dto.setActivationDate(toLocalDateTime(row[13]));</span>
+<span class="fc" id="L79">        dto.setLastLogin(toLocalDateTime(row[14]));</span>
+<span class="fc" id="L80">        dto.setRoleIds(roleIds);</span>
+<span class="fc" id="L81">        dto.setBuyerIds(buyerIds);</span>
+<span class="fc" id="L82">        return dto;</span>
     }
 
     // ── Roles &amp; Buyers lookup ────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public List&lt;RoleResponse&gt; getAllRoles() {
-<span class="fc" id="L90">        return directUserRepository.findAllRoles().stream()</span>
-<span class="fc" id="L91">                .map(r -&gt; new RoleResponse(((Number) r[0]).longValue(), (String) r[1]))</span>
-<span class="fc" id="L92">                .collect(Collectors.toList());</span>
+<span class="fc" id="L89">        return directUserRepository.findAllRoles().stream()</span>
+<span class="fc" id="L90">                .map(r -&gt; new RoleResponse(((Number) r[0]).longValue(), (String) r[1]))</span>
+<span class="fc" id="L91">                .toList();</span>
     }
 
     @Transactional(readOnly = true)
     public List&lt;BuyerResponse&gt; getAllBuyers() {
-<span class="fc" id="L97">        return directUserRepository.findAllBuyers().stream()</span>
-<span class="fc" id="L98">                .map(r -&gt; new BuyerResponse(((Number) r[0]).longValue(), (String) r[1]))</span>
-<span class="fc" id="L99">                .collect(Collectors.toList());</span>
+<span class="fc" id="L96">        return directUserRepository.findAllBuyers().stream()</span>
+<span class="fc" id="L97">                .map(r -&gt; new BuyerResponse(((Number) r[0]).longValue(), (String) r[1]))</span>
+<span class="fc" id="L98">                .toList();</span>
     }
 
     // ── Create ───────────────────────────────────────────────────────
 
     @Transactional
     public DirectUserDetailResponse createDirectUser(DirectUserSaveRequest req) {
-<span class="fc" id="L106">        String fullName = (req.getFirstName() + &quot; &quot; + req.getLastName()).trim();</span>
-<span class="pc bpc" id="L107" title="2 of 4 branches missed.">        boolean isLocal = req.getEmail() != null &amp;&amp; !req.getEmail().endsWith(&quot;@ecoatm.com&quot;);</span>
+<span class="fc" id="L105">        String fullName = (req.getFirstName() + &quot; &quot; + req.getLastName()).trim();</span>
+<span class="pc bpc" id="L106" title="2 of 4 branches missed.">        boolean isLocal = req.getEmail() != null &amp;&amp; !req.getEmail().endsWith(&quot;@ecoatm.com&quot;);</span>
 
         // 1. Insert into identity.users
-<span class="fc" id="L110">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L109">        em.createNativeQuery(&quot;&quot;&quot;</span>
             INSERT INTO identity.users (id, user_type, name, active, created_date, changed_date)
             VALUES (nextval('identity.users_id_seq'), 'EcoATM_UserManagement.EcoATMDirectUser',
                     :name, true, NOW(), NOW())
             &quot;&quot;&quot;)
-<span class="fc" id="L115">                .setParameter(&quot;name&quot;, req.getEmail())</span>
-<span class="fc" id="L116">                .executeUpdate();</span>
+<span class="fc" id="L114">                .setParameter(&quot;name&quot;, req.getEmail())</span>
+<span class="fc" id="L115">                .executeUpdate();</span>
 
         // Get the generated user ID
-<span class="fc" id="L119">        Long userId = ((Number) em.createNativeQuery(</span>
-<span class="fc" id="L120">                &quot;SELECT currval('identity.users_id_seq')&quot;).getSingleResult()).longValue();</span>
+<span class="fc" id="L118">        Long userId = ((Number) em.createNativeQuery(</span>
+<span class="fc" id="L119">                &quot;SELECT currval('identity.users_id_seq')&quot;).getSingleResult()).longValue();</span>
 
         // 2. Insert into identity.accounts
-<span class="fc" id="L123">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L122">        em.createNativeQuery(&quot;&quot;&quot;</span>
             INSERT INTO identity.accounts (user_id, full_name, email, is_local_user)
             VALUES (:userId, :fullName, :email, :isLocal)
             &quot;&quot;&quot;)
-<span class="fc" id="L127">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L128">                .setParameter(&quot;fullName&quot;, fullName)</span>
-<span class="fc" id="L129">                .setParameter(&quot;email&quot;, req.getEmail())</span>
-<span class="fc" id="L130">                .setParameter(&quot;isLocal&quot;, isLocal)</span>
-<span class="fc" id="L131">                .executeUpdate();</span>
+<span class="fc" id="L126">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L127">                .setParameter(&quot;fullName&quot;, fullName)</span>
+<span class="fc" id="L128">                .setParameter(&quot;email&quot;, req.getEmail())</span>
+<span class="fc" id="L129">                .setParameter(&quot;isLocal&quot;, isLocal)</span>
+<span class="fc" id="L130">                .executeUpdate();</span>
 
         // 3. Insert into user_mgmt.ecoatm_direct_users
-<span class="pc bpc" id="L134" title="1 of 2 branches missed.">        String landingPage = req.getLandingPagePreference() != null</span>
-<span class="pc" id="L135">                ? req.getLandingPagePreference() : &quot;Wholesale_Auction&quot;;</span>
-<span class="pc bpc" id="L136" title="1 of 2 branches missed.">        String status = req.getUserStatus() != null ? req.getUserStatus() : &quot;Active&quot;;</span>
-<span class="fc" id="L137">        boolean hasBidderRole = hasBidderRole(req.getRoleIds());</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        String landingPage = req.getLandingPagePreference() != null</span>
+<span class="pc" id="L134">                ? req.getLandingPagePreference() : &quot;Wholesale_Auction&quot;;</span>
+<span class="pc bpc" id="L135" title="1 of 2 branches missed.">        String status = req.getUserStatus() != null ? req.getUserStatus() : &quot;Active&quot;;</span>
+<span class="fc" id="L136">        boolean hasBidderRole = hasBidderRole(req.getRoleIds());</span>
 
-<span class="fc" id="L139">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L138">        em.createNativeQuery(&quot;&quot;&quot;</span>
             INSERT INTO user_mgmt.ecoatm_direct_users
                 (user_id, first_name, last_name, landing_page_preference,
                  user_status, overall_user_status, inactive, is_buyer_role,
@@ -145,57 +144,57 @@ public class DirectUserService {
                     :status, :status, false, :isBuyerRole,
                     NOW(), NOW())
             &quot;&quot;&quot;)
-<span class="fc" id="L148">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L149">                .setParameter(&quot;firstName&quot;, req.getFirstName())</span>
-<span class="fc" id="L150">                .setParameter(&quot;lastName&quot;, req.getLastName())</span>
-<span class="fc" id="L151">                .setParameter(&quot;landingPage&quot;, landingPage)</span>
-<span class="fc" id="L152">                .setParameter(&quot;status&quot;, status)</span>
-<span class="fc" id="L153">                .setParameter(&quot;isBuyerRole&quot;, hasBidderRole)</span>
-<span class="fc" id="L154">                .executeUpdate();</span>
+<span class="fc" id="L147">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L148">                .setParameter(&quot;firstName&quot;, req.getFirstName())</span>
+<span class="fc" id="L149">                .setParameter(&quot;lastName&quot;, req.getLastName())</span>
+<span class="fc" id="L150">                .setParameter(&quot;landingPage&quot;, landingPage)</span>
+<span class="fc" id="L151">                .setParameter(&quot;status&quot;, status)</span>
+<span class="fc" id="L152">                .setParameter(&quot;isBuyerRole&quot;, hasBidderRole)</span>
+<span class="fc" id="L153">                .executeUpdate();</span>
 
         // 4. Insert role assignments
-<span class="fc" id="L157">        insertRoleAssignments(userId, req.getRoleIds());</span>
+<span class="fc" id="L156">        insertRoleAssignments(userId, req.getRoleIds());</span>
 
         // 5. Insert buyer associations
-<span class="fc" id="L160">        insertBuyerAssociations(userId, req.getBuyerIds());</span>
+<span class="fc" id="L159">        insertBuyerAssociations(userId, req.getBuyerIds());</span>
 
-<span class="fc" id="L162">        em.flush();</span>
-<span class="fc" id="L163">        em.clear();</span>
-<span class="fc" id="L164">        return getDirectUserDetail(userId);</span>
+<span class="fc" id="L161">        em.flush();</span>
+<span class="fc" id="L162">        em.clear();</span>
+<span class="fc" id="L163">        return getDirectUserDetail(userId);</span>
     }
 
     // ── Update ───────────────────────────────────────────────────────
 
     @Transactional
     public DirectUserDetailResponse updateDirectUser(Long userId, DirectUserSaveRequest req) {
-<span class="fc" id="L171">        String fullName = (req.getFirstName() + &quot; &quot; + req.getLastName()).trim();</span>
-<span class="fc" id="L172">        boolean hasBidderRole = hasBidderRole(req.getRoleIds());</span>
+<span class="fc" id="L170">        String fullName = (req.getFirstName() + &quot; &quot; + req.getLastName()).trim();</span>
+<span class="fc" id="L171">        boolean hasBidderRole = hasBidderRole(req.getRoleIds());</span>
 
         // Compute overall_user_status: Inactive if inactive flag, else user_status
-<span class="pc bpc" id="L175" title="1 of 2 branches missed.">        String overallStatus = req.isInactive() ? &quot;Inactive&quot;</span>
-<span class="pc bpc" id="L176" title="1 of 2 branches missed.">                : (req.getUserStatus() != null ? req.getUserStatus() : &quot;Active&quot;);</span>
+<span class="pc bpc" id="L174" title="1 of 2 branches missed.">        String overallStatus = req.isInactive() ? &quot;Inactive&quot;</span>
+<span class="pc bpc" id="L175" title="1 of 2 branches missed.">                : (req.getUserStatus() != null ? req.getUserStatus() : &quot;Active&quot;);</span>
 
         // 1. Update accounts
-<span class="fc" id="L179">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L178">        em.createNativeQuery(&quot;&quot;&quot;</span>
             UPDATE identity.accounts SET full_name = :fullName, email = :email
             WHERE user_id = :userId
             &quot;&quot;&quot;)
-<span class="fc" id="L183">                .setParameter(&quot;fullName&quot;, fullName)</span>
-<span class="fc" id="L184">                .setParameter(&quot;email&quot;, req.getEmail())</span>
-<span class="fc" id="L185">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L186">                .executeUpdate();</span>
+<span class="fc" id="L182">                .setParameter(&quot;fullName&quot;, fullName)</span>
+<span class="fc" id="L183">                .setParameter(&quot;email&quot;, req.getEmail())</span>
+<span class="fc" id="L184">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L185">                .executeUpdate();</span>
 
         // 2. Update identity.users name (login name = email)
-<span class="fc" id="L189">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L188">        em.createNativeQuery(&quot;&quot;&quot;</span>
             UPDATE identity.users SET name = :name, changed_date = NOW()
             WHERE id = :userId
             &quot;&quot;&quot;)
-<span class="fc" id="L193">                .setParameter(&quot;name&quot;, req.getEmail())</span>
-<span class="fc" id="L194">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L195">                .executeUpdate();</span>
+<span class="fc" id="L192">                .setParameter(&quot;name&quot;, req.getEmail())</span>
+<span class="fc" id="L193">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L194">                .executeUpdate();</span>
 
         // 3. Update ecoatm_direct_users
-<span class="fc" id="L198">        em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L197">        em.createNativeQuery(&quot;&quot;&quot;</span>
             UPDATE user_mgmt.ecoatm_direct_users SET
                 first_name = :firstName, last_name = :lastName,
                 user_status = :userStatus, inactive = :inactive,
@@ -205,81 +204,81 @@ public class DirectUserService {
                 changed_date = NOW()
             WHERE user_id = :userId
             &quot;&quot;&quot;)
-<span class="fc" id="L208">                .setParameter(&quot;firstName&quot;, req.getFirstName())</span>
-<span class="fc" id="L209">                .setParameter(&quot;lastName&quot;, req.getLastName())</span>
-<span class="fc" id="L210">                .setParameter(&quot;userStatus&quot;, req.getUserStatus())</span>
-<span class="fc" id="L211">                .setParameter(&quot;inactive&quot;, req.isInactive())</span>
-<span class="fc" id="L212">                .setParameter(&quot;overallStatus&quot;, overallStatus)</span>
-<span class="fc" id="L213">                .setParameter(&quot;landingPage&quot;, req.getLandingPagePreference())</span>
-<span class="fc" id="L214">                .setParameter(&quot;isBuyerRole&quot;, hasBidderRole)</span>
-<span class="fc" id="L215">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L216">                .executeUpdate();</span>
+<span class="fc" id="L207">                .setParameter(&quot;firstName&quot;, req.getFirstName())</span>
+<span class="fc" id="L208">                .setParameter(&quot;lastName&quot;, req.getLastName())</span>
+<span class="fc" id="L209">                .setParameter(&quot;userStatus&quot;, req.getUserStatus())</span>
+<span class="fc" id="L210">                .setParameter(&quot;inactive&quot;, req.isInactive())</span>
+<span class="fc" id="L211">                .setParameter(&quot;overallStatus&quot;, overallStatus)</span>
+<span class="fc" id="L212">                .setParameter(&quot;landingPage&quot;, req.getLandingPagePreference())</span>
+<span class="fc" id="L213">                .setParameter(&quot;isBuyerRole&quot;, hasBidderRole)</span>
+<span class="fc" id="L214">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L215">                .executeUpdate();</span>
 
         // 4. Replace role assignments
-<span class="fc" id="L219">        em.createNativeQuery(&quot;DELETE FROM identity.user_role_assignments WHERE user_id = :userId&quot;)</span>
-<span class="fc" id="L220">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L221">                .executeUpdate();</span>
-<span class="fc" id="L222">        insertRoleAssignments(userId, req.getRoleIds());</span>
+<span class="fc" id="L218">        em.createNativeQuery(&quot;DELETE FROM identity.user_role_assignments WHERE user_id = :userId&quot;)</span>
+<span class="fc" id="L219">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L220">                .executeUpdate();</span>
+<span class="fc" id="L221">        insertRoleAssignments(userId, req.getRoleIds());</span>
 
         // 5. Replace buyer associations
-<span class="fc" id="L225">        em.createNativeQuery(&quot;DELETE FROM user_mgmt.user_buyers WHERE user_id = :userId&quot;)</span>
-<span class="fc" id="L226">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L227">                .executeUpdate();</span>
-<span class="fc" id="L228">        insertBuyerAssociations(userId, req.getBuyerIds());</span>
+<span class="fc" id="L224">        em.createNativeQuery(&quot;DELETE FROM user_mgmt.user_buyers WHERE user_id = :userId&quot;)</span>
+<span class="fc" id="L225">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L226">                .executeUpdate();</span>
+<span class="fc" id="L227">        insertBuyerAssociations(userId, req.getBuyerIds());</span>
 
-<span class="fc" id="L230">        em.flush();</span>
-<span class="fc" id="L231">        em.clear();</span>
-<span class="fc" id="L232">        return getDirectUserDetail(userId);</span>
+<span class="fc" id="L229">        em.flush();</span>
+<span class="fc" id="L230">        em.clear();</span>
+<span class="fc" id="L231">        return getDirectUserDetail(userId);</span>
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
 
     private void insertRoleAssignments(Long userId, List&lt;Long&gt; roleIds) {
-<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        if (roleIds == null) return;</span>
-<span class="fc bfc" id="L239" title="All 2 branches covered.">        for (Long roleId : roleIds) {</span>
-<span class="fc" id="L240">            em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="pc bpc" id="L237" title="1 of 2 branches missed.">        if (roleIds == null) return;</span>
+<span class="fc bfc" id="L238" title="All 2 branches covered.">        for (Long roleId : roleIds) {</span>
+<span class="fc" id="L239">            em.createNativeQuery(&quot;&quot;&quot;</span>
                 INSERT INTO identity.user_role_assignments (user_id, role_id)
                 VALUES (:userId, :roleId)
                 &quot;&quot;&quot;)
-<span class="fc" id="L244">                    .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L245">                    .setParameter(&quot;roleId&quot;, roleId)</span>
-<span class="fc" id="L246">                    .executeUpdate();</span>
-<span class="fc" id="L247">        }</span>
-<span class="fc" id="L248">    }</span>
+<span class="fc" id="L243">                    .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L244">                    .setParameter(&quot;roleId&quot;, roleId)</span>
+<span class="fc" id="L245">                    .executeUpdate();</span>
+<span class="fc" id="L246">        }</span>
+<span class="fc" id="L247">    }</span>
 
     private void insertBuyerAssociations(Long userId, List&lt;Long&gt; buyerIds) {
-<span class="pc bpc" id="L251" title="1 of 2 branches missed.">        if (buyerIds == null) return;</span>
-<span class="fc bfc" id="L252" title="All 2 branches covered.">        for (Long buyerId : buyerIds) {</span>
-<span class="fc" id="L253">            em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        if (buyerIds == null) return;</span>
+<span class="fc bfc" id="L251" title="All 2 branches covered.">        for (Long buyerId : buyerIds) {</span>
+<span class="fc" id="L252">            em.createNativeQuery(&quot;&quot;&quot;</span>
                 INSERT INTO user_mgmt.user_buyers (user_id, buyer_id)
                 VALUES (:userId, :buyerId)
                 &quot;&quot;&quot;)
-<span class="fc" id="L257">                    .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L258">                    .setParameter(&quot;buyerId&quot;, buyerId)</span>
-<span class="fc" id="L259">                    .executeUpdate();</span>
-<span class="fc" id="L260">        }</span>
-<span class="fc" id="L261">    }</span>
+<span class="fc" id="L256">                    .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L257">                    .setParameter(&quot;buyerId&quot;, buyerId)</span>
+<span class="fc" id="L258">                    .executeUpdate();</span>
+<span class="fc" id="L259">        }</span>
+<span class="fc" id="L260">    }</span>
 
     private boolean hasBidderRole(List&lt;Long&gt; roleIds) {
-<span class="pc bpc" id="L264" title="2 of 4 branches missed.">        if (roleIds == null || roleIds.isEmpty()) return false;</span>
-<span class="fc" id="L265">        Number count = (Number) em.createNativeQuery(</span>
+<span class="pc bpc" id="L263" title="2 of 4 branches missed.">        if (roleIds == null || roleIds.isEmpty()) return false;</span>
+<span class="fc" id="L264">        Number count = (Number) em.createNativeQuery(</span>
                 &quot;SELECT COUNT(*) FROM identity.user_roles WHERE id IN (:roleIds) AND LOWER(name) = 'bidder'&quot;)
-<span class="fc" id="L267">                .setParameter(&quot;roleIds&quot;, roleIds)</span>
-<span class="fc" id="L268">                .getSingleResult();</span>
-<span class="pc bpc" id="L269" title="1 of 2 branches missed.">        return count.intValue() &gt; 0;</span>
+<span class="fc" id="L266">                .setParameter(&quot;roleIds&quot;, roleIds)</span>
+<span class="fc" id="L267">                .getSingleResult();</span>
+<span class="pc bpc" id="L268" title="1 of 2 branches missed.">        return count.intValue() &gt; 0;</span>
     }
 
     private DirectUserListResponse mapListRow(Object[] row) {
-<span class="fc" id="L273">        LocalDate changedDate = null;</span>
-<span class="pc bpc" id="L274" title="1 of 2 branches missed.">        if (row[7] != null) {</span>
-<span class="fc" id="L275">            changedDate = ((Timestamp) row[7]).toLocalDateTime().toLocalDate();</span>
+<span class="fc" id="L272">        LocalDate changedDate = null;</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">        if (row[7] != null) {</span>
+<span class="fc" id="L274">            changedDate = ((Timestamp) row[7]).toLocalDateTime().toLocalDate();</span>
         }
-<span class="fc" id="L277">        return new DirectUserListResponse(</span>
-<span class="fc" id="L278">                ((Number) row[0]).longValue(),</span>
+<span class="fc" id="L276">        return new DirectUserListResponse(</span>
+<span class="fc" id="L277">                ((Number) row[0]).longValue(),</span>
                 (String) row[1],
                 (String) row[2],
                 (String) row[3],
-<span class="pc bpc" id="L282" title="1 of 2 branches missed.">                row[4] != null ? ((Number) row[4]).longValue() : null,</span>
+<span class="pc bpc" id="L281" title="1 of 2 branches missed.">                row[4] != null ? ((Number) row[4]).longValue() : null,</span>
                 (String) row[5],
                 (String) row[6],
                 changedDate
@@ -287,14 +286,14 @@ public class DirectUserService {
     }
 
     private LocalDateTime toLocalDateTime(Object val) {
-<span class="pc bpc" id="L290" title="1 of 2 branches missed.">        if (val == null) return null;</span>
-<span class="pc bpc" id="L291" title="1 of 2 branches missed.">        if (val instanceof Timestamp ts) return ts.toLocalDateTime();</span>
-<span class="nc bnc" id="L292" title="All 2 branches missed.">        if (val instanceof LocalDateTime ldt) return ldt;</span>
-<span class="nc" id="L293">        return null;</span>
+<span class="pc bpc" id="L289" title="1 of 2 branches missed.">        if (val == null) return null;</span>
+<span class="pc bpc" id="L290" title="1 of 2 branches missed.">        if (val instanceof Timestamp ts) return ts.toLocalDateTime();</span>
+<span class="nc bnc" id="L291" title="All 2 branches missed.">        if (val instanceof LocalDateTime ldt) return ldt;</span>
+<span class="nc" id="L292">        return null;</span>
     }
 
     private String blankToNull(String value) {
-<span class="pc bpc" id="L297" title="1 of 4 branches missed.">        return (value == null || value.isBlank()) ? null : value;</span>
+<span class="pc bpc" id="L296" title="1 of 4 branches missed.">        return (value == null || value.isBlank()) ? null : value;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -4,8 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './controlCenter.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/admin';
+const BASE = `${API_BASE}/admin`;
 
 interface Banner {
   type: 'success' | 'error' | 'info';
@@ -27,7 +28,7 @@ export default function PWSControlCenterPage() {
     setActionLoading(true);
     setBanner(null);
     try {
-      const res = await apiFetch(`${API_BASE}${endpoint}`, { method: 'POST' });
+      const res = await apiFetch(`${BASE}${endpoint}`, { method: 'POST' });
       const data = await res.json();
       if (data.success !== false) {
         setBanner({ type: 'success', message: data.message || successMsg });

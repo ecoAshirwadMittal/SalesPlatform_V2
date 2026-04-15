@@ -6,7 +6,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implements Mendix DS_PWS_BuyerCodes microflow logic.
@@ -24,62 +23,58 @@ public class BuyerCodeService {
 
     private final EntityManager em;
 
-<span class="fc" id="L27">    public BuyerCodeService(EntityManager em) {</span>
-<span class="fc" id="L28">        this.em = em;</span>
-<span class="fc" id="L29">    }</span>
+<span class="fc" id="L26">    public BuyerCodeService(EntityManager em) {</span>
+<span class="fc" id="L27">        this.em = em;</span>
+<span class="fc" id="L28">    }</span>
 
     /**
      * Load buyer codes for the given user, split by role.
      * Mirrors DS_PWS_BuyerCodes decision logic.
+     * Uses a single CTE query to check role and fetch codes in one round-trip.
      */
     @Transactional(readOnly = true)
     @SuppressWarnings(&quot;unchecked&quot;)
     public List&lt;BuyerCodeResponse&gt; getBuyerCodesForUser(Long userId) {
-<span class="fc" id="L38">        boolean isBuyerRole = isBuyerRole(userId);</span>
-
-        List&lt;Object[]&gt; rows;
-
-<span class="fc bfc" id="L42" title="All 2 branches covered.">        if (isBuyerRole) {</span>
-            // Bidder: get codes linked to user's buyers, exclude PO types
-<span class="fc" id="L44">            rows = em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L38">        List&lt;Object[]&gt; rows = em.createNativeQuery(&quot;&quot;&quot;</span>
+                WITH role_check AS (
+                    SELECT COALESCE(
+                        (SELECT edu.is_buyer_role
+                         FROM user_mgmt.ecoatm_direct_users edu
+                         WHERE edu.user_id = :userId),
+                        false
+                    ) AS is_buyer
+                )
                 SELECT DISTINCT bc.id, bc.code, b.company_name, bc.buyer_code_type
                 FROM buyer_mgmt.buyer_codes bc
                 JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
                 JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
-                JOIN user_mgmt.user_buyers ub ON ub.buyer_id = b.id
-                WHERE ub.user_id = :userId
-                  AND bc.status = 'Active'
-                  AND bc.soft_delete = false
-                  AND b.status = 'Active'
-                  AND bc.buyer_code_type NOT IN ('Purchasing_Order', 'Purchasing_Order_Data_Wipe')
-                ORDER BY bc.code
-                &quot;&quot;&quot;)
-<span class="fc" id="L57">                    .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L58">                    .getResultList();</span>
-        } else {
-            // Admin/SalesRep: all active PWS codes from active buyers
-<span class="fc" id="L61">            rows = em.createNativeQuery(&quot;&quot;&quot;</span>
-                SELECT DISTINCT bc.id, bc.code, b.company_name, bc.buyer_code_type
-                FROM buyer_mgmt.buyer_codes bc
-                JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
-                JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
+                LEFT JOIN user_mgmt.user_buyers ub
+                    ON ub.buyer_id = b.id AND ub.user_id = :userId
+                CROSS JOIN role_check rc
                 WHERE bc.status = 'Active'
                   AND bc.soft_delete = false
                   AND b.status = 'Active'
-                  AND bc.buyer_code_type IN ('Premium_Wholesale', 'Wholesale')
+                  AND (
+                      (rc.is_buyer
+                       AND ub.user_id IS NOT NULL
+                       AND bc.buyer_code_type NOT IN ('Purchasing_Order', 'Purchasing_Order_Data_Wipe'))
+                      OR
+                      (NOT rc.is_buyer
+                       AND bc.buyer_code_type IN ('Premium_Wholesale', 'Wholesale'))
+                  )
                 ORDER BY bc.code
                 &quot;&quot;&quot;)
-<span class="fc" id="L72">                    .getResultList();</span>
-        }
+<span class="fc" id="L67">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L68">                .getResultList();</span>
 
-<span class="fc" id="L75">        return rows.stream()</span>
-<span class="fc" id="L76">                .map(r -&gt; new BuyerCodeResponse(</span>
-<span class="fc" id="L77">                        ((Number) r[0]).longValue(),</span>
+<span class="fc" id="L70">        return rows.stream()</span>
+<span class="fc" id="L71">                .map(r -&gt; new BuyerCodeResponse(</span>
+<span class="fc" id="L72">                        ((Number) r[0]).longValue(),</span>
                         (String) r[1],
                         (String) r[2],
                         (String) r[3]
                 ))
-<span class="fc" id="L82">                .collect(Collectors.toList());</span>
+<span class="fc" id="L77">                .toList();</span>
     }
 
     /**
@@ -90,15 +85,15 @@ public class BuyerCodeService {
      */
     @Transactional(readOnly = true)
     public boolean isUserAuthorizedForBuyerCode(Long userId, Long buyerCodeId) {
-<span class="fc" id="L93">        boolean isBuyerRole = isBuyerRole(userId);</span>
+<span class="fc" id="L88">        boolean isBuyerRole = isBuyerRole(userId);</span>
 
-<span class="fc bfc" id="L95" title="All 2 branches covered.">        if (!isBuyerRole) {</span>
+<span class="fc bfc" id="L90" title="All 2 branches covered.">        if (!isBuyerRole) {</span>
             // Admin/SalesRep can access any active buyer code
-<span class="fc" id="L97">            return true;</span>
+<span class="fc" id="L92">            return true;</span>
         }
 
         // Bidder: check the relationship chain exists
-<span class="fc" id="L101">        Long count = (Long) em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L96">        Long count = (Long) em.createNativeQuery(&quot;&quot;&quot;</span>
                 SELECT COUNT(*)
                 FROM buyer_mgmt.buyer_codes bc
                 JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
@@ -108,23 +103,23 @@ public class BuyerCodeService {
                   AND bc.status = 'Active'
                   AND bc.soft_delete = false
                 &quot;&quot;&quot;, Long.class)
-<span class="fc" id="L111">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L112">                .setParameter(&quot;buyerCodeId&quot;, buyerCodeId)</span>
-<span class="fc" id="L113">                .getSingleResult();</span>
+<span class="fc" id="L106">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L107">                .setParameter(&quot;buyerCodeId&quot;, buyerCodeId)</span>
+<span class="fc" id="L108">                .getSingleResult();</span>
 
-<span class="fc bfc" id="L115" title="All 2 branches covered.">        return count &gt; 0;</span>
+<span class="fc bfc" id="L110" title="All 2 branches covered.">        return count &gt; 0;</span>
     }
 
     private boolean isBuyerRole(Long userId) {
-<span class="fc" id="L119">        List&lt;Boolean&gt; result = em.createNativeQuery(&quot;&quot;&quot;</span>
+<span class="fc" id="L114">        List&lt;Boolean&gt; result = em.createNativeQuery(&quot;&quot;&quot;</span>
                 SELECT edu.is_buyer_role
                 FROM user_mgmt.ecoatm_direct_users edu
                 WHERE edu.user_id = :userId
                 &quot;&quot;&quot;, Boolean.class)
-<span class="fc" id="L124">                .setParameter(&quot;userId&quot;, userId)</span>
-<span class="fc" id="L125">                .getResultList();</span>
+<span class="fc" id="L119">                .setParameter(&quot;userId&quot;, userId)</span>
+<span class="fc" id="L120">                .getResultList();</span>
 
-<span class="pc bpc" id="L127" title="1 of 4 branches missed.">        return !result.isEmpty() &amp;&amp; Boolean.TRUE.equals(result.get(0));</span>
+<span class="pc bpc" id="L122" title="1 of 4 branches missed.">        return !result.isEmpty() &amp;&amp; Boolean.TRUE.equals(result.get(0));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

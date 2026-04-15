@@ -71,8 +71,8 @@ import java.util.List;
     @Column(name = &quot;counter_response_submitted_on&quot;)
     private LocalDateTime counterResponseSubmittedOn;
 
-    @Column(name = &quot;visible_in_history&quot;, nullable = false)
-<span class="fc" id="L75">    private boolean visibleInHistory = true;</span>
+<span class="fc" id="L74">    @Column(name = &quot;visible_in_history&quot;, nullable = false)</span>
+    private boolean visibleInHistory = true;
 
     @Column(name = &quot;created_date&quot;, updatable = false)
     private LocalDateTime createdDate;
@@ -80,8 +80,8 @@ import java.util.List;
     @Column(name = &quot;updated_date&quot;)
     private LocalDateTime updatedDate;
 
-    @OneToMany(mappedBy = &quot;offer&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
-<span class="fc" id="L84">    private List&lt;OfferItem&gt; items = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L83">    @OneToMany(mappedBy = &quot;offer&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;OfferItem&gt; items = new ArrayList&lt;&gt;();
 
     @PrePersist
     protected void onCreate() {
@@ -142,13 +142,13 @@ import java.util.List;
 <span class="fc" id="L142">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
 
 <span class="fc" id="L144">    public Integer getCounterOfferTotalSku() { return counterOfferTotalSku; }</span>
-<span class="nc" id="L145">    public void setCounterOfferTotalSku(Integer counterOfferTotalSku) { this.counterOfferTotalSku = counterOfferTotalSku; }</span>
+<span class="fc" id="L145">    public void setCounterOfferTotalSku(Integer counterOfferTotalSku) { this.counterOfferTotalSku = counterOfferTotalSku; }</span>
 
 <span class="fc" id="L147">    public Integer getCounterOfferTotalQty() { return counterOfferTotalQty; }</span>
-<span class="nc" id="L148">    public void setCounterOfferTotalQty(Integer counterOfferTotalQty) { this.counterOfferTotalQty = counterOfferTotalQty; }</span>
+<span class="fc" id="L148">    public void setCounterOfferTotalQty(Integer counterOfferTotalQty) { this.counterOfferTotalQty = counterOfferTotalQty; }</span>
 
 <span class="fc" id="L150">    public BigDecimal getCounterOfferTotalPrice() { return counterOfferTotalPrice; }</span>
-<span class="nc" id="L151">    public void setCounterOfferTotalPrice(BigDecimal counterOfferTotalPrice) { this.counterOfferTotalPrice = counterOfferTotalPrice; }</span>
+<span class="fc" id="L151">    public void setCounterOfferTotalPrice(BigDecimal counterOfferTotalPrice) { this.counterOfferTotalPrice = counterOfferTotalPrice; }</span>
 
 <span class="fc" id="L153">    public Integer getFinalOfferTotalSku() { return finalOfferTotalSku; }</span>
 <span class="fc" id="L154">    public void setFinalOfferTotalSku(Integer finalOfferTotalSku) { this.finalOfferTotalSku = finalOfferTotalSku; }</span>

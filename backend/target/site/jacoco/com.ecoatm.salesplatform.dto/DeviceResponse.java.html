@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DeviceResponse.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.dto</a> &gt; <span class="el_source">DeviceResponse.java</span></div><h1>DeviceResponse.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.dto;
 
 import com.ecoatm.salesplatform.model.mdm.Device;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,85 +11,63 @@ import java.time.LocalDateTime;
  * Read-only projection of a Device for API responses.
  * Flattens lookup entity names so the consumer doesn't need to resolve IDs.
  */
-<span class="fc" id="L12">public class DeviceResponse {</span>
+@Getter
+<span class="nc" id="L15">@Setter</span>
+<span class="fc" id="L16">public class DeviceResponse {</span>
 
-    private Long id;
-    private String sku;
-    private String deviceCode;
-    private String description;
+<span class="fc" id="L18">    private Long id;</span>
+<span class="fc" id="L19">    private String sku;</span>
+<span class="fc" id="L20">    private String deviceCode;</span>
+<span class="fc" id="L21">    private String description;</span>
 
-    private BigDecimal listPrice;
-    private BigDecimal minPrice;
-    private Integer availableQty;
-    private Integer reservedQty;
-    private Integer atpQty;
-    private BigDecimal weight;
-    private String itemType;
-    private Boolean isActive;
+<span class="fc" id="L23">    private BigDecimal listPrice;</span>
+<span class="fc" id="L24">    private BigDecimal minPrice;</span>
+<span class="fc" id="L25">    private Integer availableQty;</span>
+<span class="fc" id="L26">    private Integer reservedQty;</span>
+<span class="fc" id="L27">    private Integer atpQty;</span>
+<span class="fc" id="L28">    private BigDecimal weight;</span>
+<span class="fc" id="L29">    private String itemType;</span>
+<span class="fc" id="L30">    private Boolean isActive;</span>
 
-    private String brandName;
-    private String categoryName;
-    private String modelName;
-    private String conditionName;
-    private String capacityName;
-    private String carrierName;
-    private String colorName;
-    private String gradeName;
+<span class="fc" id="L32">    private String brandName;</span>
+<span class="fc" id="L33">    private String categoryName;</span>
+<span class="fc" id="L34">    private String modelName;</span>
+<span class="fc" id="L35">    private String conditionName;</span>
+<span class="fc" id="L36">    private String capacityName;</span>
+<span class="fc" id="L37">    private String carrierName;</span>
+<span class="fc" id="L38">    private String colorName;</span>
+<span class="fc" id="L39">    private String gradeName;</span>
 
-    private LocalDateTime createdDate;
-    private LocalDateTime updatedDate;
+<span class="fc" id="L41">    private LocalDateTime createdDate;</span>
+<span class="fc" id="L42">    private LocalDateTime updatedDate;</span>
 
     public static DeviceResponse fromEntity(Device d) {
-<span class="fc" id="L41">        DeviceResponse r = new DeviceResponse();</span>
-<span class="fc" id="L42">        r.id = d.getId();</span>
-<span class="fc" id="L43">        r.sku = d.getSku();</span>
-<span class="fc" id="L44">        r.deviceCode = d.getDeviceCode();</span>
-<span class="fc" id="L45">        r.description = d.getDescription();</span>
-<span class="fc" id="L46">        r.listPrice = d.getListPrice();</span>
-<span class="fc" id="L47">        r.minPrice = d.getMinPrice();</span>
-<span class="fc" id="L48">        r.availableQty = d.getAvailableQty();</span>
-<span class="fc" id="L49">        r.reservedQty = d.getReservedQty();</span>
-<span class="fc" id="L50">        r.atpQty = d.getAtpQty();</span>
-<span class="fc" id="L51">        r.weight = d.getWeight();</span>
-<span class="fc" id="L52">        r.itemType = d.getItemType();</span>
-<span class="fc" id="L53">        r.isActive = d.getIsActive();</span>
-<span class="fc" id="L54">        r.createdDate = d.getCreatedDate();</span>
-<span class="fc" id="L55">        r.updatedDate = d.getUpdatedDate();</span>
+<span class="fc" id="L45">        DeviceResponse r = new DeviceResponse();</span>
+<span class="fc" id="L46">        r.id = d.getId();</span>
+<span class="fc" id="L47">        r.sku = d.getSku();</span>
+<span class="fc" id="L48">        r.deviceCode = d.getDeviceCode();</span>
+<span class="fc" id="L49">        r.description = d.getDescription();</span>
+<span class="fc" id="L50">        r.listPrice = d.getListPrice();</span>
+<span class="fc" id="L51">        r.minPrice = d.getMinPrice();</span>
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        r.availableQty = d.getAtpQty() != null ? d.getAtpQty() : d.getAvailableQty();</span>
+<span class="fc" id="L53">        r.reservedQty = d.getReservedQty();</span>
+<span class="fc" id="L54">        r.atpQty = d.getAtpQty();</span>
+<span class="fc" id="L55">        r.weight = d.getWeight();</span>
+<span class="fc" id="L56">        r.itemType = d.getItemType();</span>
+<span class="fc" id="L57">        r.isActive = d.getIsActive();</span>
+<span class="fc" id="L58">        r.createdDate = d.getCreatedDate();</span>
+<span class="fc" id="L59">        r.updatedDate = d.getUpdatedDate();</span>
 
-<span class="fc bfc" id="L57" title="All 2 branches covered.">        if (d.getBrand() != null)     r.brandName     = d.getBrand().getDisplayName();</span>
-<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        if (d.getCategory() != null)  r.categoryName  = d.getCategory().getDisplayName();</span>
-<span class="pc bpc" id="L59" title="1 of 2 branches missed.">        if (d.getModel() != null)     r.modelName     = d.getModel().getDisplayName();</span>
-<span class="pc bpc" id="L60" title="1 of 2 branches missed.">        if (d.getCondition() != null) r.conditionName = d.getCondition().getDisplayName();</span>
-<span class="pc bpc" id="L61" title="1 of 2 branches missed.">        if (d.getCapacity() != null)  r.capacityName  = d.getCapacity().getDisplayName();</span>
-<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (d.getCarrier() != null)   r.carrierName   = d.getCarrier().getDisplayName();</span>
-<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (d.getColor() != null)     r.colorName     = d.getColor().getDisplayName();</span>
-<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        if (d.getGrade() != null)     r.gradeName     = d.getGrade().getDisplayName();</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (d.getBrand() != null)     r.brandName     = d.getBrand().getDisplayName();</span>
+<span class="pc bpc" id="L62" title="1 of 2 branches missed.">        if (d.getCategory() != null)  r.categoryName  = d.getCategory().getDisplayName();</span>
+<span class="pc bpc" id="L63" title="1 of 2 branches missed.">        if (d.getModel() != null)     r.modelName     = d.getModel().getDisplayName();</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">        if (d.getCondition() != null) r.conditionName = d.getCondition().getDisplayName();</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">        if (d.getCapacity() != null)  r.capacityName  = d.getCapacity().getDisplayName();</span>
+<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (d.getCarrier() != null)   r.carrierName   = d.getCarrier().getDisplayName();</span>
+<span class="pc bpc" id="L67" title="1 of 2 branches missed.">        if (d.getColor() != null)     r.colorName     = d.getColor().getDisplayName();</span>
+<span class="pc bpc" id="L68" title="1 of 2 branches missed.">        if (d.getGrade() != null)     r.gradeName     = d.getGrade().getDisplayName();</span>
 
-<span class="fc" id="L66">        return r;</span>
+<span class="fc" id="L70">        return r;</span>
     }
-
-    // Getters
-<span class="fc" id="L70">    public Long getId() { return id; }</span>
-<span class="fc" id="L71">    public String getSku() { return sku; }</span>
-<span class="fc" id="L72">    public String getDeviceCode() { return deviceCode; }</span>
-<span class="fc" id="L73">    public String getDescription() { return description; }</span>
-<span class="fc" id="L74">    public BigDecimal getListPrice() { return listPrice; }</span>
-<span class="fc" id="L75">    public BigDecimal getMinPrice() { return minPrice; }</span>
-<span class="fc" id="L76">    public Integer getAvailableQty() { return availableQty; }</span>
-<span class="fc" id="L77">    public Integer getReservedQty() { return reservedQty; }</span>
-<span class="fc" id="L78">    public Integer getAtpQty() { return atpQty; }</span>
-<span class="fc" id="L79">    public BigDecimal getWeight() { return weight; }</span>
-<span class="fc" id="L80">    public String getItemType() { return itemType; }</span>
-<span class="fc" id="L81">    public Boolean getIsActive() { return isActive; }</span>
-<span class="fc" id="L82">    public String getBrandName() { return brandName; }</span>
-<span class="fc" id="L83">    public String getCategoryName() { return categoryName; }</span>
-<span class="fc" id="L84">    public String getModelName() { return modelName; }</span>
-<span class="fc" id="L85">    public String getConditionName() { return conditionName; }</span>
-<span class="fc" id="L86">    public String getCapacityName() { return capacityName; }</span>
-<span class="fc" id="L87">    public String getCarrierName() { return carrierName; }</span>
-<span class="fc" id="L88">    public String getColorName() { return colorName; }</span>
-<span class="fc" id="L89">    public String getGradeName() { return gradeName; }</span>
-<span class="fc" id="L90">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
-<span class="fc" id="L91">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

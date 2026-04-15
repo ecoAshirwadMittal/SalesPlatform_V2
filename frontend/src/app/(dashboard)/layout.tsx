@@ -4,23 +4,11 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
+import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
+import { getAuthUser, type AuthUser } from '@/lib/session';
+import type { NavItem } from '@/lib/types';
 import styles from './dashboard.module.css';
-
-interface SubNavItem {
-  label: string;
-  href: string;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  /** SVG icon as JSX, or a short text badge (e.g. "PO", "RB") */
-  icon: React.ReactNode;
-  /** If true, shows a chevron and can expand sub-items */
-  expandable?: boolean;
-  /** Sub-menu items shown when expanded */
-  children?: SubNavItem[];
-}
 
 const navItems: NavItem[] = [
   {
@@ -114,31 +102,13 @@ const navItems: NavItem[] = [
   },
 ];
 
-interface AuthUser {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  email: string;
-  initials: string;
-}
-
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [collapsed] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(() => new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Load user from localStorage (set during login — mirrors ACT_GetCurrentUser)
-  useEffect(() => {
-    const stored = localStorage.getItem('auth_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
-    }
-  }, []);
 
   // Auto-expand menus whose children or parent href match the current path
   useEffect(() => {
@@ -177,9 +147,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const displayName = user?.fullName || user?.email || 'User';
   const initials = user?.initials || displayName.slice(0, 2).toUpperCase();
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+  const handleLogout = async () => {
+    try {
+      await apiFetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+    } catch {
+      // best effort — still clear local state and redirect
+    }
     localStorage.removeItem('auth_user');
+    try { new BroadcastChannel('auth').postMessage('logout'); } catch { /* unsupported */ }
     router.push('/login');
   };
 
@@ -206,16 +181,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     onClick={() => toggleMenu(item.label)}
                   >
                     <span className={styles.navIcon}>{item.icon}</span>
-                    {!collapsed && (
-                      <>
-                        <span className={styles.navLabel}>{item.label}</span>
-                        <span className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`}>
-                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-                        </span>
-                      </>
-                    )}
+                    <span className={styles.navLabel}>{item.label}</span>
+                    <span className={`${styles.chevron} ${isExpanded ? styles.chevronOpen : ''}`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                    </span>
                   </button>
-                  {isExpanded && !collapsed && (
+                  {isExpanded && (
                     <div className={styles.subMenu}>
                       {item.children!.map(child => (
                         <Link
@@ -239,15 +210,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
               >
                 <span className={styles.navIcon}>{item.icon}</span>
-                {!collapsed && (
-                  <>
-                    <span className={styles.navLabel}>{item.label}</span>
-                    {item.expandable && (
-                      <span className={styles.chevron}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
-                      </span>
-                    )}
-                  </>
+                <span className={styles.navLabel}>{item.label}</span>
+                {item.expandable && (
+                  <span className={styles.chevron}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"/></svg>
+                  </span>
                 )}
               </Link>
             );

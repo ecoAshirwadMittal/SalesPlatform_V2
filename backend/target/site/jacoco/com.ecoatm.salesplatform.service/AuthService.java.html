@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-@RequiredArgsConstructor
+<span class="fc" id="L18">@RequiredArgsConstructor</span>
 public class AuthService {
 
     private final UserRepository userRepository;
@@ -70,7 +70,7 @@ public class AuthService {
     private List&lt;String&gt; getUserRoles(Long userId) {
         // Single-column native query returns List&lt;Object&gt; (scalars), not List&lt;Object[]&gt;
 <span class="fc" id="L72">        List&lt;Object&gt; rows = em.createNativeQuery(</span>
-<span class="fc" id="L73">                &quot;SELECT ur.name FROM identity.user_roles ur &quot; +</span>
+                &quot;SELECT ur.name FROM identity.user_roles ur &quot; +
                 &quot;JOIN identity.user_role_assignments ura ON ura.role_id = ur.id &quot; +
                 &quot;WHERE ura.user_id = :userId&quot;)
 <span class="fc" id="L76">                .setParameter(&quot;userId&quot;, userId)</span>
@@ -102,24 +102,26 @@ public class AuthService {
 <span class="pc bpc" id="L102" title="1 of 2 branches missed.">            email = row[3] != null ? (String) row[3] : loginName;</span>
         }
 
-        // Mendix initials logic: if(Name = 'MxAdmin') then 'MX' else FirstName[0]+LastName[0]
-        String initials;
-<span class="pc bpc" id="L107" title="1 of 2 branches missed.">        if (&quot;MxAdmin&quot;.equalsIgnoreCase(loginName)) {</span>
-<span class="nc" id="L108">            initials = &quot;MX&quot;;</span>
-<span class="pc bpc" id="L109" title="2 of 4 branches missed.">        } else if (!firstName.isEmpty() &amp;&amp; !lastName.isEmpty()) {</span>
-<span class="fc" id="L110">            initials = (&quot;&quot; + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();</span>
-<span class="pc bnc" id="L111" title="All 4 branches missed.">        } else if (fullName != null &amp;&amp; !fullName.isBlank()) {</span>
-<span class="nc" id="L112">            String[] parts = fullName.trim().split(&quot;\\s+&quot;);</span>
-<span class="nc bnc" id="L113" title="All 2 branches missed.">            if (parts.length &gt;= 2) {</span>
-<span class="nc" id="L114">                initials = (&quot;&quot; + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();</span>
-<span class="nc" id="L115">            } else {</span>
-<span class="nc" id="L116">                initials = fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();</span>
-            }
-<span class="nc" id="L118">        } else {</span>
-<span class="nc" id="L119">            initials = &quot;??&quot;;</span>
-        }
+<span class="fc" id="L105">        String initials = computeInitials(loginName, firstName, lastName, fullName);</span>
+<span class="fc" id="L106">        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials, null);</span>
+    }
 
-<span class="fc" id="L122">        return new LoginResponse.UserInfo(userId, firstName, lastName, fullName, email, initials, null);</span>
+    // Mendix initials logic: if(Name = 'MxAdmin') then 'MX' else FirstName[0]+LastName[0]
+    private static String computeInitials(String loginName, String firstName, String lastName, String fullName) {
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">        if (&quot;MxAdmin&quot;.equalsIgnoreCase(loginName)) {</span>
+<span class="nc" id="L112">            return &quot;MX&quot;;</span>
+        }
+<span class="pc bpc" id="L114" title="2 of 4 branches missed.">        if (!firstName.isEmpty() &amp;&amp; !lastName.isEmpty()) {</span>
+<span class="fc" id="L115">            return (&quot;&quot; + firstName.charAt(0) + lastName.charAt(0)).toUpperCase();</span>
+        }
+<span class="nc bnc" id="L117" title="All 4 branches missed.">        if (fullName == null || fullName.isBlank()) {</span>
+<span class="nc" id="L118">            return &quot;??&quot;;</span>
+        }
+<span class="nc" id="L120">        String[] parts = fullName.trim().split(&quot;\\s+&quot;);</span>
+<span class="nc bnc" id="L121" title="All 2 branches missed.">        if (parts.length &gt;= 2) {</span>
+<span class="nc" id="L122">            return (&quot;&quot; + parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();</span>
+        }
+<span class="nc" id="L124">        return fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

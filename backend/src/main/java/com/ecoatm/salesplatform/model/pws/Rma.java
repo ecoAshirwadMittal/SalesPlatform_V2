@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.model.pws;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,8 +35,8 @@ public class Rma {
     @Column(name = "request_qty")
     private Integer requestQty;
 
-    @Column(name = "request_sales_total")
-    private Integer requestSalesTotal;
+    @Column(name = "request_sales_total", precision = 14, scale = 2)
+    private BigDecimal requestSalesTotal;
 
     @Column(name = "approved_skus")
     private Integer approvedSkus;
@@ -43,8 +44,8 @@ public class Rma {
     @Column(name = "approved_qty")
     private Integer approvedQty;
 
-    @Column(name = "approved_sales_total")
-    private Integer approvedSalesTotal;
+    @Column(name = "approved_sales_total", precision = 14, scale = 2)
+    private BigDecimal approvedSalesTotal;
 
     @Column(name = "approved_count")
     private Integer approvedCount;
@@ -139,8 +140,8 @@ public class Rma {
     public Integer getRequestQty() { return requestQty; }
     public void setRequestQty(Integer requestQty) { this.requestQty = requestQty; }
 
-    public Integer getRequestSalesTotal() { return requestSalesTotal; }
-    public void setRequestSalesTotal(Integer requestSalesTotal) { this.requestSalesTotal = requestSalesTotal; }
+    public BigDecimal getRequestSalesTotal() { return requestSalesTotal; }
+    public void setRequestSalesTotal(BigDecimal requestSalesTotal) { this.requestSalesTotal = requestSalesTotal; }
 
     public Integer getApprovedSkus() { return approvedSkus; }
     public void setApprovedSkus(Integer approvedSkus) { this.approvedSkus = approvedSkus; }
@@ -148,8 +149,8 @@ public class Rma {
     public Integer getApprovedQty() { return approvedQty; }
     public void setApprovedQty(Integer approvedQty) { this.approvedQty = approvedQty; }
 
-    public Integer getApprovedSalesTotal() { return approvedSalesTotal; }
-    public void setApprovedSalesTotal(Integer approvedSalesTotal) { this.approvedSalesTotal = approvedSalesTotal; }
+    public BigDecimal getApprovedSalesTotal() { return approvedSalesTotal; }
+    public void setApprovedSalesTotal(BigDecimal approvedSalesTotal) { this.approvedSalesTotal = approvedSalesTotal; }
 
     public Integer getApprovedCount() { return approvedCount; }
     public void setApprovedCount(Integer approvedCount) { this.approvedCount = approvedCount; }

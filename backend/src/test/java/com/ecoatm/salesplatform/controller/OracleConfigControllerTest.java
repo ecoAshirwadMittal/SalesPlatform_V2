@@ -22,15 +22,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
- * Tests for OracleConfigController — covers SEC-06 (password encryption + never exposed)
- * and SEC-03 (ADMIN role required for /api/v1/admin/**).
+ * Tests for OracleConfigController — credentials now come from env vars,
+ * not from database columns.
  */
 @WebMvcTest(OracleConfigController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
 @TestPropertySource(properties = {
     "app.jwt.secret=test-secret-key-must-be-at-least-32-bytes-long-for-hmac!!",
     "app.jwt.expiration-ms=3600000",
-    "app.jwt.remember-me-expiration-ms=7200000"
+    "app.jwt.remember-me-expiration-ms=7200000",
+    "oracle.username=test_oracle_user",
+    "oracle.password=test_oracle_secret"
 })
 class OracleConfigControllerTest {
 
@@ -40,7 +42,7 @@ class OracleConfigControllerTest {
     @MockBean private OracleConfigRepository oracleConfigRepository;
 
     private String adminToken() {
-        return jwtService.generateToken(1L, "admin@test.com", List.of("ADMIN"), false);
+        return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
     }
 
     private String bidderToken() {
@@ -50,8 +52,6 @@ class OracleConfigControllerTest {
     private OracleConfig makeConfig() {
         OracleConfig config = new OracleConfig();
         config.setId(1L);
-        config.setUsername("oracle_user");
-        config.setPasswordHash("ZW5jcnlwdGVk"); // base64 "encrypted"
         config.setAuthPath("https://oracle.example.com/auth");
         config.setCreateOrderPath("https://oracle.example.com/order");
         config.setTimeoutMs(5000);
@@ -81,11 +81,11 @@ class OracleConfigControllerTest {
         mockMvc.perform(get("/api/v1/admin/oracle-config")
                         .header("Authorization", "Bearer " + adminToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("oracle_user"))
+                .andExpect(jsonPath("$.username").value("test_oracle_user"))
                 .andExpect(jsonPath("$.isCreateOrderApiOn").value(true));
     }
 
-    // --- SEC-06: Password never exposed in GET response ---
+    // --- Credentials come from env vars, never exposed ---
 
     @Test
     void getConfig_passwordIsNeverExposed() throws Exception {
@@ -98,10 +98,10 @@ class OracleConfigControllerTest {
                 .andExpect(jsonPath("$.hasPassword").value(true));
     }
 
-    // --- SEC-06: updateConfig encrypts password ---
+    // --- updateConfig updates paths/settings only, not credentials ---
 
     @Test
-    void updateConfig_encodesPasswordAsBase64() throws Exception {
+    void updateConfig_updatesPathsAndSettings() throws Exception {
         OracleConfig existingConfig = makeConfig();
         when(oracleConfigRepository.findAll()).thenReturn(List.of(existingConfig));
         when(oracleConfigRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -111,44 +111,13 @@ class OracleConfigControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
-                                "username": "new_user",
-                                "password": "new_secret",
                                 "authPath": "https://oracle.example.com/auth",
                                 "timeoutMs": 10000,
                                 "isCreateOrderApiOn": true
                             }
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("new_user"))
                 .andExpect(jsonPath("$.password").doesNotExist());
-
-        // Verify the password was base64-encoded before saving
-        String expectedHash = java.util.Base64.getEncoder().encodeToString("new_secret".getBytes());
-        org.assertj.core.api.Assertions.assertThat(existingConfig.getPasswordHash())
-                .isEqualTo(expectedHash);
-    }
-
-    @Test
-    void updateConfig_blankPassword_doesNotOverwrite() throws Exception {
-        OracleConfig existingConfig = makeConfig();
-        String originalHash = existingConfig.getPasswordHash();
-        when(oracleConfigRepository.findAll()).thenReturn(List.of(existingConfig));
-        when(oracleConfigRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        mockMvc.perform(put("/api/v1/admin/oracle-config")
-                        .header("Authorization", "Bearer " + adminToken())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                            {
-                                "username": "oracle_user",
-                                "password": "",
-                                "authPath": "https://oracle.example.com/auth"
-                            }
-                            """))
-                .andExpect(status().isOk());
-
-        org.assertj.core.api.Assertions.assertThat(existingConfig.getPasswordHash())
-                .isEqualTo(originalHash);
     }
 
     // --- testAuth validation ---
@@ -167,24 +136,21 @@ class OracleConfigControllerTest {
     }
 
     @Test
-    void testAuth_withoutUsername_returnsError() throws Exception {
+    void testAuth_withBlankAuthPath_returnsError() throws Exception {
         OracleConfig config = makeConfig();
-        config.setUsername(null);
+        config.setAuthPath("   ");
         when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
 
         mockMvc.perform(post("/api/v1/admin/oracle-config/test-auth")
                         .header("Authorization", "Bearer " + adminToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Username is not configured."));
+                .andExpect(jsonPath("$.message").value("Auth path is not configured."));
     }
-
-    // --- testAuth with valid config (HTTP will fail → caught exception path) ---
 
     @Test
     void testAuth_withValidConfig_httpFails_returnsError() throws Exception {
         OracleConfig config = makeConfig();
-        // Use an invalid URL that will cause connection failure
         config.setAuthPath("http://localhost:1/nonexistent");
         config.setTimeoutMs(500);
         when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
@@ -208,32 +174,6 @@ class OracleConfigControllerTest {
                 .andExpect(jsonPath("$.success").value(false));
     }
 
-    @Test
-    void testAuth_withBlankAuthPath_returnsError() throws Exception {
-        OracleConfig config = makeConfig();
-        config.setAuthPath("   ");
-        when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
-
-        mockMvc.perform(post("/api/v1/admin/oracle-config/test-auth")
-                        .header("Authorization", "Bearer " + adminToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Auth path is not configured."));
-    }
-
-    @Test
-    void testAuth_withBlankUsername_returnsError() throws Exception {
-        OracleConfig config = makeConfig();
-        config.setUsername("  ");
-        when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
-
-        mockMvc.perform(post("/api/v1/admin/oracle-config/test-auth")
-                        .header("Authorization", "Bearer " + adminToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.message").value("Username is not configured."));
-    }
-
     // --- updateConfig with all fields ---
 
     @Test
@@ -247,8 +187,6 @@ class OracleConfigControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                             {
-                                "username": "updated_user",
-                                "password": "updated_secret",
                                 "authPath": "https://updated.example.com/auth",
                                 "createOrderPath": "https://updated.example.com/order",
                                 "createRmaPath": "https://updated.example.com/rma",
@@ -257,7 +195,6 @@ class OracleConfigControllerTest {
                             }
                             """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("updated_user"))
                 .andExpect(jsonPath("$.authPath").value("https://updated.example.com/auth"))
                 .andExpect(jsonPath("$.createOrderPath").value("https://updated.example.com/order"))
                 .andExpect(jsonPath("$.createRmaPath").value("https://updated.example.com/rma"))
@@ -279,30 +216,16 @@ class OracleConfigControllerTest {
                 .andExpect(jsonPath("$.updatedDate").doesNotExist());
     }
 
-    // --- toDto with null passwordHash ---
+    // --- hasPassword reflects env var state ---
 
     @Test
-    void getConfig_withNullPasswordHash_hasPasswordIsFalse() throws Exception {
-        OracleConfig config = makeConfig();
-        config.setPasswordHash(null);
-        when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
+    void getConfig_hasPasswordReflectsEnvVar() throws Exception {
+        when(oracleConfigRepository.findAll()).thenReturn(List.of(makeConfig()));
 
         mockMvc.perform(get("/api/v1/admin/oracle-config")
                         .header("Authorization", "Bearer " + adminToken()))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPassword").value(false));
-    }
-
-    @Test
-    void getConfig_withBlankPasswordHash_hasPasswordIsFalse() throws Exception {
-        OracleConfig config = makeConfig();
-        config.setPasswordHash("   ");
-        when(oracleConfigRepository.findAll()).thenReturn(List.of(config));
-
-        mockMvc.perform(get("/api/v1/admin/oracle-config")
-                        .header("Authorization", "Bearer " + adminToken()))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.hasPassword").value(false));
+                .andExpect(jsonPath("$.hasPassword").value(true));
     }
 
     // --- getOrCreate ---

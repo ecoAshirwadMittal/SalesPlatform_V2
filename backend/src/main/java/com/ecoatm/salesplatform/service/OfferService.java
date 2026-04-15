@@ -2,37 +2,29 @@ package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.dto.OracleResponse;
-import com.ecoatm.salesplatform.model.integration.OracleConfig;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.CaseLot;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.model.pws.Order;
-import com.ecoatm.salesplatform.repository.integration.OracleConfigRepository;
+import com.ecoatm.salesplatform.model.pws.PwsOfferStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferItemRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
 import com.ecoatm.salesplatform.repository.pws.OrderRepository;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.ecoatm.salesplatform.service.email.PwsOfferEmailEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.time.LocalDateTime;
-import java.time.Year;
 import java.util.*;
-import java.util.Base64;
-import java.util.stream.Collectors;
 
 @Service
 public class OfferService {
@@ -40,64 +32,69 @@ public class OfferService {
     private static final Logger log = LoggerFactory.getLogger(OfferService.class);
 
     private static final String OFFER_TYPE_BUYER = "BUYER";
-    // Mendix ENUM_PWSOfferStatus — normalized to Mixed_Case convention
-    private static final String STATUS_DRAFT = "Draft";
-    private static final String STATUS_SALES_REVIEW = "Sales_Review";
-    private static final String STATUS_SUBMITTED = "Submitted";
-    private static final String STATUS_PENDING_REVIEW = "Pending_Review";
     private static final int ATP_THRESHOLD = 100;
 
-    // Mendix ENUM_PWSOrderStatus values
-    private static final String STATUS_ORDERED = "Ordered";
-    private static final String STATUS_PENDING_ORDER = "Pending_Order";
-    private static final String STATUS_DECLINED = "Declined";
+    // Status literals — see PwsOfferStatus for the authoritative set.
+    private static final String STATUS_DRAFT = PwsOfferStatus.DRAFT;
+    private static final String STATUS_SALES_REVIEW = PwsOfferStatus.SALES_REVIEW;
+    private static final String STATUS_SUBMITTED = PwsOfferStatus.SUBMITTED;
+    private static final String STATUS_PENDING_REVIEW = PwsOfferStatus.PENDING_REVIEW;
+    private static final String STATUS_ORDERED = PwsOfferStatus.ORDERED;
+    private static final String STATUS_PENDING_ORDER = PwsOfferStatus.PENDING_ORDER;
+    private static final String STATUS_DECLINED = PwsOfferStatus.DECLINED;
 
-    // Mendix ENUM_OfferItemStatus values
-    private static final String ITEM_STATUS_ACCEPT = "Accept";
-    private static final String ITEM_STATUS_COUNTER = "Counter";
-    private static final String ITEM_STATUS_FINALIZE = "Finalize";
-    private static final String ITEM_STATUS_DECLINE = "Decline";
+    private static final String ITEM_STATUS_ACCEPT = PwsOfferStatus.ITEM_ACCEPT;
+    private static final String ITEM_STATUS_COUNTER = PwsOfferStatus.ITEM_COUNTER;
+    private static final String ITEM_STATUS_FINALIZE = PwsOfferStatus.ITEM_FINALIZE;
+    private static final String ITEM_STATUS_DECLINE = PwsOfferStatus.ITEM_DECLINE;
 
-    // Mendix ENUM_OfferDrawerStatus values
-    private static final String DRAWER_SALES_REVIEW = "Sales_Review";
-    private static final String DRAWER_ORDERED = "Ordered";
-    private static final String DRAWER_ACCEPTED = "Accepted";
-    private static final String DRAWER_COUNTERED = "Countered";
-    private static final String DRAWER_SELLER_DECLINED = "Seller_Declined";
-    private static final String DRAWER_BUYER_DECLINED = "Buyer_Declined";
+    private static final String DRAWER_SALES_REVIEW = PwsOfferStatus.DRAWER_SALES_REVIEW;
+    private static final String DRAWER_ORDERED = PwsOfferStatus.DRAWER_ORDERED;
+    private static final String DRAWER_ACCEPTED = PwsOfferStatus.DRAWER_ACCEPTED;
+    private static final String DRAWER_COUNTERED = PwsOfferStatus.DRAWER_COUNTERED;
+    private static final String DRAWER_SELLER_DECLINED = PwsOfferStatus.DRAWER_SELLER_DECLINED;
+    private static final String DRAWER_BUYER_DECLINED = PwsOfferStatus.DRAWER_BUYER_DECLINED;
 
-    // Mendix ENUM_CounterStatus values
-    private static final String COUNTER_STATUS_ACCEPT = "Accept";
-    private static final String COUNTER_STATUS_DECLINE = "Decline";
+    private static final String COUNTER_STATUS_ACCEPT = PwsOfferStatus.COUNTER_ACCEPT;
+    private static final String COUNTER_STATUS_DECLINE = PwsOfferStatus.COUNTER_DECLINE;
 
     private final OfferRepository offerRepository;
     private final OfferItemRepository offerItemRepository;
     private final DeviceRepository deviceRepository;
     private final OrderRepository orderRepository;
-    private final OracleConfigRepository oracleConfigRepository;
     private final CaseLotRepository caseLotRepository;
     private final ObjectMapper objectMapper;
     private final BuyerCodeLookupService buyerCodeLookup;
     private final EntityManager em;
+    private final ApplicationEventPublisher eventPublisher;
+    private final OfferItemDeviceLoader deviceLoader;
+    private final OracleOrderClient oracleOrderClient;
+    private final OfferNumberGenerator offerNumberGenerator;
 
     public OfferService(OfferRepository offerRepository,
                         OfferItemRepository offerItemRepository,
                         DeviceRepository deviceRepository,
                         OrderRepository orderRepository,
-                        OracleConfigRepository oracleConfigRepository,
                         CaseLotRepository caseLotRepository,
                         ObjectMapper objectMapper,
                         BuyerCodeLookupService buyerCodeLookup,
-                        EntityManager em) {
+                        EntityManager em,
+                        ApplicationEventPublisher eventPublisher,
+                        OfferItemDeviceLoader deviceLoader,
+                        OracleOrderClient oracleOrderClient,
+                        OfferNumberGenerator offerNumberGenerator) {
         this.offerRepository = offerRepository;
         this.offerItemRepository = offerItemRepository;
         this.deviceRepository = deviceRepository;
         this.orderRepository = orderRepository;
-        this.oracleConfigRepository = oracleConfigRepository;
         this.caseLotRepository = caseLotRepository;
         this.objectMapper = objectMapper;
         this.buyerCodeLookup = buyerCodeLookup;
         this.em = em;
+        this.eventPublisher = eventPublisher;
+        this.deviceLoader = deviceLoader;
+        this.oracleOrderClient = oracleOrderClient;
+        this.offerNumberGenerator = offerNumberGenerator;
     }
 
     @Transactional
@@ -196,7 +193,7 @@ public class OfferService {
         List<OfferItem> activeItems = offer.getItems().stream()
                 .filter(i -> i.getQuantity() != null && i.getQuantity() > 0
                         && i.getTotalPrice() != null && i.getTotalPrice().compareTo(BigDecimal.ZERO) > 0)
-                .collect(Collectors.toList());
+                .toList();
 
         // Also check: if offer totals are zero/empty, treat as already submitted
         if (activeItems.isEmpty()
@@ -212,7 +209,7 @@ public class OfferService {
 
         // Scenario 2: ATP exceeding check
         // Mendix logic: for each item with TotalPrice > 0, check if qty > ATPQty AND ATPQty <= 100
-        // For SPB (case lot) items, check against CaseLot.CaseLotATPQty instead of Device.availableQty
+        // For SPB (case lot) items, check against CaseLot.CaseLotATPQty instead of Device.atpQty
         List<String> exceedingSkus = new ArrayList<>();
         for (OfferItem item : activeItems) {
             Device device = deviceMap.get(item.getDeviceId());
@@ -222,10 +219,10 @@ public class OfferService {
             if (item.getCaseLotId() != null) {
                 // Case lot item: check against CaseLot.caseLotAtpQty
                 CaseLot caseLot = caseLotRepository.findById(item.getCaseLotId()).orElse(null);
-                atpQty = caseLot != null ? caseLot.getCaseLotAtpQty() : device.getAvailableQty();
+                atpQty = caseLot != null ? caseLot.getCaseLotAtpQty() : device.getAtpQty();
             } else {
-                // Regular device: uses Device.availableQty
-                atpQty = device.getAvailableQty();
+                // Regular device: uses Device.atpQty (available-to-promise)
+                atpQty = device.getAtpQty();
             }
 
             if (atpQty != null && atpQty <= ATP_THRESHOLD && item.getQuantity() > atpQty) {
@@ -273,7 +270,7 @@ public class OfferService {
      *   5. SUB_SendPWSOfferConfirmationEmail — (stubbed: email integration not yet wired)
      */
     @Transactional
-    public SubmitResponse submitOffer(Long offerId) {
+    public SubmitResponse submitOffer(Long offerId, Long submittedByUserId) {
         Optional<Offer> offerOpt = offerRepository.findById(offerId);
         if (offerOpt.isEmpty()) {
             return SubmitResponse.error(List.of("Offer not found."));
@@ -289,7 +286,7 @@ public class OfferService {
         List<OfferItem> activeItems = offer.getItems().stream()
                 .filter(i -> i.getQuantity() != null && i.getQuantity() > 0
                         && i.getTotalPrice() != null && i.getTotalPrice().compareTo(BigDecimal.ZERO) > 0)
-                .collect(Collectors.toList());
+                .toList();
 
         if (activeItems.isEmpty()) {
             return SubmitResponse.error(List.of("No items to submit."));
@@ -321,7 +318,7 @@ public class OfferService {
         recalcTotals(offer);
 
         // ── ACr_UpdateOfferID — generate human-readable offer number ──
-        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());
+        String offerNumber = offerNumberGenerator.next(offer.getBuyerCodeId());
         offer.setOfferNumber(offerNumber);
 
         // ── SUB_RetrieveOrderStatus + Update offer ──
@@ -338,8 +335,11 @@ public class OfferService {
 
         offerRepository.save(offer);
 
-        // ── SUB_SendPWSOfferConfirmationEmail (stubbed) ──
-        // TODO: Build HTML email with offer item table and send via email service
+        // ── SUB_SendPWSOfferConfirmationEmail — delivered after commit ──
+        if (submittedByUserId != null) {
+            eventPublisher.publishEvent(
+                    new PwsOfferEmailEvent.OfferConfirmation(offer.getId(), submittedByUserId));
+        }
         log.info("Offer {} (offerNumber={}) submitted for sales review (buyerCodeId={})",
                 offerId, offerNumber, offer.getBuyerCodeId());
 
@@ -374,7 +374,7 @@ public class OfferService {
         //         OR SalesOfferItemStatus='Finalize'
         List<OfferItem> acceptedItems = allItems.stream()
                 .filter(this::isItemAcceptedForOrder)
-                .collect(Collectors.toList());
+                .toList();
 
         if (acceptedItems.isEmpty()) {
             log.warn("No accepted items for order submission: offerId={}", offerId);
@@ -385,7 +385,7 @@ public class OfferService {
 
         // Generate offer number if not already set
         if (offer.getOfferNumber() == null || offer.getOfferNumber().isBlank()) {
-            String offerNumber = generateOfferNumber(offer.getBuyerCodeId());
+            String offerNumber = offerNumberGenerator.next(offer.getBuyerCodeId());
             offer.setOfferNumber(offerNumber);
         }
 
@@ -401,8 +401,8 @@ public class OfferService {
         String oraclePayload = prepareOraclePayload(offer, acceptedItems, deviceMap, originSystemUser);
         order.setJsonContent(oraclePayload);
 
-        // SUB_Order_SendOrderToOracle (stubbed)
-        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);
+        // SUB_Order_SendOrderToOracle — delegated to OracleOrderClient
+        OracleResponse oracleResponse = oracleOrderClient.submitOrder(oraclePayload);
 
         // SUB_CreateOrderResponse_ManageResult — handle Oracle response
         return handleOracleResponse(offer, order, acceptedItems, deviceMap, oracleResponse);
@@ -412,7 +412,7 @@ public class OfferService {
         Offer offer = findOrCreateDraft(buyerCodeId);
         List<OfferItem> items = offer.getItems().stream()
                 .filter(i -> i.getQuantity() != null && i.getQuantity() > 0)
-                .collect(Collectors.toList());
+                .toList();
 
         Map<Long, Device> deviceMap = loadDeviceMap(items);
 
@@ -462,7 +462,7 @@ public class OfferService {
         List<OfferItem> activeItems = offer.getItems().stream()
                 .filter(i -> i.getQuantity() != null && i.getQuantity() > 0
                         && i.getTotalPrice() != null && i.getTotalPrice().compareTo(BigDecimal.ZERO) > 0)
-                .collect(Collectors.toList());
+                .toList();
 
         Map<Long, Device> deviceMap = loadDeviceMap(activeItems);
 
@@ -473,7 +473,7 @@ public class OfferService {
         }
 
         // ── Step 2: ACr_UpdateOfferID — generate human-readable offer number ──
-        String offerNumber = generateOfferNumber(offer.getBuyerCodeId());
+        String offerNumber = offerNumberGenerator.next(offer.getBuyerCodeId());
         offer.setOfferNumber(offerNumber);
 
         // ── Step 3: SUB_Order_CreateFromOffer → SUB_Offer_CreateOrder ──
@@ -482,7 +482,7 @@ public class OfferService {
         // For direct order from cart, all items are Accept, so all are included
         List<OfferItem> acceptedItems = activeItems.stream()
                 .filter(item -> isItemAcceptedForOrder(item))
-                .collect(Collectors.toList());
+                .toList();
 
         if (acceptedItems.isEmpty()) {
             log.warn("No accepted items for order: offerId={}", offer.getId());
@@ -503,9 +503,8 @@ public class OfferService {
         order.setJsonContent(oraclePayload);
 
         // ── Step 5: SUB_Order_SendOrderToOracle ──
-        // In production, this calls Oracle ERP REST API and returns OracleResponse
-        // For now, simulate a successful response
-        OracleResponse oracleResponse = sendOrderToOracle(oraclePayload);
+        // Oracle ERP REST API call delegated to OracleOrderClient.
+        OracleResponse oracleResponse = oracleOrderClient.submitOrder(oraclePayload);
 
         // ── Step 6: SUB_CreateOrderResponse_ManageResult ──
         // Handle 3 possible Oracle response outcomes
@@ -603,134 +602,6 @@ public class OfferService {
     }
 
     /**
-     * Send order to Oracle ERP.
-     * Mirrors Mendix SUB_Order_SendOrderToOracle:
-     *   1. Load OracleConfig (check IsOracleCreateOrderAPIOn)
-     *   2. POST to authPath to get bearer token (CWS_PostToken)
-     *   3. POST to createOrderPath with token + JSON payload (CWS_PostCreateOrder)
-     *   4. Parse response into OracleResponse
-     */
-    private OracleResponse sendOrderToOracle(String jsonPayload) {
-        OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);
-
-        if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {
-            log.warn("Oracle Create Order API is toggled off or config missing");
-            OracleResponse r = new OracleResponse();
-            r.setReturnMessage("Toggle Turned Off");
-            return r;
-        }
-
-        int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;
-        HttpClient client = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofMillis(timeout))
-                .build();
-
-        // Step 1: Get bearer token (CWS_PostToken)
-        String token;
-        try {
-            token = fetchOracleToken(client, config, timeout);
-        } catch (Exception e) {
-            log.error("Oracle token request failed", e);
-            OracleResponse r = new OracleResponse();
-            r.setReturnMessage("No Token Generated: " + e.getMessage());
-            return r;
-        }
-
-        if (token == null || token.isBlank()) {
-            log.error("Oracle returned empty token");
-            OracleResponse r = new OracleResponse();
-            r.setReturnMessage("No Token Generated");
-            return r;
-        }
-
-        // Step 2: Create order (CWS_PostCreateOrder)
-        try {
-            return postCreateOrder(client, config, token, jsonPayload, timeout);
-        } catch (Exception e) {
-            log.error("Oracle create order request failed", e);
-            OracleResponse r = new OracleResponse();
-            r.setReturnMessage("Oracle API call failed: " + e.getMessage());
-            return r;
-        }
-    }
-
-    /**
-     * POST to Oracle auth endpoint to get a bearer token.
-     * Mendix: CWS_PostToken — POST to PWSConfiguration.OracleAPIPathToken (authPath)
-     */
-    private String fetchOracleToken(HttpClient client, OracleConfig config, int timeout) throws Exception {
-        // Mendix CWS_PostToken: body is only "grant_type=client_credentials"
-        // username (client_id) and password (client_secret) go as Basic Auth header
-        String authBody = "grant_type=client_credentials";
-        String basicAuth = Base64.getEncoder().encodeToString(
-                (config.getUsername() + ":" + config.getPasswordHash()).getBytes());
-
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.getAuthPath()))
-                .timeout(Duration.ofMillis(timeout))
-                .header("Content-Type", "application/x-www-form-urlencoded")
-                .header("Authorization", "Basic " + basicAuth)
-                .POST(HttpRequest.BodyPublishers.ofString(authBody))
-                .build();
-
-        log.info("Oracle token request → {}", config.getAuthPath());
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        log.info("Oracle token response HTTP {}", response.statusCode());
-
-        JsonNode json = objectMapper.readTree(response.body());
-        return json.has("access_token") ? json.get("access_token").asText() : null;
-    }
-
-    /**
-     * POST order payload to Oracle create order endpoint.
-     * Mendix: CWS_PostCreateOrder — POST to PWSConfiguration.OracleAPIPathCreateOrder (createOrderPath)
-     * with Bearer token and JSON body.
-     * Response parsed into OracleResponse: ReturnCode, ReturnMessage, OrderNumber, OrderId, HTTPCode, JSONResponse.
-     */
-    private OracleResponse postCreateOrder(HttpClient client, OracleConfig config,
-                                            String token, String jsonPayload, int timeout) throws Exception {
-        HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.getCreateOrderPath()))
-                .timeout(Duration.ofMillis(timeout))
-                .header("Content-Type", "application/json")
-                .header("Authorization", "Bearer " + token)
-                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
-                .build();
-
-        log.info("Oracle create order request → {}", config.getCreateOrderPath());
-        HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        log.info("Oracle create order response HTTP {} body={}", response.statusCode(), response.body());
-
-        OracleResponse oracleResponse = new OracleResponse();
-        oracleResponse.setHttpCode(response.statusCode());
-        oracleResponse.setJsonResponse(response.body());
-
-        try {
-            JsonNode json = objectMapper.readTree(response.body());
-            // Oracle response structure: { response: { returnCode, returnMessage, orderNumber, orderId } }
-            JsonNode resp = json.has("response") ? json.get("response") : json;
-            // Handle both camelCase and PascalCase keys from Oracle
-            oracleResponse.setReturnCode(
-                    resp.has("returnCode") ? resp.get("returnCode").asText()
-                    : resp.has("ReturnCode") ? resp.get("ReturnCode").asText() : null);
-            oracleResponse.setReturnMessage(
-                    resp.has("returnMessage") ? resp.get("returnMessage").asText()
-                    : resp.has("ReturnMessage") ? resp.get("ReturnMessage").asText() : null);
-            oracleResponse.setOrderNumber(
-                    resp.has("orderNumber") ? resp.get("orderNumber").asText()
-                    : resp.has("OrderNumber") ? resp.get("OrderNumber").asText() : null);
-            oracleResponse.setOrderId(
-                    resp.has("orderId") ? resp.get("orderId").asText()
-                    : resp.has("OrderId") ? resp.get("OrderId").asText() : null);
-        } catch (Exception e) {
-            log.warn("Failed to parse Oracle response JSON", e);
-            oracleResponse.setReturnMessage("Failed to parse Oracle response: " + e.getMessage());
-        }
-
-        return oracleResponse;
-    }
-
-    /**
      * Handle Oracle ERP response — 3 outcomes.
      * Clones SUB_CreateOrderResponse_ManageResult:
      *   1. Response exists + ReturnCode='00' → Success (Ordered)
@@ -784,8 +655,8 @@ public class OfferService {
             updateDrawerStatusOrdered(acceptedItems, deviceMap);
             offerRepository.save(offer);
 
-            // SUB_SendPWSOrderConfirmationEmail (stubbed)
-            // TODO: Send order confirmation email with order details
+            // SUB_SendPWSOrderConfirmationEmail — delivered after commit
+            eventPublisher.publishEvent(new PwsOfferEmailEvent.OrderConfirmation(offer.getId()));
 
             // SUB_Offer_UpdateSnowflake (stubbed)
             // TODO: Sync offer data to Snowflake analytics
@@ -816,8 +687,8 @@ public class OfferService {
             updateDrawerStatusOrdered(acceptedItems, deviceMap);
             offerRepository.save(offer);
 
-            // SUB_SendPWSPendingOrderEmail (stubbed)
-            // TODO: Send pending order email notification
+            // SUB_SendPWSPendingOrderEmail — delivered after commit
+            eventPublisher.publishEvent(new PwsOfferEmailEvent.PendingOrder(offer.getId()));
 
             // SUB_PWSErrorCode_GetMessage — look up user-friendly error message
             String userMessage = lookupErrorMessage(oracleResponse.getReturnCode(), "ORACLE");
@@ -923,50 +794,9 @@ public class OfferService {
     }
 
     /**
-     * Generate a human-readable OfferID.
-     * Clones Mendix ACr_UpdateOfferID: {BuyerCode}{YY}{LeftPad(sequence, 3, '0')}
-     *   e.g., BC00126001 = buyer code "BC001" + year "26" + sequence "001"
-     * Uses pws.offer_id_sequence table as per-buyer-code, per-year counter.
-     */
-    private String generateOfferNumber(Long buyerCodeId) {
-        // 1. Get the buyer code string
-        String buyerCode = buyerCodeLookup.findCodeById(buyerCodeId);
-        if (buyerCode == null) {
-            throw new IllegalStateException("Buyer code not found: " + buyerCodeId);
-        }
-
-        // 2. Current 2-digit year
-        String yearPrefix = String.format("%02d", Year.now().getValue() % 100);
-
-        // 3. Atomically increment sequence (INSERT on conflict UPDATE)
-        em.createNativeQuery("""
-                INSERT INTO pws.offer_id_sequence (buyer_code_id, year_prefix, max_sequence)
-                VALUES (:bcId, :yp, 1)
-                ON CONFLICT (buyer_code_id, year_prefix)
-                DO UPDATE SET max_sequence = pws.offer_id_sequence.max_sequence + 1
-                """)
-                .setParameter("bcId", buyerCodeId)
-                .setParameter("yp", yearPrefix)
-                .executeUpdate();
-
-        // 4. Read back the current sequence
-        int seq = ((Number) em.createNativeQuery("""
-                SELECT max_sequence FROM pws.offer_id_sequence
-                WHERE buyer_code_id = :bcId AND year_prefix = :yp
-                """)
-                .setParameter("bcId", buyerCodeId)
-                .setParameter("yp", yearPrefix)
-                .getSingleResult()).intValue();
-
-        // 5. Format: {BuyerCode}{YY}{LeftPad(seq, 3, '0')}
-        String paddedSeq = String.format("%03d", seq);
-        return buyerCode + yearPrefix + paddedSeq;
-    }
-
-    /**
      * Reserve device quantity for a submitted offer item.
-     * Clones Mendix SUB_ReserveQuantityForDevice: decrements Device.availableQty
-     * and increments Device.reservedQty by the item quantity.
+     * Clones Mendix SUB_ReserveQuantityForDevice: increments Device.reservedQty
+     * and recalculates Device.atpQty = availableQty - reservedQty.
      */
     private void reserveDeviceQuantity(OfferItem item, Device device) {
         if (device == null || item.getQuantity() == null) return;
@@ -975,14 +805,16 @@ public class OfferService {
         int currentAvail = device.getAvailableQty() != null ? device.getAvailableQty() : 0;
         int currentReserved = device.getReservedQty() != null ? device.getReservedQty() : 0;
 
-        device.setAvailableQty(Math.max(0, currentAvail - qty));
-        device.setReservedQty(currentReserved + qty);
+        int newReserved = currentReserved + qty;
+        int newAtpQty = Math.max(0, currentAvail - newReserved);
+
+        device.setReservedQty(newReserved);
+        device.setAtpQty(newAtpQty);
         deviceRepository.save(device);
 
-        log.debug("Reserved qty {} for device {} (sku={}): avail {} → {}, reserved {} → {}",
+        log.debug("Reserved qty {} for device {} (sku={}): reserved {} → {}, atpQty → {}",
                 qty, device.getId(), device.getSku(),
-                currentAvail, device.getAvailableQty(),
-                currentReserved, device.getReservedQty());
+                currentReserved, newReserved, newAtpQty);
     }
 
     private Offer findOrCreateDraft(Long buyerCodeId) {
@@ -1017,20 +849,13 @@ public class OfferService {
 
         List<OfferItemResponse> itemResponses = items.stream()
                 .map(item -> OfferItemResponse.fromEntity(item, deviceMap.get(item.getDeviceId())))
-                .collect(Collectors.toList());
+                .toList();
 
         return OfferResponse.fromEntity(offer, itemResponses);
     }
 
     private Map<Long, Device> loadDeviceMap(List<OfferItem> items) {
-        Set<Long> deviceIds = items.stream()
-                .map(OfferItem::getDeviceId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (deviceIds.isEmpty()) return Map.of();
-
-        return deviceRepository.findAllById(deviceIds).stream()
-                .collect(Collectors.toMap(Device::getId, d -> d));
+        return deviceLoader.loadDeviceMap(items);
     }
 
     private String escapeCsv(String value) {

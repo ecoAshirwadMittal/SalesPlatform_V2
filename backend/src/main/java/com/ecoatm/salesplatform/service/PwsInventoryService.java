@@ -13,7 +13,6 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PwsInventoryService {
@@ -85,7 +84,7 @@ public class PwsInventoryService {
     public List<DeviceResponse> bulkCreateDevices(List<DeviceRequest> requests) {
         return requests.stream()
                 .map(this::createOrUpdateDevice)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -115,7 +114,7 @@ public class PwsInventoryService {
     public List<DeviceResponse> listActiveDevices() {
         return deviceRepository.findByIsActiveTrue().stream()
                 .map(DeviceResponse::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -140,7 +139,7 @@ public class PwsInventoryService {
         };
         return deviceRepository.findAll(spec).stream()
                 .map(DeviceResponse::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ── Internal helpers ──────────────────────────────────────────────

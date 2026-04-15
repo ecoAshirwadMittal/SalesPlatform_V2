@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OracleOrderClient.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">OracleOrderClient.java</span></div><h1>OracleOrderClient.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
+
+import com.ecoatm.salesplatform.dto.OracleResponse;
+import com.ecoatm.salesplatform.model.integration.OracleConfig;
+import com.ecoatm.salesplatform.repository.integration.OracleConfigRepository;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
+import java.util.Base64;
+
+/**
+ * HTTP client for Oracle ERP Create Order integration.
+ *
+ * Mendix parity: SUB_Order_SendOrderToOracle →
+ *   1. Read OracleConfig row; if inactive, return simulated success.
+ *   2. POST to {@code authPath} for bearer token (CWS_PostToken).
+ *   3. POST payload to {@code createOrderPath} with Bearer token (CWS_PostCreateOrder).
+ *   4. Parse response into {@link OracleResponse}.
+ *
+ * Extracted from OfferService during Phase 5 of the simplification plan
+ * (docs/tasks/simplification-phase5-plan.md). Keeps OfferService focused
+ * on workflow orchestration; makes the HTTP surface independently
+ * testable with MockRestServiceServer / wiremock.
+ */
+@Component
+public class OracleOrderClient {
+
+<span class="fc" id="L37">    private static final Logger log = LoggerFactory.getLogger(OracleOrderClient.class);</span>
+
+    private final OracleConfigRepository oracleConfigRepository;
+    private final ObjectMapper objectMapper;
+
+    @Value(&quot;${oracle.username:}&quot;)
+    private String oracleUsername;
+
+    @Value(&quot;${oracle.password:}&quot;)
+    private String oraclePassword;
+
+    public OracleOrderClient(OracleConfigRepository oracleConfigRepository,
+<span class="fc" id="L49">                             ObjectMapper objectMapper) {</span>
+<span class="fc" id="L50">        this.oracleConfigRepository = oracleConfigRepository;</span>
+<span class="fc" id="L51">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L52">    }</span>
+
+    /**
+     * Send a prepared JSON payload to Oracle's Create Order endpoint.
+     * Never throws — failures are returned as an {@link OracleResponse} with
+     * a populated {@code returnMessage} so the caller can route to the
+     * Pending_Order branch. The toggle-off path returns a stubbed success
+     * response (returnCode=&quot;00&quot;) to keep local/dev flows exercising the
+     * full happy-path workflow.
+     */
+    public OracleResponse submitOrder(String jsonPayload) {
+<span class="nc" id="L63">        OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);</span>
+
+<span class="nc bnc" id="L65" title="All 4 branches missed.">        if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {</span>
+<span class="nc" id="L66">            log.warn(&quot;Oracle Create Order API is toggled off or config missing — simulating success&quot;);</span>
+<span class="nc" id="L67">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L68">            r.setReturnCode(&quot;00&quot;);</span>
+<span class="nc" id="L69">            r.setReturnMessage(&quot;Toggle Turned Off — simulated success&quot;);</span>
+<span class="nc" id="L70">            r.setOrderNumber(&quot;SIM-&quot; + System.currentTimeMillis());</span>
+<span class="nc" id="L71">            return r;</span>
+        }
+
+<span class="nc bnc" id="L74" title="All 2 branches missed.">        int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;</span>
+<span class="nc" id="L75">        HttpClient client = HttpClient.newBuilder()</span>
+<span class="nc" id="L76">                .connectTimeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L77">                .build();</span>
+
+        String token;
+        try {
+<span class="nc" id="L81">            token = fetchOracleToken(client, config, timeout);</span>
+<span class="nc" id="L82">        } catch (Exception e) {</span>
+<span class="nc" id="L83">            log.error(&quot;Oracle token request failed&quot;, e);</span>
+<span class="nc" id="L84">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L85">            r.setReturnMessage(&quot;No Token Generated: &quot; + e.getMessage());</span>
+<span class="nc" id="L86">            return r;</span>
+<span class="nc" id="L87">        }</span>
+
+<span class="nc bnc" id="L89" title="All 4 branches missed.">        if (token == null || token.isBlank()) {</span>
+<span class="nc" id="L90">            log.error(&quot;Oracle returned empty token&quot;);</span>
+<span class="nc" id="L91">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L92">            r.setReturnMessage(&quot;No Token Generated&quot;);</span>
+<span class="nc" id="L93">            return r;</span>
+        }
+
+        try {
+<span class="nc" id="L97">            return postCreateOrder(client, config, token, jsonPayload, timeout);</span>
+<span class="nc" id="L98">        } catch (Exception e) {</span>
+<span class="nc" id="L99">            log.error(&quot;Oracle create order request failed&quot;, e);</span>
+<span class="nc" id="L100">            OracleResponse r = new OracleResponse();</span>
+<span class="nc" id="L101">            r.setReturnMessage(&quot;Oracle API call failed: &quot; + e.getMessage());</span>
+<span class="nc" id="L102">            return r;</span>
+        }
+    }
+
+    /**
+     * POST to Oracle auth endpoint to get a bearer token.
+     * Mendix: CWS_PostToken — POST to PWSConfiguration.OracleAPIPathToken (authPath).
+     * Body is {@code grant_type=client_credentials}; basic auth header carries
+     * client_id/secret sourced from {@code oracle.username}/{@code oracle.password}.
+     */
+    private String fetchOracleToken(HttpClient client, OracleConfig config, int timeout) throws Exception {
+<span class="nc" id="L113">        String authBody = &quot;grant_type=client_credentials&quot;;</span>
+<span class="nc" id="L114">        String basicAuth = Base64.getEncoder().encodeToString(</span>
+<span class="nc" id="L115">                (oracleUsername + &quot;:&quot; + oraclePassword).getBytes());</span>
+
+<span class="nc" id="L117">        HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L118">                .uri(URI.create(config.getAuthPath()))</span>
+<span class="nc" id="L119">                .timeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L120">                .header(&quot;Content-Type&quot;, &quot;application/x-www-form-urlencoded&quot;)</span>
+<span class="nc" id="L121">                .header(&quot;Authorization&quot;, &quot;Basic &quot; + basicAuth)</span>
+<span class="nc" id="L122">                .POST(HttpRequest.BodyPublishers.ofString(authBody))</span>
+<span class="nc" id="L123">                .build();</span>
+
+<span class="nc" id="L125">        log.info(&quot;Oracle token request → {}&quot;, config.getAuthPath());</span>
+<span class="nc" id="L126">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L127">        log.info(&quot;Oracle token response HTTP {}&quot;, response.statusCode());</span>
+
+<span class="nc" id="L129">        JsonNode json = objectMapper.readTree(response.body());</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">        return json.has(&quot;access_token&quot;) ? json.get(&quot;access_token&quot;).asText() : null;</span>
+    }
+
+    /**
+     * POST order payload to Oracle create order endpoint.
+     * Mendix: CWS_PostCreateOrder — POST to PWSConfiguration.OracleAPIPathCreateOrder (createOrderPath)
+     * with Bearer token and JSON body. Parses both camelCase and PascalCase
+     * response keys to match observed Oracle behavior.
+     */
+    private OracleResponse postCreateOrder(HttpClient client, OracleConfig config,
+                                           String token, String jsonPayload, int timeout) throws Exception {
+<span class="nc" id="L141">        HttpRequest request = HttpRequest.newBuilder()</span>
+<span class="nc" id="L142">                .uri(URI.create(config.getCreateOrderPath()))</span>
+<span class="nc" id="L143">                .timeout(Duration.ofMillis(timeout))</span>
+<span class="nc" id="L144">                .header(&quot;Content-Type&quot;, &quot;application/json&quot;)</span>
+<span class="nc" id="L145">                .header(&quot;Authorization&quot;, &quot;Bearer &quot; + token)</span>
+<span class="nc" id="L146">                .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))</span>
+<span class="nc" id="L147">                .build();</span>
+
+<span class="nc" id="L149">        log.info(&quot;Oracle create order request → {}&quot;, config.getCreateOrderPath());</span>
+<span class="nc" id="L150">        HttpResponse&lt;String&gt; response = client.send(request, HttpResponse.BodyHandlers.ofString());</span>
+<span class="nc" id="L151">        log.info(&quot;Oracle create order response HTTP {} body={}&quot;, response.statusCode(), response.body());</span>
+
+<span class="nc" id="L153">        OracleResponse oracleResponse = new OracleResponse();</span>
+<span class="nc" id="L154">        oracleResponse.setHttpCode(response.statusCode());</span>
+<span class="nc" id="L155">        oracleResponse.setJsonResponse(response.body());</span>
+
+        try {
+<span class="nc" id="L158">            JsonNode json = objectMapper.readTree(response.body());</span>
+<span class="nc bnc" id="L159" title="All 2 branches missed.">            JsonNode resp = json.has(&quot;response&quot;) ? json.get(&quot;response&quot;) : json;</span>
+<span class="nc" id="L160">            oracleResponse.setReturnCode(</span>
+<span class="nc bnc" id="L161" title="All 2 branches missed.">                    resp.has(&quot;returnCode&quot;) ? resp.get(&quot;returnCode&quot;).asText()</span>
+<span class="nc bnc" id="L162" title="All 2 branches missed.">                    : resp.has(&quot;ReturnCode&quot;) ? resp.get(&quot;ReturnCode&quot;).asText() : null);</span>
+<span class="nc" id="L163">            oracleResponse.setReturnMessage(</span>
+<span class="nc bnc" id="L164" title="All 2 branches missed.">                    resp.has(&quot;returnMessage&quot;) ? resp.get(&quot;returnMessage&quot;).asText()</span>
+<span class="nc bnc" id="L165" title="All 2 branches missed.">                    : resp.has(&quot;ReturnMessage&quot;) ? resp.get(&quot;ReturnMessage&quot;).asText() : null);</span>
+<span class="nc" id="L166">            oracleResponse.setOrderNumber(</span>
+<span class="nc bnc" id="L167" title="All 2 branches missed.">                    resp.has(&quot;orderNumber&quot;) ? resp.get(&quot;orderNumber&quot;).asText()</span>
+<span class="nc bnc" id="L168" title="All 2 branches missed.">                    : resp.has(&quot;OrderNumber&quot;) ? resp.get(&quot;OrderNumber&quot;).asText() : null);</span>
+<span class="nc" id="L169">            oracleResponse.setOrderId(</span>
+<span class="nc bnc" id="L170" title="All 2 branches missed.">                    resp.has(&quot;orderId&quot;) ? resp.get(&quot;orderId&quot;).asText()</span>
+<span class="nc bnc" id="L171" title="All 2 branches missed.">                    : resp.has(&quot;OrderId&quot;) ? resp.get(&quot;OrderId&quot;).asText() : null);</span>
+<span class="nc" id="L172">        } catch (Exception e) {</span>
+<span class="nc" id="L173">            log.warn(&quot;Failed to parse Oracle response JSON&quot;, e);</span>
+<span class="nc" id="L174">            oracleResponse.setReturnMessage(&quot;Failed to parse Oracle response: &quot; + e.getMessage());</span>
+<span class="nc" id="L175">        }</span>
+
+<span class="nc" id="L177">        return oracleResponse;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

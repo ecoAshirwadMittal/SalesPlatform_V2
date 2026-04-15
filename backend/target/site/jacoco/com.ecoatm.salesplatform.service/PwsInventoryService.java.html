@@ -13,7 +13,6 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class PwsInventoryService {
@@ -28,7 +27,7 @@ public class PwsInventoryService {
     private final ColorRepository colorRepository;
     private final GradeRepository gradeRepository;
 
-<span class="fc" id="L31">    public PwsInventoryService(</span>
+    public PwsInventoryService(
             DeviceRepository deviceRepository,
             BrandRepository brandRepository,
             CategoryRepository categoryRepository,
@@ -37,17 +36,17 @@ public class PwsInventoryService {
             CapacityRepository capacityRepository,
             CarrierRepository carrierRepository,
             ColorRepository colorRepository,
-            GradeRepository gradeRepository) {
-<span class="fc" id="L41">        this.deviceRepository = deviceRepository;</span>
-<span class="fc" id="L42">        this.brandRepository = brandRepository;</span>
-<span class="fc" id="L43">        this.categoryRepository = categoryRepository;</span>
-<span class="fc" id="L44">        this.modelRepository = modelRepository;</span>
-<span class="fc" id="L45">        this.conditionRepository = conditionRepository;</span>
-<span class="fc" id="L46">        this.capacityRepository = capacityRepository;</span>
-<span class="fc" id="L47">        this.carrierRepository = carrierRepository;</span>
-<span class="fc" id="L48">        this.colorRepository = colorRepository;</span>
-<span class="fc" id="L49">        this.gradeRepository = gradeRepository;</span>
-<span class="fc" id="L50">    }</span>
+<span class="fc" id="L39">            GradeRepository gradeRepository) {</span>
+<span class="fc" id="L40">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L41">        this.brandRepository = brandRepository;</span>
+<span class="fc" id="L42">        this.categoryRepository = categoryRepository;</span>
+<span class="fc" id="L43">        this.modelRepository = modelRepository;</span>
+<span class="fc" id="L44">        this.conditionRepository = conditionRepository;</span>
+<span class="fc" id="L45">        this.capacityRepository = capacityRepository;</span>
+<span class="fc" id="L46">        this.carrierRepository = carrierRepository;</span>
+<span class="fc" id="L47">        this.colorRepository = colorRepository;</span>
+<span class="fc" id="L48">        this.gradeRepository = gradeRepository;</span>
+<span class="fc" id="L49">    }</span>
 
     /**
      * Create a new device in the MDM catalog.
@@ -56,14 +55,14 @@ public class PwsInventoryService {
      */
     @Transactional
     public DeviceResponse createDevice(DeviceRequest req) {
-<span class="fc bfc" id="L59" title="All 2 branches covered.">        if (deviceRepository.existsBySku(req.getSku())) {</span>
-<span class="fc" id="L60">            throw new IllegalArgumentException(&quot;Device with SKU '&quot; + req.getSku() + &quot;' already exists.&quot;);</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (deviceRepository.existsBySku(req.getSku())) {</span>
+<span class="fc" id="L59">            throw new IllegalArgumentException(&quot;Device with SKU '&quot; + req.getSku() + &quot;' already exists.&quot;);</span>
         }
 
-<span class="fc" id="L63">        Device device = new Device();</span>
-<span class="fc" id="L64">        mapRequestToEntity(req, device);</span>
-<span class="fc" id="L65">        Device saved = deviceRepository.save(device);</span>
-<span class="fc" id="L66">        return DeviceResponse.fromEntity(saved);</span>
+<span class="fc" id="L62">        Device device = new Device();</span>
+<span class="fc" id="L63">        mapRequestToEntity(req, device);</span>
+<span class="fc" id="L64">        Device saved = deviceRepository.save(device);</span>
+<span class="fc" id="L65">        return DeviceResponse.fromEntity(saved);</span>
     }
 
     /**
@@ -71,11 +70,11 @@ public class PwsInventoryService {
      */
     @Transactional
     public DeviceResponse updateDevice(Long id, DeviceRequest req) {
-<span class="fc" id="L74">        Device device = deviceRepository.findById(id)</span>
-<span class="fc" id="L75">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + id));</span>
-<span class="fc" id="L76">        mapRequestToEntity(req, device);</span>
-<span class="fc" id="L77">        Device saved = deviceRepository.save(device);</span>
-<span class="fc" id="L78">        return DeviceResponse.fromEntity(saved);</span>
+<span class="fc" id="L73">        Device device = deviceRepository.findById(id)</span>
+<span class="fc" id="L74">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + id));</span>
+<span class="fc" id="L75">        mapRequestToEntity(req, device);</span>
+<span class="fc" id="L76">        Device saved = deviceRepository.save(device);</span>
+<span class="fc" id="L77">        return DeviceResponse.fromEntity(saved);</span>
     }
 
     /**
@@ -83,9 +82,9 @@ public class PwsInventoryService {
      */
     @Transactional
     public List&lt;DeviceResponse&gt; bulkCreateDevices(List&lt;DeviceRequest&gt; requests) {
-<span class="fc" id="L86">        return requests.stream()</span>
-<span class="fc" id="L87">                .map(this::createOrUpdateDevice)</span>
-<span class="fc" id="L88">                .collect(Collectors.toList());</span>
+<span class="fc" id="L85">        return requests.stream()</span>
+<span class="fc" id="L86">                .map(this::createOrUpdateDevice)</span>
+<span class="fc" id="L87">                .toList();</span>
     }
 
     /**
@@ -93,9 +92,9 @@ public class PwsInventoryService {
      */
     @Transactional(readOnly = true)
     public DeviceResponse getDeviceBySku(String sku) {
-<span class="fc" id="L96">        Device device = deviceRepository.findBySku(sku)</span>
-<span class="fc" id="L97">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found for SKU: &quot; + sku));</span>
-<span class="fc" id="L98">        return DeviceResponse.fromEntity(device);</span>
+<span class="fc" id="L95">        Device device = deviceRepository.findBySku(sku)</span>
+<span class="fc" id="L96">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found for SKU: &quot; + sku));</span>
+<span class="fc" id="L97">        return DeviceResponse.fromEntity(device);</span>
     }
 
     /**
@@ -103,9 +102,9 @@ public class PwsInventoryService {
      */
     @Transactional(readOnly = true)
     public DeviceResponse getDeviceById(Long id) {
-<span class="fc" id="L106">        Device device = deviceRepository.findById(id)</span>
-<span class="fc" id="L107">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + id));</span>
-<span class="fc" id="L108">        return DeviceResponse.fromEntity(device);</span>
+<span class="fc" id="L105">        Device device = deviceRepository.findById(id)</span>
+<span class="fc" id="L106">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + id));</span>
+<span class="fc" id="L107">        return DeviceResponse.fromEntity(device);</span>
     }
 
     /**
@@ -113,9 +112,9 @@ public class PwsInventoryService {
      */
     @Transactional(readOnly = true)
     public List&lt;DeviceResponse&gt; listActiveDevices() {
-<span class="fc" id="L116">        return deviceRepository.findByIsActiveTrue().stream()</span>
-<span class="fc" id="L117">                .map(DeviceResponse::fromEntity)</span>
-<span class="fc" id="L118">                .collect(Collectors.toList());</span>
+<span class="fc" id="L115">        return deviceRepository.findByIsActiveTrue().stream()</span>
+<span class="fc" id="L116">                .map(DeviceResponse::fromEntity)</span>
+<span class="fc" id="L117">                .toList();</span>
     }
 
     /**
@@ -124,147 +123,147 @@ public class PwsInventoryService {
      */
     @Transactional(readOnly = true)
     public List&lt;DeviceResponse&gt; listFilteredDevices(String itemType, String excludeGrade, Integer minAtpQty) {
-<span class="fc" id="L127">        Specification&lt;Device&gt; spec = (root, query, cb) -&gt; {</span>
-<span class="nc" id="L128">            List&lt;Predicate&gt; preds = new ArrayList&lt;&gt;();</span>
-<span class="nc" id="L129">            preds.add(cb.isTrue(root.get(&quot;isActive&quot;)));</span>
-<span class="nc bnc" id="L130" title="All 2 branches missed.">            if (itemType != null) preds.add(cb.equal(root.get(&quot;itemType&quot;), itemType));</span>
-<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (minAtpQty != null) preds.add(cb.greaterThanOrEqualTo(root.get(&quot;atpQty&quot;), minAtpQty));</span>
-<span class="nc bnc" id="L132" title="All 2 branches missed.">            if (excludeGrade != null) {</span>
-<span class="nc" id="L133">                var gradeJoin = root.join(&quot;grade&quot;, JoinType.LEFT);</span>
-<span class="nc" id="L134">                preds.add(cb.or(</span>
-<span class="nc" id="L135">                        cb.isNull(gradeJoin),</span>
-<span class="nc" id="L136">                        cb.notEqual(gradeJoin.get(&quot;displayName&quot;), excludeGrade)</span>
+<span class="fc" id="L126">        Specification&lt;Device&gt; spec = (root, query, cb) -&gt; {</span>
+<span class="nc" id="L127">            List&lt;Predicate&gt; preds = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L128">            preds.add(cb.isTrue(root.get(&quot;isActive&quot;)));</span>
+<span class="nc bnc" id="L129" title="All 2 branches missed.">            if (itemType != null) preds.add(cb.equal(root.get(&quot;itemType&quot;), itemType));</span>
+<span class="nc bnc" id="L130" title="All 2 branches missed.">            if (minAtpQty != null) preds.add(cb.greaterThanOrEqualTo(root.get(&quot;atpQty&quot;), minAtpQty));</span>
+<span class="nc bnc" id="L131" title="All 2 branches missed.">            if (excludeGrade != null) {</span>
+<span class="nc" id="L132">                var gradeJoin = root.join(&quot;grade&quot;, JoinType.LEFT);</span>
+<span class="nc" id="L133">                preds.add(cb.or(</span>
+<span class="nc" id="L134">                        cb.isNull(gradeJoin),</span>
+<span class="nc" id="L135">                        cb.notEqual(gradeJoin.get(&quot;displayName&quot;), excludeGrade)</span>
                 ));
             }
-<span class="nc" id="L139">            return cb.and(preds.toArray(new Predicate[0]));</span>
+<span class="nc" id="L138">            return cb.and(preds.toArray(new Predicate[0]));</span>
         };
-<span class="fc" id="L141">        return deviceRepository.findAll(spec).stream()</span>
-<span class="fc" id="L142">                .map(DeviceResponse::fromEntity)</span>
-<span class="fc" id="L143">                .collect(Collectors.toList());</span>
+<span class="fc" id="L140">        return deviceRepository.findAll(spec).stream()</span>
+<span class="fc" id="L141">                .map(DeviceResponse::fromEntity)</span>
+<span class="fc" id="L142">                .toList();</span>
     }
 
     // ── Internal helpers ──────────────────────────────────────────────
 
     private DeviceResponse createOrUpdateDevice(DeviceRequest req) {
-<span class="fc" id="L149">        return deviceRepository.findBySku(req.getSku())</span>
-<span class="fc" id="L150">                .map(existing -&gt; {</span>
-<span class="fc" id="L151">                    mapRequestToEntity(req, existing);</span>
-<span class="fc" id="L152">                    return DeviceResponse.fromEntity(deviceRepository.save(existing));</span>
+<span class="fc" id="L148">        return deviceRepository.findBySku(req.getSku())</span>
+<span class="fc" id="L149">                .map(existing -&gt; {</span>
+<span class="fc" id="L150">                    mapRequestToEntity(req, existing);</span>
+<span class="fc" id="L151">                    return DeviceResponse.fromEntity(deviceRepository.save(existing));</span>
                 })
-<span class="fc" id="L154">                .orElseGet(() -&gt; createDevice(req));</span>
+<span class="fc" id="L153">                .orElseGet(() -&gt; createDevice(req));</span>
     }
 
     private void mapRequestToEntity(DeviceRequest req, Device device) {
-<span class="fc" id="L158">        device.setSku(req.getSku());</span>
-<span class="fc" id="L159">        device.setDeviceCode(req.getDeviceCode());</span>
-<span class="fc" id="L160">        device.setDescription(req.getDescription());</span>
-<span class="fc" id="L161">        device.setListPrice(req.getListPrice());</span>
-<span class="fc" id="L162">        device.setMinPrice(req.getMinPrice());</span>
-<span class="fc" id="L163">        device.setFutureListPrice(req.getFutureListPrice());</span>
-<span class="fc" id="L164">        device.setFutureMinPrice(req.getFutureMinPrice());</span>
-<span class="fc" id="L165">        device.setAvailableQty(req.getAvailableQty());</span>
-<span class="fc" id="L166">        device.setReservedQty(req.getReservedQty());</span>
-<span class="fc" id="L167">        device.setAtpQty(req.getAtpQty());</span>
-<span class="fc" id="L168">        device.setWeight(req.getWeight());</span>
-<span class="fc" id="L169">        device.setItemType(req.getItemType());</span>
+<span class="fc" id="L157">        device.setSku(req.getSku());</span>
+<span class="fc" id="L158">        device.setDeviceCode(req.getDeviceCode());</span>
+<span class="fc" id="L159">        device.setDescription(req.getDescription());</span>
+<span class="fc" id="L160">        device.setListPrice(req.getListPrice());</span>
+<span class="fc" id="L161">        device.setMinPrice(req.getMinPrice());</span>
+<span class="fc" id="L162">        device.setFutureListPrice(req.getFutureListPrice());</span>
+<span class="fc" id="L163">        device.setFutureMinPrice(req.getFutureMinPrice());</span>
+<span class="fc" id="L164">        device.setAvailableQty(req.getAvailableQty());</span>
+<span class="fc" id="L165">        device.setReservedQty(req.getReservedQty());</span>
+<span class="fc" id="L166">        device.setAtpQty(req.getAtpQty());</span>
+<span class="fc" id="L167">        device.setWeight(req.getWeight());</span>
+<span class="fc" id="L168">        device.setItemType(req.getItemType());</span>
 
-<span class="fc" id="L171">        device.setBrand(resolveBrand(req.getBrandId(), req.getBrandName()));</span>
-<span class="fc" id="L172">        device.setCategory(resolveCategory(req.getCategoryId(), req.getCategoryName()));</span>
-<span class="fc" id="L173">        device.setModel(resolveModel(req.getModelId(), req.getModelName()));</span>
-<span class="fc" id="L174">        device.setCondition(resolveCondition(req.getConditionId(), req.getConditionName()));</span>
-<span class="fc" id="L175">        device.setCapacity(resolveCapacity(req.getCapacityId(), req.getCapacityName()));</span>
-<span class="fc" id="L176">        device.setCarrier(resolveCarrier(req.getCarrierId(), req.getCarrierName()));</span>
-<span class="fc" id="L177">        device.setColor(resolveColor(req.getColorId(), req.getColorName()));</span>
-<span class="fc" id="L178">        device.setGrade(resolveGrade(req.getGradeId(), req.getGradeName()));</span>
-<span class="fc" id="L179">    }</span>
+<span class="fc" id="L170">        device.setBrand(resolveBrand(req.getBrandId(), req.getBrandName()));</span>
+<span class="fc" id="L171">        device.setCategory(resolveCategory(req.getCategoryId(), req.getCategoryName()));</span>
+<span class="fc" id="L172">        device.setModel(resolveModel(req.getModelId(), req.getModelName()));</span>
+<span class="fc" id="L173">        device.setCondition(resolveCondition(req.getConditionId(), req.getConditionName()));</span>
+<span class="fc" id="L174">        device.setCapacity(resolveCapacity(req.getCapacityId(), req.getCapacityName()));</span>
+<span class="fc" id="L175">        device.setCarrier(resolveCarrier(req.getCarrierId(), req.getCarrierName()));</span>
+<span class="fc" id="L176">        device.setColor(resolveColor(req.getColorId(), req.getColorName()));</span>
+<span class="fc" id="L177">        device.setGrade(resolveGrade(req.getGradeId(), req.getGradeName()));</span>
+<span class="fc" id="L178">    }</span>
 
     // ── Lookup resolution: ID → name → auto-create ───────────────────
 
     private Brand resolveBrand(Long id, String name) {
-<span class="fc bfc" id="L184" title="All 2 branches covered.">        if (id != null) return brandRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L185" title="1 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="fc" id="L186">        return brandRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="fc" id="L187">            Brand b = new Brand();</span>
-<span class="fc" id="L188">            b.setName(name);</span>
-<span class="fc" id="L189">            b.setDisplayName(name);</span>
-<span class="fc" id="L190">            return brandRepository.save(b);</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">        if (id != null) return brandRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L184" title="1 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="fc" id="L185">        return brandRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="fc" id="L186">            Brand b = new Brand();</span>
+<span class="fc" id="L187">            b.setName(name);</span>
+<span class="fc" id="L188">            b.setDisplayName(name);</span>
+<span class="fc" id="L189">            return brandRepository.save(b);</span>
         });
     }
 
     private Category resolveCategory(Long id, String name) {
-<span class="pc bpc" id="L195" title="1 of 2 branches missed.">        if (id != null) return categoryRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L196" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L197">        return categoryRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L198">            Category c = new Category();</span>
-<span class="nc" id="L199">            c.setName(name);</span>
-<span class="nc" id="L200">            c.setDisplayName(name);</span>
-<span class="nc" id="L201">            return categoryRepository.save(c);</span>
+<span class="pc bpc" id="L194" title="1 of 2 branches missed.">        if (id != null) return categoryRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L195" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L196">        return categoryRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L197">            Category c = new Category();</span>
+<span class="nc" id="L198">            c.setName(name);</span>
+<span class="nc" id="L199">            c.setDisplayName(name);</span>
+<span class="nc" id="L200">            return categoryRepository.save(c);</span>
         });
     }
 
     private Model resolveModel(Long id, String name) {
-<span class="pc bpc" id="L206" title="1 of 2 branches missed.">        if (id != null) return modelRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L207" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L208">        return modelRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L209">            Model m = new Model();</span>
-<span class="nc" id="L210">            m.setName(name);</span>
-<span class="nc" id="L211">            m.setDisplayName(name);</span>
-<span class="nc" id="L212">            return modelRepository.save(m);</span>
+<span class="pc bpc" id="L205" title="1 of 2 branches missed.">        if (id != null) return modelRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L206" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L207">        return modelRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L208">            Model m = new Model();</span>
+<span class="nc" id="L209">            m.setName(name);</span>
+<span class="nc" id="L210">            m.setDisplayName(name);</span>
+<span class="nc" id="L211">            return modelRepository.save(m);</span>
         });
     }
 
     private Condition resolveCondition(Long id, String name) {
-<span class="pc bpc" id="L217" title="1 of 2 branches missed.">        if (id != null) return conditionRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L218" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L219">        return conditionRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L220">            Condition c = new Condition();</span>
-<span class="nc" id="L221">            c.setName(name);</span>
-<span class="nc" id="L222">            c.setDisplayName(name);</span>
-<span class="nc" id="L223">            return conditionRepository.save(c);</span>
+<span class="pc bpc" id="L216" title="1 of 2 branches missed.">        if (id != null) return conditionRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L217" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L218">        return conditionRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L219">            Condition c = new Condition();</span>
+<span class="nc" id="L220">            c.setName(name);</span>
+<span class="nc" id="L221">            c.setDisplayName(name);</span>
+<span class="nc" id="L222">            return conditionRepository.save(c);</span>
         });
     }
 
     private Capacity resolveCapacity(Long id, String name) {
-<span class="pc bpc" id="L228" title="1 of 2 branches missed.">        if (id != null) return capacityRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L229" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L230">        return capacityRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L231">            Capacity c = new Capacity();</span>
-<span class="nc" id="L232">            c.setName(name);</span>
-<span class="nc" id="L233">            c.setDisplayName(name);</span>
-<span class="nc" id="L234">            return capacityRepository.save(c);</span>
+<span class="pc bpc" id="L227" title="1 of 2 branches missed.">        if (id != null) return capacityRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L228" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L229">        return capacityRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L230">            Capacity c = new Capacity();</span>
+<span class="nc" id="L231">            c.setName(name);</span>
+<span class="nc" id="L232">            c.setDisplayName(name);</span>
+<span class="nc" id="L233">            return capacityRepository.save(c);</span>
         });
     }
 
     private Carrier resolveCarrier(Long id, String name) {
-<span class="pc bpc" id="L239" title="1 of 2 branches missed.">        if (id != null) return carrierRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L240" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L241">        return carrierRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L242">            Carrier c = new Carrier();</span>
-<span class="nc" id="L243">            c.setName(name);</span>
-<span class="nc" id="L244">            c.setDisplayName(name);</span>
-<span class="nc" id="L245">            return carrierRepository.save(c);</span>
+<span class="pc bpc" id="L238" title="1 of 2 branches missed.">        if (id != null) return carrierRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L239" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L240">        return carrierRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L241">            Carrier c = new Carrier();</span>
+<span class="nc" id="L242">            c.setName(name);</span>
+<span class="nc" id="L243">            c.setDisplayName(name);</span>
+<span class="nc" id="L244">            return carrierRepository.save(c);</span>
         });
     }
 
     private Color resolveColor(Long id, String name) {
-<span class="pc bpc" id="L250" title="1 of 2 branches missed.">        if (id != null) return colorRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L251" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L252">        return colorRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L253">            Color c = new Color();</span>
-<span class="nc" id="L254">            c.setName(name);</span>
-<span class="nc" id="L255">            c.setDisplayName(name);</span>
-<span class="nc" id="L256">            return colorRepository.save(c);</span>
+<span class="pc bpc" id="L249" title="1 of 2 branches missed.">        if (id != null) return colorRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L250" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L251">        return colorRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L252">            Color c = new Color();</span>
+<span class="nc" id="L253">            c.setName(name);</span>
+<span class="nc" id="L254">            c.setDisplayName(name);</span>
+<span class="nc" id="L255">            return colorRepository.save(c);</span>
         });
     }
 
     private Grade resolveGrade(Long id, String name) {
-<span class="pc bpc" id="L261" title="1 of 2 branches missed.">        if (id != null) return gradeRepository.findById(id).orElse(null);</span>
-<span class="pc bpc" id="L262" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
-<span class="nc" id="L263">        return gradeRepository.findByName(name).orElseGet(() -&gt; {</span>
-<span class="nc" id="L264">            Grade g = new Grade();</span>
-<span class="nc" id="L265">            g.setName(name);</span>
-<span class="nc" id="L266">            g.setDisplayName(name);</span>
-<span class="nc" id="L267">            return gradeRepository.save(g);</span>
+<span class="pc bpc" id="L260" title="1 of 2 branches missed.">        if (id != null) return gradeRepository.findById(id).orElse(null);</span>
+<span class="pc bpc" id="L261" title="3 of 4 branches missed.">        if (name == null || name.isBlank()) return null;</span>
+<span class="nc" id="L262">        return gradeRepository.findByName(name).orElseGet(() -&gt; {</span>
+<span class="nc" id="L263">            Grade g = new Grade();</span>
+<span class="nc" id="L264">            g.setName(name);</span>
+<span class="nc" id="L265">            g.setDisplayName(name);</span>
+<span class="nc" id="L266">            return gradeRepository.save(g);</span>
         });
     }
 }

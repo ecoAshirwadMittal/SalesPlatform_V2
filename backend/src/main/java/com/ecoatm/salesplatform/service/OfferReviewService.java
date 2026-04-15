@@ -4,11 +4,14 @@ import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.model.pws.PwsOfferStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
+import com.ecoatm.salesplatform.service.email.PwsOfferEmailEvent;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,65 +31,73 @@ public class OfferReviewService {
 
     private static final Logger log = LoggerFactory.getLogger(OfferReviewService.class);
 
-    // Mendix ENUM — normalized to Mixed_Case convention (matches DB after V30 migration)
-    private static final String STATUS_DRAFT = "Draft";
-    private static final String STATUS_SALES_REVIEW = "Sales_Review";
-    private static final String STATUS_BUYER_ACCEPTANCE = "Buyer_Acceptance";
-    private static final String STATUS_ORDERED = "Ordered";
-    private static final String STATUS_PENDING_ORDER = "Pending_Order";
-    private static final String STATUS_DECLINED = "Declined";
+    // Status literals — see PwsOfferStatus for the authoritative set.
+    private static final String STATUS_DRAFT = PwsOfferStatus.DRAFT;
+    private static final String STATUS_SALES_REVIEW = PwsOfferStatus.SALES_REVIEW;
+    private static final String STATUS_BUYER_ACCEPTANCE = PwsOfferStatus.BUYER_ACCEPTANCE;
+    private static final String STATUS_ORDERED = PwsOfferStatus.ORDERED;
+    private static final String STATUS_PENDING_ORDER = PwsOfferStatus.PENDING_ORDER;
+    private static final String STATUS_DECLINED = PwsOfferStatus.DECLINED;
 
-    private static final String ITEM_ACCEPT = "Accept";
-    private static final String ITEM_COUNTER = "Counter";
-    private static final String ITEM_DECLINE = "Decline";
-    private static final String ITEM_FINALIZE = "Finalize";
+    private static final String ITEM_ACCEPT = PwsOfferStatus.ITEM_ACCEPT;
+    private static final String ITEM_COUNTER = PwsOfferStatus.ITEM_COUNTER;
+    private static final String ITEM_DECLINE = PwsOfferStatus.ITEM_DECLINE;
+    private static final String ITEM_FINALIZE = PwsOfferStatus.ITEM_FINALIZE;
 
     private final OfferRepository offerRepository;
     private final DeviceRepository deviceRepository;
     private final OfferService offerService;
     private final BuyerCodeLookupService buyerCodeLookup;
     private final EntityManager em;
+    private final ApplicationEventPublisher eventPublisher;
+    private final OfferItemDeviceLoader deviceLoader;
 
     public OfferReviewService(OfferRepository offerRepository,
                                DeviceRepository deviceRepository,
                                OfferService offerService,
                                BuyerCodeLookupService buyerCodeLookup,
-                               EntityManager em) {
+                               EntityManager em,
+                               ApplicationEventPublisher eventPublisher,
+                               OfferItemDeviceLoader deviceLoader) {
         this.offerRepository = offerRepository;
         this.deviceRepository = deviceRepository;
         this.offerService = offerService;
         this.buyerCodeLookup = buyerCodeLookup;
         this.em = em;
+        this.eventPublisher = eventPublisher;
+        this.deviceLoader = deviceLoader;
     }
 
     /**
      * Get status summary counts for the tabs.
-     * Clones DS_GetOfferSummaryByStatus for each status.
+     * Clones DS_GetOfferSummaryByStatus — single aggregate query instead of N+1.
      */
     public List<OfferSummary> getStatusSummaries() {
+        Map<String, String> statusLabels = new LinkedHashMap<>();
+        statusLabels.put(STATUS_SALES_REVIEW, "Sales Review");
+        statusLabels.put(STATUS_BUYER_ACCEPTANCE, "Buyer Acceptance");
+        statusLabels.put(STATUS_ORDERED, "Ordered");
+        statusLabels.put(STATUS_PENDING_ORDER, "Pending Order");
+        statusLabels.put(STATUS_DECLINED, "Declined");
+
+        List<Object[]> rows = offerRepository.getStatusSummaries(new ArrayList<>(statusLabels.keySet()));
+        Map<String, Object[]> rowMap = new HashMap<>();
+        for (Object[] row : rows) {
+            rowMap.put((String) row[0], row);
+        }
+
         List<OfferSummary> summaries = new ArrayList<>();
-
-        String[] statuses = { STATUS_SALES_REVIEW, STATUS_BUYER_ACCEPTANCE,
-                STATUS_ORDERED, STATUS_PENDING_ORDER, STATUS_DECLINED };
-        String[] labels = { "Sales Review", "Buyer Acceptance",
-                "Ordered", "Pending Order", "Declined" };
-
         long totalOffers = 0, totalSkus = 0, totalQty = 0;
         BigDecimal totalPrice = BigDecimal.ZERO;
 
-        for (int i = 0; i < statuses.length; i++) {
-            List<Offer> offers = offerRepository.findByStatusOrderByUpdatedDateDesc(statuses[i]);
-            long count = offers.size();
-            long skus = 0, qty = 0;
-            BigDecimal price = BigDecimal.ZERO;
-            for (Offer o : offers) {
-                int activeItems = (int) o.getItems().stream()
-                        .filter(it -> it.getQuantity() != null && it.getQuantity() > 0).count();
-                skus += activeItems;
-                qty += o.getTotalQty() != null ? o.getTotalQty() : 0;
-                price = price.add(o.getTotalPrice() != null ? o.getTotalPrice() : BigDecimal.ZERO);
-            }
-            summaries.add(new OfferSummary(statuses[i], labels[i], count, skus, qty, price));
+        for (Map.Entry<String, String> entry : statusLabels.entrySet()) {
+            Object[] row = rowMap.get(entry.getKey());
+            long count = row != null ? ((Number) row[1]).longValue() : 0;
+            long skus = row != null ? ((Number) row[2]).longValue() : 0;
+            long qty = row != null ? ((Number) row[3]).longValue() : 0;
+            BigDecimal price = row != null ? new BigDecimal(row[4].toString()) : BigDecimal.ZERO;
+
+            summaries.add(new OfferSummary(entry.getKey(), entry.getValue(), count, skus, qty, price));
             totalOffers += count;
             totalSkus += skus;
             totalQty += qty;
@@ -110,7 +121,7 @@ public class OfferReviewService {
         }
 
         // Batch-load buyer code + buyer name + sales rep + order number
-        List<Long> offerIds = offers.stream().map(Offer::getId).collect(Collectors.toList());
+        List<Long> offerIds = offers.stream().map(Offer::getId).toList();
         Set<Long> buyerCodeIds = offers.stream().map(Offer::getBuyerCodeId)
                 .filter(Objects::nonNull).collect(Collectors.toSet());
 
@@ -161,7 +172,7 @@ public class OfferReviewService {
             item.setSubmissionDate(offer.getSubmissionDate());
             item.setUpdatedDate(offer.getUpdatedDate());
             return item;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     /**
@@ -176,7 +187,7 @@ public class OfferReviewService {
 
         List<OfferItemResponse> itemResponses = items.stream()
                 .map(item -> OfferItemResponse.fromEntity(item, deviceMap.get(item.getDeviceId())))
-                .collect(Collectors.toList());
+                .toList();
 
         return OfferResponse.fromEntity(offer, itemResponses);
     }
@@ -373,7 +384,7 @@ public class OfferReviewService {
 
         // Validate: all countered items must have valid counter qty and price
         List<OfferItem> counterItems = items.stream()
-                .filter(i -> ITEM_COUNTER.equals(i.getItemStatus())).collect(Collectors.toList());
+                .filter(i -> ITEM_COUNTER.equals(i.getItemStatus())).toList();
         for (OfferItem ci : counterItems) {
             if (ci.getCounterQty() == null || ci.getCounterQty() <= 0
                     || ci.getCounterPrice() == null || ci.getCounterPrice().compareTo(BigDecimal.ZERO) <= 0) {
@@ -414,9 +425,21 @@ public class OfferReviewService {
                 }
             }
 
+            // Compute counter offer summary totals
+            int counterSkus = counterItems.size();
+            int counterQty = counterItems.stream()
+                    .mapToInt(i -> i.getCounterQty() != null ? i.getCounterQty() : 0).sum();
+            BigDecimal counterTotal = counterItems.stream()
+                    .map(i -> i.getCounterTotal() != null ? i.getCounterTotal() : BigDecimal.ZERO)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            offer.setCounterOfferTotalSku(counterSkus);
+            offer.setCounterOfferTotalQty(counterQty);
+            offer.setCounterOfferTotalPrice(counterTotal);
+
             offerRepository.save(offer);
 
-            // TODO: SUB_SendPWSCounterOfferEmail
+            // SUB_SendPWSCounterOfferEmail — delivered after commit
+            eventPublisher.publishEvent(new PwsOfferEmailEvent.CounterOffer(offer.getId()));
             log.info("Offer moved to Buyer_Acceptance (has counters): offerId={}", offerId);
             return SubmitResponse.offerSubmitted(offerId,
                     offer.getOfferNumber() != null ? offer.getOfferNumber() : String.valueOf(offerId));
@@ -428,13 +451,6 @@ public class OfferReviewService {
     }
 
     private Map<Long, Device> loadDeviceMap(List<OfferItem> items) {
-        Set<Long> deviceIds = items.stream()
-                .map(OfferItem::getDeviceId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (deviceIds.isEmpty()) return Map.of();
-
-        return deviceRepository.findAllById(deviceIds).stream()
-                .collect(Collectors.toMap(Device::getId, d -> d));
+        return deviceLoader.loadDeviceMap(items);
     }
 }

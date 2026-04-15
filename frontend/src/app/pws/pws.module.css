@@ -109,6 +109,7 @@
   padding: 0 8px 0 8px;
   flex-shrink: 0;
   position: relative;
+  z-index: 300;
 }
 
 .topBarLeft {
@@ -164,24 +165,57 @@
 .buyerCodeButton {
   display: flex;
   align-items: center;
-  gap: 6px;
   font-family: "Founders Grotesk", sans-serif;
   font-size: 16px;
   font-weight: 400;
   color: #000;
   background: #F7F7F7;
-  padding: 1px 8px;
   border-radius: 0 8px 8px 0;
   border: 1px solid #898787;
   height: 35px;
   min-width: 200px;
-  cursor: pointer;
   box-sizing: border-box;
   transition: background 0.15s;
+  overflow: hidden;
 }
 
 .buyerCodeButton:hover {
   background: #eeeeee;
+}
+
+.buyerCodeInput {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: "Founders Grotesk", sans-serif;
+  font-size: 16px;
+  font-weight: 400;
+  color: #000;
+  padding: 0 10px;
+  height: 100%;
+  min-width: 0;
+}
+
+.buyerCodeInput::placeholder {
+  color: #999;
+}
+
+.buyerCodeChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0 8px;
+  height: 100%;
+  color: #555;
+  flex-shrink: 0;
+}
+
+.buyerCodeChevron:hover {
+  color: #112d32;
 }
 
 .buyerCodeDropdown {
@@ -197,25 +231,6 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.buyerCodeSearchWrap {
-  padding: 8px;
-  border-bottom: 1px solid #eee;
-}
-
-.buyerCodeSearchInput {
-  width: 100%;
-  padding: 6px 10px;
-  font-family: "Founders Grotesk", sans-serif;
-  font-size: 13px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  outline: none;
-}
-
-.buyerCodeSearchInput:focus {
-  border-color: #407874;
 }
 
 .buyerCodeList {

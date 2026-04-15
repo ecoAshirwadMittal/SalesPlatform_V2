@@ -5,6 +5,8 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import styles from './login.module.css';
+import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function LoginForm() {
     }
 
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await apiFetch(`${API_BASE}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, rememberMe }),
@@ -39,15 +41,26 @@ export default function LoginForm() {
 
       if (response.ok) {
         const data = await response.json();
-        // Store auth state for SNP_UserInfoDisplay (top-bar user display)
-        if (data.token) localStorage.setItem('auth_token', data.token);
+        // The JWT is delivered as an HttpOnly cookie by AuthController and
+        // is not readable by JS. We only cache the user profile locally
+        // for top-bar display (SNP_UserInfoDisplay) — never the token.
         if (data.user) localStorage.setItem('auth_user', JSON.stringify(data.user));
-        router.push('/users');
+
+        // Redirect to returnTo if present, otherwise route by role
+        const params = new URLSearchParams(window.location.search);
+        const returnTo = params.get('returnTo');
+        if (returnTo && returnTo.startsWith('/') && !returnTo.startsWith('//')) {
+          router.push(returnTo);
+        } else {
+          const roles: string[] = data.user?.roles ?? [];
+          const isBuyerOnly = roles.length > 0 && roles.every(r => r === 'Bidder');
+          router.push(isBuyerOnly ? '/pws/order' : '/users');
+        }
       } else {
         const data = await response.json();
         setError(data.message || 'Incorrect email or password');
       }
-    } catch (err) {
+    } catch {
       setError('A network error occurred. Please try again.');
     }
   };

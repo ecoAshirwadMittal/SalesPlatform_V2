@@ -2,6 +2,8 @@ package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.model.mdm.Device;
+
+import java.math.BigDecimal;
 import com.ecoatm.salesplatform.model.pws.Rma;
 import com.ecoatm.salesplatform.model.pws.RmaItem;
 import com.ecoatm.salesplatform.model.pws.RmaReason;
@@ -66,7 +68,7 @@ public class RmaService {
         } else {
             rmas = rmaRepository.findByBuyerCodeIdOrderByCreatedDateDesc(buyerCodeId);
         }
-        List<RmaResponse> responses = rmas.stream().map(RmaResponse::fromEntity).collect(Collectors.toList());
+        List<RmaResponse> responses = rmas.stream().map(RmaResponse::fromEntity).toList();
         enrichWithBuyerInfo(responses);
         return responses;
     }
@@ -80,7 +82,7 @@ public class RmaService {
         } else {
             rmas = rmaRepository.findAllOrderByCreatedDateDesc();
         }
-        List<RmaResponse> responses = rmas.stream().map(RmaResponse::fromEntity).collect(Collectors.toList());
+        List<RmaResponse> responses = rmas.stream().map(RmaResponse::fromEntity).toList();
         enrichWithBuyerInfo(responses);
         return responses;
     }
@@ -154,7 +156,7 @@ public class RmaService {
         List<RmaItem> items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);
         List<RmaItemResponse> itemResponses = items.stream()
                 .map(this::enrichItemWithDevice)
-                .collect(Collectors.toList());
+                .toList();
 
         return new RmaDetailResponse(rmaResponse, itemResponses);
     }
@@ -246,7 +248,7 @@ public class RmaService {
         return rmaReasonRepository.findByIsActiveTrueOrderByValidReasonsAsc()
                 .stream()
                 .map(RmaReasonResponse::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -273,7 +275,7 @@ public class RmaService {
         List<String> allImeis = rows.stream()
                 .map(r -> r[0].trim())
                 .filter(s -> !s.isEmpty())
-                .collect(Collectors.toList());
+                .toList();
 
         Set<String> duplicateImeis = new HashSet<>();
         if (!allImeis.isEmpty()) {
@@ -362,7 +364,7 @@ public class RmaService {
         // Calculate summary: requestSkus = unique device count, requestQty = total items, requestSalesTotal
         rma.setRequestQty(rows.size());
         rma.setRequestSkus(rows.size()); // Each IMEI is unique, so skus = qty for IMEI-based RMAs
-        rma.setRequestSalesTotal(0); // Will be populated when devices are matched
+        rma.setRequestSalesTotal(BigDecimal.ZERO); // Will be populated when devices are matched
         rmaRepository.save(rma);
 
         log.info("RMA {} created for buyerCodeId={} with {} items by userId={}",
@@ -440,13 +442,14 @@ public class RmaService {
         List<RmaItem> items = rmaItemRepository.findByRmaIdOrderByCreatedDateAsc(rmaId);
 
         int approvedCount = 0, declinedCount = 0;
-        int approvedSalesTotal = 0;
+        BigDecimal approvedSalesTotal = BigDecimal.ZERO;
         Set<Long> approvedDeviceIds = new HashSet<>();
 
         for (RmaItem item : items) {
             if (STATUS_APPROVE.equals(item.getStatus())) {
                 approvedCount++;
-                approvedSalesTotal += item.getSalePrice() != null ? item.getSalePrice() : 0;
+                approvedSalesTotal = approvedSalesTotal.add(
+                        item.getSalePrice() != null ? item.getSalePrice() : BigDecimal.ZERO);
                 if (item.getDeviceId() != null) {
                     approvedDeviceIds.add(item.getDeviceId());
                 }

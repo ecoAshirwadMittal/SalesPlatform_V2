@@ -38,7 +38,7 @@ class PWSAdminControllerTest {
     @MockBean private JdbcTemplate jdbc;
 
     private String adminToken() {
-        return jwtService.generateToken(1L, "admin@test.com", List.of("ADMIN"), false);
+        return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
     }
 
     private String bidderToken() {
@@ -188,7 +188,7 @@ class PWSAdminControllerTest {
                             .header("Authorization", "Bearer " + adminToken()))
                     .andExpect(status().isOk());
 
-            verify(jdbc).update(contains("INSERT INTO pws.pws_constants"));
+            verify(jdbc).queryForList(contains("INSERT INTO pws.pws_constants"));
         }
 
         @Test
@@ -274,7 +274,7 @@ class PWSAdminControllerTest {
                             .header("Authorization", "Bearer " + adminToken()))
                     .andExpect(status().isOk());
 
-            verify(jdbc).update(contains("INSERT INTO pws.maintenance_mode"));
+            verify(jdbc).queryForList(contains("INSERT INTO pws.maintenance_mode"));
         }
 
         @Test

@@ -70,7 +70,7 @@ class RmaServiceTest {
         rma.setRmaStatus(status);
         rma.setRequestSkus(2);
         rma.setRequestQty(5);
-        rma.setRequestSalesTotal(500);
+        rma.setRequestSalesTotal(new java.math.BigDecimal("500"));
         rma.setApprovedCount(0);
         rma.setDeclinedCount(0);
         rma.setCreatedDate(LocalDateTime.now());
@@ -82,7 +82,7 @@ class RmaServiceTest {
         item.setId(id);
         item.setRma(rma);
         item.setImei(imei);
-        item.setSalePrice(price);
+        item.setSalePrice(price != null ? new java.math.BigDecimal(price) : null);
         item.setReturnReason("Defective");
         item.setStatus(itemStatus);
         item.setDeviceId(id * 10);

@@ -18,12 +18,6 @@ public class OracleConfig {
     @Column(name = "legacy_id", unique = true)
     private Long legacyId;
 
-    @Column(name = "username", length = 500)
-    private String username;
-
-    @Column(name = "password_hash", length = 500)
-    private String passwordHash;
-
     @Column(name = "auth_path")
     private String authPath;
 
@@ -48,12 +42,6 @@ public class OracleConfig {
 
     public Long getLegacyId() { return legacyId; }
     public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }
-
-    public String getUsername() { return username; }
-    public void setUsername(String username) { this.username = username; }
-
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
 
     public String getAuthPath() { return authPath; }
     public void setAuthPath(String authPath) { this.authPath = authPath; }

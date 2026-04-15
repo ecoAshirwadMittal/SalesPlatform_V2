@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './rmaRequests.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/rma';
+const BASE = `${API_BASE}/pws/rma`;
 const PAGE_SIZE = 20;
 
 interface RmaListItem {
@@ -116,7 +117,7 @@ export default function RmaRequestsPage() {
     if (!buyerCodeId) { setLoading(false); return; }
     setLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}?buyerCodeId=${buyerCodeId}`);
+      const res = await apiFetch(`${BASE}?buyerCodeId=${buyerCodeId}`);
       if (res.ok) setRmas(await res.json());
     } catch (err) {
       console.error('Failed to load RMAs:', err);
@@ -132,7 +133,7 @@ export default function RmaRequestsPage() {
     if (!showRequestModal) return;
     async function loadReasons() {
       try {
-        const res = await apiFetch(`${API_BASE}/reasons`);
+        const res = await apiFetch(`${BASE}/reasons`);
         if (res.ok) setReasons(await res.json());
       } catch (err) {
         console.error('Failed to load RMA reasons:', err);
@@ -175,7 +176,7 @@ export default function RmaRequestsPage() {
 
   async function handleDownloadTemplate() {
     try {
-      const res = await apiFetch(`${API_BASE}/template`);
+      const res = await apiFetch(`${BASE}/template`);
       if (res.ok) {
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -217,7 +218,7 @@ export default function RmaRequestsPage() {
       formData.append('buyerCodeId', buyerCodeId);
       formData.append('userId', userId);
 
-      const res = await apiFetch(`${API_BASE}/submit`, {
+      const res = await apiFetch(`${BASE}/submit`, {
         method: 'POST',
         body: formData,
       });

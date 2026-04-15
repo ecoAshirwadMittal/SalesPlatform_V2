@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.model.pws;
 
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,8 +30,8 @@ public class RmaItem {
     @Column(name = "ship_date")
     private LocalDateTime shipDate;
 
-    @Column(name = "sale_price")
-    private Integer salePrice;
+    @Column(name = "sale_price", precision = 14, scale = 2)
+    private BigDecimal salePrice;
 
     @Column(name = "return_reason")
     private String returnReason;
@@ -89,8 +90,8 @@ public class RmaItem {
     public LocalDateTime getShipDate() { return shipDate; }
     public void setShipDate(LocalDateTime shipDate) { this.shipDate = shipDate; }
 
-    public Integer getSalePrice() { return salePrice; }
-    public void setSalePrice(Integer salePrice) { this.salePrice = salePrice; }
+    public BigDecimal getSalePrice() { return salePrice; }
+    public void setSalePrice(BigDecimal salePrice) { this.salePrice = salePrice; }
 
     public String getReturnReason() { return returnReason; }
     public void setReturnReason(String returnReason) { this.returnReason = returnReason; }

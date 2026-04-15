@@ -1,8 +1,9 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import styles from './inventory.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { useDebounce } from '@/lib/useDebounce';
 import {
   parseDevices,
   parseCaseLots,
@@ -16,8 +17,10 @@ import {
   type SortDir,
   type TabId,
 } from './inventory-helpers';
+import { API_BASE } from '@/lib/apiRoutes';
+import { getErrorMessage } from '@/lib/errors';
+import { ErrorBanner } from '@/components/ErrorBanner';
 
-const API_BASE = '/api/v1';
 const PAGE_SIZE = 50;
 const DEBOUNCE_MS = 300;
 
@@ -29,11 +32,11 @@ export default function InventoryPage() {
   const [caseLots, setCaseLots] = useState<CaseLotItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Search
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const debouncedSearch = useDebounce(searchTerm, DEBOUNCE_MS);
 
   // Filters, sort, page per tab
   const [fdFilters, setFdFilters] = useState<ColumnFilters>({ ...emptyFilters });
@@ -58,20 +61,12 @@ export default function InventoryPage() {
         if (fdRes.ok) setFunctionalDevices(parseDevices(await fdRes.json()));
         if (clRes.ok) setCaseLots(parseCaseLots(await clRes.json()));
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load inventory:', err);
+        setErrorMsg(getErrorMessage(err, 'Failed to load inventory.'));
       } finally {
         setLoading(false);
       }
     })();
   }, []);
-
-  // ── Debounced search ──
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => setDebouncedSearch(searchTerm), DEBOUNCE_MS);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [searchTerm]);
 
   const searchTokens = useMemo(() =>
     debouncedSearch.trim().toLowerCase().split(/\s+/).filter(Boolean),
@@ -248,6 +243,7 @@ export default function InventoryPage() {
   return (
     <div className={styles.pageWrapper}>
       <div className={styles.contentArea}>
+        <ErrorBanner message={errorMsg} onDismiss={() => setErrorMsg(null)} />
         {/* Header */}
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Inventory</h1>

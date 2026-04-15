@@ -2,6 +2,7 @@ package com.ecoatm.salesplatform;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * ecoATM Sales Platform — modern Spring Boot backend.
@@ -16,6 +17,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  *   saml20 + forgotpassword      → sso schema
  */
 @SpringBootApplication
+@EnableScheduling
 public class SalesPlatformApplication {
 
     public static void main(String[] args) {

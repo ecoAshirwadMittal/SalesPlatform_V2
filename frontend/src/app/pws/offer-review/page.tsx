@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './offerReview.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/offer-review';
+const BASE = `${API_BASE}/pws/offer-review`;
 const PAGE_SIZE = 50;
 
 interface OfferSummary {
@@ -149,8 +150,8 @@ export default function OfferReviewPage() {
     setLoading(true);
     try {
       const [sumRes, listRes] = await Promise.all([
-        apiFetch(`${API_BASE}/summary`),
-        apiFetch(`${API_BASE}?status=${encodeURIComponent(status)}`),
+        apiFetch(`${BASE}/summary`),
+        apiFetch(`${BASE}?status=${encodeURIComponent(status)}`),
       ]);
       if (sumRes.ok) setSummaries(await sumRes.json());
       if (listRes.ok) setOffers(await listRes.json());

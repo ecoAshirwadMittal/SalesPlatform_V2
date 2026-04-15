@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './buyerSelect.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
 /**
  * Buyer Code Select page — strict clone of legacy Mendix Buyer_Code_Select.
@@ -15,7 +16,6 @@ import { apiFetch } from '@/lib/apiFetch';
  * to the corresponding landing page.
  */
 
-const API_BASE = '/api/v1';
 
 interface BuyerCode {
   id: number;

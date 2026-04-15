@@ -3,9 +3,13 @@ package com.ecoatm.salesplatform.dto;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.CaseLot;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 
+@Getter
+@Setter
 public class OfferItemResponse {
 
     private Long id;
@@ -79,7 +83,7 @@ public class OfferItemResponse {
             r.gradeName = device.getGrade() != null ? device.getGrade().getDisplayName() : null;
             r.listPrice = device.getListPrice();
             r.minPrice = device.getMinPrice();
-            r.availableQty = device.getAvailableQty();
+            r.availableQty = device.getAtpQty() != null ? device.getAtpQty() : device.getAvailableQty();
             r.itemType = device.getItemType();
         }
 
@@ -89,34 +93,4 @@ public class OfferItemResponse {
 
         return r;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public String getSku() { return sku; }
-    public Long getDeviceId() { return deviceId; }
-    public Integer getQuantity() { return quantity; }
-    public BigDecimal getPrice() { return price; }
-    public BigDecimal getTotalPrice() { return totalPrice; }
-    public String getItemStatus() { return itemStatus; }
-    public String getOfferDrawerStatus() { return offerDrawerStatus; }
-    public String getBuyerCounterStatus() { return buyerCounterStatus; }
-    public Integer getCounterQty() { return counterQty; }
-    public BigDecimal getCounterPrice() { return counterPrice; }
-    public BigDecimal getCounterTotal() { return counterTotal; }
-    public String getCategoryName() { return categoryName; }
-    public String getBrandName() { return brandName; }
-    public String getModelName() { return modelName; }
-    public String getCarrierName() { return carrierName; }
-    public String getCapacityName() { return capacityName; }
-    public String getColorName() { return colorName; }
-    public String getGradeName() { return gradeName; }
-    public BigDecimal getListPrice() { return listPrice; }
-    public BigDecimal getMinPrice() { return minPrice; }
-    public Integer getAvailableQty() { return availableQty; }
-    public BigDecimal getFinalOfferPrice() { return finalOfferPrice; }
-    public Integer getFinalOfferQuantity() { return finalOfferQuantity; }
-    public BigDecimal getFinalOfferTotalPrice() { return finalOfferTotalPrice; }
-    public BigDecimal getCounterCasePriceTotal() { return counterCasePriceTotal; }
-    public String getItemType() { return itemType; }
-    public Integer getCaseLotSize() { return caseLotSize; }
 }

@@ -4,8 +4,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './cart.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { getBuyerCodeId, getUserId } from '@/lib/session';
+import { API_BASE } from '@/lib/apiRoutes';
+import { getErrorMessage } from '@/lib/errors';
 
-const API_BASE = '/api/v1';
 const DEBOUNCE_MS = 300;
 
 interface CartItem {
@@ -46,24 +48,6 @@ interface SubmitResult {
   orderNumber: string;
   title: string;
   message: string;
-}
-
-function getBuyerCodeId(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = sessionStorage.getItem('selectedBuyerCode');
-    if (stored) return JSON.parse(stored).id;
-  } catch { /* ignore */ }
-  return null;
-}
-
-function getUserId(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = localStorage.getItem('auth_user');
-    if (stored) return JSON.parse(stored).userId;
-  } catch { /* ignore */ }
-  return null;
 }
 
 function authParams(): string {
@@ -127,15 +111,18 @@ export default function CartPage() {
       data.items = (data.items || []).filter((i: CartItem) => i.quantity > 0);
       setCart(data);
     } catch (err) {
-      console.error('Failed to load cart', err);
+      setSaveError(getErrorMessage(err, 'Failed to load cart.'));
     } finally {
       setLoading(false);
     }
   }
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   function saveItemToApi(sku: string, deviceId: number, offerPrice: number, quantity: number) {
     const buyerCodeId = getBuyerCodeId();
     if (!buyerCodeId) return;
+    setSaveError(null);
     apiFetch(`${API_BASE}/pws/offers/cart/items?${authParams()}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -146,7 +133,7 @@ export default function CartPage() {
         data.items = (data.items || []).filter((i: CartItem) => i.quantity > 0);
         setCart(data);
       })
-      .catch(err => console.error('Save failed', err));
+      .catch(() => setSaveError('Failed to save item. Your changes may not be persisted.'));
   }
 
   function handleItemChange(item: CartItem, field: 'price' | 'quantity', value: string) {
@@ -194,7 +181,7 @@ export default function CartPage() {
       setCart(data);
       setExceedingSkus(prev => prev.filter(s => s !== sku));
     } catch (err) {
-      console.error('Remove failed', err);
+      setSaveError(getErrorMessage(err, 'Failed to remove item.'));
     }
   }
 
@@ -207,7 +194,7 @@ export default function CartPage() {
       await apiFetch(`${API_BASE}/pws/offers/cart?${authParams()}`, { method: 'DELETE' });
       router.push('/pws/order');
     } catch (err) {
-      console.error('Reset failed', err);
+      setSaveError(getErrorMessage(err, 'Failed to reset cart.'));
     }
   }
 
@@ -226,7 +213,7 @@ export default function CartPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Export failed', err);
+      setSaveError(getErrorMessage(err, 'Export failed.'));
     }
   }
 
@@ -346,6 +333,7 @@ export default function CartPage() {
   const totalSkus = items.filter(i => i.quantity > 0).length;
   const totalQty = items.reduce((s, i) => s + i.quantity, 0);
   const totalPrice = items.reduce((s, i) => s + i.price * i.quantity, 0);
+  const hasExceedingItems = items.some(i => i.quantity > i.availableQty);
 
   return (
     <div className={styles.pageWrapper}>
@@ -371,7 +359,7 @@ export default function CartPage() {
               <span className={styles.cartStatValue}>${totalPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
             </div>
           </div>
-          <button className={styles.submitBtnHeader} onClick={handleSubmit} disabled={submitting || items.length === 0}>
+          <button className={styles.submitBtnHeader} onClick={handleSubmit} disabled={submitting || items.length === 0 || hasExceedingItems}>
             {submitting ? 'Submitting...' : 'Submit'}
           </button>
           <div ref={moreMenuRef} style={{ position: 'relative' }}>
@@ -384,6 +372,21 @@ export default function CartPage() {
             )}
           </div>
         </div>
+
+        {/* Save error banner */}
+        {saveError && (
+          <div className={styles.errorBanner} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{saveError}</span>
+            <button type="button" onClick={() => setSaveError(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 'bold' }}>×</button>
+          </div>
+        )}
+
+        {/* Client-side qty exceed warning */}
+        {hasExceedingItems && (
+          <div className={styles.errorBanner}>
+            {items.filter(i => i.quantity > i.availableQty).length} item(s) exceed available quantity. Please adjust quantities.
+          </div>
+        )}
 
         {/* Validation errors / exceeding qty banner */}
         {validationErrors.length > 0 && (

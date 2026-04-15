@@ -5,6 +5,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
+import { getAuthUser, getSelectedBuyerCode, type AuthUser } from '@/lib/session';
+import type { NavItem } from '@/lib/types';
 import styles from './pws.module.css';
 
 /**
@@ -15,12 +18,6 @@ import styles from './pws.module.css';
  * Top bar: dark background, "ecoATM" logo + "Premium Wholesale" teal text.
  * User dropdown shows name, email, "Switch to Wholesale", "Submit Feedback", "Logout".
  */
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ReactNode;
-}
 
 // SALES section nav items
 const salesNavItems: NavItem[] = [
@@ -139,16 +136,6 @@ const buyersNavItems: NavItem[] = [
   },
 ];
 
-interface AuthUser {
-  userId: number;
-  firstName: string;
-  lastName: string;
-  fullName: string;
-  email: string;
-  initials: string;
-  roles?: string[];
-}
-
 interface BuyerCodeOption {
   id: number;
   code: string;
@@ -159,34 +146,29 @@ interface BuyerCodeOption {
 export default function PwsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
   const [buyerCodes, setBuyerCodes] = useState<BuyerCodeOption[]>([]);
-  const [selectedBuyerCode, setSelectedBuyerCode] = useState<BuyerCodeOption | null>(null);
+  const [selectedBuyerCode, setSelectedBuyerCode] = useState<BuyerCodeOption | null>(
+    () => getSelectedBuyerCode() as BuyerCodeOption | null
+  );
   const [buyerDropdownOpen, setBuyerDropdownOpen] = useState(false);
   const [buyerSearch, setBuyerSearch] = useState('');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [buyerCodeError, setBuyerCodeError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const buyerDropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('auth_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { /* ignore */ }
-    }
-    // Read selected buyer code from sessionStorage
-    const bc = sessionStorage.getItem('selectedBuyerCode');
-    if (bc) {
-      try { setSelectedBuyerCode(JSON.parse(bc)); } catch { /* ignore */ }
-    }
-  }, []);
 
   // Load buyer codes for the logged-in user
   useEffect(() => {
     if (!user) return;
     async function loadBuyerCodes() {
       try {
-        const res = await apiFetch(`/api/v1/auth/buyer-codes?userId=${user!.userId}`);
-        if (!res.ok) return;
+        setBuyerCodeError(null);
+        const res = await apiFetch(`${API_BASE}/auth/buyer-codes?userId=${user!.userId}`);
+        if (!res.ok) {
+          setBuyerCodeError('Failed to load buyer codes');
+          return;
+        }
         const codes: BuyerCodeOption[] = await res.json();
         const pwsCodes = codes.filter(c =>
           c.buyerCodeType === 'Premium_Wholesale' || c.buyerCodeType === 'Wholesale'
@@ -194,14 +176,16 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
         setBuyerCodes(pwsCodes);
 
         // Auto-select first code if none selected
-        const stored = sessionStorage.getItem('selectedBuyerCode');
+        const stored = getSelectedBuyerCode();
         if (!stored && pwsCodes.length > 0) {
           const first = { id: pwsCodes[0].id, code: pwsCodes[0].code };
           setSelectedBuyerCode(first);
           sessionStorage.setItem('selectedBuyerCode', JSON.stringify(first));
           window.dispatchEvent(new Event('buyerCodeChanged'));
         }
-      } catch { /* ignore */ }
+      } catch {
+        setBuyerCodeError('Failed to load buyer codes');
+      }
     }
     loadBuyerCodes();
   }, [user]);
@@ -209,10 +193,8 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
   // Re-read buyer code when it changes (other pages may also write to sessionStorage)
   useEffect(() => {
     function handleStorage() {
-      const bc = sessionStorage.getItem('selectedBuyerCode');
-      if (bc) {
-        try { setSelectedBuyerCode(JSON.parse(bc)); } catch { /* ignore */ }
-      }
+      const bc = getSelectedBuyerCode();
+      if (bc) setSelectedBuyerCode(bc as BuyerCodeOption);
     }
     window.addEventListener('buyerCodeChanged', handleStorage);
     return () => window.removeEventListener('buyerCodeChanged', handleStorage);
@@ -256,9 +238,18 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
   const displayName = user?.fullName || user?.email || 'User';
   const initials = user?.initials || displayName.slice(0, 2).toUpperCase();
 
-  const handleLogout = () => {
-    localStorage.removeItem('auth_token');
+  const handleLogout = async () => {
+    // Expire the HttpOnly auth_token cookie server-side, then clear the
+    // cached user profile. The token itself is never touched from JS.
+    try {
+      await apiFetch(`${API_BASE}/auth/logout`, { method: 'POST' });
+    } catch {
+      // Best-effort: even if the logout call fails, clear local state and
+      // navigate to /login so the user isn't stranded on a protected page.
+    }
     localStorage.removeItem('auth_user');
+    // Broadcast so other open tabs also return to /login.
+    try { new BroadcastChannel('auth').postMessage('logout'); } catch { /* unsupported */ }
     router.push('/login');
   };
 
@@ -288,30 +279,30 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
             <div className={styles.topBarCenter}>
               <div className={styles.buyerCodeWrapper} ref={buyerDropdownRef}>
                 <span className={styles.buyerCodeLabel}>View As</span>
-                <button
-                  className={styles.buyerCodeButton}
-                  onClick={() => setBuyerDropdownOpen(prev => !prev)}
-                  aria-label="Select buyer code"
-                >
-                  <span>{selectedBuyerCode?.code || 'Select Buyer Code'}{user ? `  ${user.fullName || ''}` : ''}</span>
-                  <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor">
-                    <path d="M16 23.41L4.29004 11.71L5.71004 10.29L16 20.59L26.29 10.29L27.71 11.71L16 23.41Z"/>
-                  </svg>
-                </button>
+                <div className={styles.buyerCodeButton}>
+                  <input
+                    className={styles.buyerCodeInput}
+                    type="text"
+                    value={buyerDropdownOpen ? buyerSearch : (selectedBuyerCode?.code || '')}
+                    placeholder="Select Buyer Code"
+                    onChange={e => { setBuyerSearch(e.target.value); if (!buyerDropdownOpen) setBuyerDropdownOpen(true); }}
+                    onFocus={() => { setBuyerSearch(''); setBuyerDropdownOpen(true); }}
+                    aria-label="Search or select buyer code"
+                  />
+                  <button
+                    type="button"
+                    className={styles.buyerCodeChevron}
+                    onClick={() => { setBuyerDropdownOpen(prev => !prev); setBuyerSearch(''); }}
+                    tabIndex={-1}
+                    aria-label="Toggle buyer code list"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 32 32" fill="currentColor">
+                      <path d="M16 23.41L4.29004 11.71L5.71004 10.29L16 20.59L26.29 10.29L27.71 11.71L16 23.41Z"/>
+                    </svg>
+                  </button>
+                </div>
                 {buyerDropdownOpen && (
                   <div className={styles.buyerCodeDropdown}>
-                    {buyerCodes.length > 5 && (
-                      <div className={styles.buyerCodeSearchWrap}>
-                        <input
-                          className={styles.buyerCodeSearchInput}
-                          type="text"
-                          placeholder="Search buyer codes..."
-                          value={buyerSearch}
-                          onChange={e => setBuyerSearch(e.target.value)}
-                          autoFocus
-                        />
-                      </div>
-                    )}
                     <div className={styles.buyerCodeList}>
                       {filteredBuyerCodes.map(bc => (
                         <button
@@ -320,7 +311,6 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
                           onClick={() => handleBuyerCodeSwitch(bc)}
                         >
                           <span className={styles.buyerCodeItemCode}>{bc.code}</span>
-                          {bc.buyerName && <span className={styles.buyerCodeItemName}>{bc.buyerName}</span>}
                         </button>
                       ))}
                       {filteredBuyerCodes.length === 0 && (
@@ -378,6 +368,11 @@ export default function PwsLayout({ children }: { children: React.ReactNode }) {
         </aside>
 
         <main className={styles.contentArea}>
+          {buyerCodeError && (
+            <div style={{ padding: '8px 16px', background: '#fef2f2', color: '#991b1b', borderBottom: '1px solid #fecaca', fontSize: '14px' }}>
+              {buyerCodeError}
+            </div>
+          )}
           {children}
         </main>
       </div>

@@ -7,7 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "order", schema = "pws")
+// "order" is a SQL reserved keyword — always quote in native queries: pws."order"
+@Table(name = "\"order\"", schema = "pws")
 public class Order {
 
     @Id

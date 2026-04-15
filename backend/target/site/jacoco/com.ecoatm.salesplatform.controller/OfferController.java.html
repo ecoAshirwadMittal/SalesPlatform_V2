@@ -100,7 +100,7 @@ public class OfferController {
     public ResponseEntity&lt;SubmitResponse&gt; submitOffer(
             @PathVariable Long offerId,
             @RequestParam(required = false) Long userId) {
-<span class="fc" id="L103">        return ResponseEntity.ok(offerService.submitOffer(offerId));</span>
+<span class="fc" id="L103">        return ResponseEntity.ok(offerService.submitOffer(offerId, userId));</span>
     }
 
     /**

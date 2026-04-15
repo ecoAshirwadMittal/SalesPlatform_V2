@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import styles from './oracleConfig.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE as API_ROOT } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/admin/oracle-config';
+const API_BASE = `${API_ROOT}/admin/oracle-config`;
 
 interface OracleConfigData {
   id: number | null;

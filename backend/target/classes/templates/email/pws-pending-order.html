@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{email/_layout :: layout(
+          title='Order Pending — Adjusted Quantities',
+          intro='Hello <strong>' + ${buyerName} + '</strong>,<br/>Order <strong>#' + ${offerId} + '</strong> for <strong>' + ${companyName} + '</strong> has been placed but some quantities were adjusted based on current availability. Please review the final order below.',
+          bodyContent=~{::content})}">
+<body>
+<div th:fragment="content">
+  <div th:replace="~{email/_rows :: itemsTable(${items}, ${total})}">Items</div>
+</div>
+</body>
+</html>

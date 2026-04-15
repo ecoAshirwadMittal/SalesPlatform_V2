@@ -1,9 +1,14 @@
 package com.ecoatm.salesplatform.dto;
 
 import com.ecoatm.salesplatform.model.pws.Rma;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Getter
+@Setter
 public class RmaResponse {
 
     private Long rmaId;
@@ -17,10 +22,10 @@ public class RmaResponse {
     private String companyName;
     private Integer requestSkus;
     private Integer requestQty;
-    private Integer requestSalesTotal;
+    private BigDecimal requestSalesTotal;
     private Integer approvedSkus;
     private Integer approvedQty;
-    private Integer approvedSalesTotal;
+    private BigDecimal approvedSalesTotal;
     private Integer approvedCount;
     private Integer declinedCount;
     private LocalDateTime submittedDate;
@@ -35,10 +40,10 @@ public class RmaResponse {
         r.buyerCodeId = rma.getBuyerCodeId();
         r.requestSkus = rma.getRequestSkus() != null ? rma.getRequestSkus() : 0;
         r.requestQty = rma.getRequestQty() != null ? rma.getRequestQty() : 0;
-        r.requestSalesTotal = rma.getRequestSalesTotal() != null ? rma.getRequestSalesTotal() : 0;
+        r.requestSalesTotal = rma.getRequestSalesTotal() != null ? rma.getRequestSalesTotal() : BigDecimal.ZERO;
         r.approvedSkus = rma.getApprovedSkus() != null ? rma.getApprovedSkus() : 0;
         r.approvedQty = rma.getApprovedQty() != null ? rma.getApprovedQty() : 0;
-        r.approvedSalesTotal = rma.getApprovedSalesTotal() != null ? rma.getApprovedSalesTotal() : 0;
+        r.approvedSalesTotal = rma.getApprovedSalesTotal() != null ? rma.getApprovedSalesTotal() : BigDecimal.ZERO;
         r.approvedCount = rma.getApprovedCount() != null ? rma.getApprovedCount() : 0;
         r.declinedCount = rma.getDeclinedCount() != null ? rma.getDeclinedCount() : 0;
         r.submittedDate = rma.getSubmittedDate();
@@ -53,31 +58,4 @@ public class RmaResponse {
         }
         return r;
     }
-
-    // Getters
-    public Long getRmaId() { return rmaId; }
-    public String getNumber() { return number; }
-    public String getSystemStatus() { return systemStatus; }
-    public String getInternalStatusText() { return internalStatusText; }
-    public String getExternalStatusText() { return externalStatusText; }
-    public String getStatusGroupedTo() { return statusGroupedTo; }
-    public Long getBuyerCodeId() { return buyerCodeId; }
-    public String getBuyerName() { return buyerName; }
-    public String getCompanyName() { return companyName; }
-    public Integer getRequestSkus() { return requestSkus; }
-    public Integer getRequestQty() { return requestQty; }
-    public Integer getRequestSalesTotal() { return requestSalesTotal; }
-    public Integer getApprovedSkus() { return approvedSkus; }
-    public Integer getApprovedQty() { return approvedQty; }
-    public Integer getApprovedSalesTotal() { return approvedSalesTotal; }
-    public Integer getApprovedCount() { return approvedCount; }
-    public Integer getDeclinedCount() { return declinedCount; }
-    public LocalDateTime getSubmittedDate() { return submittedDate; }
-    public LocalDateTime getApprovalDate() { return approvalDate; }
-    public LocalDateTime getReviewCompletedOn() { return reviewCompletedOn; }
-    public String getOracleNumber() { return oracleNumber; }
-
-    // Setters for buyer/company enrichment
-    public void setBuyerName(String buyerName) { this.buyerName = buyerName; }
-    public void setCompanyName(String companyName) { this.companyName = companyName; }
 }

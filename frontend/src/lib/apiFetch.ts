@@ -1,16 +1,14 @@
 /**
- * Wrapper around fetch that automatically attaches the JWT auth token
- * from localStorage to every request as a Bearer token.
+ * Wrapper around fetch that forwards the HttpOnly `auth_token` cookie on
+ * every request via `credentials: 'include'`. The token is never accessible
+ * to JS — this wrapper exists so we always opt into cookie forwarding and
+ * to keep call sites uniform.
  *
  * Drop-in replacement: apiFetch(url, init?) has the same signature as fetch().
  */
 export function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null;
-
-  const headers = new Headers(init?.headers);
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-
-  return fetch(input, { ...init, headers });
+  return fetch(input, {
+    ...init,
+    credentials: 'include',
+  });
 }

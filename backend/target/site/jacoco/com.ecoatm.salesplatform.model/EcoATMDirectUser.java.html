@@ -49,12 +49,15 @@ import java.time.LocalDateTime;
     @Column(name = &quot;changed_date&quot;)
 <span class="nc" id="L50">    private LocalDateTime changedDate;</span>
 
+    @Column(name = &quot;password_tmp_expires_at&quot;)
+<span class="nc" id="L53">    private LocalDateTime passwordTmpExpiresAt;</span>
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = &quot;user_id&quot;, insertable = false, updatable = false)
-<span class="nc" id="L54">    private User user;</span>
+<span class="nc" id="L57">    private User user;</span>
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = &quot;user_id&quot;, referencedColumnName = &quot;user_id&quot;, insertable = false, updatable = false)
-<span class="nc" id="L58">    private Account account;</span>
+<span class="nc" id="L61">    private Account account;</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -96,6 +96,7 @@ When building any feature, update the relevant docs:
 5. **Deployment change** -> Update `docs/deployment/deployment.md`
 6. **Test added/coverage change** -> Update `docs/testing/coverage.md`
 7. **New constant/enum** -> Update `docs/app-metadata/constants.md` or `enumerations.md`
+8. **Any plan produced** (implementation plan, refactor plan, phased roadmap, task breakdown) -> **ALWAYS** persist it as a markdown file under `docs/tasks/` (or `docs/adr/` for architecture decisions) before starting implementation. Never leave a plan only in conversation — plans must be durable artifacts that future sessions can reference and update.
 
 ## Dev Test Credentials
 

@@ -26,7 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class PricingService {
@@ -34,10 +33,10 @@ public class PricingService {
     private final DeviceRepository deviceRepository;
     private final PriceHistoryRepository priceHistoryRepository;
 
-<span class="fc" id="L37">    public PricingService(DeviceRepository deviceRepository, PriceHistoryRepository priceHistoryRepository) {</span>
-<span class="fc" id="L38">        this.deviceRepository = deviceRepository;</span>
-<span class="fc" id="L39">        this.priceHistoryRepository = priceHistoryRepository;</span>
-<span class="fc" id="L40">    }</span>
+<span class="fc" id="L36">    public PricingService(DeviceRepository deviceRepository, PriceHistoryRepository priceHistoryRepository) {</span>
+<span class="fc" id="L37">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L38">        this.priceHistoryRepository = priceHistoryRepository;</span>
+<span class="fc" id="L39">    }</span>
 
     @Transactional(readOnly = true)
     public Page&lt;PricingDeviceResponse&gt; listPricingDevices(
@@ -55,149 +54,149 @@ public class PricingService {
             BigDecimal currentMinPrice,
             BigDecimal futureMinPrice) {
 
-<span class="fc" id="L58">        Specification&lt;Device&gt; spec = (root, query, cb) -&gt; {</span>
-<span class="nc" id="L59">            List&lt;Predicate&gt; preds = new ArrayList&lt;&gt;();</span>
-<span class="nc" id="L60">            preds.add(cb.isTrue(root.get(&quot;isActive&quot;)));</span>
+<span class="fc" id="L57">        Specification&lt;Device&gt; spec = (root, query, cb) -&gt; {</span>
+<span class="nc" id="L58">            List&lt;Predicate&gt; preds = new ArrayList&lt;&gt;();</span>
+<span class="nc" id="L59">            preds.add(cb.isTrue(root.get(&quot;isActive&quot;)));</span>
 
-<span class="nc bnc" id="L62" title="All 4 branches missed.">            if (sku != null &amp;&amp; !sku.isBlank()) {</span>
-<span class="nc" id="L63">                preds.add(cb.like(cb.lower(root.get(&quot;sku&quot;)),</span>
-<span class="nc" id="L64">                        &quot;%&quot; + sku.toLowerCase() + &quot;%&quot;));</span>
+<span class="nc bnc" id="L61" title="All 4 branches missed.">            if (sku != null &amp;&amp; !sku.isBlank()) {</span>
+<span class="nc" id="L62">                preds.add(cb.like(cb.lower(root.get(&quot;sku&quot;)),</span>
+<span class="nc" id="L63">                        &quot;%&quot; + sku.toLowerCase() + &quot;%&quot;));</span>
             }
-<span class="nc bnc" id="L66" title="All 4 branches missed.">            if (category != null &amp;&amp; !category.isBlank()) {</span>
-<span class="nc" id="L67">                var join = root.join(&quot;category&quot;, JoinType.INNER);</span>
-<span class="nc" id="L68">                preds.add(cb.equal(join.get(&quot;displayName&quot;), category));</span>
+<span class="nc bnc" id="L65" title="All 4 branches missed.">            if (category != null &amp;&amp; !category.isBlank()) {</span>
+<span class="nc" id="L66">                var join = root.join(&quot;category&quot;, JoinType.INNER);</span>
+<span class="nc" id="L67">                preds.add(cb.equal(join.get(&quot;displayName&quot;), category));</span>
             }
-<span class="nc bnc" id="L70" title="All 4 branches missed.">            if (brand != null &amp;&amp; !brand.isBlank()) {</span>
-<span class="nc" id="L71">                var join = root.join(&quot;brand&quot;, JoinType.INNER);</span>
-<span class="nc" id="L72">                preds.add(cb.equal(join.get(&quot;displayName&quot;), brand));</span>
+<span class="nc bnc" id="L69" title="All 4 branches missed.">            if (brand != null &amp;&amp; !brand.isBlank()) {</span>
+<span class="nc" id="L70">                var join = root.join(&quot;brand&quot;, JoinType.INNER);</span>
+<span class="nc" id="L71">                preds.add(cb.equal(join.get(&quot;displayName&quot;), brand));</span>
             }
-<span class="nc bnc" id="L74" title="All 4 branches missed.">            if (model != null &amp;&amp; !model.isBlank()) {</span>
-<span class="nc" id="L75">                var join = root.join(&quot;model&quot;, JoinType.INNER);</span>
-<span class="nc" id="L76">                preds.add(cb.equal(join.get(&quot;displayName&quot;), model));</span>
+<span class="nc bnc" id="L73" title="All 4 branches missed.">            if (model != null &amp;&amp; !model.isBlank()) {</span>
+<span class="nc" id="L74">                var join = root.join(&quot;model&quot;, JoinType.INNER);</span>
+<span class="nc" id="L75">                preds.add(cb.equal(join.get(&quot;displayName&quot;), model));</span>
             }
-<span class="nc bnc" id="L78" title="All 4 branches missed.">            if (carrier != null &amp;&amp; !carrier.isBlank()) {</span>
-<span class="nc" id="L79">                var join = root.join(&quot;carrier&quot;, JoinType.INNER);</span>
-<span class="nc" id="L80">                preds.add(cb.equal(join.get(&quot;displayName&quot;), carrier));</span>
+<span class="nc bnc" id="L77" title="All 4 branches missed.">            if (carrier != null &amp;&amp; !carrier.isBlank()) {</span>
+<span class="nc" id="L78">                var join = root.join(&quot;carrier&quot;, JoinType.INNER);</span>
+<span class="nc" id="L79">                preds.add(cb.equal(join.get(&quot;displayName&quot;), carrier));</span>
             }
-<span class="nc bnc" id="L82" title="All 4 branches missed.">            if (capacity != null &amp;&amp; !capacity.isBlank()) {</span>
-<span class="nc" id="L83">                var join = root.join(&quot;capacity&quot;, JoinType.INNER);</span>
-<span class="nc" id="L84">                preds.add(cb.equal(join.get(&quot;displayName&quot;), capacity));</span>
+<span class="nc bnc" id="L81" title="All 4 branches missed.">            if (capacity != null &amp;&amp; !capacity.isBlank()) {</span>
+<span class="nc" id="L82">                var join = root.join(&quot;capacity&quot;, JoinType.INNER);</span>
+<span class="nc" id="L83">                preds.add(cb.equal(join.get(&quot;displayName&quot;), capacity));</span>
             }
-<span class="nc bnc" id="L86" title="All 4 branches missed.">            if (color != null &amp;&amp; !color.isBlank()) {</span>
-<span class="nc" id="L87">                var join = root.join(&quot;color&quot;, JoinType.INNER);</span>
-<span class="nc" id="L88">                preds.add(cb.equal(join.get(&quot;displayName&quot;), color));</span>
+<span class="nc bnc" id="L85" title="All 4 branches missed.">            if (color != null &amp;&amp; !color.isBlank()) {</span>
+<span class="nc" id="L86">                var join = root.join(&quot;color&quot;, JoinType.INNER);</span>
+<span class="nc" id="L87">                preds.add(cb.equal(join.get(&quot;displayName&quot;), color));</span>
             }
-<span class="nc bnc" id="L90" title="All 4 branches missed.">            if (grade != null &amp;&amp; !grade.isBlank()) {</span>
-<span class="nc" id="L91">                var join = root.join(&quot;grade&quot;, JoinType.INNER);</span>
-<span class="nc" id="L92">                preds.add(cb.equal(join.get(&quot;displayName&quot;), grade));</span>
-            }
-
-<span class="nc bnc" id="L95" title="All 2 branches missed.">            if (currentListPrice != null) {</span>
-<span class="nc" id="L96">                preds.add(cb.equal(root.get(&quot;listPrice&quot;), currentListPrice));</span>
-            }
-<span class="nc bnc" id="L98" title="All 2 branches missed.">            if (futureListPrice != null) {</span>
-<span class="nc" id="L99">                preds.add(cb.equal(root.get(&quot;futureListPrice&quot;), futureListPrice));</span>
-            }
-<span class="nc bnc" id="L101" title="All 2 branches missed.">            if (currentMinPrice != null) {</span>
-<span class="nc" id="L102">                preds.add(cb.equal(root.get(&quot;minPrice&quot;), currentMinPrice));</span>
-            }
-<span class="nc bnc" id="L104" title="All 2 branches missed.">            if (futureMinPrice != null) {</span>
-<span class="nc" id="L105">                preds.add(cb.equal(root.get(&quot;futureMinPrice&quot;), futureMinPrice));</span>
+<span class="nc bnc" id="L89" title="All 4 branches missed.">            if (grade != null &amp;&amp; !grade.isBlank()) {</span>
+<span class="nc" id="L90">                var join = root.join(&quot;grade&quot;, JoinType.INNER);</span>
+<span class="nc" id="L91">                preds.add(cb.equal(join.get(&quot;displayName&quot;), grade));</span>
             }
 
-<span class="nc" id="L108">            return cb.and(preds.toArray(new Predicate[0]));</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">            if (currentListPrice != null) {</span>
+<span class="nc" id="L95">                preds.add(cb.equal(root.get(&quot;listPrice&quot;), currentListPrice));</span>
+            }
+<span class="nc bnc" id="L97" title="All 2 branches missed.">            if (futureListPrice != null) {</span>
+<span class="nc" id="L98">                preds.add(cb.equal(root.get(&quot;futureListPrice&quot;), futureListPrice));</span>
+            }
+<span class="nc bnc" id="L100" title="All 2 branches missed.">            if (currentMinPrice != null) {</span>
+<span class="nc" id="L101">                preds.add(cb.equal(root.get(&quot;minPrice&quot;), currentMinPrice));</span>
+            }
+<span class="nc bnc" id="L103" title="All 2 branches missed.">            if (futureMinPrice != null) {</span>
+<span class="nc" id="L104">                preds.add(cb.equal(root.get(&quot;futureMinPrice&quot;), futureMinPrice));</span>
+            }
+
+<span class="nc" id="L107">            return cb.and(preds.toArray(new Predicate[0]));</span>
         };
 
-<span class="fc" id="L111">        return deviceRepository.findAll(spec, pageable)</span>
-<span class="fc" id="L112">                .map(PricingDeviceResponse::fromEntity);</span>
+<span class="fc" id="L110">        return deviceRepository.findAll(spec, pageable)</span>
+<span class="fc" id="L111">                .map(PricingDeviceResponse::fromEntity);</span>
     }
 
     @Transactional
     public PricingDeviceResponse updateFuturePrices(Long deviceId, BigDecimal futureListPrice, BigDecimal futureMinPrice) {
-<span class="fc" id="L117">        Device device = deviceRepository.findById(deviceId)</span>
-<span class="fc" id="L118">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + deviceId));</span>
-<span class="fc" id="L119">        device.setFutureListPrice(futureListPrice);</span>
-<span class="fc" id="L120">        device.setFutureMinPrice(futureMinPrice);</span>
-<span class="fc" id="L121">        Device saved = deviceRepository.save(device);</span>
-<span class="fc" id="L122">        return PricingDeviceResponse.fromEntity(saved);</span>
+<span class="fc" id="L116">        Device device = deviceRepository.findById(deviceId)</span>
+<span class="fc" id="L117">                .orElseThrow(() -&gt; new IllegalArgumentException(&quot;Device not found: &quot; + deviceId));</span>
+<span class="fc" id="L118">        device.setFutureListPrice(futureListPrice);</span>
+<span class="fc" id="L119">        device.setFutureMinPrice(futureMinPrice);</span>
+<span class="fc" id="L120">        Device saved = deviceRepository.save(device);</span>
+<span class="fc" id="L121">        return PricingDeviceResponse.fromEntity(saved);</span>
     }
 
     @Transactional
     public List&lt;PricingDeviceResponse&gt; bulkUpdateFuturePrices(List&lt;PricingUpdateRequest&gt; requests) {
-<span class="fc" id="L127">        return requests.stream()</span>
-<span class="fc" id="L128">                .map(req -&gt; updateFuturePrices(req.getDeviceId(), req.getFutureListPrice(), req.getFutureMinPrice()))</span>
-<span class="fc" id="L129">                .collect(Collectors.toList());</span>
+<span class="fc" id="L126">        return requests.stream()</span>
+<span class="fc" id="L127">                .map(req -&gt; updateFuturePrices(req.getDeviceId(), req.getFutureListPrice(), req.getFutureMinPrice()))</span>
+<span class="fc" id="L128">                .toList();</span>
     }
 
     @Transactional
     public CsvUploadResult processPricingCsv(InputStream csvStream) {
-<span class="fc" id="L134">        List&lt;String&gt; errors = new ArrayList&lt;&gt;();</span>
-<span class="fc" id="L135">        int totalRows = 0;</span>
-<span class="fc" id="L136">        int updatedCount = 0;</span>
+<span class="fc" id="L133">        List&lt;String&gt; errors = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L134">        int totalRows = 0;</span>
+<span class="fc" id="L135">        int updatedCount = 0;</span>
 
-<span class="fc" id="L138">        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csvStream, StandardCharsets.UTF_8))) {</span>
-<span class="fc" id="L139">            String header = reader.readLine(); // skip header</span>
-<span class="pc bpc" id="L140" title="1 of 2 branches missed.">            if (header == null) {</span>
-<span class="nc" id="L141">                return new CsvUploadResult(0, 0, 0, List.of());</span>
+<span class="fc" id="L137">        try (BufferedReader reader = new BufferedReader(new InputStreamReader(csvStream, StandardCharsets.UTF_8))) {</span>
+<span class="fc" id="L138">            String header = reader.readLine(); // skip header</span>
+<span class="pc bpc" id="L139" title="1 of 2 branches missed.">            if (header == null) {</span>
+<span class="nc" id="L140">                return new CsvUploadResult(0, 0, 0, List.of());</span>
             }
 
             String line;
-<span class="fc" id="L145">            int rowNum = 1; // header is row 1</span>
-<span class="fc bfc" id="L146" title="All 2 branches covered.">            while ((line = reader.readLine()) != null) {</span>
-<span class="fc" id="L147">                rowNum++;</span>
-<span class="fc" id="L148">                String trimmed = line.trim();</span>
-<span class="pc bpc" id="L149" title="1 of 2 branches missed.">                if (trimmed.isEmpty()) continue;</span>
+<span class="fc" id="L144">            int rowNum = 1; // header is row 1</span>
+<span class="fc bfc" id="L145" title="All 2 branches covered.">            while ((line = reader.readLine()) != null) {</span>
+<span class="fc" id="L146">                rowNum++;</span>
+<span class="fc" id="L147">                String trimmed = line.trim();</span>
+<span class="pc bpc" id="L148" title="1 of 2 branches missed.">                if (trimmed.isEmpty()) continue;</span>
 
-<span class="fc" id="L151">                totalRows++;</span>
-<span class="fc" id="L152">                String[] cols = trimmed.split(&quot;,&quot;, -1);</span>
-<span class="fc bfc" id="L153" title="All 2 branches covered.">                if (cols.length != 3) {</span>
-<span class="fc" id="L154">                    errors.add(&quot;Row &quot; + rowNum + &quot;: expected 3 columns, got &quot; + cols.length);</span>
-<span class="fc" id="L155">                    continue;</span>
+<span class="fc" id="L150">                totalRows++;</span>
+<span class="fc" id="L151">                String[] cols = trimmed.split(&quot;,&quot;, -1);</span>
+<span class="fc bfc" id="L152" title="All 2 branches covered.">                if (cols.length != 3) {</span>
+<span class="fc" id="L153">                    errors.add(&quot;Row &quot; + rowNum + &quot;: expected 3 columns, got &quot; + cols.length);</span>
+<span class="fc" id="L154">                    continue;</span>
                 }
 
-<span class="fc" id="L158">                String sku = cols[0].trim();</span>
-<span class="pc bpc" id="L159" title="1 of 4 branches missed.">                if (!sku.isEmpty() &amp;&amp; &quot;=+-@&quot;.indexOf(sku.charAt(0)) &gt;= 0) {</span>
-<span class="fc" id="L160">                    errors.add(&quot;Row &quot; + rowNum + &quot;: SKU contains disallowed leading character&quot;);</span>
-<span class="fc" id="L161">                    continue;</span>
+<span class="fc" id="L157">                String sku = cols[0].trim();</span>
+<span class="pc bpc" id="L158" title="1 of 4 branches missed.">                if (!sku.isEmpty() &amp;&amp; &quot;=+-@&quot;.indexOf(sku.charAt(0)) &gt;= 0) {</span>
+<span class="fc" id="L159">                    errors.add(&quot;Row &quot; + rowNum + &quot;: SKU contains disallowed leading character&quot;);</span>
+<span class="fc" id="L160">                    continue;</span>
                 }
                 BigDecimal futureListPrice;
                 BigDecimal futureMinPrice;
                 try {
-<span class="fc" id="L166">                    futureListPrice = new BigDecimal(cols[1].trim());</span>
-<span class="fc" id="L167">                    futureMinPrice = new BigDecimal(cols[2].trim());</span>
-<span class="fc" id="L168">                } catch (NumberFormatException e) {</span>
-<span class="fc" id="L169">                    errors.add(&quot;Row &quot; + rowNum + &quot;: invalid decimal value&quot;);</span>
-<span class="fc" id="L170">                    continue;</span>
-<span class="fc" id="L171">                }</span>
+<span class="fc" id="L165">                    futureListPrice = new BigDecimal(cols[1].trim());</span>
+<span class="fc" id="L166">                    futureMinPrice = new BigDecimal(cols[2].trim());</span>
+<span class="fc" id="L167">                } catch (NumberFormatException e) {</span>
+<span class="fc" id="L168">                    errors.add(&quot;Row &quot; + rowNum + &quot;: invalid decimal value&quot;);</span>
+<span class="fc" id="L169">                    continue;</span>
+<span class="fc" id="L170">                }</span>
 
-<span class="fc bfc" id="L173" title="All 2 branches covered.">                if (futureListPrice.compareTo(futureMinPrice) &lt; 0) {</span>
-<span class="fc" id="L174">                    errors.add(&quot;Row &quot; + rowNum + &quot;: futureListPrice is less than futureMinPrice&quot;);</span>
-<span class="fc" id="L175">                    continue;</span>
+<span class="fc bfc" id="L172" title="All 2 branches covered.">                if (futureListPrice.compareTo(futureMinPrice) &lt; 0) {</span>
+<span class="fc" id="L173">                    errors.add(&quot;Row &quot; + rowNum + &quot;: futureListPrice is less than futureMinPrice&quot;);</span>
+<span class="fc" id="L174">                    continue;</span>
                 }
 
-<span class="fc" id="L178">                Optional&lt;Device&gt; deviceOpt = deviceRepository.findBySku(sku);</span>
-<span class="fc bfc" id="L179" title="All 2 branches covered.">                if (deviceOpt.isEmpty()) {</span>
-<span class="fc" id="L180">                    errors.add(&quot;Row &quot; + rowNum + &quot;: SKU '&quot; + sku + &quot;' not found&quot;);</span>
-<span class="fc" id="L181">                    continue;</span>
+<span class="fc" id="L177">                Optional&lt;Device&gt; deviceOpt = deviceRepository.findBySku(sku);</span>
+<span class="fc bfc" id="L178" title="All 2 branches covered.">                if (deviceOpt.isEmpty()) {</span>
+<span class="fc" id="L179">                    errors.add(&quot;Row &quot; + rowNum + &quot;: SKU '&quot; + sku + &quot;' not found&quot;);</span>
+<span class="fc" id="L180">                    continue;</span>
                 }
 
-<span class="fc" id="L184">                Device device = deviceOpt.get();</span>
-<span class="fc" id="L185">                device.setFutureListPrice(futureListPrice);</span>
-<span class="fc" id="L186">                device.setFutureMinPrice(futureMinPrice);</span>
-<span class="fc" id="L187">                deviceRepository.save(device);</span>
-<span class="fc" id="L188">                updatedCount++;</span>
-<span class="fc" id="L189">            }</span>
-<span class="nc" id="L190">        } catch (IOException e) {</span>
-<span class="nc" id="L191">            errors.add(&quot;Failed to read CSV: &quot; + e.getMessage());</span>
-<span class="fc" id="L192">        }</span>
+<span class="fc" id="L183">                Device device = deviceOpt.get();</span>
+<span class="fc" id="L184">                device.setFutureListPrice(futureListPrice);</span>
+<span class="fc" id="L185">                device.setFutureMinPrice(futureMinPrice);</span>
+<span class="fc" id="L186">                deviceRepository.save(device);</span>
+<span class="fc" id="L187">                updatedCount++;</span>
+<span class="fc" id="L188">            }</span>
+<span class="nc" id="L189">        } catch (IOException e) {</span>
+<span class="nc" id="L190">            errors.add(&quot;Failed to read CSV: &quot; + e.getMessage());</span>
+<span class="fc" id="L191">        }</span>
 
-<span class="fc" id="L194">        return new CsvUploadResult(totalRows, updatedCount, errors.size(), errors);</span>
+<span class="fc" id="L193">        return new CsvUploadResult(totalRows, updatedCount, errors.size(), errors);</span>
     }
 
     @Transactional(readOnly = true)
     public List&lt;PriceHistoryResponse&gt; getPriceHistory(Long deviceId) {
-<span class="fc" id="L199">        List&lt;PriceHistory&gt; rows = priceHistoryRepository.findByDeviceIdOrderByCreatedDateDesc(deviceId);</span>
-<span class="fc" id="L200">        return PriceHistoryResponse.fromEntities(rows);</span>
+<span class="fc" id="L198">        List&lt;PriceHistory&gt; rows = priceHistoryRepository.findByDeviceIdOrderByCreatedDateDesc(deviceId);</span>
+<span class="fc" id="L199">        return PriceHistoryResponse.fromEntities(rows);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

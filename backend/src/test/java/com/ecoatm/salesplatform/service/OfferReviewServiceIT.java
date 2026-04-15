@@ -73,8 +73,8 @@ class OfferReviewServiceIT extends PostgresIntegrationTest {
 
         // MDM device for offer items
         em.createNativeQuery("""
-                INSERT INTO mdm.device (id, sku, is_active, available_qty, list_price, min_price)
-                VALUES (80001, 'IT-SKU-001', true, 100, 50.00, 30.00)
+                INSERT INTO mdm.device (id, sku, is_active, available_qty, atp_qty, list_price, min_price)
+                VALUES (80001, 'IT-SKU-001', true, 100, 100, 50.00, 30.00)
                 ON CONFLICT (id) DO NOTHING
                 """).executeUpdate();
 

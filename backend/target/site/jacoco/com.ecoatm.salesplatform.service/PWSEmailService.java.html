@@ -1,298 +1,363 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PWSEmailService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">PWSEmailService.java</span></div><h1>PWSEmailService.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
 
+import com.ecoatm.salesplatform.config.AsyncConfig;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.service.email.EmailMessage;
+import com.ecoatm.salesplatform.service.email.EmailSender;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 /**
- * Mirrors the four legacy Mendix PWS email microflows:
- *   - SUB_SendPWSOfferConfirmationEmail (offer submitted for sales review)
- *   - SUB_SendPWSOrderConfirmationEmail (order confirmed by Oracle)
- *   - SUB_SendPWSPendingOrderEmail (order pending / Oracle error)
- *   - SUB_SendPWSCounterOfferEmail (counter offer sent to buyer)
+ * PWS email notifications — Mendix parity with four legacy microflows:
  *
- * Currently logs the rendered HTML. When SMTP is configured, swap the
- * log.info call for JavaMailSender.send() or an external email API.
+ * &lt;ul&gt;
+ *   &lt;li&gt;{@code SUB_SendPWSOfferConfirmationEmail} → {@link #sendOfferConfirmationEmail}&lt;/li&gt;
+ *   &lt;li&gt;{@code SUB_SendPWSOrderConfirmationEmail} → {@link #sendOrderConfirmationEmail}&lt;/li&gt;
+ *   &lt;li&gt;{@code SUB_SendPWSAdjustedQuantityOrderConfirmationEmail} → {@link #sendPendingOrderEmail}&lt;/li&gt;
+ *   &lt;li&gt;{@code SUB_SendPWSCounterOfferEmail} → {@link #sendCounterOfferEmail}&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * &lt;p&gt;All methods are {@code @Async} on the dedicated email executor
+ * ({@link AsyncConfig#EMAIL_EXECUTOR}) so they never run inside the caller's
+ * transaction. Any delivery exception is caught and logged — failures must
+ * not affect the business transaction that triggered them.
+ *
+ * &lt;p&gt;Template rendering uses Spring Boot's auto-configured
+ * {@link TemplateEngine}; transport is abstracted behind {@link EmailSender}
+ * so tests can swap in an in-process implementation.
  */
 @Service
 public class PWSEmailService {
 
-<span class="fc" id="L30">    private static final Logger log = LoggerFactory.getLogger(PWSEmailService.class);</span>
-<span class="fc" id="L31">    private static final NumberFormat CURRENCY_FMT = NumberFormat.getIntegerInstance(Locale.US);</span>
+<span class="fc" id="L49">    private static final Logger log = LoggerFactory.getLogger(PWSEmailService.class);</span>
 
+    private final TemplateEngine templateEngine;
+    private final EmailSender emailSender;
+    private final EcoATMDirectUserRepository directUserRepository;
     private final DeviceRepository deviceRepository;
+    private final String salesAddress;
+    private final String counterOfferUrl;
 
-    @Value(&quot;${pws.email.enabled:false}&quot;)
-    private boolean emailEnabled;
+    public PWSEmailService(
+            TemplateEngine templateEngine,
+            EmailSender emailSender,
+            EcoATMDirectUserRepository directUserRepository,
+            DeviceRepository deviceRepository,
+            @Value(&quot;${pws.email.sales-address}&quot;) String salesAddress,
+<span class="fc" id="L64">            @Value(&quot;${pws.email.counter-offer-url}&quot;) String counterOfferUrl) {</span>
+<span class="fc" id="L65">        this.templateEngine = templateEngine;</span>
+<span class="fc" id="L66">        this.emailSender = emailSender;</span>
+<span class="fc" id="L67">        this.directUserRepository = directUserRepository;</span>
+<span class="fc" id="L68">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L69">        this.salesAddress = salesAddress;</span>
+<span class="fc" id="L70">        this.counterOfferUrl = counterOfferUrl;</span>
+<span class="fc" id="L71">    }</span>
 
-    @Value(&quot;${pws.email.sales-address:pwssales@ecoatm.com}&quot;)
-    private String salesEmailAddress;
-
-    @Value(&quot;${pws.email.counter-offer-url:https://buy.ecoatmdirect.com/pws/counter-offers?offerId=}&quot;)
-    private String counterOfferBaseUrl;
-
-<span class="fc" id="L44">    public PWSEmailService(DeviceRepository deviceRepository) {</span>
-<span class="fc" id="L45">        this.deviceRepository = deviceRepository;</span>
-<span class="fc" id="L46">    }</span>
-
-    /**
-     * SUB_SendPWSOfferConfirmationEmail — sent to the submitting buyer when an offer
-     * is submitted for sales review. Uses OfferPrice/OfferQuantity.
-     */
-    public void sendOfferConfirmationEmail(Offer offer, String buyerName, String buyerEmail, String companyName) {
-<span class="nc" id="L53">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(offer.getItems());</span>
-<span class="nc" id="L54">        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.OFFER);</span>
-<span class="nc bnc" id="L55" title="All 2 branches missed.">        BigDecimal total = offer.getTotalPrice() != null ? offer.getTotalPrice() : BigDecimal.ZERO;</span>
-
-<span class="nc" id="L57">        String subject = &quot;PWS Offer Confirmation - &quot; + offer.getOfferNumber();</span>
-<span class="nc" id="L58">        String body = wrapEmailBody(</span>
-<span class="nc" id="L59">                &quot;Offer Confirmation&quot;,</span>
-<span class="nc" id="L60">                buyerName,</span>
-<span class="nc" id="L61">                companyName,</span>
-<span class="nc" id="L62">                offer.getOfferNumber(),</span>
-<span class="nc" id="L63">                htmlTable,</span>
-<span class="nc" id="L64">                total,</span>
-<span class="nc" id="L65">                null</span>
-        );
-
-<span class="nc" id="L68">        sendOrLog(&quot;PWSOfferConfirmation&quot;, buyerEmail, subject, body);</span>
-<span class="nc" id="L69">    }</span>
+    // ═══════════════════════════════════════════════════════════════════════
+    // Public API — one method per Mendix microflow.
+    // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * SUB_SendPWSOrderConfirmationEmail — sent to all buyer users linked to the
-     * buyer code when an order is successfully placed. Uses FinalOfferPrice/FinalOfferQuantity.
+     * Mendix parity: {@code SUB_SendPWSOfferConfirmationEmail}.
+     * Delivered only to the user who submitted the offer.
      */
-    public void sendOrderConfirmationEmail(Offer offer, String companyName) {
-<span class="nc" id="L76">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(offer.getItems());</span>
-<span class="nc" id="L77">        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.FINAL);</span>
-<span class="nc" id="L78">        BigDecimal total = calcTotal(offer.getItems(), PriceSource.FINAL);</span>
-
-<span class="nc" id="L80">        String subject = &quot;PWS Order Confirmation - &quot; + offer.getOfferNumber();</span>
-
-        // Legacy sends to all EcoATMDirectUsers linked to the buyer
-        // For now, log with a note about recipients
-<span class="nc" id="L84">        String body = wrapEmailBody(</span>
-<span class="nc" id="L85">                &quot;Order Confirmation&quot;,</span>
-<span class="nc" id="L86">                &quot;Valued Customer&quot;,</span>
-<span class="nc" id="L87">                companyName,</span>
-<span class="nc" id="L88">                offer.getOfferNumber(),</span>
-<span class="nc" id="L89">                htmlTable,</span>
-<span class="nc" id="L90">                total,</span>
-<span class="nc" id="L91">                null</span>
-        );
-
-<span class="nc" id="L94">        sendOrLog(&quot;PWSOrderConfirmation&quot;, &quot;[all buyer users]&quot;, subject, body);</span>
-<span class="nc" id="L95">    }</span>
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendOfferConfirmationEmail(Offer offer, Long submittedByUserId) {
+<span class="fc" id="L83">        safeSend(&quot;OfferConfirmation&quot;, offer, () -&gt; {</span>
+<span class="fc" id="L84">            RecipientUser user = resolveSingleRecipient(submittedByUserId);</span>
+<span class="fc bfc" id="L85" title="All 2 branches covered.">            if (user == null) {</span>
+<span class="fc" id="L86">                log.warn(&quot;OfferConfirmation skipped: no recipient resolved for userId={}&quot;, submittedByUserId);</span>
+<span class="fc" id="L87">                return null;</span>
+            }
+<span class="fc" id="L89">            String company = resolveCompanyName(offer.getBuyerCodeId());</span>
+<span class="fc" id="L90">            List&lt;ItemRow&gt; rows = buildOfferRows(offer.getItems());</span>
+<span class="fc" id="L91">            BigDecimal total = nullSafe(offer.getTotalPrice());</span>
+<span class="fc" id="L92">            String html = render(&quot;email/pws-offer-confirmation&quot;,</span>
+<span class="fc" id="L93">                    baseContext(user.fullName(), offer, company, rows, total));</span>
+<span class="fc" id="L94">            return new EmailMessage(</span>
+<span class="fc" id="L95">                    List.of(user.email()),</span>
+<span class="fc" id="L96">                    List.of(),</span>
+<span class="fc" id="L97">                    &quot;Offer Confirmation — &quot; + displayOfferRef(offer),</span>
+                    html,
+                    null);
+        });
+<span class="fc" id="L101">    }</span>
 
     /**
-     * SUB_SendPWSPendingOrderEmail — sent to the sales email address when an order
-     * encounters an Oracle error. Uses FinalOfferPrice/FinalOfferQuantity.
+     * Mendix parity: {@code SUB_SendPWSOrderConfirmationEmail}.
+     * Delivered to every active user linked to the buyer code.
      */
-    public void sendPendingOrderEmail(Offer offer, String companyName) {
-<span class="nc" id="L102">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(offer.getItems());</span>
-<span class="nc" id="L103">        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.FINAL);</span>
-<span class="nc" id="L104">        BigDecimal total = calcTotal(offer.getItems(), PriceSource.FINAL);</span>
-
-<span class="nc" id="L106">        String subject = &quot;PWS Pending Order - &quot; + offer.getOfferNumber();</span>
-<span class="nc" id="L107">        String body = wrapEmailBody(</span>
-<span class="nc" id="L108">                &quot;Pending Order&quot;,</span>
-<span class="nc" id="L109">                &quot;Sales Team&quot;,</span>
-<span class="nc" id="L110">                companyName,</span>
-<span class="nc" id="L111">                offer.getOfferNumber(),</span>
-<span class="nc" id="L112">                htmlTable,</span>
-<span class="nc" id="L113">                total,</span>
-<span class="nc" id="L114">                null</span>
-        );
-
-<span class="nc" id="L117">        sendOrLog(&quot;PWSPendingOrder&quot;, salesEmailAddress, subject, body);</span>
-<span class="nc" id="L118">    }</span>
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendOrderConfirmationEmail(Offer offer) {
+<span class="fc" id="L109">        safeSend(&quot;OrderConfirmation&quot;, offer, () -&gt; {</span>
+<span class="fc" id="L110">            List&lt;RecipientUser&gt; recipients = resolveBuyerRecipients(offer.getBuyerCodeId());</span>
+<span class="pc bpc" id="L111" title="1 of 2 branches missed.">            if (recipients.isEmpty()) {</span>
+<span class="nc" id="L112">                log.warn(&quot;OrderConfirmation skipped: no recipients for buyerCodeId={}&quot;, offer.getBuyerCodeId());</span>
+<span class="nc" id="L113">                return null;</span>
+            }
+<span class="fc" id="L115">            String company = resolveCompanyName(offer.getBuyerCodeId());</span>
+<span class="fc" id="L116">            List&lt;ItemRow&gt; rows = buildFinalRows(offer.getItems());</span>
+<span class="fc" id="L117">            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+<span class="fc" id="L118">            String html = render(&quot;email/pws-order-confirmation&quot;,</span>
+<span class="fc" id="L119">                    baseContext(firstOr(recipients).fullName(), offer, company, rows, total));</span>
+<span class="fc" id="L120">            return new EmailMessage(</span>
+<span class="fc" id="L121">                    recipients.stream().map(RecipientUser::email).toList(),</span>
+<span class="fc" id="L122">                    List.of(),</span>
+<span class="fc" id="L123">                    &quot;Order Confirmation — &quot; + displayOfferRef(offer),</span>
+                    html,
+                    null);
+        });
+<span class="fc" id="L127">    }</span>
 
     /**
-     * SUB_SendPWSCounterOfferEmail — sent to all buyer users when a sales rep submits
-     * counter-offers. Uses item status to choose which price columns to show.
+     * Mendix parity: {@code SUB_SendPWSAdjustedQuantityOrderConfirmationEmail}.
+     * Sent when Oracle adjusts quantities on an order; goes to buyer users + CC sales.
      */
-    public void sendCounterOfferEmail(Offer offer, String companyName) {
-<span class="nc" id="L125">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(offer.getItems());</span>
-<span class="nc" id="L126">        String htmlTable = buildCounterOfferTable(offer.getItems(), deviceMap);</span>
-<span class="nc" id="L127">        BigDecimal total = calcCounterTotal(offer.getItems());</span>
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendPendingOrderEmail(Offer offer) {
+<span class="fc" id="L135">        safeSend(&quot;PendingOrder&quot;, offer, () -&gt; {</span>
+<span class="fc" id="L136">            List&lt;RecipientUser&gt; recipients = resolveBuyerRecipients(offer.getBuyerCodeId());</span>
+<span class="pc bpc" id="L137" title="1 of 2 branches missed.">            if (recipients.isEmpty()) {</span>
+<span class="nc" id="L138">                log.warn(&quot;PendingOrder skipped: no recipients for buyerCodeId={}&quot;, offer.getBuyerCodeId());</span>
+<span class="nc" id="L139">                return null;</span>
+            }
+<span class="fc" id="L141">            String company = resolveCompanyName(offer.getBuyerCodeId());</span>
+<span class="fc" id="L142">            List&lt;ItemRow&gt; rows = buildFinalRows(offer.getItems());</span>
+<span class="fc" id="L143">            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+<span class="fc" id="L144">            String html = render(&quot;email/pws-pending-order&quot;,</span>
+<span class="fc" id="L145">                    baseContext(firstOr(recipients).fullName(), offer, company, rows, total));</span>
+<span class="fc" id="L146">            return new EmailMessage(</span>
+<span class="fc" id="L147">                    recipients.stream().map(RecipientUser::email).toList(),</span>
+<span class="fc" id="L148">                    List.of(salesAddress),</span>
+<span class="fc" id="L149">                    &quot;Order Pending — &quot; + displayOfferRef(offer),</span>
+                    html,
+                    null);
+        });
+<span class="fc" id="L153">    }</span>
 
-<span class="nc" id="L129">        String counterButton = &quot;&lt;div style=\&quot;text-align: center;\&quot;&gt;&quot;</span>
-<span class="nc" id="L130">                + &quot;&lt;a href=\&quot;&quot; + counterOfferBaseUrl + offer.getOfferNumber()</span>
-                + &quot;\&quot; style=\&quot;background-color: #2CB34A; color: #ffffff; padding: 10px 16px; &quot;
-                + &quot;text-decoration: none; border-radius: 4px; display: ruby; font-size: 16px; &quot;
-                + &quot;font-family: Trebuchet MS, Helvetica, sans-serif; font-weight: bold;\&quot;&gt;&quot;
-                + &quot;See Counter Offer&lt;/a&gt;&lt;/div&gt;&quot;;
+    /**
+     * Mendix parity: {@code SUB_SendPWSCounterOfferEmail}.
+     * Fans out to every buyer user and includes a &quot;See Counter Offer&quot; CTA.
+     */
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendCounterOfferEmail(Offer offer) {
+<span class="fc" id="L161">        safeSend(&quot;CounterOffer&quot;, offer, () -&gt; {</span>
+<span class="fc" id="L162">            List&lt;RecipientUser&gt; recipients = resolveBuyerRecipients(offer.getBuyerCodeId());</span>
+<span class="pc bpc" id="L163" title="1 of 2 branches missed.">            if (recipients.isEmpty()) {</span>
+<span class="nc" id="L164">                log.warn(&quot;CounterOffer skipped: no recipients for buyerCodeId={}&quot;, offer.getBuyerCodeId());</span>
+<span class="nc" id="L165">                return null;</span>
+            }
+<span class="fc" id="L167">            String company = resolveCompanyName(offer.getBuyerCodeId());</span>
+<span class="fc" id="L168">            List&lt;ItemRow&gt; rows = buildCounterRows(offer.getItems());</span>
+<span class="fc" id="L169">            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+<span class="fc" id="L170">            Context ctx = baseContext(firstOr(recipients).fullName(), offer, company, rows, total);</span>
+<span class="fc" id="L171">            ctx.setVariable(&quot;counterOfferUrl&quot;, counterOfferUrl);</span>
+<span class="fc" id="L172">            String html = render(&quot;email/pws-counter-offer&quot;, ctx);</span>
+<span class="fc" id="L173">            return new EmailMessage(</span>
+<span class="fc" id="L174">                    recipients.stream().map(RecipientUser::email).toList(),</span>
+<span class="fc" id="L175">                    List.of(),</span>
+<span class="fc" id="L176">                    &quot;Counter Offer — &quot; + displayOfferRef(offer),</span>
+                    html,
+                    null);
+        });
+<span class="fc" id="L180">    }</span>
 
-<span class="nc" id="L136">        String subject = &quot;PWS Counter Offer - &quot; + offer.getOfferNumber();</span>
-<span class="nc" id="L137">        String body = wrapEmailBody(</span>
-<span class="nc" id="L138">                &quot;Counter Offer&quot;,</span>
-<span class="nc" id="L139">                &quot;Valued Customer&quot;,</span>
-<span class="nc" id="L140">                companyName,</span>
-<span class="nc" id="L141">                offer.getOfferNumber(),</span>
-<span class="nc" id="L142">                htmlTable,</span>
-<span class="nc" id="L143">                total,</span>
-<span class="nc" id="L144">                counterButton</span>
-        );
+    // ═══════════════════════════════════════════════════════════════════════
+    // Internals
+    // ═══════════════════════════════════════════════════════════════════════
 
-<span class="nc" id="L147">        sendOrLog(&quot;PWSCounterOffer&quot;, &quot;[all buyer users]&quot;, subject, body);</span>
-<span class="nc" id="L148">    }</span>
+    /**
+     * Wraps the build-and-send pipeline with uniform error handling. The
+     * supplier may return {@code null} to skip the send (e.g. no recipients
+     * resolved); any thrown exception is caught and logged but not rethrown.
+     */
+    private void safeSend(String templateName, Offer offer, MessageBuilder builder) {
+        try {
+<span class="fc" id="L193">            EmailMessage message = builder.build();</span>
+<span class="fc bfc" id="L194" title="All 2 branches covered.">            if (message == null) {</span>
+<span class="fc" id="L195">                return;</span>
+            }
+<span class="fc" id="L197">            emailSender.send(message);</span>
+<span class="fc" id="L198">        } catch (Exception ex) {</span>
+<span class="fc" id="L199">            log.error(</span>
+                    &quot;PWS email delivery failed template={} offerId={} offerNumber={}: {}&quot;,
+                    templateName,
+<span class="pc bpc" id="L202" title="1 of 2 branches missed.">                    offer == null ? null : offer.getId(),</span>
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">                    offer == null ? null : offer.getOfferNumber(),</span>
+<span class="fc" id="L204">                    ex.getMessage(),</span>
+                    ex);
+<span class="fc" id="L206">        }</span>
+<span class="fc" id="L207">    }</span>
 
-    // ---- HTML builders (matching Mendix templates) ----
-
-<span class="nc" id="L152">    private enum PriceSource { OFFER, FINAL }</span>
-
-    private String buildItemTable(List&lt;OfferItem&gt; items, Map&lt;Long, Device&gt; deviceMap, PriceSource source) {
-<span class="nc" id="L155">        StringBuilder html = new StringBuilder();</span>
-<span class="nc" id="L156">        html.append(TABLE_HEADER);</span>
-<span class="nc bnc" id="L157" title="All 2 branches missed.">        for (OfferItem item : items) {</span>
-<span class="nc" id="L158">            Device d = deviceMap.get(item.getDeviceId());</span>
-<span class="nc" id="L159">            String desc = buildDescription(d);</span>
-<span class="nc bnc" id="L160" title="All 4 branches missed.">            String sku = d != null ? d.getSku() : (item.getSku() != null ? item.getSku() : &quot;&quot;);</span>
-<span class="nc bnc" id="L161" title="All 2 branches missed.">            int qty = item.getQuantity() != null ? item.getQuantity() : 0;</span>
-<span class="nc bnc" id="L162" title="All 2 branches missed.">            BigDecimal price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;</span>
-<span class="nc bnc" id="L163" title="All 2 branches missed.">            BigDecimal totalPrice = item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO;</span>
-
-<span class="nc" id="L165">            html.append(tableRow(sku, desc, qty, price, totalPrice));</span>
-        }
-<span class="nc" id="L167">        html.append(&quot;&lt;/table&gt;&quot;);</span>
-<span class="nc" id="L168">        return html.toString();</span>
+    @FunctionalInterface
+    private interface MessageBuilder {
+        EmailMessage build();
     }
 
-    private String buildCounterOfferTable(List&lt;OfferItem&gt; items, Map&lt;Long, Device&gt; deviceMap) {
-<span class="nc" id="L172">        StringBuilder html = new StringBuilder();</span>
-<span class="nc" id="L173">        html.append(TABLE_HEADER);</span>
-<span class="nc bnc" id="L174" title="All 2 branches missed.">        for (OfferItem item : items) {</span>
-<span class="nc" id="L175">            Device d = deviceMap.get(item.getDeviceId());</span>
-<span class="nc" id="L176">            String desc = buildDescription(d);</span>
-<span class="nc bnc" id="L177" title="All 4 branches missed.">            String sku = d != null ? d.getSku() : (item.getSku() != null ? item.getSku() : &quot;&quot;);</span>
-<span class="nc" id="L178">            String status = item.getItemStatus();</span>
+    private Context baseContext(
+            String buyerName, Offer offer, String companyName, List&lt;ItemRow&gt; rows, BigDecimal total) {
+<span class="fc" id="L216">        Context ctx = new Context();</span>
+<span class="pc bpc" id="L217" title="1 of 2 branches missed.">        ctx.setVariable(&quot;buyerName&quot;, buyerName == null ? &quot;Valued Customer&quot; : buyerName);</span>
+<span class="fc" id="L218">        ctx.setVariable(&quot;offerId&quot;, displayOfferRef(offer));</span>
+<span class="pc bpc" id="L219" title="1 of 2 branches missed.">        ctx.setVariable(&quot;companyName&quot;, companyName == null ? &quot;&quot; : companyName);</span>
+<span class="fc" id="L220">        ctx.setVariable(&quot;items&quot;, rows);</span>
+<span class="fc" id="L221">        ctx.setVariable(&quot;total&quot;, total);</span>
+<span class="fc" id="L222">        return ctx;</span>
+    }
 
+    private String render(String templateName, Context ctx) {
+<span class="fc" id="L226">        return templateEngine.process(templateName, ctx);</span>
+    }
+
+    private String displayOfferRef(Offer offer) {
+<span class="pc bpc" id="L230" title="1 of 2 branches missed.">        if (offer == null) return &quot;&quot;;</span>
+<span class="pc bpc" id="L231" title="1 of 2 branches missed.">        return offer.getOfferNumber() != null ? offer.getOfferNumber() : String.valueOf(offer.getId());</span>
+    }
+
+    // ── Row builders ────────────────────────────────────────────────────────
+
+    private List&lt;ItemRow&gt; buildOfferRows(List&lt;OfferItem&gt; items) {
+<span class="fc" id="L237">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L238">        List&lt;ItemRow&gt; rows = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L239" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
+<span class="fc" id="L240">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="fc" id="L241">            rows.add(new ItemRow(</span>
+<span class="fc" id="L242">                    skuOf(device, item),</span>
+<span class="fc" id="L243">                    describeDevice(device),</span>
+<span class="fc" id="L244">                    nullSafeInt(item.getQuantity()),</span>
+<span class="fc" id="L245">                    nullSafe(item.getPrice()),</span>
+<span class="fc" id="L246">                    nullSafe(item.getTotalPrice())));</span>
+<span class="fc" id="L247">        }</span>
+<span class="fc" id="L248">        return rows;</span>
+    }
+
+    private List&lt;ItemRow&gt; buildFinalRows(List&lt;OfferItem&gt; items) {
+<span class="fc" id="L252">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L253">        List&lt;ItemRow&gt; rows = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L254" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
+<span class="fc" id="L255">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="pc bpc" id="L256" title="1 of 2 branches missed.">            int qty = item.getFinalOfferQuantity() != null ? item.getFinalOfferQuantity() : nullSafeInt(item.getQuantity());</span>
+<span class="pc bpc" id="L257" title="1 of 2 branches missed.">            BigDecimal price = item.getFinalOfferPrice() != null ? item.getFinalOfferPrice() : nullSafe(item.getPrice());</span>
+<span class="pc bpc" id="L258" title="1 of 2 branches missed.">            BigDecimal total = item.getFinalOfferTotalPrice() != null ? item.getFinalOfferTotalPrice() : nullSafe(item.getTotalPrice());</span>
+<span class="fc" id="L259">            rows.add(new ItemRow(skuOf(device, item), describeDevice(device), qty, price, total));</span>
+<span class="fc" id="L260">        }</span>
+<span class="fc" id="L261">        return rows;</span>
+    }
+
+    private List&lt;ItemRow&gt; buildCounterRows(List&lt;OfferItem&gt; items) {
+<span class="fc" id="L265">        Map&lt;Long, Device&gt; deviceMap = loadDeviceMap(items);</span>
+<span class="fc" id="L266">        List&lt;ItemRow&gt; rows = new ArrayList&lt;&gt;();</span>
+<span class="fc bfc" id="L267" title="All 2 branches covered.">        for (OfferItem item : items) {</span>
+<span class="fc" id="L268">            Device device = deviceMap.get(item.getDeviceId());</span>
+<span class="fc" id="L269">            String status = item.getItemStatus();</span>
             int qty;
             BigDecimal price;
             BigDecimal total;
-
-<span class="nc bnc" id="L184" title="All 2 branches missed.">            if (&quot;Accept&quot;.equals(status)) {</span>
-<span class="nc bnc" id="L185" title="All 2 branches missed.">                qty = item.getQuantity() != null ? item.getQuantity() : 0;</span>
-<span class="nc bnc" id="L186" title="All 2 branches missed.">                price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;</span>
-<span class="nc bnc" id="L187" title="All 2 branches missed.">                total = item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO;</span>
-<span class="nc bnc" id="L188" title="All 4 branches missed.">            } else if (&quot;Counter&quot;.equals(status) || &quot;Finalize&quot;.equals(status)) {</span>
-<span class="nc bnc" id="L189" title="All 2 branches missed.">                qty = item.getCounterQty() != null ? item.getCounterQty() : 0;</span>
-<span class="nc bnc" id="L190" title="All 2 branches missed.">                price = item.getCounterPrice() != null ? item.getCounterPrice() : BigDecimal.ZERO;</span>
-<span class="nc bnc" id="L191" title="All 2 branches missed.">                total = item.getCounterTotal() != null ? item.getCounterTotal() : BigDecimal.ZERO;</span>
-<span class="nc" id="L192">            } else {</span>
-<span class="nc" id="L193">                qty = 0;</span>
-<span class="nc" id="L194">                price = BigDecimal.ZERO;</span>
-<span class="nc" id="L195">                total = BigDecimal.ZERO;</span>
+<span class="pc bpc" id="L273" title="1 of 2 branches missed.">            if (&quot;Accept&quot;.equals(status)) {</span>
+<span class="nc" id="L274">                qty = nullSafeInt(item.getQuantity());</span>
+<span class="nc" id="L275">                price = nullSafe(item.getPrice());</span>
+<span class="nc" id="L276">                total = nullSafe(item.getTotalPrice());</span>
+<span class="pc bpc" id="L277" title="3 of 4 branches missed.">            } else if (&quot;Counter&quot;.equals(status) || &quot;Finalize&quot;.equals(status)) {</span>
+<span class="fc" id="L278">                qty = nullSafeInt(item.getCounterQty());</span>
+<span class="fc" id="L279">                price = nullSafe(item.getCounterPrice());</span>
+<span class="fc" id="L280">                total = nullSafe(item.getCounterTotal());</span>
+            } else {
+                // Decline / empty → zero row, legacy parity
+<span class="nc" id="L283">                qty = 0;</span>
+<span class="nc" id="L284">                price = BigDecimal.ZERO;</span>
+<span class="nc" id="L285">                total = BigDecimal.ZERO;</span>
             }
-
-<span class="nc" id="L198">            html.append(tableRow(sku, desc, qty, price, total));</span>
-        }
-<span class="nc" id="L200">        html.append(&quot;&lt;/table&gt;&quot;);</span>
-<span class="nc" id="L201">        return html.toString();</span>
+<span class="fc" id="L287">            rows.add(new ItemRow(skuOf(device, item), describeDevice(device), qty, price, total));</span>
+<span class="fc" id="L288">        }</span>
+<span class="fc" id="L289">        return rows;</span>
     }
 
-    private BigDecimal calcTotal(List&lt;OfferItem&gt; items, PriceSource source) {
-<span class="nc" id="L205">        return items.stream()</span>
-<span class="nc bnc" id="L206" title="All 2 branches missed.">                .map(i -&gt; i.getTotalPrice() != null ? i.getTotalPrice() : BigDecimal.ZERO)</span>
-<span class="nc" id="L207">                .reduce(BigDecimal.ZERO, BigDecimal::add);</span>
+    // ── Recipient resolution ────────────────────────────────────────────────
+
+    private RecipientUser resolveSingleRecipient(Long userId) {
+<span class="pc bpc" id="L295" title="1 of 2 branches missed.">        if (userId == null) return null;</span>
+<span class="fc" id="L296">        List&lt;Object[]&gt; rows = directUserRepository.findEmailByUserId(userId);</span>
+<span class="fc bfc" id="L297" title="All 2 branches covered.">        if (rows.isEmpty()) return null;</span>
+<span class="fc" id="L298">        Object[] row = rows.get(0);</span>
+<span class="fc" id="L299">        return new RecipientUser((String) row[0], (String) row[1]);</span>
     }
 
-    private BigDecimal calcCounterTotal(List&lt;OfferItem&gt; items) {
-<span class="nc" id="L211">        BigDecimal total = BigDecimal.ZERO;</span>
-<span class="nc bnc" id="L212" title="All 2 branches missed.">        for (OfferItem item : items) {</span>
-<span class="nc" id="L213">            String status = item.getItemStatus();</span>
-<span class="nc bnc" id="L214" title="All 2 branches missed.">            if (&quot;Accept&quot;.equals(status)) {</span>
-<span class="nc bnc" id="L215" title="All 2 branches missed.">                total = total.add(item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO);</span>
-<span class="nc bnc" id="L216" title="All 4 branches missed.">            } else if (&quot;Counter&quot;.equals(status) || &quot;Finalize&quot;.equals(status)) {</span>
-<span class="nc bnc" id="L217" title="All 2 branches missed.">                total = total.add(item.getCounterTotal() != null ? item.getCounterTotal() : BigDecimal.ZERO);</span>
-            }
-        }
-<span class="nc" id="L220">        return total;</span>
+    private List&lt;RecipientUser&gt; resolveBuyerRecipients(Long buyerCodeId) {
+<span class="pc bpc" id="L303" title="1 of 2 branches missed.">        if (buyerCodeId == null) return List.of();</span>
+<span class="fc" id="L304">        return directUserRepository.findActiveEmailsByBuyerCodeId(buyerCodeId).stream()</span>
+<span class="fc" id="L305">                .map(row -&gt; new RecipientUser((String) row[0], (String) row[1]))</span>
+<span class="fc" id="L306">                .toList();</span>
     }
 
-    private String buildDescription(Device d) {
-<span class="nc bnc" id="L224" title="All 2 branches missed.">        if (d == null) return &quot;&quot;;</span>
-<span class="nc" id="L225">        List&lt;String&gt; parts = new ArrayList&lt;&gt;();</span>
-<span class="nc bnc" id="L226" title="All 2 branches missed.">        if (d.getModel() != null) parts.add(d.getModel().getDisplayName());</span>
-<span class="nc bnc" id="L227" title="All 2 branches missed.">        if (d.getCarrier() != null) parts.add(d.getCarrier().getDisplayName());</span>
-<span class="nc bnc" id="L228" title="All 2 branches missed.">        if (d.getCapacity() != null) parts.add(d.getCapacity().getDisplayName());</span>
-<span class="nc bnc" id="L229" title="All 2 branches missed.">        if (d.getColor() != null) parts.add(d.getColor().getDisplayName());</span>
-<span class="nc" id="L230">        return String.join(&quot;, &quot;, parts);</span>
+    private String resolveCompanyName(Long buyerCodeId) {
+<span class="pc bpc" id="L310" title="1 of 2 branches missed.">        if (buyerCodeId == null) return &quot;&quot;;</span>
+<span class="fc" id="L311">        List&lt;String&gt; names = directUserRepository.findBuyerCompanyNameByBuyerCodeId(buyerCodeId);</span>
+<span class="pc bpc" id="L312" title="1 of 2 branches missed.">        return names.isEmpty() ? &quot;&quot; : names.get(0);</span>
     }
 
-    private String wrapEmailBody(String title, String buyerName, String companyName,
-                                  String offerId, String tableHtml, BigDecimal total,
-                                  String extraHtml) {
-<span class="nc" id="L236">        String totalHtml = &quot;&lt;table width=\&quot;100%\&quot; cellpadding=\&quot;0\&quot; cellspacing=\&quot;0\&quot; style=\&quot;padding-top: 24px;\&quot;&gt;&quot;</span>
-                + &quot;&lt;tr&gt;&lt;td align=\&quot;right\&quot; style=\&quot;padding: 8px 0; font-size: 16px; color: #514F4E; white-space: nowrap;\&quot;&gt;&quot;
-                + &quot;&lt;span style=\&quot;font-weight: 400; margin-right: 8px; font-family: Trebuchet MS, Helvetica, sans-serif;\&quot;&gt;Total:&lt;/span&gt;&quot;
-                + &quot;&lt;span style=\&quot;font-weight: 700; font-family: Trebuchet MS, Helvetica, sans-serif;\&quot;&gt;$&quot;
-<span class="nc" id="L240">                + CURRENCY_FMT.format(total) + &quot;&lt;/span&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&quot;;</span>
-
-<span class="nc" id="L242">        String footer = &quot;&lt;div style=\&quot;display: flex; padding: 16px 0px; flex-direction: column; align-items: center; gap: 16px; align-self: stretch;\&quot;&gt;&quot;</span>
-                + &quot;&lt;span style=\&quot;color: #000; text-align: center; font-family: Trebuchet MS, Helvetica, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; line-height: 140%;\&quot;&gt;&quot;
-                + &quot;This email is sent by ecoATM, LLC, 10121 Barnes Canyon Rd, San Diego, CA 92121. &quot;
-                + &quot;This is an automated message, please do not reply. Copyright 2025 - ecoATM, LLC. All Rights Reserved.&quot;
-                + &quot;&lt;/span&gt;&lt;/div&gt;&quot;;
-
-<span class="nc bnc" id="L248" title="All 2 branches missed.">        return tableHtml + totalHtml + (extraHtml != null ? extraHtml : &quot;&quot;) + footer;</span>
-    }
-
-    private void sendOrLog(String templateName, String to, String subject, String body) {
-<span class="nc bnc" id="L252" title="All 2 branches missed.">        if (emailEnabled) {</span>
-            // TODO: Wire to JavaMailSender or external email API when SMTP is configured
-<span class="nc" id="L254">            log.info(&quot;[EMAIL-SEND] template={}, to={}, subject={}&quot;, templateName, to, subject);</span>
-<span class="nc" id="L255">        } else {</span>
-<span class="nc" id="L256">            log.info(&quot;[EMAIL-STUB] template={}, to={}, subject={} (email sending disabled — set pws.email.enabled=true)&quot;,</span>
-<span class="nc" id="L257">                    templateName, to, subject);</span>
-        }
-<span class="nc" id="L259">    }</span>
+    // ── Helpers ─────────────────────────────────────────────────────────────
 
     private Map&lt;Long, Device&gt; loadDeviceMap(List&lt;OfferItem&gt; items) {
-<span class="nc" id="L262">        Set&lt;Long&gt; ids = items.stream()</span>
-<span class="nc" id="L263">                .map(OfferItem::getDeviceId)</span>
-<span class="nc" id="L264">                .filter(Objects::nonNull)</span>
-<span class="nc" id="L265">                .collect(Collectors.toSet());</span>
-<span class="nc bnc" id="L266" title="All 2 branches missed.">        if (ids.isEmpty()) return Map.of();</span>
-<span class="nc" id="L267">        return deviceRepository.findAllById(ids).stream()</span>
-<span class="nc" id="L268">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
+<span class="fc" id="L318">        Set&lt;Long&gt; ids = items.stream()</span>
+<span class="fc" id="L319">                .map(OfferItem::getDeviceId)</span>
+<span class="fc" id="L320">                .filter(Objects::nonNull)</span>
+<span class="fc" id="L321">                .collect(Collectors.toSet());</span>
+<span class="pc bpc" id="L322" title="1 of 2 branches missed.">        if (ids.isEmpty()) return Collections.emptyMap();</span>
+<span class="nc" id="L323">        return deviceRepository.findAllById(ids).stream()</span>
+<span class="nc" id="L324">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
     }
 
-    // ---- HTML constants (matching Mendix inline styles) ----
-
-    private static final String TH_STYLE = &quot;text-align: left; font-weight: 400; font-size: 12px; color: #6F6F6F; &quot;
-            + &quot;padding: 8px; font-family: Trebuchet MS, Helvetica, sans-serif;&quot;;
-
-    private static final String TABLE_HEADER = &quot;&lt;table style=\&quot;border-collapse: collapse; width: 100%;\&quot;&gt;&quot;
-            + &quot;&lt;tr style=\&quot;border-bottom: 1px solid #B7B5B5\&quot;&gt;&quot;
-            + &quot;&lt;th style=\&quot;&quot; + TH_STYLE + &quot;width: 20%;\&quot;&gt;SKU&lt;/th&gt;&quot;
-            + &quot;&lt;th style=\&quot;&quot; + TH_STYLE + &quot;width: 41%;\&quot;&gt;Description&lt;/th&gt;&quot;
-            + &quot;&lt;th style=\&quot;&quot; + TH_STYLE + &quot;text-align: center; width: 13%;\&quot;&gt;Ordered Qty&lt;/th&gt;&quot;
-            + &quot;&lt;th style=\&quot;&quot; + TH_STYLE + &quot;text-align: right; width: 13%;\&quot;&gt;Unit Price&lt;/th&gt;&quot;
-            + &quot;&lt;th style=\&quot;&quot; + TH_STYLE + &quot;text-align: right; width: 13%;\&quot;&gt;Total Price&lt;/th&gt;&quot;
-            + &quot;&lt;/tr&gt;&quot;;
-
-    private static final String TD_STYLE = &quot;color: #514F4E; padding: 8px; font-size: 14px; font-style: normal; &quot;
-<span class="fc" id="L286">            + &quot;font-weight: 400; line-height: 22px; font-family: Trebuchet MS, Helvetica, sans-serif;&quot;;</span>
-
-    private String tableRow(String sku, String desc, int qty, BigDecimal price, BigDecimal total) {
-<span class="nc" id="L289">        return &quot;&lt;tr style=\&quot;border-bottom: 1px solid #B7B5B5\&quot;&gt;&quot;</span>
-<span class="nc" id="L290">                + &quot;&lt;td style=\&quot;&quot; + TD_STYLE + &quot;text-align: left;\&quot;&gt;&quot; + sku + &quot;&lt;/td&gt;&quot;</span>
-<span class="nc" id="L291">                + &quot;&lt;td style=\&quot;&quot; + TD_STYLE + &quot;text-align: left; font-weight: 700;\&quot;&gt;&quot; + desc + &quot;&lt;/td&gt;&quot;</span>
-<span class="nc" id="L292">                + &quot;&lt;td style=\&quot;&quot; + TD_STYLE + &quot;text-align: center;\&quot;&gt;&quot; + qty + &quot;&lt;/td&gt;&quot;</span>
-<span class="nc" id="L293">                + &quot;&lt;td style=\&quot;&quot; + TD_STYLE + &quot;text-align: right;\&quot;&gt;$&quot; + CURRENCY_FMT.format(price) + &quot;&lt;/td&gt;&quot;</span>
-<span class="nc" id="L294">                + &quot;&lt;td style=\&quot;&quot; + TD_STYLE + &quot;text-align: right;\&quot;&gt;$&quot; + CURRENCY_FMT.format(total) + &quot;&lt;/td&gt;&quot;</span>
-                + &quot;&lt;/tr&gt;&quot;;
+    private String skuOf(Device device, OfferItem item) {
+<span class="pc bpc" id="L328" title="3 of 4 branches missed.">        if (device != null &amp;&amp; device.getSku() != null) return device.getSku();</span>
+<span class="pc bpc" id="L329" title="1 of 2 branches missed.">        return item.getSku() != null ? item.getSku() : &quot;&quot;;</span>
     }
+
+    private String describeDevice(Device device) {
+<span class="pc bpc" id="L333" title="1 of 2 branches missed.">        if (device == null) return &quot;&quot;;</span>
+<span class="nc" id="L334">        List&lt;String&gt; parts = new ArrayList&lt;&gt;(4);</span>
+<span class="nc bnc" id="L335" title="All 2 branches missed.">        if (device.getModel() != null) parts.add(device.getModel().getDisplayName());</span>
+<span class="nc bnc" id="L336" title="All 2 branches missed.">        if (device.getCarrier() != null) parts.add(device.getCarrier().getDisplayName());</span>
+<span class="nc bnc" id="L337" title="All 2 branches missed.">        if (device.getCapacity() != null) parts.add(device.getCapacity().getDisplayName());</span>
+<span class="nc bnc" id="L338" title="All 2 branches missed.">        if (device.getColor() != null) parts.add(device.getColor().getDisplayName());</span>
+<span class="nc" id="L339">        return String.join(&quot;, &quot;, parts);</span>
+    }
+
+    private static BigDecimal nullSafe(BigDecimal value) {
+<span class="pc bpc" id="L343" title="1 of 2 branches missed.">        return value != null ? value : BigDecimal.ZERO;</span>
+    }
+
+    private static int nullSafeInt(Integer value) {
+<span class="pc bpc" id="L347" title="1 of 2 branches missed.">        return value != null ? value : 0;</span>
+    }
+
+    private static RecipientUser firstOr(List&lt;RecipientUser&gt; list) {
+<span class="pc bpc" id="L351" title="1 of 2 branches missed.">        return list.isEmpty() ? new RecipientUser(&quot;&quot;, &quot;Valued Customer&quot;) : list.get(0);</span>
+    }
+
+    // ── View model records (public so templates can resolve bean properties) ──
+
+    /** Row model consumed by {@code email/_rows.html}. */
+<span class="fc" id="L357">    public record ItemRow(</span>
+            String sku, String description, int quantity, BigDecimal unitPrice, BigDecimal totalPrice) {}
+
+    /** Resolved recipient pair used for TO/CC lists. */
+<span class="fc" id="L361">    public record RecipientUser(String email, String fullName) {}</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

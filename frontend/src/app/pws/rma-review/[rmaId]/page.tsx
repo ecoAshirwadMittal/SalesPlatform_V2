@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styles from './rmaReviewDetails.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/rma';
+const BASE = `${API_BASE}/pws/rma`;
 const PAGE_SIZE = 20;
 
 interface RmaInfo {
@@ -81,7 +82,7 @@ export default function RmaReviewDetailsPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${rmaId}`);
+      const res = await apiFetch(`${BASE}/${rmaId}`);
       if (res.ok) setDetail(await res.json());
     } catch (err) {
       console.error('Failed to load RMA detail:', err);
@@ -110,7 +111,7 @@ export default function RmaReviewDetailsPage() {
   async function handleItemAction(itemId: number, status: string) {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/items/${itemId}/status`, {
+      const res = await apiFetch(`${BASE}/items/${itemId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status }),
@@ -126,7 +127,7 @@ export default function RmaReviewDetailsPage() {
   async function handleApproveAll() {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${rmaId}/items/approve-all`, { method: 'PUT' });
+      const res = await apiFetch(`${BASE}/${rmaId}/items/approve-all`, { method: 'PUT' });
       if (res.ok) await loadData();
     } catch (err) {
       console.error('Failed to approve all:', err);
@@ -138,7 +139,7 @@ export default function RmaReviewDetailsPage() {
   async function handleDeclineAll() {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${rmaId}/items/decline-all`, { method: 'PUT' });
+      const res = await apiFetch(`${BASE}/${rmaId}/items/decline-all`, { method: 'PUT' });
       if (res.ok) await loadData();
     } catch (err) {
       console.error('Failed to decline all:', err);
@@ -150,7 +151,7 @@ export default function RmaReviewDetailsPage() {
   async function handleCompleteReview() {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${rmaId}/complete-review`, { method: 'PUT' });
+      const res = await apiFetch(`${BASE}/${rmaId}/complete-review`, { method: 'PUT' });
       if (res.ok) await loadData();
     } catch (err) {
       console.error('Failed to complete review:', err);

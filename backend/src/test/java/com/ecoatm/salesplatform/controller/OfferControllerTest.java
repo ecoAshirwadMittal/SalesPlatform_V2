@@ -172,7 +172,7 @@ class OfferControllerTest {
 
     @Test
     void submitOffer_withToken_returns200() throws Exception {
-        when(offerService.submitOffer(1L))
+        when(offerService.submitOffer(1L, null))
                 .thenReturn(SubmitResponse.offerSubmitted(1L, "OFF-001"));
 
         mockMvc.perform(post("/api/v1/pws/offers/1/submit-offer")

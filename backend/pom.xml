@@ -61,6 +61,26 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Async retry support (Phase 0: async + event foundation) -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aspects</artifactId>
+        </dependency>
+
+        <!-- Email delivery (Phase 1: PWS email notifications) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-thymeleaf</artifactId>
+        </dependency>
+
         <!-- JWT -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
@@ -114,6 +134,23 @@
             <groupId>org.testcontainers</groupId>
             <artifactId>postgresql</artifactId>
             <version>1.19.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- GreenMail: in-process SMTP server for email integration tests -->
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>2.0.1</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- OGNL: expression evaluator used when Thymeleaf is bootstrapped
+             standalone in unit tests (prod path uses Spring's SpEL dialect). -->
+        <dependency>
+            <groupId>ognl</groupId>
+            <artifactId>ognl</artifactId>
+            <version>3.3.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

@@ -52,8 +52,16 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.UNAUTHORIZED, "Authentication required", null));
     }
 
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleEntityNotFound(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(errorBody(HttpStatus.NOT_FOUND, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
+        // Fallback for legacy call sites that still throw RuntimeException("… not found").
+        // New code should throw EntityNotFoundException directly.
         if (ex.getMessage() != null && ex.getMessage().contains("not found")) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(errorBody(HttpStatus.NOT_FOUND, ex.getMessage(), null));

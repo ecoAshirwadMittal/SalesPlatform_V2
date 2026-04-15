@@ -1,6 +1,8 @@
 package com.ecoatm.salesplatform.dto;
 
 import com.ecoatm.salesplatform.model.mdm.Device;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -9,6 +11,8 @@ import java.time.LocalDateTime;
  * Read-only projection of a Device for API responses.
  * Flattens lookup entity names so the consumer doesn't need to resolve IDs.
  */
+@Getter
+@Setter
 public class DeviceResponse {
 
     private Long id;
@@ -45,7 +49,7 @@ public class DeviceResponse {
         r.description = d.getDescription();
         r.listPrice = d.getListPrice();
         r.minPrice = d.getMinPrice();
-        r.availableQty = d.getAvailableQty();
+        r.availableQty = d.getAtpQty() != null ? d.getAtpQty() : d.getAvailableQty();
         r.reservedQty = d.getReservedQty();
         r.atpQty = d.getAtpQty();
         r.weight = d.getWeight();
@@ -65,28 +69,4 @@ public class DeviceResponse {
 
         return r;
     }
-
-    // Getters
-    public Long getId() { return id; }
-    public String getSku() { return sku; }
-    public String getDeviceCode() { return deviceCode; }
-    public String getDescription() { return description; }
-    public BigDecimal getListPrice() { return listPrice; }
-    public BigDecimal getMinPrice() { return minPrice; }
-    public Integer getAvailableQty() { return availableQty; }
-    public Integer getReservedQty() { return reservedQty; }
-    public Integer getAtpQty() { return atpQty; }
-    public BigDecimal getWeight() { return weight; }
-    public String getItemType() { return itemType; }
-    public Boolean getIsActive() { return isActive; }
-    public String getBrandName() { return brandName; }
-    public String getCategoryName() { return categoryName; }
-    public String getModelName() { return modelName; }
-    public String getConditionName() { return conditionName; }
-    public String getCapacityName() { return capacityName; }
-    public String getCarrierName() { return carrierName; }
-    public String getColorName() { return colorName; }
-    public String getGradeName() { return gradeName; }
-    public LocalDateTime getCreatedDate() { return createdDate; }
-    public LocalDateTime getUpdatedDate() { return updatedDate; }
 }

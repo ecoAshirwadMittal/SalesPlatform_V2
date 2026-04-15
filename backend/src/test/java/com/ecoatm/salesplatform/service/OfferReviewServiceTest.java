@@ -25,6 +25,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,9 +41,16 @@ class OfferReviewServiceTest {
     @Mock private OfferService offerService;
     @Mock private BuyerCodeLookupService buyerCodeLookup;
     @Mock private EntityManager em;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
+    @Mock private OfferItemDeviceLoader deviceLoader;
 
     @InjectMocks
     private OfferReviewService offerReviewService;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(deviceLoader.loadDeviceMap(anyList())).thenReturn(Map.of());
+    }
 
     // --- Helpers ---
 
@@ -76,6 +84,7 @@ class OfferReviewServiceTest {
         Device device = new Device();
         device.setId(id);
         device.setAvailableQty(availableQty);
+        device.setAtpQty(availableQty);
         return device;
     }
 
@@ -88,19 +97,11 @@ class OfferReviewServiceTest {
         @Test
         @DisplayName("returns 6 summaries (5 statuses + Total) with correct counts")
         void getStatusSummaries_returnsAllStatuses() {
-            OfferItem item1 = makeItem(1L, "SKU1", 5, BigDecimal.TEN, null);
-            Offer salesReviewOffer = makeOffer(1L, "Sales_Review", List.of(item1));
-
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc("Sales_Review"))
-                    .thenReturn(List.of(salesReviewOffer));
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc("Buyer_Acceptance"))
-                    .thenReturn(Collections.emptyList());
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc("Ordered"))
-                    .thenReturn(Collections.emptyList());
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc("Pending_Order"))
-                    .thenReturn(Collections.emptyList());
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc("Declined"))
-                    .thenReturn(Collections.emptyList());
+            // Aggregate query returns one row for Sales_Review
+            List<Object[]> rows = new ArrayList<>();
+            rows.add(new Object[]{"Sales_Review", 1L, 1L, 5L, new BigDecimal("50.00")});
+            when(offerRepository.getStatusSummaries(anyList()))
+                    .thenReturn(rows);
 
             List<OfferSummary> summaries = offerReviewService.getStatusSummaries();
 
@@ -114,7 +115,7 @@ class OfferReviewServiceTest {
         @Test
         @DisplayName("empty database returns all zero summaries")
         void getStatusSummaries_emptyDb_returnsZeros() {
-            when(offerRepository.findByStatusOrderByUpdatedDateDesc(anyString()))
+            when(offerRepository.getStatusSummaries(anyList()))
                     .thenReturn(Collections.emptyList());
 
             List<OfferSummary> summaries = offerReviewService.getStatusSummaries();
@@ -188,7 +189,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.setItemAction(1L, 1L, "Accept");
 
@@ -205,7 +205,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.setItemAction(1L, 1L, "Counter");
 
@@ -222,7 +221,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.setItemAction(1L, 1L, "Decline");
 
@@ -278,7 +276,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.acceptAll(1L);
 
@@ -295,7 +292,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.declineAll(1L);
 
@@ -311,7 +307,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.finalizeAll(1L);
 
@@ -408,7 +403,7 @@ class OfferReviewServiceTest {
 
             Device device = makeDevice(10L, 5);
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
+            when(deviceLoader.loadDeviceMap(anyList())).thenReturn(Map.of(device.getId(), device));
 
             SubmitResponse response = offerReviewService.completeReview(1L, 1L);
 
@@ -426,7 +421,7 @@ class OfferReviewServiceTest {
 
             Device device = makeDevice(10L, 100);
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
+            when(deviceLoader.loadDeviceMap(anyList())).thenReturn(Map.of(device.getId(), device));
             when(offerRepository.save(any())).thenReturn(offer);
 
             SubmitResponse response = offerReviewService.completeReview(1L, 1L);
@@ -444,7 +439,7 @@ class OfferReviewServiceTest {
 
             Device device = makeDevice(10L, 100);
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(List.of(device));
+            when(deviceLoader.loadDeviceMap(anyList())).thenReturn(Map.of(device.getId(), device));
             when(offerService.submitOrder(1L, 1L))
                     .thenReturn(SubmitResponse.submitted(1L, "ORD-001"));
 
@@ -471,7 +466,6 @@ class OfferReviewServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
             when(offerRepository.save(any())).thenReturn(offer);
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             offerReviewService.updateItemCounter(1L, 1L, 3, null);
 
@@ -493,7 +487,6 @@ class OfferReviewServiceTest {
             Offer offer = makeOffer(1L, "Sales_Review", new ArrayList<>(List.of(item)));
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
-            when(deviceRepository.findAllById(anyCollection())).thenReturn(Collections.emptyList());
 
             OfferResponse response = offerReviewService.getOfferDetail(1L);
 

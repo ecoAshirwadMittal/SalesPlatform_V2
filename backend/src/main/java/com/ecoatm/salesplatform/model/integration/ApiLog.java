@@ -1,18 +1,20 @@
 package com.ecoatm.salesplatform.model.integration;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "api_log", schema = "integration")
+@Getter
+@Setter
 public class ApiLog {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(name = "legacy_id", unique = true)
-    private Long legacyId;
 
     @Column(name = "system_target")
     private String systemTarget;

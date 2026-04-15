@@ -18,12 +18,6 @@ import java.time.LocalDateTime;
     @Column(name = &quot;legacy_id&quot;, unique = true)
     private Long legacyId;
 
-    @Column(name = &quot;username&quot;, length = 500)
-    private String username;
-
-    @Column(name = &quot;password_hash&quot;, length = 500)
-    private String passwordHash;
-
     @Column(name = &quot;auth_path&quot;)
     private String authPath;
 
@@ -43,34 +37,28 @@ import java.time.LocalDateTime;
     private LocalDateTime updatedDate;
 
     // Getters and Setters
-<span class="fc" id="L46">    public Long getId() { return id; }</span>
-<span class="fc" id="L47">    public void setId(Long id) { this.id = id; }</span>
+<span class="fc" id="L40">    public Long getId() { return id; }</span>
+<span class="fc" id="L41">    public void setId(Long id) { this.id = id; }</span>
 
-<span class="nc" id="L49">    public Long getLegacyId() { return legacyId; }</span>
-<span class="nc" id="L50">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+<span class="nc" id="L43">    public Long getLegacyId() { return legacyId; }</span>
+<span class="nc" id="L44">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
 
-<span class="fc" id="L52">    public String getUsername() { return username; }</span>
-<span class="fc" id="L53">    public void setUsername(String username) { this.username = username; }</span>
+<span class="fc" id="L46">    public String getAuthPath() { return authPath; }</span>
+<span class="fc" id="L47">    public void setAuthPath(String authPath) { this.authPath = authPath; }</span>
 
-<span class="fc" id="L55">    public String getPasswordHash() { return passwordHash; }</span>
-<span class="fc" id="L56">    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }</span>
+<span class="fc" id="L49">    public String getCreateOrderPath() { return createOrderPath; }</span>
+<span class="fc" id="L50">    public void setCreateOrderPath(String createOrderPath) { this.createOrderPath = createOrderPath; }</span>
 
-<span class="fc" id="L58">    public String getAuthPath() { return authPath; }</span>
-<span class="fc" id="L59">    public void setAuthPath(String authPath) { this.authPath = authPath; }</span>
+<span class="fc" id="L52">    public String getCreateRmaPath() { return createRmaPath; }</span>
+<span class="fc" id="L53">    public void setCreateRmaPath(String createRmaPath) { this.createRmaPath = createRmaPath; }</span>
 
-<span class="fc" id="L61">    public String getCreateOrderPath() { return createOrderPath; }</span>
-<span class="fc" id="L62">    public void setCreateOrderPath(String createOrderPath) { this.createOrderPath = createOrderPath; }</span>
+<span class="fc" id="L55">    public Integer getTimeoutMs() { return timeoutMs; }</span>
+<span class="fc" id="L56">    public void setTimeoutMs(Integer timeoutMs) { this.timeoutMs = timeoutMs; }</span>
 
-<span class="fc" id="L64">    public String getCreateRmaPath() { return createRmaPath; }</span>
-<span class="fc" id="L65">    public void setCreateRmaPath(String createRmaPath) { this.createRmaPath = createRmaPath; }</span>
+<span class="fc" id="L58">    public Boolean getIsActive() { return isActive; }</span>
+<span class="fc" id="L59">    public void setIsActive(Boolean isActive) { this.isActive = isActive; }</span>
 
-<span class="fc" id="L67">    public Integer getTimeoutMs() { return timeoutMs; }</span>
-<span class="fc" id="L68">    public void setTimeoutMs(Integer timeoutMs) { this.timeoutMs = timeoutMs; }</span>
-
-<span class="fc" id="L70">    public Boolean getIsActive() { return isActive; }</span>
-<span class="fc" id="L71">    public void setIsActive(Boolean isActive) { this.isActive = isActive; }</span>
-
-<span class="fc" id="L73">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
-<span class="fc" id="L74">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+<span class="fc" id="L61">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="fc" id="L62">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

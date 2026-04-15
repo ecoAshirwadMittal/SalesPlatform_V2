@@ -22,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderHistoryService {
@@ -76,11 +80,11 @@ public class OrderHistoryService {
     @Transactional(readOnly = true)
     public List<OrderDetailBySkuResponse> getDetailsBySku(Long offerId) {
         List<OfferItem> items = offerItemRepository.findByOfferId(offerId);
+        Map<Long, Device> deviceMap = loadDeviceMap(
+                items.stream().map(OfferItem::getDeviceId).collect(Collectors.toSet()));
         return items.stream()
                 .map(item -> {
-                    Device device = (item.getDeviceId() != null)
-                            ? deviceRepository.findById(item.getDeviceId()).orElse(null)
-                            : null;
+                    Device device = deviceMap.get(item.getDeviceId());
                     return new OrderDetailBySkuResponse(
                             item.getId(),
                             item.getSku(),
@@ -97,12 +101,16 @@ public class OrderHistoryService {
     @Transactional(readOnly = true)
     public List<OrderDetailByDeviceResponse> getDetailsByDevice(Long offerId) {
         List<ImeiDetail> details = imeiDetailRepository.findByOfferItemOfferId(offerId);
+        Map<Long, Device> deviceMap = loadDeviceMap(
+                details.stream()
+                        .map(ImeiDetail::getOfferItem)
+                        .filter(Objects::nonNull)
+                        .map(OfferItem::getDeviceId)
+                        .collect(Collectors.toSet()));
         return details.stream()
                 .map(d -> {
                     OfferItem item = d.getOfferItem();
-                    Device device = (item != null && item.getDeviceId() != null)
-                            ? deviceRepository.findById(item.getDeviceId()).orElse(null)
-                            : null;
+                    Device device = (item != null) ? deviceMap.get(item.getDeviceId()) : null;
                     ShipmentDetail sd = d.getShipmentDetail();
                     return new OrderDetailByDeviceResponse(
                             d.getId(),
@@ -130,6 +138,15 @@ public class OrderHistoryService {
             return (root, query, cb) -> cb.equal(root.get("buyerCodeId"), buyerCodeId);
         }
         return (root, query, cb) -> root.get("buyerCodeId").in(codeIds);
+    }
+
+    private Map<Long, Device> loadDeviceMap(Set<Long> deviceIds) {
+        deviceIds.remove(null);
+        if (deviceIds.isEmpty()) {
+            return new java.util.HashMap<>();
+        }
+        return deviceRepository.findAllById(deviceIds).stream()
+                .collect(Collectors.toMap(Device::getId, d -> d));
     }
 
     private Specification<OrderHistoryView> tabFilter(String tab) {

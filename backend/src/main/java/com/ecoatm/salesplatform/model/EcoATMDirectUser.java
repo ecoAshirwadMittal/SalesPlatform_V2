@@ -49,6 +49,9 @@ public class EcoATMDirectUser {
     @Column(name = "changed_date")
     private LocalDateTime changedDate;
 
+    @Column(name = "password_tmp_expires_at")
+    private LocalDateTime passwordTmpExpiresAt;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", insertable = false, updatable = false)
     private User user;

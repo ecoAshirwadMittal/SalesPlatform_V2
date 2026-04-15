@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.FacilityInventory;
 import com.ecoatm.salesplatform.dto.DeposcoInventoryDto.ItemInventory;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.OfferItemRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.*;
 class AtpSyncServiceTest {
 
     @Mock private DeviceRepository deviceRepository;
+    @Mock private OfferItemRepository offerItemRepository;
 
     @InjectMocks
     private AtpSyncService atpSyncService;
@@ -234,19 +236,37 @@ class AtpSyncServiceTest {
     class UpdateReservedQuantities {
 
         @Test
-        @DisplayName("sets reservedQty=0 and atpQty=available (TODO stub)")
-        void updateReservedQuantities_setsZeroReserved() {
+        @DisplayName("sets reservedQty from offer items and calculates atpQty")
+        void updateReservedQuantities_usesOfferItemReservation() {
             Device dev = makeDevice(1L, "SKU-RES", 10);
             when(deviceRepository.findByIsActiveTrue()).thenReturn(List.of(dev));
             when(deviceRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(offerItemRepository.sumReservedQtyByDeviceId(1L)).thenReturn(30);
 
             Map<String, Integer> atpBySku = Map.of("SKU-RES", 100);
 
             atpSyncService.applyAtpUpdates(atpBySku, LocalDateTime.now());
 
-            // After updateReservedQuantities: reserved=0, atp=available
-            assertThat(dev.getReservedQty()).isZero();
-            assertThat(dev.getAtpQty()).isEqualTo(100);
+            // After updateReservedQuantities: reserved=30, atp=100-30=70
+            assertThat(dev.getReservedQty()).isEqualTo(30);
+            assertThat(dev.getAtpQty()).isEqualTo(70);
+        }
+
+        @Test
+        @DisplayName("clamps reservedQty to availableQty when orders exceed inventory")
+        void updateReservedQuantities_clampsReservedToAvailable() {
+            Device dev = makeDevice(1L, "SKU-OVER", 5);
+            when(deviceRepository.findByIsActiveTrue()).thenReturn(List.of(dev));
+            when(deviceRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
+            when(offerItemRepository.sumReservedQtyByDeviceId(1L)).thenReturn(50);
+
+            Map<String, Integer> atpBySku = Map.of("SKU-OVER", 20);
+
+            atpSyncService.applyAtpUpdates(atpBySku, LocalDateTime.now());
+
+            // reserved clamped to available=20, atp=0
+            assertThat(dev.getReservedQty()).isEqualTo(20);
+            assertThat(dev.getAtpQty()).isZero();
         }
     }
 }

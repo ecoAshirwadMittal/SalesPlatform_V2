@@ -1,0 +1,1184 @@
+Date: Tue, 14 Apr 2026 21:11:45 +0000 (UTC)
+Message-ID: <516802131.3.1776201105806@f6adc5a415ac>
+Subject: Exported From Confluence
+MIME-Version: 1.0
+Content-Type: multipart/related; 
+	boundary="----=_Part_2_1835234902.1776201105806"
+
+------=_Part_2_1835234902.1776201105806
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: quoted-printable
+Content-Location: file:///C:/exported.html
+
+<html xmlns:o=3D'urn:schemas-microsoft-com:office:office'
+      xmlns:w=3D'urn:schemas-microsoft-com:office:word'
+      xmlns:v=3D'urn:schemas-microsoft-com:vml'
+      xmlns=3D'urn:w3-org-ns:HTML'>
+<head>
+    <meta http-equiv=3D"Content-Type" content=3D"text/html; charset=3Dutf-8=
+">
+    <title>Golden Path - Web Microservice Framework</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <o:OfficeDocumentSettings>
+            <o:TargetScreenSize>1024x640</o:TargetScreenSize>
+            <o:PixelsPerInch>72</o:PixelsPerInch>
+            <o:AllowPNG/>
+        </o:OfficeDocumentSettings>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>90</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+                <!--
+        @page Section1 {
+            size: 8.5in 11.0in;
+            margin: 1.0in;
+            mso-header-margin: .5in;
+            mso-footer-margin: .5in;
+            mso-paper-source: 0;
+        }
+
+        table {
+            border: solid 1px;
+            border-collapse: collapse;
+        }
+
+        table td, table th {
+            border: solid 1px;
+            padding: 5px;
+        }
+
+        td {
+            page-break-inside: avoid;
+        }
+
+        tr {
+            page-break-after: avoid;
+        }
+
+        div.Section1 {
+            page: Section1;
+        }
+
+        /* Confluence print stylesheet. Common to all themes for print medi=
+a */
+/* Full of !important until we improve batching for print CSS */
+
+@media print {
+    #main {
+        padding-bottom: 1em !important; /* The default padding of 6em is to=
+o much for printouts */
+    }
+
+    body {
+        font: var(--ds-font-body-small, Arial, Helvetica, FreeSans, sans-se=
+rif);
+    }
+
+    body, #full-height-container, #main, #page, #content, .has-personal-sid=
+ebar #content {
+        background: var(--ds-surface, #fff) !important;
+        color: var(--ds-text, #000) !important;
+        border: 0 !important;
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        display: block !important;
+    }
+
+    a, a:link, a:visited, a:focus, a:hover, a:active {
+        color: var(--ds-text, #000);
+    }
+
+    #content h1,
+    #content h2,
+    #content h3,
+    #content h4,
+    #content h5,
+    #content h6 {
+        page-break-after: avoid;
+    }
+
+    pre {
+        font: var(--ds-font-code, Monaco, "Courier New", monospace);
+    }
+
+    #header,
+    .aui-header-inner,
+    #navigation,
+    #sidebar,
+    .sidebar,
+    #personal-info-sidebar,
+    .ia-fixed-sidebar,
+    .page-actions,
+    .navmenu,
+    .ajs-menu-bar,
+    .noprint,
+    .inline-control-link,
+    .inline-control-link a,
+    a.show-labels-editor,
+    .global-comment-actions,
+    .comment-actions,
+    .quick-comment-container,
+    #addcomment {
+        display: none !important;
+    }
+
+    /* CONF-28544 cannot print multiple pages in IE */
+    #splitter-content {
+        position: relative !important;
+    }
+
+    .comment .date::before {
+        content: none !important; /* remove middot for print view */
+    }
+
+    h1.pagetitle img {
+        height: auto;
+        width: auto;
+    }
+
+    .print-only {
+        display: block;
+    }
+
+    #footer {
+        position: relative !important; /* CONF-17506 Place the footer at en=
+d of the content */
+        margin: 0;
+        padding: 0;
+        background: none;
+        clear: both;
+    }
+
+    #poweredby {
+        border-top: none;
+        background: none;
+    }
+
+    #poweredby li.print-only {
+        display: list-item;
+        font-style: italic;
+    }
+
+    #poweredby li.noprint {
+        display: none;
+    }
+
+    /* no width controls in print */
+    .wiki-content .table-wrap,
+    .wiki-content p,
+    .panel .codeContent,
+    .panel .codeContent pre,
+    .image-wrap {
+        overflow: visible !important;
+    }
+
+    /* TODO - should this work? */
+    #children-section,
+    #comments-section .comment,
+    #comments-section .comment .comment-body,
+    #comments-section .comment .comment-content,
+    #comments-section .comment p {
+        page-break-inside: avoid;
+    }
+
+    #page-children a {
+        text-decoration: none;
+    }
+
+    /**
+     hide twixies
+
+     the specificity here is a hack because print styles
+     are getting loaded before the base styles. */
+    #comments-section.pageSection .section-header,
+    #comments-section.pageSection .section-title,
+    #children-section.pageSection .section-header,
+    #children-section.pageSection .section-title,
+    .children-show-hide {
+        padding-left: 0;
+        margin-left: 0;
+    }
+
+    .children-show-hide.icon {
+        display: none;
+    }
+
+    /* personal sidebar */
+    .has-personal-sidebar #content {
+        margin-right: 0px;
+    }
+
+    .has-personal-sidebar #content .pageSection {
+        margin-right: 0px;
+    }
+
+    .no-print, .no-print * {
+        display: none !important;
+    }
+}
+-->
+    </style>
+</head>
+<body>
+    <h1>Golden Path - Web Microservice Framework</h1>
+    <div class=3D"Section1">
+        <p local-id=3D"013666c209bb"></p>
+<blockquote local-id=3D"5ec003eb-420e-4610-9283-dc068a8154c5">
+<p local-id=3D"bac9b63e85cf">A standard for any new API, Webhook, and Event=
+-Driven services across ecoATM.</p>
+</blockquote>
+<hr local-id=3D"4d7d10bd-4e3c-4d8a-a6d9-5bc16f994743">
+<h2 local-id=3D"62f108d4ecaa" id=3D"GoldenPath-WebMicroserviceFramework-Cor=
+eConcepts">Core Concepts</h2>
+<div class=3D"table-wrap">
+<table data-table-width=3D"1800" data-layout=3D"default" data-local-id=3D"3=
+97e4cc7-bbf6-4568-9c57-4e2602bbd5b8" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"bde19ca4-e306-4469-9daf-4237b6aaed49">
+<th data-local-id=3D"ac455ff9-8cfc-491e-ae30-5123f05c92c8" class=3D"conflue=
+nceTh">
+<p local-id=3D"4944cbb530cc">Principle</p></th>
+<th data-local-id=3D"31e4bb35-f88d-47ae-b400-f467e2030d1d" class=3D"conflue=
+nceTh">
+<p local-id=3D"76931b04a19d">Description</p></th>
+</tr>
+<tr data-local-id=3D"9f73f9be-7553-468f-82cb-3c53d54569cf">
+<td data-local-id=3D"40f2e97d-5ef7-49dd-b9d6-bd2956d524f2" class=3D"conflue=
+nceTd">
+<p local-id=3D"5beb02071359"><strong>Containerized Applications</strong></p=
+></td>
+<td data-local-id=3D"09a10eb3-087f-4ccb-916d-27088b8e0590" class=3D"conflue=
+nceTd">
+<p local-id=3D"ffb4b8b18966"><span class=3D"inline-comment-marker" data-ref=
+=3D"6598f171-b2c5-48cc-b0c8-64bdeb1f1bbf">All applications should be run wi=
+thin a container</span></p></td>
+</tr>
+<tr data-local-id=3D"2b0a3777-8350-43c7-8eb7-fbaf475051d9">
+<td data-local-id=3D"0ef6af60-f303-4cab-a444-7f8eae2c21a3" class=3D"conflue=
+nceTd">
+<p local-id=3D"fee348952f53"><strong>Language Agnostic</strong></p></td>
+<td data-local-id=3D"51c4564e-0c83-4dca-ab8b-8890579efb02" class=3D"conflue=
+nceTd">
+<p local-id=3D"1a54ef3f529f">Architecture is universal for all programming =
+languages</p></td>
+</tr>
+<tr data-local-id=3D"919102d6-2db3-402b-ba56-cbca07030043">
+<td data-local-id=3D"1ff7ef5d-3d5f-4b27-84b0-efd517d7da45" class=3D"conflue=
+nceTd">
+<p local-id=3D"ab5f92909a2b"><strong>Decoupled and Extensible</strong></p><=
+/td>
+<td data-local-id=3D"176e0163-e4a4-43b4-bf85-7dc41897ac85" class=3D"conflue=
+nceTd">
+<p local-id=3D"6c09a13cad8a">Each piece of the architecture should have min=
+imal impact on each other</p></td>
+</tr>
+<tr data-local-id=3D"3172ad5e-b9d5-45e5-b20e-ff4b4ee60929">
+<td data-local-id=3D"8cb2d5bc-e27e-4e01-8f1d-5fb5d1551cf3" class=3D"conflue=
+nceTd">
+<p local-id=3D"9c9640c494e0"><strong>Plug &amp; Play</strong></p></td>
+<td data-local-id=3D"304d44c6-735e-4733-a4a2-158a9622f165" class=3D"conflue=
+nceTd">
+<p local-id=3D"00d9b651a8b7">Changing downstream integrations should not im=
+pact upstream ones</p></td>
+</tr>
+<tr data-local-id=3D"d58e48ba-5217-44f5-bf03-cf2c25978169">
+<td data-local-id=3D"7ccbbc4a-2a56-462a-8ad3-b4ab54a102b1" class=3D"conflue=
+nceTd">
+<p local-id=3D"2c4b112639aa"><strong>Observable by Default</strong></p></td=
+>
+<td data-local-id=3D"8e6b79ee-730c-4f73-914e-b96c3847beda" class=3D"conflue=
+nceTd">
+<p local-id=3D"c2a0ec2bd9a3">All services must emit logs, traces, and metri=
+cs without additional developer configuration. Observability is not optiona=
+l =E2=80=94 it is enforced via the Datadog base image and agent.</p></td>
+</tr>
+<tr data-local-id=3D"d0f20e4c-d49f-4754-9544-b15e9061ef7a">
+<td data-local-id=3D"143569c8-2421-4fc1-a9dc-f42af5559c84" class=3D"conflue=
+nceTd">
+<p local-id=3D"94d1146e645d"><strong>ARB-Governed</strong></p></td>
+<td data-local-id=3D"63835628-b178-4c46-8b72-5650132e7f1c" class=3D"conflue=
+nceTd">
+<p local-id=3D"41f6af050152">Changes that qualify as Tier 1 under the SDLC =
+require Architecture Review Board (ARB) approval before build begins. Servi=
+ces built on golden paths do not require ARB review.</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr local-id=3D"83e7b250-9b99-4a59-a390-8b12e5183b2d">
+<h2 local-id=3D"93831a5c1ed7" id=3D"GoldenPath-WebMicroserviceFramework-Key=
+ArchitecturalDesign"><span class=3D"inline-comment-marker" data-ref=3D"c642=
+e81b-df62-4248-b62b-c90dcf1ef1dd">Key Architectural Design</span></h2>
+<div style=3D"width: 100.0%;display: block;text-align: center;">
+<img src=3D"https://atl-embed.lucid.app/api/confluence/lucidchart/documents=
+/f104db75-2500-44f5-8662-e63cfcdf87cd/embeds/ef836ea7-c444-4a4e-81c0-434bfe=
+d97aa0/pages/1?jwt=3DeyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJDb25mbHVlbmNlOjMwMDA0N=
+TIyMjIiLCJpYXQiOjE3NzYyMDExMDUsImV4cCI6MTc3NjIwMTE2NSwicXNoIjoiYzc0MDRmZWMw=
+ZDdmYWEwMmVlMjNmYmU3YmI0ZDNhYmNhNTQxNGQ4YWZhNDcwODZjOGY5YTI3MTMzNWUyNzhkOSJ=
+9.e7enZSsv3f-cKzkYLeLTw0YdlyOrKec9VHdd6xgnN24" alt=3D"API Framework" title=
+=3D"API Framework" style=3D"max-width: 100.0%;">
+</div>
+<hr local-id=3D"0c5522f9-d659-4d87-accd-919776d27f44">
+<h2 local-id=3D"31b727b2ef02" id=3D"GoldenPath-WebMicroserviceFramework-Ent=
+rypoint"><span class=3D"inline-comment-marker" data-ref=3D"f413135a-a2f9-42=
+bf-8ff7-226796c7cb8f">Entrypoint</span></h2>
+<p local-id=3D"f70f311392ca">The top-level URL for all REST and GraphQL ope=
+rations is <code>https://api.ecoatm.com</code>. This provides a single entr=
+y point to the entire API catalog, supported by <strong>AWS API Gateway</st=
+rong>.</p>
+<p local-id=3D"f92a2e7d7dc6">Endpoints are secured by a token-based authent=
+ication scheme. Authorization is handled by decoding tokens to determine th=
+e privileges of authenticated requests and assigning the proper IAM policie=
+s. This ensures that individual applications do not need to handle their ow=
+n authorization =E2=80=94 it is controlled at a gateway/infrastructure leve=
+l.</p>
+<p local-id=3D"b730b554d3e8">All applications should be built such that the=
+y can eventually become publicly facing with minimal rework.</p>
+<p local-id=3D"0b1d4375a4b8">The top-level API Gateway contains:</p>
+<ul local-id=3D"bd7ea2e7-5e75-4342-bdf3-e27ffe59ddb3">
+<li local-id=3D"93c11429-4eed-42d0-8c2d-a1e86ce690f8">
+<p local-id=3D"58e9077e4850">Base authentication routes</p></li>
+<li local-id=3D"49e1427e-2c1c-40e7-a4ed-d8ee7dabf768">
+<p local-id=3D"6f2b617e7994">Directories that map to collection-level gatew=
+ays</p></li>
+<li local-id=3D"2f1527b9-ab9a-4c47-9fea-f92610ccd042">
+<p local-id=3D"754c5169fbae">Individual GraphQL endpoints per service, moun=
+ted within their respective collection paths</p></li>
+</ul>
+<hr local-id=3D"f66a5b8b-e251-49a8-b99b-fcafc59c7b04">
+<h2 local-id=3D"30792ca51155" id=3D"GoldenPath-WebMicroserviceFramework-Col=
+lections">Collections</h2>
+<p local-id=3D"4c95460d17f0">A <strong>collection</strong> represents a gro=
+up of microservices that operate in the same functional area, linked by a c=
+ommon collection-level API Gateway. The root (<code>/</code>) of the collec=
+tion-level gateway maps to a directory of the top-level gateway. For exampl=
+e, a pricing collection would map its route to <code>api.ecoatm.com/pricing=
+</code>.</p>
+<p local-id=3D"0297044d4915"><strong>Collection boundaries should align wit=
+h domain/business capability boundaries, not team or org chart boundaries.<=
+/strong> Organizing collections around team structure rather than business =
+domains is the most common source of coupling problems in microservice arch=
+itectures.</p>
+<p local-id=3D"7797fb426ca4">Each collection must have a <strong><span clas=
+s=3D"inline-comment-marker" data-ref=3D"7339e191-37d6-4e05-bf99-9494dc8fc34=
+7">designated owning team</span></strong>. Ownership should be registered a=
+nd visible. This feeds directly into the ARB and SDLC processes =E2=80=94 t=
+he "who approves what" question is only answerable when collection ownershi=
+p is explicit.</p>
+<p local-id=3D"5ea5c18ad31e">*<strong>Note: revisit later as teams become m=
+ore self-sufficient</strong></p>
+<hr local-id=3D"07893867-3a6d-4857-a6bf-bdde518b632f">
+<h2 local-id=3D"6128a997e2f0" id=3D"GoldenPath-WebMicroserviceFramework-Ver=
+sioning">Versioning</h2>
+<p local-id=3D"50a03098c4df">Routes <strong>must</strong> contain a version=
+ identifier for all endpoint. For example, version 1 of the pricing engine =
+is at:</p>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">api.eco=
+atm.com/pricing/v1</pre>
+</div>
+</div>
+<p local-id=3D"d469a1c88c67">Unversioned APIs create breaking change risk w=
+ith no notice to consumers.</p>
+<h3 local-id=3D"36bb3a87d69d" id=3D"GoldenPath-WebMicroserviceFramework-Dep=
+recationPolicy">Deprecation Policy</h3>
+<p local-id=3D"6e6be860ab08">A version must have a defined support window b=
+efore it can be sunset:</p>
+<ul local-id=3D"35350229-2ce3-4a49-9f8e-39a8ba24c91f">
+<li local-id=3D"8b69c22d-ff5a-467d-8145-de120d98af87">
+<p local-id=3D"116560535c3f"><span class=3D"inline-comment-marker" data-ref=
+=3D"0823e5f4-eaf0-476f-ad0a-64a0e687d151">A minimum </span><strong>3-month =
+deprecation notice</strong> is required before removing a version.</p></li>
+<li local-id=3D"0102f7b8-fab7-4750-b290-842be6d678d7">
+<p local-id=3D"3afae4d46401">Deprecations must be communicated via changelo=
+g entry and surface in the OpenAPI spec.</p></li>
+<li local-id=3D"3a3abab9-3f03-4d6c-8cec-4e9aed179235">
+<p local-id=3D"43b1e406d6d3">Deprecated versions should return a <code>Depr=
+ecation</code> header in responses pointing to the replacement.</p></li>
+</ul>
+<hr local-id=3D"ef666f38-b622-4257-bb16-5f5ebf3f3de2">
+<h2 local-id=3D"d640a593ffb2" id=3D"GoldenPath-WebMicroserviceFramework-App=
+licationLayer">Application Layer</h2>
+<p local-id=3D"b4ea93fd30c7">The application layer consists of a combinatio=
+n of <strong>Lambdas</strong>, and <strong>EKS deployments</strong>. The ex=
+pectation is that the majority of applications will consist of one or more =
+Lambdas.</p>
+<h3 local-id=3D"d1f623ede02f" id=3D"GoldenPath-WebMicroserviceFramework-Lam=
+bda(Default)">Lambda (Default)</h3>
+<p local-id=3D"4e1b0131563e">Lambdas are the default compute unit for both =
+<strong>request/response</strong> and <strong>event-driven</strong> workloa=
+ds:</p>
+<ul local-id=3D"88d23874-dc9a-4244-b333-9c3f193ea29e">
+<li local-id=3D"0c071cde-b659-47f4-9e91-d32a9b0418ad">
+<p local-id=3D"8d0be8c2b938">For <strong>HTTP APIs</strong>, a Lambda shoul=
+d map to one route and one HTTP method (e.g., <code>GET /pricing/v1/quote</=
+code>). This keeps the scope of each deployment unit narrow and business lo=
+gic minimal per function.</p></li>
+<li local-id=3D"a6c06073-e802-4509-b55e-d188db80f274">
+<p local-id=3D"437e9a8be62f">For <strong>event-driven workloads</strong>, a=
+ Lambda should map to one event source (e.g., one MSK consumer group, one S=
+NS subscription). The same single-responsibility principle applies.</p></li=
+>
+</ul>
+<p local-id=3D"f838ffc65fe0"><strong>Cold start guidance:</strong> Cold sta=
+rt latency must be factored into SLO definitions for customer-facing endpoi=
+nts. Cold starts are generally less critical for async event consumers wher=
+e strict latency SLOs are not required, but should still be documented. For=
+ critical systems that require low-latency, consider using provisioned conc=
+urrency.</p>
+<h3 local-id=3D"51419bab8401" id=3D"GoldenPath-WebMicroserviceFramework-EKS=
+">EKS</h3>
+<p local-id=3D"ef49cc4b9f16">EKS should be used when a Lambda may be inappr=
+opriate, such as cost, strong latency requirements, runtime limitations (&g=
+t;=3D 15 minute execution time).</p>
+<h3 local-id=3D"828a142b3724" id=3D"GoldenPath-WebMicroserviceFramework-Con=
+tainerRequirements">Container Requirements</h3>
+<p local-id=3D"cc7112a23f70">All applications and services must be built as=
+ <strong><span class=3D"inline-comment-marker" data-ref=3D"d041a82d-4979-4d=
+f3-a3de-a83d36efce21">Docker images</span></strong> and deployed as contain=
+ers. This ensures portability and language agnosticism. The image defines i=
+ts own runtime environment, removing any dependency on specific underlying =
+infrastructure.</p>
+<h3 local-id=3D"a722032c1184" id=3D"GoldenPath-WebMicroserviceFramework-Alt=
+ernativeInfrastructure">Alternative Infrastructure</h3>
+<p local-id=3D"8c37f12e173a">As an ARB, we decided against frameworks such =
+as ECS and Fargate tasks to minimize complexity. We are also looking to mov=
+e away from EC2 for application deployments.</p>
+<hr local-id=3D"237ec26b-1126-444e-ae8e-5200b1ca06f6">
+<h2 local-id=3D"af16ca46539d" id=3D"GoldenPath-WebMicroserviceFramework-Com=
+monLibraries=E2=80=94IntegrationLayer">Common Libraries =E2=80=94 Integrati=
+on Layer</h2>
+<p local-id=3D"1b113cad12d9">Data and vendor integrations should be abstrac=
+ted as <strong>common libraries</strong> implementing the required function=
+ality. This allows downstream integrations to change freely without impacti=
+ng business logic upstream (Plug &amp; Play). For example, switching from <=
+code>Communication Tool X</code> to <code>Communication Tool Y</code> shoul=
+d be scoped entirely to the library =E2=80=94 consuming services should onl=
+y need to update their dependency version.</p>
+<h3 local-id=3D"04df73bebde0" id=3D"GoldenPath-WebMicroserviceFramework-Lib=
+raryGovernance">Library Governance</h3>
+<p local-id=3D"70ba7ac1be22">Common libraries carry architectural risk beca=
+use a breaking change in a library can affect N upstream consumers simultan=
+eously. The following rules apply:</p>
+<ul local-id=3D"7c4a7e2a-c003-48b6-b481-2db9f7c2a10f">
+<li local-id=3D"d273fc0d-4fbb-4e68-8270-ffbc07a54468">
+<p local-id=3D"8a10347f6b61">Libraries must be <strong>versioned</strong> a=
+nd published to a private registry (Artifactory).</p></li>
+<li local-id=3D"6ad3ce67-019e-45a9-a24d-f1567d073731">
+<p local-id=3D"e4447603d195"><strong>Breaking changes</strong> to a common =
+library should be evaluated against the SDLC Tier 1 triggers. If a breaking=
+ change meets a trigger (e.g., cross-domain API contract, data flow directi=
+on change), it requires ARB review before proceeding.</p></li>
+<li local-id=3D"807804d6-3bc1-4cb7-a662-15a8acee30a3">
+<p local-id=3D"7be5bb9f288f">Each library must have a <strong>designated ow=
+ner</strong> =E2=80=94 the same ownership model as collections.</p></li>
+<li local-id=3D"f1749fba-05d7-4f3d-a254-0bfaca0a876b">
+<p local-id=3D"a7bdbc691d28">Libraries must follow semantic versioning (<co=
+de>MAJOR.MINOR.PATCH</code>) with a changelog.</p></li>
+</ul>
+<hr local-id=3D"a83a887d-0ee9-46cd-916f-861a809d96e4">
+<h2 local-id=3D"5913a9d2cc9a" id=3D"GoldenPath-WebMicroserviceFramework-Dev=
+elopmentLifecycle">Development Lifecycle</h2>
+<p local-id=3D"b1c97fc0edf0">All services built within this framework must =
+follow the <strong>ecoATM Software Development Life Cycle (SDLC)</strong>. =
+The microservice framework defines <em>how</em> to build services; the SDLC=
+ defines <em>when and how to govern</em> that build process.</p>
+<ul local-id=3D"c7141de0-f261-43f2-b86e-cbbadc81e903">
+<li local-id=3D"3fb207d7-602b-4735-96c1-27bbe973f3bc">
+<p local-id=3D"f1c6ec95ad08"><strong>Tier 1 changes</strong> (new services,=
+ significant architectural changes) require <strong>ARB approval</strong> b=
+efore implementation begins.</p></li>
+<li local-id=3D"c786ddfa-6343-4de2-9469-73c011b1c65f">
+<p local-id=3D"e17a5d310c58">Significant changes to collection boundaries a=
+re always Tier 1.</p></li>
+<li local-id=3D"8ab73daa-4dc1-4943-bda7-328e64e29375">
+<p local-id=3D"8bcb68c74235">New event-driven systems, new event backbone c=
+omponents (topics, queues, buses), and new event schemas are always Tier 1 =
+=E2=80=94 they establish contracts between services and are difficult to ch=
+ange after consumers have been built against them.</p></li>
+</ul>
+<hr local-id=3D"981accf7-d117-44af-8b2c-c81977c70c71">
+<h2 local-id=3D"b78ef2c2c039" id=3D"GoldenPath-WebMicroserviceFramework-Com=
+monDownstreamIntegrations">Common Downstream Integrations</h2>
+<h3 local-id=3D"5f7137eb26b7" id=3D"GoldenPath-WebMicroserviceFramework-Dat=
+adog">Datadog</h3>
+<p local-id=3D"6bd872fcf9d5">All monitoring at ecoATM is handled by Datadog=
+. All applications within the Microservice framework must send logs, traces=
+, and monitoring data to Datadog.</p>
+<ul local-id=3D"6ff61b90-cb19-431c-8539-dd127dc06466">
+<li local-id=3D"172ab7bc-9dfe-45ea-a7a6-43489129b3da">
+<p local-id=3D"4b7c470293f1">The <strong>base image for all Lambdas</strong=
+> must contain the Datadog Lambda handler, ensuring any new Lambda automati=
+cally emits data to Datadog.</p></li>
+</ul>
+<p local-id=3D"4658d9d21318"><strong>*Note: </strong>We will begin to migra=
+te to using OpenTelemetry instead of proprietary Datadog integration, and s=
+hould prioritize a migration for lambdas.</p>
+<h3 local-id=3D"c096ab7af01e" id=3D"GoldenPath-WebMicroserviceFramework-Swa=
+gger/OpenAPI">Swagger / OpenAPI</h3>
+<p local-id=3D"98a3f4757b6a">All REST applications must have <strong>OpenAP=
+I specification</strong>. <a class=3D"external-link" href=3D"https://stopli=
+ght.io/" rel=3D"nofollow"><span class=3D"inline-comment-marker" data-ref=3D=
+"0a088448-a71c-4340-a692-a39f70a6f344">Stoplight.io</span></a><span class=
+=3D"inline-comment-marker" data-ref=3D"0a088448-a71c-4340-a692-a39f70a6f344=
+"> </span>consumes these to provide an endpoint catalog.</p>
+<ul local-id=3D"ff17adbf-523a-4ef7-bc90-7232a2f49c14">
+<li local-id=3D"88da3e4c-03da-4bca-842b-c71d713c645b">
+<p local-id=3D"319c3c45591c">Specs must be <strong>committed to the reposit=
+ory</strong> (not generated only at runtime) so they are reviewable as part=
+ of a pull request.</p></li>
+<li local-id=3D"f34884bf-3b5c-4ee7-bd10-6e8a5484a859">
+<p local-id=3D"5a17fbbfb2a1">Specs must be <strong>validated in CI</strong>=
+ using a schema linter (e.g., <a class=3D"external-link" href=3D"https://st=
+oplight.io/open-source/spectral" rel=3D"nofollow">Spectral</a>). A broken o=
+r outdated spec is worse than no spec =E2=80=94 it produces incorrect docum=
+entation and misleads consumers.</p></li>
+</ul>
+<h3 local-id=3D"82c4c4143e63" id=3D"GoldenPath-WebMicroserviceFramework-Asy=
+ncAPI">AsyncAPI</h3>
+<p local-id=3D"08c0167df0bf"><a class=3D"external-link" href=3D"https://www=
+.asyncapi.com/" rel=3D"nofollow">AsyncAPI</a> is the event-driven equivalen=
+t of OpenAPI =E2=80=94 it describes channels, message schemas, and producer=
+/consumer bindings in a machine-readable format. It is the intended long-te=
+rm standard for documenting event-driven services at ecoATM.</p>
+<p local-id=3D"2bd9228a345f">AsyncAPI is not currently mandated as our API =
+catalog tooling (Stoplight) does not support it. Event contracts should be =
+documented in the service's README until tooling support is available. Asyn=
+cAPI will be revisited as a formal requirement if tooling changes.</p>
+<h3 local-id=3D"550437936e32" id=3D"GoldenPath-WebMicroserviceFramework-Gra=
+phQL">GraphQL</h3>
+<p local-id=3D"53b039e3fee4">Services that expose a GraphQL API do so as in=
+dividual endpoints mounted within their collection path (e.g., <code>api.ec=
+oatm.com/pricing/graphql</code>). There is no shared supergraph at this tim=
+e. Use of GraphQL should be discussed with Architecture before new services=
+ are onboarded as our preference should be to use REST.</p>
+<p local-id=3D"d6eafb3711ec">GraphQL endpoints are subject to the same gate=
+way-level authentication requirements as REST endpoints. Versioning works d=
+ifferently from REST =E2=80=94 the endpoint itself is not versioned. Instea=
+d, the schema evolves through field-level changes:</p>
+<ul local-id=3D"df667630-cca6-490a-9059-67235a2d57d1">
+<li local-id=3D"2d0fc235-8d3a-4657-9227-b4d1967ffa85">
+<p local-id=3D"71a82e721b1a">New fields may be added freely as they are non=
+-breaking.</p></li>
+<li local-id=3D"9b651e5a-d1a1-4c71-aff2-bd51730cfdcc">
+<p local-id=3D"a3335941672b">Fields should be marked <code>@deprecated</cod=
+e> with a reason before removal, giving consumers time to migrate.</p></li>
+<li local-id=3D"7ea6b996-be0e-47a7-a1c9-690023ebf646">
+<p local-id=3D"d75aeb23e8ce">Removing or renaming a field without deprecati=
+on is a breaking change and must be avoided.</p></li>
+</ul>
+<p local-id=3D"b8267405d3ab">A future consolidation into a federated graph =
+may be evaluated as GraphQL coverage matures across the platform.</p>
+<hr local-id=3D"bbf5c058-b406-40a7-b621-2cab2c3978dd">
+<h2 local-id=3D"9c009ca0b9b9" id=3D"GoldenPath-WebMicroserviceFramework-Eve=
+nt-DrivenArchitecture">Event-Driven Architecture</h2>
+<div style=3D"width: 100.0%;display: block;text-align: center;">
+<img src=3D"https://atl-embed.lucid.app/api/confluence/lucidchart/documents=
+/f104db75-2500-44f5-8662-e63cfcdf87cd/embeds/0b587cd0-f1a1-4365-8b88-fe3c05=
+11cd36/pages/3?jwt=3DeyJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJDb25mbHVlbmNlOjMwMDA0N=
+TIyMjIiLCJpYXQiOjE3NzYyMDExMDUsImV4cCI6MTc3NjIwMTE2NSwicXNoIjoiNzk0OWVkYzAz=
+OWEzODk3YTdiY2M4OWU2NzIyNjBjYThmZjg5M2JjODgyZTFkNTMzYmY1MzdhOTU0YzliYjNjNiJ=
+9.GcbwzIMSijEOfBkFpThxtSeny0r1aHriDJ7YMsu2plY" alt=3D"API Framework" title=
+=3D"API Framework" style=3D"max-width: 100.0%;">
+</div>
+<p local-id=3D"9a54239a3011">Event-driven architecture (EDA) is the pattern=
+ for services that communicate <strong>asynchronously</strong> through even=
+ts rather than synchronous request/response. EDA is the right model when:</=
+p>
+<ul local-id=3D"3f6e365c-94b9-4744-af40-70a94dd089dd">
+<li local-id=3D"68fbbe54-adcc-44c3-a5dd-10669a9b0625">
+<p local-id=3D"6b41443f9771">The producer does not need to wait for the res=
+ult of downstream processing</p></li>
+<li local-id=3D"d7b5fac7-a9a3-46f4-b97a-67b05cae8d8f">
+<p local-id=3D"0e26e4fbb433">Multiple consumers need to react to the same o=
+ccurrence independently</p></li>
+<li local-id=3D"e258f756-1b4e-43fd-8ab5-9da4f5b017f0">
+<p local-id=3D"b8f3d7d3573b">Services in different domains need to remain d=
+ecoupled across their lifecycles</p></li>
+<li local-id=3D"3616de00-5cfc-4478-b6c8-007b45ce4aca">
+<p local-id=3D"5a02e870e932">Work needs to be buffered, retried, or process=
+ed at variable rates</p></li>
+</ul>
+<p local-id=3D"b73b199e059d">EDA and REST/HTTP APIs are <strong>complementa=
+ry</strong>, not alternatives. Most systems will use both: HTTP for synchro=
+nous, user-facing or query operations; events for state changes, integratio=
+ns, and background processing.</p>
+<h3 local-id=3D"43d1e381740b" id=3D"GoldenPath-WebMicroserviceFramework-Bro=
+kerSelection">Broker Selection</h3>
+<p local-id=3D"e59a8580299d">ecoATM operates three event brokers. Each has =
+a defined role =E2=80=94 new services should use the appropriate broker for=
+ their use case rather than treating them as interchangeable.</p>
+<p local-id=3D"22bca3f78166"><strong>AWS IoT Core</strong> is the entry poi=
+nt for all device-originated events. From a microservice perspective it is =
+a source, not a system to integrate with directly =E2=80=94 backend service=
+s consume device events from MSK, not from IoT Core.</p>
+<p local-id=3D"17b869fa2b2f"><strong>Amazon MSK (Kafka)</strong> is the pri=
+mary event streaming backbone for service-to-service communication. It is t=
+he right choice when you need durable, replayable, ordered event streams or=
+ high-throughput pipelines. For topic design, consumer patterns, schema reg=
+istry, naming conventions, and IaC standards, refer to the <strong>MSK Arch=
+itectural Pattern</strong> document.</p>
+<p local-id=3D"a9ed560684b7"><strong>Amazon SNS + SQS</strong> is appropria=
+te for lightweight, lower-volume async integration where Kafka's durability=
+ and replay characteristics are not required =E2=80=94 simple fan-out, noti=
+fication triggers, or decoupling two services without needing a full stream=
+ing pipeline.</p>
+<p local-id=3D"23079fa0d76b">When in doubt between MSK and SNS/SQS, prefer =
+MSK. Consolidating on fewer brokers reduces operational complexity and keep=
+s the event model consistent across the platform.</p>
+<blockquote local-id=3D"1bcb62e1-d89c-457c-9a18-3ce4d7cd1691">
+<p local-id=3D"2b55f049d634"><strong>Note:</strong> Amazon EventBridge is n=
+ot a standard ecoATM broker outside of running cron jobs. It may be used se=
+lectively for SaaS integrations or for bridging MSK events to specific targ=
+ets =E2=80=94 consult with Architecture before introducing it.</p>
+</blockquote>
+<h3 local-id=3D"88719cd38d9e" id=3D"GoldenPath-WebMicroserviceFramework-Eve=
+ntDesignStandards">Event Design Standards</h3>
+<p local-id=3D"964f7447b64f">Events are contracts. Once a consumer is built=
+ against an event schema, changes are a breaking change for that consumer. =
+Design events carefully up front.</p>
+<p local-id=3D"ada9cc452d6c"><strong>Naming convention:</strong> Events sho=
+uld be named in past tense to reflect that they describe something that has=
+ already occurred:</p>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">{domain=
+}.{entity}.{past-tense-verb}
+# Examples:
+pricing.quote.requested
+order.transaction.completed
+device.kiosk.checked-in
+</pre>
+</div>
+</div>
+<p local-id=3D"d587a484d81f"><strong>Standard event envelope:</strong> All =
+events must include the following standard metadata envelope alongside the =
+business payload:</p>
+<div class=3D"table-wrap">
+<table data-table-width=3D"1800" data-layout=3D"default" data-local-id=3D"c=
+59fb246-1486-4367-9eff-46f9d88eebc4" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"4e5f9beb-a573-492c-968c-c2b16ad9f179">
+<th data-local-id=3D"2829ab29-28b5-4493-b171-eaef04edd1e1" class=3D"conflue=
+nceTh">
+<p local-id=3D"245cee9c0a78">Field</p></th>
+<th data-local-id=3D"fc148769-435d-4172-9bf5-c47d1b0e2ab0" class=3D"conflue=
+nceTh">
+<p local-id=3D"cfcd26230f9a">Type</p></th>
+<th data-local-id=3D"92df6c83-6dcf-4a7b-bc07-4d26dccdb88f" class=3D"conflue=
+nceTh">
+<p local-id=3D"a931d234133b">Required</p></th>
+<th data-local-id=3D"305ace1f-e643-48d6-be27-573e96453487" class=3D"conflue=
+nceTh">
+<p local-id=3D"450a6acb37d8">Example</p></th>
+<th data-local-id=3D"e309c162-058a-4dbf-9055-3711bcdeb85f" class=3D"conflue=
+nceTh">
+<p local-id=3D"6453776522be">Description</p></th>
+</tr>
+<tr data-local-id=3D"25d29935-f42c-4fb0-a066-260d66e2bb00">
+<td data-local-id=3D"e658b1c7-a75e-41f0-b292-7d3b5337c1f6" class=3D"conflue=
+nceTd">
+<p local-id=3D"7f5e621c73dc"><code>eventId</code></p></td>
+<td data-local-id=3D"12712cc4-b89a-424b-9321-a6129f9df7ac" class=3D"conflue=
+nceTd">
+<p local-id=3D"735ce61a21be">string (UUID)</p></td>
+<td data-local-id=3D"f6f629fc-34e3-4a69-bf35-941f45f81271" class=3D"conflue=
+nceTd">
+<p local-id=3D"13d9f36f625b">Yes =E2=80=94 generated by MSK</p></td>
+<td data-local-id=3D"8be43edd-54be-4565-8079-9118aaa374bc" class=3D"conflue=
+nceTd">
+<p local-id=3D"7b2445b2490b"><code>"a1b2-c3d4..."</code></p></td>
+<td data-local-id=3D"0003403d-08e2-4375-9c6f-e9420a2fb654" class=3D"conflue=
+nceTd">
+<p local-id=3D"165a782e5b8c">Globally unique identifier for this event inst=
+ance</p></td>
+</tr>
+<tr data-local-id=3D"c2c6b4dc-4720-43c9-866d-f422f141d9ce">
+<td data-local-id=3D"150e9cfb-3ce8-4995-9766-3095587a4075" class=3D"conflue=
+nceTd">
+<p local-id=3D"ed7429760859"><code>eventVersion</code></p></td>
+<td data-local-id=3D"8b8ff80a-6809-49d3-84ae-258e540583e3" class=3D"conflue=
+nceTd">
+<p local-id=3D"0f229cdc9081">string (SemVer)</p></td>
+<td data-local-id=3D"99d4c7a8-fe51-43ce-b1e1-3b375cdc74ad" class=3D"conflue=
+nceTd">
+<p local-id=3D"fa067df031dd">Yes =E2=80=94 generated by MSK</p></td>
+<td data-local-id=3D"99842f68-6047-4b05-a15c-4979705b008e" class=3D"conflue=
+nceTd">
+<p local-id=3D"d3c3e0638498"><code>"1.0.0"</code></p></td>
+<td data-local-id=3D"7111cfa5-3bca-4254-9f59-74d46e4d743d" class=3D"conflue=
+nceTd">
+<p local-id=3D"2839c3e0562f">Version of this event schema</p></td>
+</tr>
+<tr data-local-id=3D"138ec3cc-5468-4633-9239-cf10bda0dad2">
+<td data-local-id=3D"fd4e1d96-c1c2-454a-b226-a46fc8569411" class=3D"conflue=
+nceTd">
+<p local-id=3D"fe2536055e33"><code>timestamp</code></p></td>
+<td data-local-id=3D"0df88a6e-762d-45b9-8659-860e988f604c" class=3D"conflue=
+nceTd">
+<p local-id=3D"9a9f9a3720c9">string (ISO-8601)</p></td>
+<td data-local-id=3D"84296438-0b0d-4973-887f-fdc86b69c9ea" class=3D"conflue=
+nceTd">
+<p local-id=3D"2cc9cc30bb97">Yes =E2=80=94 generated by MSK</p></td>
+<td data-local-id=3D"92dbe782-8e32-4e0d-bfba-298d7fc61148" class=3D"conflue=
+nceTd">
+<p local-id=3D"5ecf07d44cc5"><code>"2024-03-11T14:30:00Z"</code></p></td>
+<td data-local-id=3D"13e564d9-7725-4a88-9bc0-f3ed2afd2b90" class=3D"conflue=
+nceTd">
+<p local-id=3D"3b547bd9cac2">UTC timestamp when the event was produced</p><=
+/td>
+</tr>
+<tr data-local-id=3D"3fa30154-1069-4d65-bf32-141cf3ae9083">
+<td data-local-id=3D"f61d6979-38bc-44ab-8558-46d12e5ea819" class=3D"conflue=
+nceTd">
+<p local-id=3D"9c02801afad2"><code>source</code></p></td>
+<td data-local-id=3D"0198cc6a-fec5-4d09-8d8d-a43528a5d47c" class=3D"conflue=
+nceTd">
+<p local-id=3D"b834773d65bc">string</p></td>
+<td data-local-id=3D"c042ccd4-70da-4ff0-ab5c-8e021f3728a9" class=3D"conflue=
+nceTd">
+<p local-id=3D"158a58d8e251">Yes =E2=80=94 set by producer</p></td>
+<td data-local-id=3D"448a431e-d8b9-476e-b000-c9174e90f947" class=3D"conflue=
+nceTd">
+<p local-id=3D"73fecbe29a1c"><code>"kiosk"</code></p></td>
+<td data-local-id=3D"b3cfff40-5b85-4e16-94fa-6971c78fb256" class=3D"conflue=
+nceTd">
+<p local-id=3D"4ef9ec7f0e61">Originating application or service</p></td>
+</tr>
+<tr data-local-id=3D"baf86d40-fb9c-4f55-a719-1fb98e47a053">
+<td data-local-id=3D"a8cc0d83-491d-44f4-8012-3ff402909be9" class=3D"conflue=
+nceTd">
+<p local-id=3D"79921b484f3e"><code>correlationId</code></p></td>
+<td data-local-id=3D"770aca8c-2b4c-4ab2-a6eb-f27a91594283" class=3D"conflue=
+nceTd">
+<p local-id=3D"5a0b10446482">string</p></td>
+<td data-local-id=3D"a0325903-8a8b-427c-9e37-897d673cbaf1" class=3D"conflue=
+nceTd">
+<p local-id=3D"cf52118ec0b2">Yes =E2=80=94 set by producer</p></td>
+<td data-local-id=3D"8eebb7e6-a9e4-4e59-ab02-c8e269bb0282" class=3D"conflue=
+nceTd">
+<p local-id=3D"001092acb285"><code>"session-abc-123"</code></p></td>
+<td data-local-id=3D"583e4297-5be9-4a2d-91c4-22cbf2785b35" class=3D"conflue=
+nceTd">
+<p local-id=3D"222980d322a7">Trace ID linking related events across systems=
+. Format: <code>{topic}-{newguid}</code></p></td>
+</tr>
+<tr data-local-id=3D"4ca2225d-a206-4b35-b7b5-abec1c3f179e">
+<td data-local-id=3D"12f60b7c-2cef-4b96-b676-e3a02aef09e2" class=3D"conflue=
+nceTd">
+<p local-id=3D"5a4d2959ea0e"><code>schemaVersion</code></p></td>
+<td data-local-id=3D"07596ffd-6662-4b9b-a51e-09b8d6120dd9" class=3D"conflue=
+nceTd">
+<p local-id=3D"5e2d61940d3c">string (SemVer)</p></td>
+<td data-local-id=3D"c7cba672-8a89-4c27-92b5-3e3b07ecd621" class=3D"conflue=
+nceTd">
+<p local-id=3D"361dcb8317f7">Optional</p></td>
+<td data-local-id=3D"5f9efcfb-d608-4b79-8f3a-25ba36f4149d" class=3D"conflue=
+nceTd">
+<p local-id=3D"4b4ed8101708"><code>"1.0.0"</code></p></td>
+<td data-local-id=3D"7dfc1894-3b37-4111-a549-a6e9d848fde0" class=3D"conflue=
+nceTd">
+<p local-id=3D"5f42178e425f">Version of the full message schema being used<=
+/p></td>
+</tr>
+<tr data-local-id=3D"26d86c59-70cc-4a68-a02f-e51aee3492da">
+<td data-local-id=3D"e54f3e1d-0013-4d4b-b40b-32a36b31ef6b" class=3D"conflue=
+nceTd">
+<p local-id=3D"849845444fc0"><code>payload</code></p></td>
+<td data-local-id=3D"9a6963e1-dede-4d84-8332-9ed84acd1a6f" class=3D"conflue=
+nceTd">
+<p local-id=3D"a39ff9978935">object</p></td>
+<td data-local-id=3D"37aa6f02-8083-4fbe-85bb-2b95f0f27610" class=3D"conflue=
+nceTd">
+<p local-id=3D"4780a038f8bb">Yes =E2=80=94 set by producer</p></td>
+<td data-local-id=3D"3838518b-e40f-4c84-92ad-c542a3b7c20a" class=3D"conflue=
+nceTd">
+<p local-id=3D"40ed2b259bd1"><code>{...}</code></p></td>
+<td data-local-id=3D"1466e9db-b98d-4e8a-9b84-45cd1d8f182e" class=3D"conflue=
+nceTd">
+<p local-id=3D"7abc4b8fbe6c">Domain-specific event data</p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class=3D"code panel pdl" style=3D"border-width: 1px;">
+<div class=3D"codeContent panelContent pdl">
+<pre class=3D"syntaxhighlighter-pre" data-syntaxhighlighter-params=3D"brush=
+: java; gutter: false; theme: Confluence" data-theme=3D"Confluence">{
+  "eventId": "a1b2-c3d4-e5f6-g7h8",
+  "eventVersion": "1.0.0",
+  "timestamp": "2024-03-11T14:30:00Z",
+  "source": "kiosk",
+  "correlationId": "pricing.quote.requested-a1b2c3d4",
+  "schemaVersion": "1.0.0",
+  "payload": {
+    "deviceId": "kiosk-12345",
+    "transactionId": "txn-98765",
+    "status": "completed"
+  }
+}
+</pre>
+</div>
+</div>
+<p local-id=3D"e87c859e3c8c"><code>eventId</code>, <code>eventVersion</code=
+>, and <code>timestamp</code> are generated by MSK and do not need to be se=
+t by the producer. <code>correlationId</code> must be set by the producer a=
+nd carried forward across all related events to enable end-to-end tracing t=
+hrough Datadog.</p>
+<p local-id=3D"9404135dd46a"><strong>Event payload rules:</strong></p>
+<ul local-id=3D"9c56b56c-0582-4012-a6be-9a10e4d1fe06">
+<li local-id=3D"a8d3276e-31ea-4192-a0ef-5431487fee3f">
+<p local-id=3D"da9768ad50bf">Payloads must be <strong>JSON</strong>. Binary=
+ serialization formats (Avro, Protobuf) are permitted for high-throughput M=
+SK topics but should be discussed with Architecture before adoption.</p></l=
+i>
+<li local-id=3D"2bae28ca-2357-4fc3-b9d1-770789e2d4b7">
+<p local-id=3D"6d5bd97516cc">Events should carry <strong>enough context to =
+be actionable</strong> without requiring the consumer to make additional AP=
+I calls for the common case. Avoid purely notification-style events (just a=
+n ID with no data) unless the payload would be prohibitively large. Prefer =
+fat events over delta events.</p></li>
+<li local-id=3D"234d7bd0-f6f9-4306-9999-99b277fcb8f7">
+<p local-id=3D"f1007706fc0f">Events should <strong>not</strong> carry sensi=
+tive PII or credentials in the payload unless the topic/queue is encrypted =
+at rest and access is appropriately restricted.</p></li>
+</ul>
+<h3 local-id=3D"1176bce49f4a" id=3D"GoldenPath-WebMicroserviceFramework-Eve=
+ntVersioning">Event Versioning</h3>
+<p local-id=3D"9770057a117b">Events use <code>eventVersion</code> to commun=
+icate the version of the event schema, following SemVer (<code>MAJOR.MINOR.=
+PATCH</code>).</p>
+<ul local-id=3D"7c565dd6-a112-4861-9e5a-2af93e5f095b">
+<li local-id=3D"2dd5e161-eb23-48d3-a67f-8201991fc433">
+<p local-id=3D"850bf60cfea6">A <strong>breaking change</strong> =E2=80=94 f=
+ield removal, type changes, renamed fields, semantic changes =E2=80=94 incr=
+ements the major version. Consumers must be notified before a new major ver=
+sion goes live.</p></li>
+<li local-id=3D"c314940c-f3de-462e-bdff-c8095321f21a">
+<p local-id=3D"d6512dc9f0af">A <strong>non-breaking change</strong> =E2=80=
+=94 new optional fields =E2=80=94 increments the minor version.</p></li>
+<li local-id=3D"53c37f6d-74ff-41a8-99db-72b26b441afd">
+<p local-id=3D"8d0075d1d5e3">Patch increments are reserved for documentatio=
+n or metadata corrections with no payload impact.</p></li>
+<li local-id=3D"2a87cbf7-c905-4bb5-8385-d9c5cf5181bf">
+<p local-id=3D"ddd7a720ddc4">Deprecated versions must have a <strong>minimu=
+m 3-month notice period</strong> before the producer stops publishing them.=
+</p></li>
+<li local-id=3D"e3461cec-e7ba-4bff-a2c0-801199720270">
+<p local-id=3D"d85e96ed205f">Producers should publish both the old and new =
+major version in parallel during the deprecation window.</p></li>
+</ul>
+<h3 local-id=3D"19584d5ab247" id=3D"GoldenPath-WebMicroserviceFramework-Sch=
+emaGovernance">Schema Governance</h3>
+<p local-id=3D"e9924028f3b1">Event schemas must eventually be registered in=
+ a <strong>schema registry</strong>. The schema registry is the source of t=
+ruth for all event contracts =E2=80=94 the async equivalent of Stoplight fo=
+r REST APIs.</p>
+<ul local-id=3D"4c2689ad-b3e9-4adc-a707-8e9e9d79c834">
+<li local-id=3D"8ba41f1d-693c-48fa-a9dd-bc0cebe3478c">
+<p local-id=3D"e69bb057bf37"><strong>AWS Glue Schema Registry</strong> is t=
+he standard for MSK workloads.</p></li>
+<li local-id=3D"7e8fc07f-869a-49b4-a271-4b29e6ec02d9">
+<p local-id=3D"d9578dcb6d9f">Schema Registry adoption follows a maturity mo=
+del:</p>
+<ul local-id=3D"7f3776e8-dda7-4958-bd4b-2dd2518c9e2b">
+<li local-id=3D"cf61c35a-b69f-4934-9d71-ed6d1b835b2e">
+<p local-id=3D"e3d940ef743d"><strong>Crawl</strong> =E2=80=94 Schema Regist=
+ry is optional. Raw JSON is acceptable for initial development. Teams shoul=
+d be aware this state carries schema risk: a producer shipping a breaking c=
+hange has no enforcement mechanism to catch it at the source.</p></li>
+<li local-id=3D"477059ce-9dd5-4e10-bcc9-084b26d5bb47">
+<p local-id=3D"c30734966dbe"><strong>Walk</strong> =E2=80=94 Schema Registr=
+y is required. Schemas must be versioned and enforced. Teams should move to=
+ Walk as soon as the cluster is past initial development.</p></li>
+</ul></li>
+<li local-id=3D"f1ee9a5c-582a-40eb-815e-29395e29bf6b">
+<p local-id=3D"0995cc88e5ac">Schema definitions must live in <strong>source=
+ control</strong>. Registration must be <strong>automated via CI pipeline</=
+strong> =E2=80=94 no manual registration is permitted in production.</p></l=
+i>
+<li local-id=3D"90fa3c6d-147a-4e64-b3a2-2126c45c186f">
+<p local-id=3D"3c0a4d87f5d1">Schemas must enforce <strong>backward compatib=
+ility</strong> by default.</p></li>
+</ul>
+<h3 local-id=3D"198372b9ff15" id=3D"GoldenPath-WebMicroserviceFramework-Rel=
+iabilityPatterns">Reliability Patterns</h3>
+<p local-id=3D"dfede66921b5">Async systems fail differently than synchronou=
+s ones. The following patterns are required for all event-driven services:<=
+/p>
+<p local-id=3D"76ad423d7a81"><strong>Dead-Letter Queues (DLQs):</strong> Ev=
+ery SQS queue and every Lambda event source mapping must have a configured =
+DLQ. Messages that fail processing after the configured retry attempts must=
+ land in the DLQ =E2=80=94 not be silently dropped. DLQs must be monitored =
+in Datadog with alerts on non-zero depth.</p>
+<p local-id=3D"5161231f41df"><strong>Idempotency:</strong> Event consumers =
+must be <strong>idempotent</strong> =E2=80=94 processing the same event mor=
+e than once must produce the same result as processing it once. At-least-on=
+ce delivery is the default guarantee for SQS and SNS. Consumers must use th=
+e <code>eventId</code> field to detect and handle duplicates.</p>
+<p local-id=3D"18d31b1e6652"><strong>Retry configuration:</strong> Configur=
+e explicit retry policies on all event sources. Do not rely on defaults. Do=
+cument the retry count and backoff strategy in the service's README.</p>
+<p local-id=3D"0c1ac032448a"><strong>Poison pill handling:</strong> Consume=
+rs must handle malformed or unprocessable messages gracefully =E2=80=94 log=
+ the failure with full context, route to DLQ, and continue processing the r=
+emaining batch. A single bad message must not block an entire queue. For re=
+peat messages, consider idempotency and do not route to DLQ.</p>
+<p local-id=3D"359f133cf2a6"><strong>Storage-first pattern (recommended for=
+ critical flows):</strong> For high-criticality event flows, consumers shou=
+ld persist the event to durable storage before acknowledging receipt, then =
+process from storage. This provides an additional safety net beyond the DLQ=
+ and enables replay without re-publishing.</p>
+<h3 local-id=3D"643ab3c1c145" id=3D"GoldenPath-WebMicroserviceFramework-Obs=
+ervabilityforAsyncSystems">Observability for Async Systems</h3>
+<p local-id=3D"aa55172d12f9">Standard Datadog instrumentation applies to ev=
+ent-driven services, with additional requirements:</p>
+<ul local-id=3D"03d1fd20-511f-4c32-8bf2-56d957f51505">
+<li local-id=3D"f29954ab-281f-4adf-b0f7-e8c22386b64b">
+<p local-id=3D"9fc0828719a6">The <code><span class=3D"inline-comment-marker=
+" data-ref=3D"41958050-b0d9-468e-8e33-ae87ea9308cb">correlationId</span></c=
+ode><span class=3D"inline-comment-marker" data-ref=3D"41958050-b0d9-468e-8e=
+33-ae87ea9308cb"> </span>from the event envelope must be injected into Data=
+dog traces on the consumer side to maintain end-to-end trace continuity acr=
+oss async boundaries. Without this, async flows appear as broken or disconn=
+ected traces.</p></li>
+<li local-id=3D"b3a8c029-717a-41ab-90ae-1a0a37e6a94a">
+<p local-id=3D"ee34948e70f4">DLQ depth must be a monitored metric with acti=
+onable alerts. A non-zero DLQ is always a signal requiring investigation.</=
+p></li>
+<li local-id=3D"9bfee4b5-032e-4897-a057-29c8fb10aee3">
+<p local-id=3D"fc2864603e42">Consumer lag must be tracked per consumer grou=
+p in MSK and alerted on sustained lag above defined thresholds.</p></li>
+<li local-id=3D"15e7834d-be9f-4bc7-8832-0530b1f6352f">
+<p local-id=3D"fcd6f817f5ad">Event publish failures must be logged and aler=
+ted =E2=80=94 a producer that silently fails to publish is a silent data lo=
+ss.</p></li>
+</ul>
+<hr local-id=3D"db19a2d2-f428-418e-ac19-9e7e96653f5e">
+<h2 local-id=3D"d5762fd58805" id=3D"GoldenPath-WebMicroserviceFramework-Sec=
+urityConsiderations">Security Considerations</h2>
+<h3 local-id=3D"0219091cdbe6" id=3D"GoldenPath-WebMicroserviceFramework-Web=
+ApplicationFirewall">Web Application Firewall</h3>
+<p local-id=3D"d707a87c5e5c">All traffic <strong>must</strong> pass through=
+ a top-level WAF, which is under the purview of the IT Security team.</p>
+<h3 local-id=3D"b92c82ef954f" id=3D"GoldenPath-WebMicroserviceFramework-IAM=
+Roles">IAM Roles</h3>
+<p local-id=3D"9715ee88d518">Each application should have it=E2=80=99s own =
+IAM role such that it is tailored to the permissions it needs.</p>
+<h3 local-id=3D"e7bac378d57e" id=3D"GoldenPath-WebMicroserviceFramework-Aut=
+hentication/Authorization">Authentication / Authorization</h3>
+<p local-id=3D"4d2ece36d191">Authentication is handled at the top level by =
+a <strong>custom Lambda Authorizer</strong> and Identity Provider. Both Ope=
+nID Connect (Active Directory / internal SSO) and OAuth2 (AWS Cognito =E2=
+=80=94 external users) are supported and authenticated against their issuer=
+s as part of the auth flow.</p>
+<p local-id=3D"90f2e27ad59a">For <strong>Machine-to-Machine (M2M)</strong> =
+communication, the preference is <a class=3D"external-link" href=3D"https:/=
+/auth0.com/" rel=3D"nofollow">Auth0</a>. Applications may initially use Cog=
+nito; the Authorizer supports both.</p>
+<p local-id=3D"0d39c8259ad7">Bearer tokens are decoded to determine scopes =
+and access to individual operations and endpoints. Access is enforced by ge=
+nerating IAM policies based on decoded claims.</p>
+<blockquote local-id=3D"6086dafd-0831-476b-99f0-91f950eee36d">
+<p local-id=3D"d087f0f6ec4f"><strong>=E2=9A=A0=EF=B8=8F API keys must never=
+ be used as an authentication scheme.</strong></p>
+</blockquote>
+<h3 local-id=3D"6ddc21477a21" id=3D"GoldenPath-WebMicroserviceFramework-Sec=
+retsManagement">Secrets Management</h3>
+<p local-id=3D"2f63e35f4d9b">Hardcoded credentials of any kind are prohibit=
+ed. All secrets, API keys, and connection strings must be stored in and ret=
+rieved from <strong>AWS Secrets Manager</strong>. No secret values may be c=
+ommitted to source control or embedded in application code or container ima=
+ges.</p>
+<h3 local-id=3D"4c1d7460d492" id=3D"GoldenPath-WebMicroserviceFramework-Enc=
+ryptionRequirements">Encryption Requirements</h3>
+<p local-id=3D"5a3fe51906a6"><span class=3D"inline-comment-marker" data-ref=
+=3D"5ef32260-0895-41b0-b3ea-c664c234e5be">All traffic must be over </span><=
+strong><span class=3D"inline-comment-marker" data-ref=3D"5ef32260-0895-41b0=
+-b3ea-c664c234e5be">HTTPS using TLS 1.3</span></strong><span class=3D"inlin=
+e-comment-marker" data-ref=3D"5ef32260-0895-41b0-b3ea-c664c234e5be"> minimu=
+m for new services. TLS 1.2 is permitted as a legacy carve-out for existing=
+ integrations that cannot yet be upgraded. Any traffic over HTTP will be bl=
+ocked outright.</span><strong><span class=3D"inline-comment-marker" data-re=
+f=3D"5ef32260-0895-41b0-b3ea-c664c234e5be"> </span></strong><span class=3D"=
+inline-comment-marker" data-ref=3D"5ef32260-0895-41b0-b3ea-c664c234e5be">Al=
+l data should be encrypted at rest.</span></p>
+<h3 local-id=3D"62508452d469" id=3D"GoldenPath-WebMicroserviceFramework-Cro=
+ss-OriginResourceSharing(CORS)">Cross-Origin Resource Sharing (CORS)</h3>
+<p local-id=3D"9f0384dcc6c4">All applications accessible via a frontend mus=
+t have CORS enabled. The following settings are the minimum required:</p>
+<div class=3D"table-wrap">
+<table data-table-width=3D"1800" data-layout=3D"default" data-local-id=3D"4=
+66545fd-f4bb-4529-b471-4d64f68fc42a" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"681dafd4-615a-470e-b360-746c712d45cf">
+<th data-local-id=3D"b0f0407a-7f9a-4b60-b726-a6212db6af25" class=3D"conflue=
+nceTh">
+<p local-id=3D"4c7e8447e958">Header</p></th>
+<th data-local-id=3D"e7977f92-51b6-444b-8ee4-5b96cbb8a97c" class=3D"conflue=
+nceTh">
+<p local-id=3D"eb765a3e3cf1">Requirement</p></th>
+</tr>
+<tr data-local-id=3D"4f9a5626-4f1f-4b08-b894-1d17e140cd65">
+<td data-local-id=3D"c8dc6975-3100-4374-9a86-970acea40bae" class=3D"conflue=
+nceTd">
+<p local-id=3D"82a5c5d98c1c"><code>Access-Control-Allow-Origin</code></p></=
+td>
+<td data-local-id=3D"2f0be3a2-1009-468d-a6e3-7f8c3bfd8f74" class=3D"conflue=
+nceTd">
+<p local-id=3D"fba93268d6e1">Set to the specific sites that will access the=
+ resource</p></td>
+</tr>
+<tr data-local-id=3D"25cfab2e-688a-4cb0-ae5f-ec4bbb767696">
+<td data-local-id=3D"3e0ac950-f07b-4010-ad1b-26d686d25137" class=3D"conflue=
+nceTd">
+<p local-id=3D"d3b80979a92c"><code>Access-Control-Allow-Methods</code></p><=
+/td>
+<td data-local-id=3D"8ddf768e-7faa-45d6-b14b-9c73a5919de6" class=3D"conflue=
+nceTd">
+<p local-id=3D"54cf9982171e">Set to the HTTP methods the resource supports;=
+ always include <code>OPTIONS</code> (preflight)</p></td>
+</tr>
+<tr data-local-id=3D"f418b6a0-c2d3-4480-9f54-c32f85cd6c2f">
+<td data-local-id=3D"bc928421-9211-4ef3-94ef-04a4670d455e" class=3D"conflue=
+nceTd">
+<p local-id=3D"8c7fcdde83d4"><code>Access-Control-Allow-Credentials</code><=
+/p></td>
+<td data-local-id=3D"0eb3607b-a341-4751-9fb6-68bb1fce8370" class=3D"conflue=
+nceTd">
+<p local-id=3D"196d9a06bf69">Always <code>true</code></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 local-id=3D"9501784af72c" id=3D"GoldenPath-WebMicroserviceFramework-Eve=
+ntSecurity">Event Security</h3>
+<p local-id=3D"ff54d5fcb0ce">Event-driven systems have a distinct security =
+surface from HTTP APIs:</p>
+<ul local-id=3D"987cf3b6-3348-45de-a2ad-f8be4f17f471">
+<li local-id=3D"801727f5-2703-4e9f-90c6-d7fe9818671e">
+<p local-id=3D"93f55537184c"><strong>Topic/queue access control:</strong> I=
+AM policies must restrict which services can publish to and consume from ea=
+ch topic, queue, or event bus. Least-privilege applies =E2=80=94 a consumer=
+ should not have publish rights, and a producer should not have consume rig=
+hts on its own topics.</p></li>
+<li local-id=3D"e19bb4ef-055c-4f1d-9c6d-0a5b87d86da2">
+<p local-id=3D"1094c7a1627f"><strong>Payload sensitivity:</strong> Sensitiv=
+e data (PII, credentials, payment data) must not be transmitted in event pa=
+yloads unless the channel is encrypted at rest (all AWS managed services en=
+crypt at rest by default) and access is tightly scoped. Consider referencin=
+g a record by ID and having the consumer fetch the sensitive data via a sec=
+ured API rather than embedding it in the event.</p></li>
+</ul>
+<h3 local-id=3D"feca78e10747" id=3D"GoldenPath-WebMicroserviceFramework-Con=
+tinuousSecurity">Continuous Security</h3>
+<p local-id=3D"d13e4f27adf8">All Docker base images and package dependencie=
+s (npm, pip, etc.) must pass a<strong> vulnerability scan tool</strong> in =
+CI before deployment. Builds with critical or high severity findings must n=
+ot be promoted to production without a documented exception approved by IT =
+Security.</p>
+<p local-id=3D"735df4a7e755">IT Security is evaluating additional tooling f=
+or both build-time and run-time protection. This section will be updated as=
+ those decisions are finalized.</p>
+<h3 local-id=3D"b6429d0c8910" id=3D"GoldenPath-WebMicroserviceFramework-Log=
+ging">Logging</h3>
+<p local-id=3D"5ec4ce471f73">PII should not be exposed in logs.</p>
+<hr local-id=3D"5597ff40-1ece-477e-82f1-7b540994388f">
+<h2 local-id=3D"a01dd1098273" id=3D"GoldenPath-WebMicroserviceFramework-Ref=
+erences">References</h2>
+<div class=3D"table-wrap">
+<table data-table-width=3D"1800" data-layout=3D"default" data-local-id=3D"a=
+1859a9b-11a9-4d06-ae73-7f7b53798525" class=3D"confluenceTable">
+<tbody>
+<tr data-local-id=3D"19f7ddd1-4b67-4fbe-84d7-b8e460ac44db">
+<th data-local-id=3D"c2f94de0-d57c-4412-b2f7-e7b3f9bd49a2" class=3D"conflue=
+nceTh">
+<p local-id=3D"dd67860c6eda">Reference</p></th>
+<th data-local-id=3D"ff3a04b6-6c68-43c2-9d23-24c8f551cd94" class=3D"conflue=
+nceTh">
+<p local-id=3D"c2dcb147ce5a">Link</p></th>
+</tr>
+<tr data-local-id=3D"56f41161-d2d1-4242-9321-62212fca84d6">
+<td data-local-id=3D"1cfd3926-81e9-49a3-bcd6-257d5a8b4811" class=3D"conflue=
+nceTd">
+<p local-id=3D"9b4afaa9f5d4">Lambda Best Practices</p></td>
+<td data-local-id=3D"76ef039f-82d6-42d8-bc59-577fb629479c" class=3D"conflue=
+nceTd">
+<p local-id=3D"ee9fd0a7e59a"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://docs.aws.amazon.com/lambda/latest/dg/best-prac=
+tices.html" local-id=3D"56bb25167c9e" rel=3D"nofollow">https://docs.aws.ama=
+zon.com/lambda/latest/dg/best-practices.html</a></p></td>
+</tr>
+<tr data-local-id=3D"f57cf339-651f-49af-938a-78a382c5f90a">
+<td data-local-id=3D"cce5b4d6-f9be-409d-b6bc-57223a0256b7" class=3D"conflue=
+nceTd">
+<p local-id=3D"470b5d468e37">API Gateway Lambda Authorizers</p></td>
+<td data-local-id=3D"494144d2-8072-4de7-99ef-a0b8110419ef" class=3D"conflue=
+nceTd">
+<p local-id=3D"b1aa6f818f67"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://docs.aws.amazon.com/apigateway/latest/develope=
+rguide/apigateway-use-lambda-authorizer.html" local-id=3D"aa922e452cab" rel=
+=3D"nofollow">https://docs.aws.amazon.com/apigateway/latest/developerguide/=
+apigateway-use-lambda-authorizer.html</a></p></td>
+</tr>
+<tr data-local-id=3D"2e83ef31-4ccb-42ce-8493-1656d02d7078">
+<td data-local-id=3D"412709c7-d887-4682-a20f-c58adf562689" class=3D"conflue=
+nceTd">
+<p local-id=3D"214ac010797b">AWS Secrets Manager Best Practices</p></td>
+<td data-local-id=3D"a22bde94-5e47-4849-b0ff-e91971186f22" class=3D"conflue=
+nceTd">
+<p local-id=3D"397d6c31746e"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://docs.aws.amazon.com/secretsmanager/latest/user=
+guide/best-practices.html" local-id=3D"60c072db2998" rel=3D"nofollow">https=
+://docs.aws.amazon.com/secretsmanager/latest/userguide/best-practices.html<=
+/a></p></td>
+</tr>
+<tr data-local-id=3D"3c4d01b7-c4e6-4ea1-a51c-a92e669008df">
+<td data-local-id=3D"bf11579c-3606-418e-8978-de41548bfbb2" class=3D"conflue=
+nceTd">
+<p local-id=3D"6d542f4d0549">Snyk =E2=80=94 Vulnerability Scanning</p></td>
+<td data-local-id=3D"aa5c9ae7-98e7-409a-8c5b-39ca1541b2ad" class=3D"conflue=
+nceTd">
+<p local-id=3D"7cb33d7756df"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://docs.snyk.io/" local-id=3D"79209aac2444" rel=
+=3D"nofollow">https://docs.snyk.io/</a></p></td>
+</tr>
+<tr data-local-id=3D"5ab902ae-2a9e-4c10-813c-a2e6d15db64a">
+<td data-local-id=3D"2a0f13dc-11f5-43d3-81af-f0285b08b436" class=3D"conflue=
+nceTd">
+<p local-id=3D"16f6f36b8e07">Amazon MSK Developer Guide</p></td>
+<td data-local-id=3D"aad2c68f-2623-4fc9-b02f-71a10626793b" class=3D"conflue=
+nceTd">
+<p local-id=3D"6ef200767a51"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://docs.aws.amazon.com/msk/latest/developerguide/=
+what-is-msk.html" local-id=3D"5cf45a253385" rel=3D"nofollow">https://docs.a=
+ws.amazon.com/msk/latest/developerguide/what-is-msk.html</a></p></td>
+</tr>
+<tr data-local-id=3D"44586ed5-dc9f-479f-bfc4-c5b464240983">
+<td data-local-id=3D"5ed25da6-6445-49e1-b700-0c72b4bc5d47" class=3D"conflue=
+nceTd">
+<p local-id=3D"247be3bb4ea6">AsyncAPI Specification</p></td>
+<td data-local-id=3D"77f0df65-8fd1-4999-8f6a-90d71b8cb9d3" class=3D"conflue=
+nceTd">
+<p local-id=3D"e176779335b6"><a class=3D"external-link" data-card-appearanc=
+e=3D"inline" href=3D"https://www.asyncapi.com/" local-id=3D"12dbad6e810a" r=
+el=3D"nofollow">https://www.asyncapi.com/</a></p></td>
+</tr>
+</tbody>
+</table>
+</div>
+    </div>
+</body>
+</html>
+------=_Part_2_1835234902.1776201105806--

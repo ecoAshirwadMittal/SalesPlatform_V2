@@ -11,7 +11,6 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -43,7 +42,7 @@ public class DirectUserService {
 
         List<DirectUserListResponse> content = rows.stream()
                 .map(this::mapListRow)
-                .collect(Collectors.toList());
+                .toList();
 
         int totalPages = (int) Math.ceil((double) totalElements / pageSize);
 
@@ -89,14 +88,14 @@ public class DirectUserService {
     public List<RoleResponse> getAllRoles() {
         return directUserRepository.findAllRoles().stream()
                 .map(r -> new RoleResponse(((Number) r[0]).longValue(), (String) r[1]))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Transactional(readOnly = true)
     public List<BuyerResponse> getAllBuyers() {
         return directUserRepository.findAllBuyers().stream()
                 .map(r -> new BuyerResponse(((Number) r[0]).longValue(), (String) r[1]))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ── Create ───────────────────────────────────────────────────────

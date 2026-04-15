@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import s from './orders.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { getBuyerCodeId as readBuyerCodeId, getUserId as readUserId } from '@/lib/session';
 import {
   formatDate,
   formatCurrency,
@@ -11,13 +12,16 @@ import {
   statusClassKey,
   sortOrders,
   paginationLabel,
-  parseUserId,
   type OrderHistoryResponse,
   type SortField,
   type SortDir,
 } from './orders-helpers';
+import { API_BASE } from '@/lib/apiRoutes';
+import type { PageResponse } from '@/lib/types';
+import { getErrorMessage } from '@/lib/errors';
+import { ErrorBanner } from '@/components/ErrorBanner';
 
-const API_BASE = '/api/v1/pws';
+const BASE = `${API_BASE}/pws`;
 const PAGE_SIZE = 20;
 
 // ── Types local to the component ──
@@ -27,14 +31,6 @@ interface OrderHistoryTabCounts {
   inProcess: number;
   complete: number;
   all: number;
-}
-
-interface PageResponse {
-  content: OrderHistoryResponse[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
 }
 
 type TabKey = 'recent' | 'inProcess' | 'complete' | 'all';
@@ -59,23 +55,10 @@ export default function OrderHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Read userId from localStorage (set by login flow)
-  const getUserId = useCallback((): number | null => {
-    if (typeof window === 'undefined') return null;
-    return parseUserId(localStorage.getItem('auth_user'));
-  }, []);
-
-  // Read selected buyer code from sessionStorage (set by PWS layout)
-  const getBuyerCodeId = useCallback((): number | null => {
-    if (typeof window === 'undefined') return null;
-    const stored = sessionStorage.getItem('selectedBuyerCode');
-    if (!stored) return null;
-    try {
-      const parsed = JSON.parse(stored);
-      return parsed?.id ?? null;
-    } catch { return null; }
-  }, []);
+  const getUserId = useCallback(readUserId, []);
+  const getBuyerCodeId = useCallback(readBuyerCodeId, []);
 
   // ── Fetch orders for current tab + page ──
   const fetchOrders = useCallback(async (tab: TabKey, pg: number) => {
@@ -93,15 +76,15 @@ export default function OrderHistoryPage() {
       if (buyerCodeId) {
         params.set('buyerCodeId', String(buyerCodeId));
       }
-      const res = await apiFetch(`${API_BASE}/orders?${params.toString()}`);
+      const res = await apiFetch(`${BASE}/orders?${params.toString()}`);
       if (res.ok) {
-        const json: PageResponse = await res.json();
+        const json: PageResponse<OrderHistoryResponse> = await res.json();
         setOrders(json.content);
         setTotalElements(json.totalElements);
         setTotalPages(json.totalPages);
       }
     } catch (err) {
-      console.error('Failed to load orders:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to load orders.'));
     } finally {
       setLoading(false);
     }
@@ -117,21 +100,24 @@ export default function OrderHistoryPage() {
       if (buyerCodeId) {
         params.set('buyerCodeId', String(buyerCodeId));
       }
-      const res = await apiFetch(`${API_BASE}/orders/counts?${params.toString()}`);
+      const res = await apiFetch(`${BASE}/orders/counts?${params.toString()}`);
       if (res.ok) {
         setTabCounts(await res.json());
       }
     } catch (err) {
-      console.error('Failed to load tab counts:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to load tab counts.'));
     }
   }, [getUserId]);
 
-  // On mount: fetch counts + orders in parallel
+  // Fetch orders whenever the active tab or page changes (covers mount).
+  useEffect(() => {
+    fetchOrders(activeTab, page);
+  }, [activeTab, page, fetchOrders]);
+
+  // Fetch counts on mount and whenever the fetcher identity changes (user id).
   useEffect(() => {
     fetchCounts();
-    fetchOrders(activeTab, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [fetchCounts]);
 
   // Re-fetch when buyer code changes (user selects a different code in the top bar)
   useEffect(() => {
@@ -142,7 +128,6 @@ export default function OrderHistoryPage() {
     }
     window.addEventListener('buyerCodeChanged', handleBuyerCodeChanged);
     return () => window.removeEventListener('buyerCodeChanged', handleBuyerCodeChanged);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, fetchOrders, fetchCounts]);
 
   // On tab change: reset page, fetch new data
@@ -151,15 +136,7 @@ export default function OrderHistoryPage() {
     setPage(0);
     setSortField(null);
     setSortDir('asc');
-    fetchOrders(tab, 0);
-    fetchCounts();
-  }, [fetchOrders, fetchCounts]);
-
-  // On page change
-  useEffect(() => {
-    fetchOrders(activeTab, page);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  }, []);
 
   // ── Sort handler (client-side on current page) ──
   const handleSort = useCallback((field: SortField) => {
@@ -215,6 +192,7 @@ export default function OrderHistoryPage() {
 
   return (
     <div className={s.pageContainer}>
+      <ErrorBanner message={errorMsg} onDismiss={() => setErrorMsg(null)} />
       {/* ── Header ── */}
       <div className={s.pageHeader}>
         <h1 className={s.pageTitle}>Order History</h1>

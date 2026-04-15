@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,7 +13,11 @@ import java.util.List;
 public class LoginResponse {
     private boolean success;
     private String message;
-    private String token; // For later JWT integration
+    // Not serialized to JSON — the token is conveyed as an HttpOnly Set-Cookie
+    // header by AuthController. Kept as an internal carrier between AuthService
+    // and the controller.
+    @JsonIgnore
+    private String token;
     private UserInfo user;
 
     public LoginResponse(boolean success, String message, String token) {

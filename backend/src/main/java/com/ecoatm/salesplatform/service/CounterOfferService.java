@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.CaseLot;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.model.pws.PwsOfferStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
@@ -28,20 +29,21 @@ public class CounterOfferService {
 
     private static final Logger log = LoggerFactory.getLogger(CounterOfferService.class);
 
-    private static final String STATUS_BUYER_ACCEPTANCE = "Buyer_Acceptance";
-    private static final String STATUS_ORDERED = "Ordered";
-    private static final String STATUS_DECLINED = "Declined";
-    private static final String STATUS_CANCELED = "Canceled";
+    // Status literals — see PwsOfferStatus for the authoritative set.
+    private static final String STATUS_BUYER_ACCEPTANCE = PwsOfferStatus.BUYER_ACCEPTANCE;
+    private static final String STATUS_ORDERED = PwsOfferStatus.ORDERED;
+    private static final String STATUS_DECLINED = PwsOfferStatus.DECLINED;
+    private static final String STATUS_CANCELED = PwsOfferStatus.CANCELED;
 
-    private static final String ITEM_ACCEPT = "Accept";
-    private static final String ITEM_COUNTER = "Counter";
-    private static final String ITEM_DECLINE = "Decline";
+    private static final String ITEM_ACCEPT = PwsOfferStatus.ITEM_ACCEPT;
+    private static final String ITEM_COUNTER = PwsOfferStatus.ITEM_COUNTER;
+    private static final String ITEM_DECLINE = PwsOfferStatus.ITEM_DECLINE;
 
-    private static final String COUNTER_ACCEPT = "Accept";
-    private static final String COUNTER_DECLINE = "Decline";
+    private static final String COUNTER_ACCEPT = PwsOfferStatus.COUNTER_ACCEPT;
+    private static final String COUNTER_DECLINE = PwsOfferStatus.COUNTER_DECLINE;
 
-    private static final String DRAWER_ORDERED = "Ordered";
-    private static final String DRAWER_BUYER_DECLINED = "Buyer_Declined";
+    private static final String DRAWER_ORDERED = PwsOfferStatus.DRAWER_ORDERED;
+    private static final String DRAWER_BUYER_DECLINED = PwsOfferStatus.DRAWER_BUYER_DECLINED;
 
     private final OfferRepository offerRepository;
     private final DeviceRepository deviceRepository;
@@ -90,7 +92,7 @@ public class CounterOfferService {
             item.setSubmissionDate(offer.getSubmissionDate());
             item.setUpdatedDate(offer.getUpdatedDate());
             return item;
-        }).collect(Collectors.toList());
+        }).toList();
     }
 
     /**
@@ -110,7 +112,7 @@ public class CounterOfferService {
                         item,
                         deviceMap.get(item.getDeviceId()),
                         item.getCaseLotId() != null ? caseLotMap.get(item.getCaseLotId()) : null))
-                .collect(Collectors.toList());
+                .toList();
 
         return OfferResponse.fromEntity(offer, itemResponses);
     }
@@ -191,7 +193,7 @@ public class CounterOfferService {
         // Validate: all Counter items must have buyerCounterStatus
         List<OfferItem> counterItems = offer.getItems().stream()
                 .filter(i -> ITEM_COUNTER.equals(i.getItemStatus()))
-                .collect(Collectors.toList());
+                .toList();
 
         boolean allResponded = counterItems.stream()
                 .allMatch(i -> i.getBuyerCounterStatus() != null && !i.getBuyerCounterStatus().isEmpty());
@@ -318,7 +320,7 @@ public class CounterOfferService {
         List<OfferItem> acceptedItems = offer.getItems().stream()
                 .filter(i -> (ITEM_ACCEPT.equals(i.getItemStatus())) ||
                         (ITEM_COUNTER.equals(i.getItemStatus()) && COUNTER_ACCEPT.equals(i.getBuyerCounterStatus())))
-                .collect(Collectors.toList());
+                .toList();
 
         int totalSku = acceptedItems.size();
         int totalQty = acceptedItems.stream()

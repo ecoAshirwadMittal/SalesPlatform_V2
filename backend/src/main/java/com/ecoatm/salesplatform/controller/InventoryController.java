@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
@@ -112,7 +111,7 @@ public class InventoryController {
         List<CaseLotResponse> responses = caseLotRepository.findByIsActiveTrueOrderByIdAsc()
                 .stream()
                 .map(CaseLotResponse::fromEntity)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(responses);
     }
 }

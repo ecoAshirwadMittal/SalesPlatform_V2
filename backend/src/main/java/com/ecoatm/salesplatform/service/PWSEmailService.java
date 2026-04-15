@@ -1,297 +1,362 @@
 package com.ecoatm.salesplatform.service;
 
+import com.ecoatm.salesplatform.config.AsyncConfig;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.service.email.EmailMessage;
+import com.ecoatm.salesplatform.service.email.EmailSender;
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.text.NumberFormat;
-import java.util.*;
-import java.util.stream.Collectors;
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.context.Context;
 
 /**
- * Mirrors the four legacy Mendix PWS email microflows:
- *   - SUB_SendPWSOfferConfirmationEmail (offer submitted for sales review)
- *   - SUB_SendPWSOrderConfirmationEmail (order confirmed by Oracle)
- *   - SUB_SendPWSPendingOrderEmail (order pending / Oracle error)
- *   - SUB_SendPWSCounterOfferEmail (counter offer sent to buyer)
+ * PWS email notifications — Mendix parity with four legacy microflows:
  *
- * Currently logs the rendered HTML. When SMTP is configured, swap the
- * log.info call for JavaMailSender.send() or an external email API.
+ * <ul>
+ *   <li>{@code SUB_SendPWSOfferConfirmationEmail} → {@link #sendOfferConfirmationEmail}</li>
+ *   <li>{@code SUB_SendPWSOrderConfirmationEmail} → {@link #sendOrderConfirmationEmail}</li>
+ *   <li>{@code SUB_SendPWSAdjustedQuantityOrderConfirmationEmail} → {@link #sendPendingOrderEmail}</li>
+ *   <li>{@code SUB_SendPWSCounterOfferEmail} → {@link #sendCounterOfferEmail}</li>
+ * </ul>
+ *
+ * <p>All methods are {@code @Async} on the dedicated email executor
+ * ({@link AsyncConfig#EMAIL_EXECUTOR}) so they never run inside the caller's
+ * transaction. Any delivery exception is caught and logged — failures must
+ * not affect the business transaction that triggered them.
+ *
+ * <p>Template rendering uses Spring Boot's auto-configured
+ * {@link TemplateEngine}; transport is abstracted behind {@link EmailSender}
+ * so tests can swap in an in-process implementation.
  */
 @Service
 public class PWSEmailService {
 
     private static final Logger log = LoggerFactory.getLogger(PWSEmailService.class);
-    private static final NumberFormat CURRENCY_FMT = NumberFormat.getIntegerInstance(Locale.US);
 
+    private final TemplateEngine templateEngine;
+    private final EmailSender emailSender;
+    private final EcoATMDirectUserRepository directUserRepository;
     private final DeviceRepository deviceRepository;
+    private final String salesAddress;
+    private final String counterOfferUrl;
 
-    @Value("${pws.email.enabled:false}")
-    private boolean emailEnabled;
-
-    @Value("${pws.email.sales-address:pwssales@ecoatm.com}")
-    private String salesEmailAddress;
-
-    @Value("${pws.email.counter-offer-url:https://buy.ecoatmdirect.com/pws/counter-offers?offerId=}")
-    private String counterOfferBaseUrl;
-
-    public PWSEmailService(DeviceRepository deviceRepository) {
+    public PWSEmailService(
+            TemplateEngine templateEngine,
+            EmailSender emailSender,
+            EcoATMDirectUserRepository directUserRepository,
+            DeviceRepository deviceRepository,
+            @Value("${pws.email.sales-address}") String salesAddress,
+            @Value("${pws.email.counter-offer-url}") String counterOfferUrl) {
+        this.templateEngine = templateEngine;
+        this.emailSender = emailSender;
+        this.directUserRepository = directUserRepository;
         this.deviceRepository = deviceRepository;
+        this.salesAddress = salesAddress;
+        this.counterOfferUrl = counterOfferUrl;
+    }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Public API — one method per Mendix microflow.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    /**
+     * Mendix parity: {@code SUB_SendPWSOfferConfirmationEmail}.
+     * Delivered only to the user who submitted the offer.
+     */
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendOfferConfirmationEmail(Offer offer, Long submittedByUserId) {
+        safeSend("OfferConfirmation", offer, () -> {
+            RecipientUser user = resolveSingleRecipient(submittedByUserId);
+            if (user == null) {
+                log.warn("OfferConfirmation skipped: no recipient resolved for userId={}", submittedByUserId);
+                return null;
+            }
+            String company = resolveCompanyName(offer.getBuyerCodeId());
+            List<ItemRow> rows = buildOfferRows(offer.getItems());
+            BigDecimal total = nullSafe(offer.getTotalPrice());
+            String html = render("email/pws-offer-confirmation",
+                    baseContext(user.fullName(), offer, company, rows, total));
+            return new EmailMessage(
+                    List.of(user.email()),
+                    List.of(),
+                    "Offer Confirmation — " + displayOfferRef(offer),
+                    html,
+                    null);
+        });
     }
 
     /**
-     * SUB_SendPWSOfferConfirmationEmail — sent to the submitting buyer when an offer
-     * is submitted for sales review. Uses OfferPrice/OfferQuantity.
+     * Mendix parity: {@code SUB_SendPWSOrderConfirmationEmail}.
+     * Delivered to every active user linked to the buyer code.
      */
-    public void sendOfferConfirmationEmail(Offer offer, String buyerName, String buyerEmail, String companyName) {
-        Map<Long, Device> deviceMap = loadDeviceMap(offer.getItems());
-        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.OFFER);
-        BigDecimal total = offer.getTotalPrice() != null ? offer.getTotalPrice() : BigDecimal.ZERO;
-
-        String subject = "PWS Offer Confirmation - " + offer.getOfferNumber();
-        String body = wrapEmailBody(
-                "Offer Confirmation",
-                buyerName,
-                companyName,
-                offer.getOfferNumber(),
-                htmlTable,
-                total,
-                null
-        );
-
-        sendOrLog("PWSOfferConfirmation", buyerEmail, subject, body);
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendOrderConfirmationEmail(Offer offer) {
+        safeSend("OrderConfirmation", offer, () -> {
+            List<RecipientUser> recipients = resolveBuyerRecipients(offer.getBuyerCodeId());
+            if (recipients.isEmpty()) {
+                log.warn("OrderConfirmation skipped: no recipients for buyerCodeId={}", offer.getBuyerCodeId());
+                return null;
+            }
+            String company = resolveCompanyName(offer.getBuyerCodeId());
+            List<ItemRow> rows = buildFinalRows(offer.getItems());
+            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+            String html = render("email/pws-order-confirmation",
+                    baseContext(firstOr(recipients).fullName(), offer, company, rows, total));
+            return new EmailMessage(
+                    recipients.stream().map(RecipientUser::email).toList(),
+                    List.of(),
+                    "Order Confirmation — " + displayOfferRef(offer),
+                    html,
+                    null);
+        });
     }
 
     /**
-     * SUB_SendPWSOrderConfirmationEmail — sent to all buyer users linked to the
-     * buyer code when an order is successfully placed. Uses FinalOfferPrice/FinalOfferQuantity.
+     * Mendix parity: {@code SUB_SendPWSAdjustedQuantityOrderConfirmationEmail}.
+     * Sent when Oracle adjusts quantities on an order; goes to buyer users + CC sales.
      */
-    public void sendOrderConfirmationEmail(Offer offer, String companyName) {
-        Map<Long, Device> deviceMap = loadDeviceMap(offer.getItems());
-        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.FINAL);
-        BigDecimal total = calcTotal(offer.getItems(), PriceSource.FINAL);
-
-        String subject = "PWS Order Confirmation - " + offer.getOfferNumber();
-
-        // Legacy sends to all EcoATMDirectUsers linked to the buyer
-        // For now, log with a note about recipients
-        String body = wrapEmailBody(
-                "Order Confirmation",
-                "Valued Customer",
-                companyName,
-                offer.getOfferNumber(),
-                htmlTable,
-                total,
-                null
-        );
-
-        sendOrLog("PWSOrderConfirmation", "[all buyer users]", subject, body);
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendPendingOrderEmail(Offer offer) {
+        safeSend("PendingOrder", offer, () -> {
+            List<RecipientUser> recipients = resolveBuyerRecipients(offer.getBuyerCodeId());
+            if (recipients.isEmpty()) {
+                log.warn("PendingOrder skipped: no recipients for buyerCodeId={}", offer.getBuyerCodeId());
+                return null;
+            }
+            String company = resolveCompanyName(offer.getBuyerCodeId());
+            List<ItemRow> rows = buildFinalRows(offer.getItems());
+            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+            String html = render("email/pws-pending-order",
+                    baseContext(firstOr(recipients).fullName(), offer, company, rows, total));
+            return new EmailMessage(
+                    recipients.stream().map(RecipientUser::email).toList(),
+                    List.of(salesAddress),
+                    "Order Pending — " + displayOfferRef(offer),
+                    html,
+                    null);
+        });
     }
 
     /**
-     * SUB_SendPWSPendingOrderEmail — sent to the sales email address when an order
-     * encounters an Oracle error. Uses FinalOfferPrice/FinalOfferQuantity.
+     * Mendix parity: {@code SUB_SendPWSCounterOfferEmail}.
+     * Fans out to every buyer user and includes a "See Counter Offer" CTA.
      */
-    public void sendPendingOrderEmail(Offer offer, String companyName) {
-        Map<Long, Device> deviceMap = loadDeviceMap(offer.getItems());
-        String htmlTable = buildItemTable(offer.getItems(), deviceMap, PriceSource.FINAL);
-        BigDecimal total = calcTotal(offer.getItems(), PriceSource.FINAL);
-
-        String subject = "PWS Pending Order - " + offer.getOfferNumber();
-        String body = wrapEmailBody(
-                "Pending Order",
-                "Sales Team",
-                companyName,
-                offer.getOfferNumber(),
-                htmlTable,
-                total,
-                null
-        );
-
-        sendOrLog("PWSPendingOrder", salesEmailAddress, subject, body);
+    @Async(AsyncConfig.EMAIL_EXECUTOR)
+    public void sendCounterOfferEmail(Offer offer) {
+        safeSend("CounterOffer", offer, () -> {
+            List<RecipientUser> recipients = resolveBuyerRecipients(offer.getBuyerCodeId());
+            if (recipients.isEmpty()) {
+                log.warn("CounterOffer skipped: no recipients for buyerCodeId={}", offer.getBuyerCodeId());
+                return null;
+            }
+            String company = resolveCompanyName(offer.getBuyerCodeId());
+            List<ItemRow> rows = buildCounterRows(offer.getItems());
+            BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
+            Context ctx = baseContext(firstOr(recipients).fullName(), offer, company, rows, total);
+            ctx.setVariable("counterOfferUrl", counterOfferUrl);
+            String html = render("email/pws-counter-offer", ctx);
+            return new EmailMessage(
+                    recipients.stream().map(RecipientUser::email).toList(),
+                    List.of(),
+                    "Counter Offer — " + displayOfferRef(offer),
+                    html,
+                    null);
+        });
     }
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // Internals
+    // ═══════════════════════════════════════════════════════════════════════
 
     /**
-     * SUB_SendPWSCounterOfferEmail — sent to all buyer users when a sales rep submits
-     * counter-offers. Uses item status to choose which price columns to show.
+     * Wraps the build-and-send pipeline with uniform error handling. The
+     * supplier may return {@code null} to skip the send (e.g. no recipients
+     * resolved); any thrown exception is caught and logged but not rethrown.
      */
-    public void sendCounterOfferEmail(Offer offer, String companyName) {
-        Map<Long, Device> deviceMap = loadDeviceMap(offer.getItems());
-        String htmlTable = buildCounterOfferTable(offer.getItems(), deviceMap);
-        BigDecimal total = calcCounterTotal(offer.getItems());
-
-        String counterButton = "<div style=\"text-align: center;\">"
-                + "<a href=\"" + counterOfferBaseUrl + offer.getOfferNumber()
-                + "\" style=\"background-color: #2CB34A; color: #ffffff; padding: 10px 16px; "
-                + "text-decoration: none; border-radius: 4px; display: ruby; font-size: 16px; "
-                + "font-family: Trebuchet MS, Helvetica, sans-serif; font-weight: bold;\">"
-                + "See Counter Offer</a></div>";
-
-        String subject = "PWS Counter Offer - " + offer.getOfferNumber();
-        String body = wrapEmailBody(
-                "Counter Offer",
-                "Valued Customer",
-                companyName,
-                offer.getOfferNumber(),
-                htmlTable,
-                total,
-                counterButton
-        );
-
-        sendOrLog("PWSCounterOffer", "[all buyer users]", subject, body);
-    }
-
-    // ---- HTML builders (matching Mendix templates) ----
-
-    private enum PriceSource { OFFER, FINAL }
-
-    private String buildItemTable(List<OfferItem> items, Map<Long, Device> deviceMap, PriceSource source) {
-        StringBuilder html = new StringBuilder();
-        html.append(TABLE_HEADER);
-        for (OfferItem item : items) {
-            Device d = deviceMap.get(item.getDeviceId());
-            String desc = buildDescription(d);
-            String sku = d != null ? d.getSku() : (item.getSku() != null ? item.getSku() : "");
-            int qty = item.getQuantity() != null ? item.getQuantity() : 0;
-            BigDecimal price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
-            BigDecimal totalPrice = item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO;
-
-            html.append(tableRow(sku, desc, qty, price, totalPrice));
+    private void safeSend(String templateName, Offer offer, MessageBuilder builder) {
+        try {
+            EmailMessage message = builder.build();
+            if (message == null) {
+                return;
+            }
+            emailSender.send(message);
+        } catch (Exception ex) {
+            log.error(
+                    "PWS email delivery failed template={} offerId={} offerNumber={}: {}",
+                    templateName,
+                    offer == null ? null : offer.getId(),
+                    offer == null ? null : offer.getOfferNumber(),
+                    ex.getMessage(),
+                    ex);
         }
-        html.append("</table>");
-        return html.toString();
     }
 
-    private String buildCounterOfferTable(List<OfferItem> items, Map<Long, Device> deviceMap) {
-        StringBuilder html = new StringBuilder();
-        html.append(TABLE_HEADER);
-        for (OfferItem item : items) {
-            Device d = deviceMap.get(item.getDeviceId());
-            String desc = buildDescription(d);
-            String sku = d != null ? d.getSku() : (item.getSku() != null ? item.getSku() : "");
-            String status = item.getItemStatus();
+    @FunctionalInterface
+    private interface MessageBuilder {
+        EmailMessage build();
+    }
 
+    private Context baseContext(
+            String buyerName, Offer offer, String companyName, List<ItemRow> rows, BigDecimal total) {
+        Context ctx = new Context();
+        ctx.setVariable("buyerName", buyerName == null ? "Valued Customer" : buyerName);
+        ctx.setVariable("offerId", displayOfferRef(offer));
+        ctx.setVariable("companyName", companyName == null ? "" : companyName);
+        ctx.setVariable("items", rows);
+        ctx.setVariable("total", total);
+        return ctx;
+    }
+
+    private String render(String templateName, Context ctx) {
+        return templateEngine.process(templateName, ctx);
+    }
+
+    private String displayOfferRef(Offer offer) {
+        if (offer == null) return "";
+        return offer.getOfferNumber() != null ? offer.getOfferNumber() : String.valueOf(offer.getId());
+    }
+
+    // ── Row builders ────────────────────────────────────────────────────────
+
+    private List<ItemRow> buildOfferRows(List<OfferItem> items) {
+        Map<Long, Device> deviceMap = loadDeviceMap(items);
+        List<ItemRow> rows = new ArrayList<>();
+        for (OfferItem item : items) {
+            Device device = deviceMap.get(item.getDeviceId());
+            rows.add(new ItemRow(
+                    skuOf(device, item),
+                    describeDevice(device),
+                    nullSafeInt(item.getQuantity()),
+                    nullSafe(item.getPrice()),
+                    nullSafe(item.getTotalPrice())));
+        }
+        return rows;
+    }
+
+    private List<ItemRow> buildFinalRows(List<OfferItem> items) {
+        Map<Long, Device> deviceMap = loadDeviceMap(items);
+        List<ItemRow> rows = new ArrayList<>();
+        for (OfferItem item : items) {
+            Device device = deviceMap.get(item.getDeviceId());
+            int qty = item.getFinalOfferQuantity() != null ? item.getFinalOfferQuantity() : nullSafeInt(item.getQuantity());
+            BigDecimal price = item.getFinalOfferPrice() != null ? item.getFinalOfferPrice() : nullSafe(item.getPrice());
+            BigDecimal total = item.getFinalOfferTotalPrice() != null ? item.getFinalOfferTotalPrice() : nullSafe(item.getTotalPrice());
+            rows.add(new ItemRow(skuOf(device, item), describeDevice(device), qty, price, total));
+        }
+        return rows;
+    }
+
+    private List<ItemRow> buildCounterRows(List<OfferItem> items) {
+        Map<Long, Device> deviceMap = loadDeviceMap(items);
+        List<ItemRow> rows = new ArrayList<>();
+        for (OfferItem item : items) {
+            Device device = deviceMap.get(item.getDeviceId());
+            String status = item.getItemStatus();
             int qty;
             BigDecimal price;
             BigDecimal total;
-
             if ("Accept".equals(status)) {
-                qty = item.getQuantity() != null ? item.getQuantity() : 0;
-                price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
-                total = item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO;
+                qty = nullSafeInt(item.getQuantity());
+                price = nullSafe(item.getPrice());
+                total = nullSafe(item.getTotalPrice());
             } else if ("Counter".equals(status) || "Finalize".equals(status)) {
-                qty = item.getCounterQty() != null ? item.getCounterQty() : 0;
-                price = item.getCounterPrice() != null ? item.getCounterPrice() : BigDecimal.ZERO;
-                total = item.getCounterTotal() != null ? item.getCounterTotal() : BigDecimal.ZERO;
+                qty = nullSafeInt(item.getCounterQty());
+                price = nullSafe(item.getCounterPrice());
+                total = nullSafe(item.getCounterTotal());
             } else {
+                // Decline / empty → zero row, legacy parity
                 qty = 0;
                 price = BigDecimal.ZERO;
                 total = BigDecimal.ZERO;
             }
-
-            html.append(tableRow(sku, desc, qty, price, total));
+            rows.add(new ItemRow(skuOf(device, item), describeDevice(device), qty, price, total));
         }
-        html.append("</table>");
-        return html.toString();
+        return rows;
     }
 
-    private BigDecimal calcTotal(List<OfferItem> items, PriceSource source) {
-        return items.stream()
-                .map(i -> i.getTotalPrice() != null ? i.getTotalPrice() : BigDecimal.ZERO)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    // ── Recipient resolution ────────────────────────────────────────────────
+
+    private RecipientUser resolveSingleRecipient(Long userId) {
+        if (userId == null) return null;
+        List<Object[]> rows = directUserRepository.findEmailByUserId(userId);
+        if (rows.isEmpty()) return null;
+        Object[] row = rows.get(0);
+        return new RecipientUser((String) row[0], (String) row[1]);
     }
 
-    private BigDecimal calcCounterTotal(List<OfferItem> items) {
-        BigDecimal total = BigDecimal.ZERO;
-        for (OfferItem item : items) {
-            String status = item.getItemStatus();
-            if ("Accept".equals(status)) {
-                total = total.add(item.getTotalPrice() != null ? item.getTotalPrice() : BigDecimal.ZERO);
-            } else if ("Counter".equals(status) || "Finalize".equals(status)) {
-                total = total.add(item.getCounterTotal() != null ? item.getCounterTotal() : BigDecimal.ZERO);
-            }
-        }
-        return total;
+    private List<RecipientUser> resolveBuyerRecipients(Long buyerCodeId) {
+        if (buyerCodeId == null) return List.of();
+        return directUserRepository.findActiveEmailsByBuyerCodeId(buyerCodeId).stream()
+                .map(row -> new RecipientUser((String) row[0], (String) row[1]))
+                .toList();
     }
 
-    private String buildDescription(Device d) {
-        if (d == null) return "";
-        List<String> parts = new ArrayList<>();
-        if (d.getModel() != null) parts.add(d.getModel().getDisplayName());
-        if (d.getCarrier() != null) parts.add(d.getCarrier().getDisplayName());
-        if (d.getCapacity() != null) parts.add(d.getCapacity().getDisplayName());
-        if (d.getColor() != null) parts.add(d.getColor().getDisplayName());
-        return String.join(", ", parts);
+    private String resolveCompanyName(Long buyerCodeId) {
+        if (buyerCodeId == null) return "";
+        List<String> names = directUserRepository.findBuyerCompanyNameByBuyerCodeId(buyerCodeId);
+        return names.isEmpty() ? "" : names.get(0);
     }
 
-    private String wrapEmailBody(String title, String buyerName, String companyName,
-                                  String offerId, String tableHtml, BigDecimal total,
-                                  String extraHtml) {
-        String totalHtml = "<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" style=\"padding-top: 24px;\">"
-                + "<tr><td align=\"right\" style=\"padding: 8px 0; font-size: 16px; color: #514F4E; white-space: nowrap;\">"
-                + "<span style=\"font-weight: 400; margin-right: 8px; font-family: Trebuchet MS, Helvetica, sans-serif;\">Total:</span>"
-                + "<span style=\"font-weight: 700; font-family: Trebuchet MS, Helvetica, sans-serif;\">$"
-                + CURRENCY_FMT.format(total) + "</span></td></tr></table>";
-
-        String footer = "<div style=\"display: flex; padding: 16px 0px; flex-direction: column; align-items: center; gap: 16px; align-self: stretch;\">"
-                + "<span style=\"color: #000; text-align: center; font-family: Trebuchet MS, Helvetica, sans-serif; font-size: 12px; font-style: normal; font-weight: 400; line-height: 140%;\">"
-                + "This email is sent by ecoATM, LLC, 10121 Barnes Canyon Rd, San Diego, CA 92121. "
-                + "This is an automated message, please do not reply. Copyright 2025 - ecoATM, LLC. All Rights Reserved."
-                + "</span></div>";
-
-        return tableHtml + totalHtml + (extraHtml != null ? extraHtml : "") + footer;
-    }
-
-    private void sendOrLog(String templateName, String to, String subject, String body) {
-        if (emailEnabled) {
-            // TODO: Wire to JavaMailSender or external email API when SMTP is configured
-            log.info("[EMAIL-SEND] template={}, to={}, subject={}", templateName, to, subject);
-        } else {
-            log.info("[EMAIL-STUB] template={}, to={}, subject={} (email sending disabled — set pws.email.enabled=true)",
-                    templateName, to, subject);
-        }
-    }
+    // ── Helpers ─────────────────────────────────────────────────────────────
 
     private Map<Long, Device> loadDeviceMap(List<OfferItem> items) {
         Set<Long> ids = items.stream()
                 .map(OfferItem::getDeviceId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-        if (ids.isEmpty()) return Map.of();
+        if (ids.isEmpty()) return Collections.emptyMap();
         return deviceRepository.findAllById(ids).stream()
                 .collect(Collectors.toMap(Device::getId, d -> d));
     }
 
-    // ---- HTML constants (matching Mendix inline styles) ----
-
-    private static final String TH_STYLE = "text-align: left; font-weight: 400; font-size: 12px; color: #6F6F6F; "
-            + "padding: 8px; font-family: Trebuchet MS, Helvetica, sans-serif;";
-
-    private static final String TABLE_HEADER = "<table style=\"border-collapse: collapse; width: 100%;\">"
-            + "<tr style=\"border-bottom: 1px solid #B7B5B5\">"
-            + "<th style=\"" + TH_STYLE + "width: 20%;\">SKU</th>"
-            + "<th style=\"" + TH_STYLE + "width: 41%;\">Description</th>"
-            + "<th style=\"" + TH_STYLE + "text-align: center; width: 13%;\">Ordered Qty</th>"
-            + "<th style=\"" + TH_STYLE + "text-align: right; width: 13%;\">Unit Price</th>"
-            + "<th style=\"" + TH_STYLE + "text-align: right; width: 13%;\">Total Price</th>"
-            + "</tr>";
-
-    private static final String TD_STYLE = "color: #514F4E; padding: 8px; font-size: 14px; font-style: normal; "
-            + "font-weight: 400; line-height: 22px; font-family: Trebuchet MS, Helvetica, sans-serif;";
-
-    private String tableRow(String sku, String desc, int qty, BigDecimal price, BigDecimal total) {
-        return "<tr style=\"border-bottom: 1px solid #B7B5B5\">"
-                + "<td style=\"" + TD_STYLE + "text-align: left;\">" + sku + "</td>"
-                + "<td style=\"" + TD_STYLE + "text-align: left; font-weight: 700;\">" + desc + "</td>"
-                + "<td style=\"" + TD_STYLE + "text-align: center;\">" + qty + "</td>"
-                + "<td style=\"" + TD_STYLE + "text-align: right;\">$" + CURRENCY_FMT.format(price) + "</td>"
-                + "<td style=\"" + TD_STYLE + "text-align: right;\">$" + CURRENCY_FMT.format(total) + "</td>"
-                + "</tr>";
+    private String skuOf(Device device, OfferItem item) {
+        if (device != null && device.getSku() != null) return device.getSku();
+        return item.getSku() != null ? item.getSku() : "";
     }
+
+    private String describeDevice(Device device) {
+        if (device == null) return "";
+        List<String> parts = new ArrayList<>(4);
+        if (device.getModel() != null) parts.add(device.getModel().getDisplayName());
+        if (device.getCarrier() != null) parts.add(device.getCarrier().getDisplayName());
+        if (device.getCapacity() != null) parts.add(device.getCapacity().getDisplayName());
+        if (device.getColor() != null) parts.add(device.getColor().getDisplayName());
+        return String.join(", ", parts);
+    }
+
+    private static BigDecimal nullSafe(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
+    private static int nullSafeInt(Integer value) {
+        return value != null ? value : 0;
+    }
+
+    private static RecipientUser firstOr(List<RecipientUser> list) {
+        return list.isEmpty() ? new RecipientUser("", "Valued Customer") : list.get(0);
+    }
+
+    // ── View model records (public so templates can resolve bean properties) ──
+
+    /** Row model consumed by {@code email/_rows.html}. */
+    public record ItemRow(
+            String sku, String description, int quantity, BigDecimal unitPrice, BigDecimal totalPrice) {}
+
+    /** Resolved recipient pair used for TO/CC lists. */
+    public record RecipientUser(String email, String fullName) {}
 }

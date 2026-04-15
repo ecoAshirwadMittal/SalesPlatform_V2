@@ -1,0 +1,17 @@
+{
+  "name": "slack-claude-bot",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Slack bot that forwards @-mentions to Claude Code running in the SalesPlatform_Modern repo.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "@slack/bolt": "^3.19.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

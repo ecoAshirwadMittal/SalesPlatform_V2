@@ -7,7 +7,6 @@ import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.pws.CaseLot;
 import com.ecoatm.salesplatform.model.pws.Offer;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
-import com.ecoatm.salesplatform.repository.integration.OracleConfigRepository;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.CaseLotRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferItemRepository;
@@ -30,13 +29,13 @@ import org.mockito.quality.Strictness;
 import com.ecoatm.salesplatform.service.BuyerCodeLookupService;
 
 import com.ecoatm.salesplatform.dto.OracleResponse;
-import com.ecoatm.salesplatform.model.integration.OracleConfig;
 import com.ecoatm.salesplatform.model.pws.Order;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -68,9 +67,6 @@ class OfferServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private OracleConfigRepository oracleConfigRepository;
-
-    @Mock
     private CaseLotRepository caseLotRepository;
 
     @Mock
@@ -82,12 +78,37 @@ class OfferServiceTest {
     @Mock
     private EntityManager em;
 
+    @Mock
+    private org.springframework.context.ApplicationEventPublisher eventPublisher;
+
+    @Mock
+    private OfferItemDeviceLoader deviceLoader;
+
+    @Mock
+    private OracleOrderClient oracleOrderClient;
+
+    @Mock
+    private OfferNumberGenerator offerNumberGenerator;
+
     @InjectMocks
     private OfferService offerService;
 
     @BeforeEach
     void setUp() {
         when(buyerCodeLookup.findCodeById(anyLong())).thenReturn("BC001");
+        when(deviceLoader.loadDeviceMap(anyList())).thenReturn(Map.of());
+        when(offerNumberGenerator.next(anyLong())).thenReturn("BC00126001");
+        // any() not anyString() — objectMapper is mocked and writeValueAsString returns null,
+        // so the payload passed into submitOrder is null and anyString() would not match.
+        when(oracleOrderClient.submitOrder(any())).thenReturn(simulatedOracleSuccess());
+    }
+
+    private static OracleResponse simulatedOracleSuccess() {
+        OracleResponse r = new OracleResponse();
+        r.setReturnCode("00");
+        r.setReturnMessage("Toggle Turned Off — simulated success");
+        r.setOrderNumber("SIM-123456");
+        return r;
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
@@ -123,6 +144,7 @@ class OfferServiceTest {
         device.setId(id);
         device.setListPrice(listPrice);
         device.setAvailableQty(availableQty);
+        device.setAtpQty(availableQty);
         device.setReservedQty(0);
         return device;
     }
@@ -148,51 +170,27 @@ class OfferServiceTest {
                 .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
-    @SuppressWarnings("unchecked")
     private void stubDeviceMap(Device... devices) {
-        List<Device> deviceList = List.of(devices);
-        when(deviceRepository.findAllById(any(Iterable.class))).thenReturn(deviceList);
+        Map<Long, Device> map = new java.util.HashMap<>();
+        for (Device d : devices) map.put(d.getId(), d);
+        when(deviceLoader.loadDeviceMap(anyList())).thenReturn(map);
     }
 
     /**
-     * Stubs EntityManager native queries used by generateOfferNumber and resolveUserName.
-     * generateOfferNumber issues 3 queries:
-     *   1. SELECT bc.code ... -> returns buyerCode string
-     *   2. INSERT INTO pws.offer_id_sequence ... -> executeUpdate
-     *   3. SELECT max_sequence ... -> returns integer sequence
-     * resolveUserName issues:
-     *   4. SELECT u.name ... -> returns list of user name strings
+     * Stubs the only EntityManager native query left on OfferService after
+     * Phase 5: resolveUserName's SELECT against identity.users. Offer number
+     * generation and Oracle HTTP are now delegated to mocked collaborators
+     * (OfferNumberGenerator, OracleOrderClient) and don't need EM routing.
      */
-    private void stubGenerateOfferNumber(String buyerCode) {
-        Query buyerCodeQuery = mock(Query.class);
-        Query insertSeqQuery = mock(Query.class);
-        Query readSeqQuery = mock(Query.class);
+    private void stubResolveUserName() {
         Query userNameQuery = mock(Query.class);
-
-        // Use answer-based routing since all calls go through em.createNativeQuery(String)
         when(em.createNativeQuery(anyString())).thenAnswer(invocation -> {
             String sql = invocation.getArgument(0, String.class);
-            if (sql.contains("buyer_mgmt.buyer_codes")) {
-                return buyerCodeQuery;
-            } else if (sql.contains("INSERT INTO")) {
-                return insertSeqQuery;
-            } else if (sql.contains("max_sequence")) {
-                return readSeqQuery;
-            } else if (sql.contains("identity.users")) {
+            if (sql.contains("identity.users")) {
                 return userNameQuery;
             }
             return mock(Query.class);
         });
-
-        when(buyerCodeQuery.setParameter(anyString(), any())).thenReturn(buyerCodeQuery);
-        when(buyerCodeQuery.getSingleResult()).thenReturn(buyerCode);
-
-        when(insertSeqQuery.setParameter(anyString(), any())).thenReturn(insertSeqQuery);
-        when(insertSeqQuery.executeUpdate()).thenReturn(1);
-
-        when(readSeqQuery.setParameter(anyString(), any())).thenReturn(readSeqQuery);
-        when(readSeqQuery.getSingleResult()).thenReturn(Integer.valueOf(1));
-
         when(userNameQuery.setParameter(anyString(), any())).thenReturn(userNameQuery);
         when(userNameQuery.getResultList()).thenReturn(List.of("testuser@test.com"));
     }
@@ -472,23 +470,18 @@ class OfferServiceTest {
             stubDeviceMap(device);
 
             // Mock EM for generateOfferNumber + resolveUserName
-            stubGenerateOfferNumber("BC001");
-
-            // Oracle config off => returns without calling Oracle
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
 
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-            // createDirectOrder -> sendOrderToOracle returns null when no config
-            // -> handleOracleResponse with null -> Pending_Order -> error response
+            // createDirectOrder -> sendOrderToOracle simulates success when no config
+            // -> handleOracleResponse with returnCode="00" -> Ordered -> success
             SubmitResponse response = offerService.submitCart(100L, 1L);
 
-            // With no Oracle config, response will be an error (Pending_Order path)
             assertThat(response).isNotNull();
-            // The oracle toggle-off path returns OracleResponse with message but null returnCode
-            // which falls into the "ReturnCode != 00" branch -> error
-            assertThat(response.isSuccess()).isFalse();
+            // The oracle toggle-off path simulates success (returnCode="00")
+            assertThat(response.isSuccess()).isTrue();
         }
     }
 
@@ -511,10 +504,10 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
+            stubResolveUserName();
             stubSavePassthrough();
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(response.isSuccess()).isTrue();
             assertThat(response.getOfferNumber()).isNotNull();
@@ -528,7 +521,7 @@ class OfferServiceTest {
         void offerNotFound_returnsError() {
             when(offerRepository.findById(999L)).thenReturn(Optional.empty());
 
-            SubmitResponse response = offerService.submitOffer(999L);
+            SubmitResponse response = offerService.submitOffer(999L, null);
 
             assertThat(response.isSuccess()).isFalse();
             assertThat(response.getValidationErrors()).contains("Offer not found.");
@@ -542,7 +535,7 @@ class OfferServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(response.isAlreadySubmitted()).isTrue();
             assertThat(response.isSuccess()).isFalse();
@@ -562,10 +555,10 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
+            stubResolveUserName();
             stubSavePassthrough();
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(item.getItemStatus()).isEqualTo("Accept");
         }
@@ -583,10 +576,10 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
+            stubResolveUserName();
             stubSavePassthrough();
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(item.getItemStatus()).isEqualTo("Counter");
             assertThat(item.getCounterQty()).isEqualTo(3);
@@ -673,8 +666,7 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -700,8 +692,7 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -730,8 +721,7 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -757,8 +747,7 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -819,8 +808,7 @@ class OfferServiceTest {
             when(deviceRepository.findAllById(any())).thenReturn(Collections.emptyList());
 
             // No device → no list price comparison → goes to direct order path
-            stubGenerateOfferNumber("BC001");
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
+            stubResolveUserName();
             stubSavePassthrough();
             when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
@@ -899,7 +887,7 @@ class OfferServiceTest {
 
             when(offerRepository.findById(1L)).thenReturn(Optional.of(draft));
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(response.isSuccess()).isFalse();
             assertThat(response.getValidationErrors().get(0)).contains("No items");
@@ -916,10 +904,10 @@ class OfferServiceTest {
             when(offerRepository.findById(1L)).thenReturn(Optional.of(draft));
             when(deviceRepository.findAllById(any())).thenReturn(Collections.emptyList());
 
-            stubGenerateOfferNumber("BC001");
+            stubResolveUserName();
             stubSavePassthrough();
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(response.isSuccess()).isTrue();
             assertThat(item.getItemStatus()).isEqualTo("Accept");
@@ -938,10 +926,10 @@ class OfferServiceTest {
             Device device = createDevice(10L, "SKU-001", null, 200); // null listPrice
             stubDeviceMap(device);
 
-            stubGenerateOfferNumber("BC001");
+            stubResolveUserName();
             stubSavePassthrough();
 
-            SubmitResponse response = offerService.submitOffer(1L);
+            SubmitResponse response = offerService.submitOffer(1L, null);
 
             assertThat(response.isSuccess()).isTrue();
             assertThat(item.getItemStatus()).isEqualTo("Accept");

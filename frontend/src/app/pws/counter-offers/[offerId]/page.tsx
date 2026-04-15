@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styles from '../counterOffers.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1';
 const PAGE_SIZE = 20;
 
 interface OfferItemData {
@@ -145,11 +145,13 @@ export default function CounterOfferDetailPage() {
     try {
       const res = await apiFetch(`${API_BASE}/pws/counter-offers/${offerId}/submit`, { method: 'POST' });
       const data = await res.json();
-      if (data.offerSubmitted || data.orderNumber) {
-        setMessage({ type: 'success', text: `Order submitted successfully. Order #${data.orderNumber || data.offerId}` });
+      if (data.orderNumber || data.offerNumber) {
+        setMessage({ type: 'success', text: `Order submitted successfully. Order #${data.orderNumber || data.offerNumber || data.offerId}` });
         setTimeout(() => router.push('/pws/order'), 2000);
-      } else if (data.errors?.length) {
-        setMessage({ type: 'error', text: data.errors.join('; ') });
+      } else if (data.validationErrors?.length) {
+        setMessage({ type: 'error', text: data.validationErrors.join('; ') });
+      } else if (data.message && !data.success) {
+        setMessage({ type: 'error', text: data.message });
       }
     } catch {
       setMessage({ type: 'error', text: 'Failed to submit counter response.' });

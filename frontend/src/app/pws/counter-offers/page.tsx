@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './counterOffers.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { getBuyerCodeId } from '@/lib/session';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1';
 
 interface OfferListItem {
   offerId: number;
@@ -17,15 +18,6 @@ interface OfferListItem {
   totalPrice: number;
   submissionDate: string;
   updatedDate: string;
-}
-
-function getBuyerCodeId(): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const stored = sessionStorage.getItem('selectedBuyerCode');
-    if (stored) return JSON.parse(stored).id;
-  } catch { /* ignore */ }
-  return null;
 }
 
 function formatDate(iso: string | null): string {
@@ -110,7 +102,7 @@ export default function CounterOffersPage() {
           </thead>
           <tbody>
             {offers.map(offer => (
-              <tr key={offer.offerId} onClick={() => router.push(`/pws/counter-offers/${offer.offerId}`)}>
+              <tr key={offer.offerId} data-offer-id={offer.offerId} onClick={() => router.push(`/pws/counter-offers/${offer.offerId}`)}>
                 <td><span className={styles.offerIdLink}>{offer.offerNumber || offer.offerId}</span></td>
                 <td>{offer.status?.replace(/_/g, ' ')}</td>
                 <td>{offer.buyerCode}</td>

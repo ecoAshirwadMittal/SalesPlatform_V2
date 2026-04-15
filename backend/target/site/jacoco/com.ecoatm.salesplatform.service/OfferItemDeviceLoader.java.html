@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OfferItemDeviceLoader.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">salesplatform</a> &gt; <a href="index.source.html" class="el_package">com.ecoatm.salesplatform.service</a> &gt; <span class="el_source">OfferItemDeviceLoader.java</span></div><h1>OfferItemDeviceLoader.java</h1><pre class="source lang-java linenums">package com.ecoatm.salesplatform.service;
+
+import com.ecoatm.salesplatform.model.mdm.Device;
+import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * Batches device lookups for a collection of offer items. Shared by
+ * OfferService and OfferReviewService to avoid duplicate implementations.
+ */
+@Component
+public class OfferItemDeviceLoader {
+
+    private final DeviceRepository deviceRepository;
+
+<span class="fc" id="L23">    public OfferItemDeviceLoader(DeviceRepository deviceRepository) {</span>
+<span class="fc" id="L24">        this.deviceRepository = deviceRepository;</span>
+<span class="fc" id="L25">    }</span>
+
+    public Map&lt;Long, Device&gt; loadDeviceMap(List&lt;OfferItem&gt; items) {
+<span class="nc" id="L28">        Set&lt;Long&gt; deviceIds = items.stream()</span>
+<span class="nc" id="L29">                .map(OfferItem::getDeviceId)</span>
+<span class="nc" id="L30">                .filter(Objects::nonNull)</span>
+<span class="nc" id="L31">                .collect(Collectors.toSet());</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (deviceIds.isEmpty()) return Map.of();</span>
+
+<span class="nc" id="L34">        return deviceRepository.findAllById(deviceIds).stream()</span>
+<span class="nc" id="L35">                .collect(Collectors.toMap(Device::getId, d -&gt; d));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

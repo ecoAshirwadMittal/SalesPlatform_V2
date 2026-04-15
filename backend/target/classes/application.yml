@@ -16,7 +16,6 @@ spring:
       connection-timeout: 20000
       idle-timeout: 300000
       max-lifetime: 1200000
-      connection-test-query: SELECT 1
 
   # ─────────────────────────────────────
   # JPA / Hibernate
@@ -33,8 +32,28 @@ spring:
         default_schema: identity   # default schema for @Entity classes unless overridden
         jdbc:
           batch_size: 50
+          time_zone: UTC           # ensures LocalDateTime ↔ TIMESTAMPTZ uses UTC
         order_inserts: true
         order_updates: true
+
+  # ─────────────────────────────────────
+  # Mail (SMTP) — used by SmtpEmailSender when pws.email.enabled=true.
+  # Defaults are harmless placeholders; real creds injected via env in QA/prod.
+  # ─────────────────────────────────────
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:25}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
 
   # ─────────────────────────────────────
   # Flyway Migration
@@ -44,7 +63,7 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     out-of-order: true
-    schemas: identity,user_mgmt,buyer_mgmt,sso,pws,mdm,integration
+    schemas: identity,user_mgmt,buyer_mgmt,sso,pws,mdm,integration,email
     default-schema: identity  # flyway_schema_history lives in identity (matches pom.xml)
 
 # ─────────────────────────────────────
@@ -75,6 +94,34 @@ app:
     expiration-ms: 86400000
     remember-me-expiration-ms: 604800000
 
+# ─────────────────────────────────────
+# Auth cookie (Theme 3 — HttpOnly cookie-based JWT)
+# Default secure=false so http://localhost dev works; QA/prod MUST set
+# AUTH_COOKIE_SECURE=true (or activate the `production` profile below).
+# SameSite=Strict and HttpOnly are enforced in code (non-configurable).
+# ─────────────────────────────────────
+auth:
+  cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
+
+# ─────────────────────────────────────
+# CORS allowlist — comma-separated origins. Override via CORS_ALLOWED_ORIGINS.
+# ─────────────────────────────────────
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,https://*.ngrok-free.dev,https://*.ngrok-free.app,https://*.ngrok.app}
+
+# ─────────────────────────────────────
+# PWS email notifications (Theme 1)
+# enabled=false → LoggingEmailSender logs each message instead of sending.
+# Flip enabled=true in QA/prod after SMTP creds are wired via env.
+# ─────────────────────────────────────
+pws:
+  email:
+    enabled: ${PWS_EMAIL_ENABLED:false}
+    from: ${PWS_EMAIL_FROM:noreply@ecoatmdirect.com}
+    sales-address: ${PWS_EMAIL_SALES:sales@ecoatmdirect.com}
+    counter-offer-url: ${PWS_EMAIL_COUNTER_OFFER_URL:https://buy.ecoatmdirect.com/p/counter-offer}
+
 ---
 # ─────────────────────────────────────
 # Profile: local (override for dev convenience)
@@ -88,6 +135,9 @@ spring:
     show-sql: true
   flyway:
     validate-on-migrate: false   # skip checksum validation in local dev
+auth:
+  cookie:
+    secure: false   # allow auth cookie over http://localhost during dev
 server:
   error:
     include-message: always
@@ -100,3 +150,25 @@ management:
   endpoint:
     health:
       show-details: always
+
+---
+# ─────────────────────────────────────
+# Profile: production
+# Activate with: --spring.profiles.active=production
+# ─────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: production
+  flyway:
+    out-of-order: false
+    validate-on-migrate: true
+  jpa:
+    show-sql: false
+auth:
+  cookie:
+    secure: true    # prod MUST serve over HTTPS
+server:
+  error:
+    include-message: never
+    include-exception: false

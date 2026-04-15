@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<!--
+  Shared item-table fragment. Columns: SKU | Description | Qty | Unit | Total.
+  Row styling from SUB_SendPWSOfferConfirmationEmail.md / SUB_SendPWSCounterOfferEmail.md.
+-->
+<body>
+<th:block th:fragment="itemsTable(items, total)">
+  <table style="border-collapse: collapse; width: 100%;">
+    <tr style="border-bottom: 1px solid #B7B5B5;">
+      <th style="text-align: left;   width: 20%; font-weight: 400; font-size: 12px; color: #6F6F6F; padding: 8px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">SKU</th>
+      <th style="text-align: left;   width: 41%; font-weight: 400; font-size: 12px; color: #6F6F6F; padding: 8px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">Description</th>
+      <th style="text-align: center; width: 13%; font-weight: 400; font-size: 12px; color: #6F6F6F; padding: 8px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">Ordered Qty</th>
+      <th style="text-align: right;  width: 13%; font-weight: 400; font-size: 12px; color: #6F6F6F; padding: 8px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">Unit Price</th>
+      <th style="text-align: right;  width: 13%; font-weight: 400; font-size: 12px; color: #6F6F6F; padding: 8px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">Total Price</th>
+    </tr>
+    <tr th:each="item : ${items}" style="border-bottom: 1px solid #B7B5B5;">
+      <td th:text="${item.sku}"
+          style="text-align: left; color: #514F4E; padding: 8px; font-size: 14px; font-weight: 400; line-height: 22px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">SKU</td>
+      <td th:text="${item.description}"
+          style="text-align: left; color: #514F4E; padding: 8px; font-size: 14px; font-weight: 700; font-family: 'Trebuchet MS', Helvetica, sans-serif;">Description</td>
+      <td th:text="${item.quantity}"
+          style="text-align: center; color: #514F4E; padding: 8px; font-size: 14px; font-weight: 400; line-height: 22px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">0</td>
+      <td th:text="'$' + ${#numbers.formatDecimal(item.unitPrice, 1, 'COMMA', 0, 'POINT')}"
+          style="text-align: right; color: #514F4E; padding: 8px; font-size: 14px; font-weight: 400; line-height: 22px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">$0</td>
+      <td th:text="'$' + ${#numbers.formatDecimal(item.totalPrice, 1, 'COMMA', 0, 'POINT')}"
+          style="text-align: right; color: #514F4E; padding: 8px; font-size: 14px; font-weight: 400; line-height: 22px; font-family: 'Trebuchet MS', Helvetica, sans-serif;">$0</td>
+    </tr>
+  </table>
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding-top: 24px;">
+    <tr>
+      <td align="right" style="padding: 8px 0; font-size: 16px; color: #514F4E; white-space: nowrap; font-family: 'Trebuchet MS', Helvetica, sans-serif;">
+        <span style="font-weight: 400; margin-right: 8px;">Total:</span>
+        <span style="font-weight: 700;"
+              th:text="'$' + ${#numbers.formatDecimal(total, 1, 'COMMA', 0, 'POINT')}">$0</span>
+      </td>
+    </tr>
+  </table>
+</th:block>
+</body>
+</html>

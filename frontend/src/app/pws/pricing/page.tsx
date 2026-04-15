@@ -1,69 +1,20 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import s from './pricing.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { useDebounce } from '@/lib/useDebounce';
+import { API_BASE } from '@/lib/apiRoutes';
+import type { PageResponse } from '@/lib/types';
+import { getErrorMessage } from '@/lib/errors';
+import { ErrorBanner } from '@/components/ErrorBanner';
+import { PriceHistoryModal, type PriceHistoryEntry } from '@/components/pricing/PriceHistoryModal';
+import { FutureDateModal } from '@/components/pricing/FutureDateModal';
+import { UploadCsvModal, type UploadResult } from '@/components/pricing/UploadCsvModal';
+import { PricingGrid, type PricingDevice, type Filters, type PendingEdit } from '@/components/pricing/PricingGrid';
 
-const API_BASE = '/api/v1';
 const PAGE_SIZE = 20;
 const DEBOUNCE_MS = 500;
-
-// ── Types ──
-
-interface PricingDevice {
-  id: number;
-  sku: string;
-  categoryName: string | null;
-  brandName: string | null;
-  modelName: string | null;
-  carrierName: string | null;
-  capacityName: string | null;
-  colorName: string | null;
-  gradeName: string | null;
-  currentListPrice: number | null;
-  futureListPrice: number | null;
-  currentMinPrice: number | null;
-  futureMinPrice: number | null;
-}
-
-interface PageResponse {
-  content: PricingDevice[];
-  totalElements: number;
-  totalPages: number;
-  number: number;
-  size: number;
-}
-
-interface Filters {
-  sku: string;
-  category: string;
-  brand: string;
-  model: string;
-  carrier: string;
-  capacity: string;
-  color: string;
-  grade: string;
-  currentListPrice: string;
-  futureListPrice: string;
-  currentMinPrice: string;
-  futureMinPrice: string;
-}
-
-interface PriceHistoryEntry {
-  id: number;
-  listPrice: number | null;
-  minPrice: number | null;
-  previousListPrice: number | null;
-  previousMinPrice: number | null;
-  expirationDate: string | null;
-  createdDate: string | null;
-}
-
-// Pending edits: deviceId -> { futureListPrice, futureMinPrice }
-interface PendingEdit {
-  futureListPrice: string;
-  futureMinPrice: string;
-}
 
 type SortField = string | null;
 type SortDir = 'asc' | 'desc';
@@ -88,7 +39,8 @@ export default function PricingPage() {
   const [exporting, setExporting] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [uploadResult, setUploadResult] = useState<{ totalRows: number; updatedCount: number; errorCount: number; errors: string[] } | null>(null);
+  const [uploadResult, setUploadResult] = useState<UploadResult | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Future price date config
   const [futureDateOpen, setFutureDateOpen] = useState(false);
@@ -102,14 +54,12 @@ export default function PricingPage() {
   const [historyData, setHistoryData] = useState<PriceHistoryEntry[]>([]);
 
   const [filters, setFilters] = useState<Filters>({ ...emptyFilters });
-  const [debouncedFilters, setDebouncedFilters] = useState<Filters>({ ...emptyFilters });
+  const debouncedFilters = useDebounce(filters, DEBOUNCE_MS);
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const searchTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const filterTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const debouncedSearch = useDebounce(searchTerm, DEBOUNCE_MS);
 
   // Distinct values for dropdown filters
   const [distinctValues, setDistinctValues] = useState<Record<string, string[]>>({});
@@ -117,25 +67,8 @@ export default function PricingPage() {
   // Inline editing state
   const [pendingEdits, setPendingEdits] = useState<Record<number, PendingEdit>>({});
 
-  // ── Debounce search ──
-  useEffect(() => {
-    if (searchTimer.current) clearTimeout(searchTimer.current);
-    searchTimer.current = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setPage(0);
-    }, DEBOUNCE_MS);
-    return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
-  }, [searchTerm]);
-
-  // ── Debounce filters ──
-  useEffect(() => {
-    if (filterTimer.current) clearTimeout(filterTimer.current);
-    filterTimer.current = setTimeout(() => {
-      setDebouncedFilters({ ...filters });
-      setPage(0);
-    }, DEBOUNCE_MS);
-    return () => { if (filterTimer.current) clearTimeout(filterTimer.current); };
-  }, [filters]);
+  // Reset to first page whenever the debounced query inputs settle.
+  useEffect(() => { setPage(0); }, [debouncedSearch, debouncedFilters]);
 
   // ── Fetch data from server ──
   const fetchData = useCallback(async () => {
@@ -158,13 +91,13 @@ export default function PricingPage() {
 
       const res = await apiFetch(`${API_BASE}/pws/pricing/devices?${params.toString()}`);
       if (res.ok) {
-        const json: PageResponse = await res.json();
+        const json: PageResponse<PricingDevice> = await res.json();
         setData(json.content);
         setTotalElements(json.totalElements);
         setTotalPages(json.totalPages);
       }
     } catch (err) {
-      console.error('Failed to load pricing data:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to load pricing data.'));
     } finally {
       setLoading(false);
     }
@@ -201,7 +134,7 @@ export default function PricingPage() {
         setFutureDateOpen(false);
       }
     } catch (err) {
-      console.error('Failed to save future price date:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to save future price date.'));
     } finally {
       setFutureDateSaving(false);
     }
@@ -213,7 +146,7 @@ export default function PricingPage() {
       try {
         const res = await apiFetch(`${API_BASE}/pws/pricing/devices?page=0&size=10000`);
         if (!res.ok) return;
-        const json: PageResponse = await res.json();
+        const json: PageResponse<PricingDevice> = await res.json();
         const vals: Record<string, Set<string>> = {};
         for (const field of dropdownFields) vals[field] = new Set();
         for (const d of json.content) {
@@ -264,13 +197,6 @@ export default function PricingPage() {
     setFilters((prev) => ({ ...prev, [field]: value }));
   }, []);
 
-  // ── Inline edit handlers ──
-  const getEditValue = (deviceId: number, field: 'futureListPrice' | 'futureMinPrice', original: number | null): string => {
-    const edit = pendingEdits[deviceId];
-    if (edit) return edit[field];
-    return original != null ? original.toFixed(2) : '';
-  };
-
   const handleEditChange = useCallback((deviceId: number, field: 'futureListPrice' | 'futureMinPrice', value: string) => {
     setPendingEdits((prev) => {
       const existing = prev[deviceId];
@@ -309,7 +235,7 @@ export default function PricingPage() {
         await fetchData();
       }
     } catch (err) {
-      console.error('Failed to save pricing updates:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to save pricing updates.'));
     } finally {
       setSaving(false);
     }
@@ -341,7 +267,7 @@ export default function PricingPage() {
 
       const res = await apiFetch(`${API_BASE}/pws/pricing/devices?${params.toString()}`);
       if (!res.ok) return;
-      const json: PageResponse = await res.json();
+      const json: PageResponse<PricingDevice> = await res.json();
 
       let csv = 'SKU,Category,Brand,Model Family,Carrier,Capacity,Color,Grade,Current List Price,New List Price,Current Min Price,New Min Price\n';
       for (const d of json.content) {
@@ -369,7 +295,7 @@ export default function PricingPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Failed to export pricing data:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to export pricing data.'));
     } finally {
       setExporting(false);
     }
@@ -394,7 +320,7 @@ export default function PricingPage() {
         }
       }
     } catch (err) {
-      console.error('Failed to upload pricing CSV:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to upload pricing CSV.'));
     } finally {
       setUploading(false);
     }
@@ -412,50 +338,16 @@ export default function PricingPage() {
         setHistoryData(await res.json());
       }
     } catch (err) {
-      console.error('Failed to load price history:', err);
+      setErrorMsg(getErrorMessage(err, 'Failed to load price history.'));
     } finally {
       setHistoryLoading(false);
     }
   }, []);
 
-  // ── Sort icon ──
-  function sortIcon(field: string) {
-    return (
-      <span className={s.sortIcon}>
-        <svg width="10" height="14" viewBox="0 0 10 14" fill="none">
-          <path d="M5 0L9.33 5H0.67L5 0Z" fill={sortField === field && sortDir === 'asc' ? '#1a2e35' : '#bbb'} />
-          <path d="M5 14L0.67 9H9.33L5 14Z" fill={sortField === field && sortDir === 'desc' ? '#1a2e35' : '#bbb'} />
-        </svg>
-      </span>
-    );
-  }
-
-  // ── Pagination helpers ──
-  const startRow = page * PAGE_SIZE + 1;
-  const endRow = Math.min((page + 1) * PAGE_SIZE, totalElements);
-
-  // ── Price formatter ──
-  const fmtPrice = (v: number | null) => (v != null ? `$${v.toFixed(2)}` : '');
-
-  // ── Columns config ──
-  const columns = [
-    { key: 'sku', header: 'SKU', type: 'text' as const, className: s.colSku },
-    { key: 'categoryName', header: 'Category', type: 'dropdown' as const, filterField: 'category' },
-    { key: 'brandName', header: 'Brand', type: 'dropdown' as const, filterField: 'brand' },
-    { key: 'modelName', header: 'Model Family', type: 'dropdown' as const, filterField: 'model', className: s.colModel },
-    { key: 'carrierName', header: 'Carrier', type: 'dropdown' as const, filterField: 'carrier' },
-    { key: 'capacityName', header: 'Capacity', type: 'dropdown' as const, filterField: 'capacity' },
-    { key: 'colorName', header: 'Color', type: 'dropdown' as const, filterField: 'color' },
-    { key: 'gradeName', header: 'Grade', type: 'dropdown' as const, filterField: 'grade' },
-    { key: 'currentListPrice', header: 'Current List Price', type: 'number' as const, filterField: 'currentListPrice' },
-    { key: 'futureListPrice', header: 'New List Price', type: 'number' as const, editable: true, filterField: 'futureListPrice' },
-    { key: 'currentMinPrice', header: 'Current Min Price', type: 'number' as const, filterField: 'currentMinPrice' },
-    { key: 'futureMinPrice', header: 'New Min Price', type: 'number' as const, editable: true, filterField: 'futureMinPrice' },
-  ];
-
   return (
     <div className={s.pageWrapper}>
       <div className={s.contentArea}>
+        <ErrorBanner message={errorMsg} onDismiss={() => setErrorMsg(null)} />
         {/* ── Header ── */}
         <div className={s.pageHeader}>
           <h1 className={s.pageTitle}>Pricing</h1>
@@ -511,251 +403,55 @@ export default function PricingPage() {
           </div>
         </div>
 
-        {/* ── Grid ── */}
         {loading && data.length === 0 ? (
           <div className={s.loadingState}>Loading pricing data…</div>
         ) : (
-          <div className={s.gridWrapper}>
-            <div className={s.gridContainer}>
-              <table className={s.datagrid}>
-                <thead>
-                  {/* Header row */}
-                  <tr>
-                    {columns.map((col) => (
-                      <th
-                        key={col.key}
-                        className={col.className || undefined}
-                        onClick={() => handleSort(col.key)}
-                      >
-                        {col.header}
-                        {sortIcon(col.key)}
-                      </th>
-                    ))}
-                  </tr>
-                  {/* Filter row */}
-                  <tr className={s.filterRow}>
-                    {columns.map((col) => (
-                      <th key={`f-${col.key}`}>
-                        {col.type === 'text' && (
-                          <input
-                            type="text"
-                            className={s.filterInput}
-                            value={filters[col.key as keyof Filters] || ''}
-                            onChange={(e) => updateFilter(col.key as keyof Filters, e.target.value)}
-                          />
-                        )}
-                        {col.type === 'dropdown' && (
-                          <select
-                            className={s.filterSelect}
-                            value={filters[col.filterField as keyof Filters] || ''}
-                            onChange={(e) => updateFilter(col.filterField as keyof Filters, e.target.value)}
-                          >
-                            <option value="">Search</option>
-                            {(distinctValues[col.filterField!] || []).map((v) => (
-                              <option key={v} value={v}>{v}</option>
-                            ))}
-                          </select>
-                        )}
-                        {col.type === 'number' && (
-                          <input
-                            type="text"
-                            className={s.filterInputNumber}
-                            placeholder="="
-                            value={filters[col.filterField as keyof Filters] || ''}
-                            onChange={(e) => updateFilter(col.filterField as keyof Filters, e.target.value)}
-                          />
-                        )}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sorted.length === 0 ? (
-                    <tr>
-                      <td colSpan={columns.length} className={s.emptyState}>
-                        No pricing data found
-                      </td>
-                    </tr>
-                  ) : (
-                    sorted.map((row) => (
-                      <tr key={row.id} onClick={() => handleRowClick(row)}>
-                        <td>{row.sku}</td>
-                        <td>{row.categoryName}</td>
-                        <td>{row.brandName}</td>
-                        <td>{row.modelName}</td>
-                        <td>{row.carrierName}</td>
-                        <td>{row.capacityName}</td>
-                        <td>{row.colorName}</td>
-                        <td>{row.gradeName}</td>
-                        <td>{fmtPrice(row.currentListPrice)}</td>
-                        <td className={s.inputCell}>
-                          <input
-                            type="text"
-                            className={s.priceInput}
-                            value={getEditValue(row.id, 'futureListPrice', row.futureListPrice)}
-                            onChange={(e) => handleEditChange(row.id, 'futureListPrice', e.target.value)}
-                          />
-                        </td>
-                        <td>{fmtPrice(row.currentMinPrice)}</td>
-                        <td className={s.inputCell}>
-                          <input
-                            type="text"
-                            className={s.priceInput}
-                            value={getEditValue(row.id, 'futureMinPrice', row.futureMinPrice)}
-                            onChange={(e) => handleEditChange(row.id, 'futureMinPrice', e.target.value)}
-                          />
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* ── Pagination ── */}
-            <div className={s.pagination}>
-              <span className={s.pageInfo}>
-                {totalElements > 0 ? `${startRow} to ${endRow} of ${totalElements}` : '0 of 0'}
-              </span>
-              <button className={s.pageBtn} disabled={page === 0} onClick={() => setPage(0)} title="First">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="11 17 6 12 11 7" /><polyline points="18 17 13 12 18 7" /></svg>
-              </button>
-              <button className={s.pageBtn} disabled={page === 0} onClick={() => setPage((p) => p - 1)} title="Previous">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
-              </button>
-              <button className={s.pageBtn} disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)} title="Next">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6" /></svg>
-              </button>
-              <button className={s.pageBtn} disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)} title="Last">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" /></svg>
-              </button>
-            </div>
-          </div>
+          <PricingGrid
+            rows={sorted}
+            filters={filters}
+            distinctValues={distinctValues}
+            sortField={sortField}
+            sortDir={sortDir}
+            pendingEdits={pendingEdits}
+            page={page}
+            totalPages={totalPages}
+            totalElements={totalElements}
+            pageSize={PAGE_SIZE}
+            onSort={handleSort}
+            onFilterChange={updateFilter}
+            onEditChange={handleEditChange}
+            onRowClick={handleRowClick}
+            onPageChange={setPage}
+          />
         )}
       </div>
 
-      {/* ── Price History Modal ── */}
       {historyOpen && (
-        <div className={s.modalOverlay} onClick={() => setHistoryOpen(false)}>
-          <div className={`${s.modal} ${s.historyModal}`} onClick={(e) => e.stopPropagation()}>
-            <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>
-                Price History{historyDevice ? ` — ${historyDevice.sku}` : ''}
-              </h2>
-              <button className={s.modalClose} onClick={() => setHistoryOpen(false)}>×</button>
-            </div>
-            <div className={s.modalBody}>
-              {historyLoading ? (
-                <p className={s.modalStatus}>Loading history…</p>
-              ) : historyData.length === 0 ? (
-                <p>No price history found for this device.</p>
-              ) : (
-                <table className={s.historyTable}>
-                  <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>List Price</th>
-                      <th>Prev List Price</th>
-                      <th>Min Price</th>
-                      <th>Prev Min Price</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {historyData.map((h) => (
-                      <tr key={h.id}>
-                        <td>{h.createdDate ? new Date(h.createdDate).toLocaleDateString() : '—'}</td>
-                        <td>{h.listPrice != null ? `$${h.listPrice.toFixed(2)}` : '—'}</td>
-                        <td>{h.previousListPrice != null ? `$${h.previousListPrice.toFixed(2)}` : '—'}</td>
-                        <td>{h.minPrice != null ? `$${h.minPrice.toFixed(2)}` : '—'}</td>
-                        <td>{h.previousMinPrice != null ? `$${h.previousMinPrice.toFixed(2)}` : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
-        </div>
+        <PriceHistoryModal
+          device={historyDevice}
+          data={historyData}
+          loading={historyLoading}
+          onClose={() => setHistoryOpen(false)}
+        />
       )}
 
-      {/* ── Future Date Modal ── */}
       {futureDateOpen && (
-        <div className={s.modalOverlay} onClick={() => setFutureDateOpen(false)}>
-          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>Set Future Price Date</h2>
-              <button className={s.modalClose} onClick={() => setFutureDateOpen(false)}>×</button>
-            </div>
-            <div className={s.modalBody}>
-              <p className={s.modalHint}>
-                Select the date when future prices become effective.
-              </p>
-              <input
-                type="date"
-                className={s.filterInput}
-                value={futurePriceDate}
-                min={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setFuturePriceDate(e.target.value)}
-              />
-              <div style={{ marginTop: 16, display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className={s.actionBtn} type="button" onClick={() => setFutureDateOpen(false)}>
-                  Cancel
-                </button>
-                <button
-                  className={`${s.actionBtn} ${s.saveBtn}`}
-                  type="button"
-                  onClick={handleFutureDateSave}
-                  disabled={futureDateSaving}
-                >
-                  {futureDateSaving ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <FutureDateModal
+          value={futurePriceDate}
+          saving={futureDateSaving}
+          onChange={setFuturePriceDate}
+          onSave={handleFutureDateSave}
+          onClose={() => setFutureDateOpen(false)}
+        />
       )}
 
-      {/* ── Upload Modal ── */}
       {uploadOpen && (
-        <div className={s.modalOverlay} onClick={() => setUploadOpen(false)}>
-          <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={s.modalHeader}>
-              <h2 className={s.modalTitle}>Upload Pricing Data</h2>
-              <button className={s.modalClose} onClick={() => setUploadOpen(false)}>×</button>
-            </div>
-            <div className={s.modalBody}>
-              <p className={s.modalHint}>
-                CSV format: <code>sku,futureListPrice,futureMinPrice</code>
-              </p>
-              <input
-                type="file"
-                accept=".csv"
-                className={s.fileInput}
-                disabled={uploading}
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) handleUpload(file);
-                }}
-              />
-              {uploading && <p className={s.modalStatus}>Uploading…</p>}
-              {uploadResult && (
-                <div className={s.uploadResult}>
-                  <p><strong>{uploadResult.updatedCount}</strong> of {uploadResult.totalRows} rows updated</p>
-                  {uploadResult.errorCount > 0 && (
-                    <div className={s.uploadErrors}>
-                      <p><strong>{uploadResult.errorCount} errors:</strong></p>
-                      <ul>
-                        {uploadResult.errors.map((err, i) => (
-                          <li key={i}>{err}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+        <UploadCsvModal
+          uploading={uploading}
+          result={uploadResult}
+          onUpload={handleUpload}
+          onClose={() => setUploadOpen(false)}
+        />
       )}
     </div>
   );

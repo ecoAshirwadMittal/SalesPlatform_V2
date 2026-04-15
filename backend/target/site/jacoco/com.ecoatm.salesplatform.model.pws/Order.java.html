@@ -7,8 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = &quot;order&quot;, schema = &quot;pws&quot;)
-<span class="fc" id="L11">public class Order {</span>
+// &quot;order&quot; is a SQL reserved keyword — always quote in native queries: pws.&quot;order&quot;
+@Table(name = &quot;\&quot;order\&quot;&quot;, schema = &quot;pws&quot;)
+<span class="fc" id="L12">public class Order {</span>
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -69,79 +70,79 @@ import java.util.List;
     @Column(name = &quot;updated_date&quot;)
     private LocalDateTime updatedDate;
 
-    @OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.ALL, orphanRemoval = true)
-<span class="fc" id="L73">    private List&lt;ShipmentDetail&gt; shipments = new ArrayList&lt;&gt;();</span>
+<span class="fc" id="L73">    @OneToMany(mappedBy = &quot;order&quot;, cascade = CascadeType.ALL, orphanRemoval = true)</span>
+    private List&lt;ShipmentDetail&gt; shipments = new ArrayList&lt;&gt;();
 
     @PrePersist
     protected void onCreate() {
-<span class="nc" id="L77">        createdDate = LocalDateTime.now();</span>
-<span class="nc" id="L78">        updatedDate = LocalDateTime.now();</span>
-<span class="nc" id="L79">    }</span>
+<span class="nc" id="L78">        createdDate = LocalDateTime.now();</span>
+<span class="nc" id="L79">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L80">    }</span>
 
     @PreUpdate
     protected void onUpdate() {
-<span class="nc" id="L83">        updatedDate = LocalDateTime.now();</span>
-<span class="nc" id="L84">    }</span>
+<span class="nc" id="L84">        updatedDate = LocalDateTime.now();</span>
+<span class="nc" id="L85">    }</span>
 
     // Getters and Setters
-<span class="fc" id="L87">    public Long getId() { return id; }</span>
-<span class="fc" id="L88">    public void setId(Long id) { this.id = id; }</span>
+<span class="fc" id="L88">    public Long getId() { return id; }</span>
+<span class="fc" id="L89">    public void setId(Long id) { this.id = id; }</span>
 
-<span class="fc" id="L90">    public Long getLegacyId() { return legacyId; }</span>
-<span class="fc" id="L91">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
+<span class="fc" id="L91">    public Long getLegacyId() { return legacyId; }</span>
+<span class="fc" id="L92">    public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }</span>
 
-<span class="fc" id="L93">    public Offer getOffer() { return offer; }</span>
-<span class="fc" id="L94">    public void setOffer(Offer offer) { this.offer = offer; }</span>
+<span class="fc" id="L94">    public Offer getOffer() { return offer; }</span>
+<span class="fc" id="L95">    public void setOffer(Offer offer) { this.offer = offer; }</span>
 
-<span class="fc" id="L96">    public String getOrderNumber() { return orderNumber; }</span>
-<span class="fc" id="L97">    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }</span>
+<span class="fc" id="L97">    public String getOrderNumber() { return orderNumber; }</span>
+<span class="fc" id="L98">    public void setOrderNumber(String orderNumber) { this.orderNumber = orderNumber; }</span>
 
-<span class="fc" id="L99">    public String getOrderLine() { return orderLine; }</span>
-<span class="fc" id="L100">    public void setOrderLine(String orderLine) { this.orderLine = orderLine; }</span>
+<span class="fc" id="L100">    public String getOrderLine() { return orderLine; }</span>
+<span class="fc" id="L101">    public void setOrderLine(String orderLine) { this.orderLine = orderLine; }</span>
 
-<span class="fc" id="L102">    public String getOrderStatus() { return orderStatus; }</span>
-<span class="fc" id="L103">    public void setOrderStatus(String orderStatus) { this.orderStatus = orderStatus; }</span>
+<span class="fc" id="L103">    public String getOrderStatus() { return orderStatus; }</span>
+<span class="fc" id="L104">    public void setOrderStatus(String orderStatus) { this.orderStatus = orderStatus; }</span>
 
-<span class="fc" id="L105">    public String getOracleStatus() { return oracleStatus; }</span>
-<span class="fc" id="L106">    public void setOracleStatus(String oracleStatus) { this.oracleStatus = oracleStatus; }</span>
+<span class="fc" id="L106">    public String getOracleStatus() { return oracleStatus; }</span>
+<span class="fc" id="L107">    public void setOracleStatus(String oracleStatus) { this.oracleStatus = oracleStatus; }</span>
 
-<span class="fc" id="L108">    public String getShipMethod() { return shipMethod; }</span>
-<span class="fc" id="L109">    public void setShipMethod(String shipMethod) { this.shipMethod = shipMethod; }</span>
+<span class="fc" id="L109">    public String getShipMethod() { return shipMethod; }</span>
+<span class="fc" id="L110">    public void setShipMethod(String shipMethod) { this.shipMethod = shipMethod; }</span>
 
-<span class="fc" id="L111">    public Integer getShippedTotalQty() { return shippedTotalQty; }</span>
-<span class="fc" id="L112">    public void setShippedTotalQty(Integer shippedTotalQty) { this.shippedTotalQty = shippedTotalQty; }</span>
+<span class="fc" id="L112">    public Integer getShippedTotalQty() { return shippedTotalQty; }</span>
+<span class="fc" id="L113">    public void setShippedTotalQty(Integer shippedTotalQty) { this.shippedTotalQty = shippedTotalQty; }</span>
 
-<span class="fc" id="L114">    public BigDecimal getShippedTotalPrice() { return shippedTotalPrice; }</span>
-<span class="fc" id="L115">    public void setShippedTotalPrice(BigDecimal shippedTotalPrice) { this.shippedTotalPrice = shippedTotalPrice; }</span>
+<span class="fc" id="L115">    public BigDecimal getShippedTotalPrice() { return shippedTotalPrice; }</span>
+<span class="fc" id="L116">    public void setShippedTotalPrice(BigDecimal shippedTotalPrice) { this.shippedTotalPrice = shippedTotalPrice; }</span>
 
-<span class="fc" id="L117">    public LocalDateTime getOrderDate() { return orderDate; }</span>
-<span class="fc" id="L118">    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }</span>
+<span class="fc" id="L118">    public LocalDateTime getOrderDate() { return orderDate; }</span>
+<span class="fc" id="L119">    public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }</span>
 
-<span class="fc" id="L120">    public LocalDateTime getShipDate() { return shipDate; }</span>
-<span class="fc" id="L121">    public void setShipDate(LocalDateTime shipDate) { this.shipDate = shipDate; }</span>
+<span class="fc" id="L121">    public LocalDateTime getShipDate() { return shipDate; }</span>
+<span class="fc" id="L122">    public void setShipDate(LocalDateTime shipDate) { this.shipDate = shipDate; }</span>
 
-<span class="fc" id="L123">    public Integer getOracleHttpCode() { return oracleHttpCode; }</span>
-<span class="fc" id="L124">    public void setOracleHttpCode(Integer oracleHttpCode) { this.oracleHttpCode = oracleHttpCode; }</span>
+<span class="fc" id="L124">    public Integer getOracleHttpCode() { return oracleHttpCode; }</span>
+<span class="fc" id="L125">    public void setOracleHttpCode(Integer oracleHttpCode) { this.oracleHttpCode = oracleHttpCode; }</span>
 
-<span class="fc" id="L126">    public Boolean getIsSuccessful() { return isSuccessful; }</span>
-<span class="fc" id="L127">    public void setIsSuccessful(Boolean isSuccessful) { this.isSuccessful = isSuccessful; }</span>
+<span class="fc" id="L127">    public Boolean getIsSuccessful() { return isSuccessful; }</span>
+<span class="fc" id="L128">    public void setIsSuccessful(Boolean isSuccessful) { this.isSuccessful = isSuccessful; }</span>
 
-<span class="fc" id="L129">    public String getOracleJsonResponse() { return oracleJsonResponse; }</span>
-<span class="fc" id="L130">    public void setOracleJsonResponse(String oracleJsonResponse) { this.oracleJsonResponse = oracleJsonResponse; }</span>
+<span class="fc" id="L130">    public String getOracleJsonResponse() { return oracleJsonResponse; }</span>
+<span class="fc" id="L131">    public void setOracleJsonResponse(String oracleJsonResponse) { this.oracleJsonResponse = oracleJsonResponse; }</span>
 
-<span class="fc" id="L132">    public String getJsonContent() { return jsonContent; }</span>
-<span class="fc" id="L133">    public void setJsonContent(String jsonContent) { this.jsonContent = jsonContent; }</span>
+<span class="fc" id="L133">    public String getJsonContent() { return jsonContent; }</span>
+<span class="fc" id="L134">    public void setJsonContent(String jsonContent) { this.jsonContent = jsonContent; }</span>
 
-<span class="fc" id="L135">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
-<span class="fc" id="L136">    public void setBuyerCodeId(Long buyerCodeId) { this.buyerCodeId = buyerCodeId; }</span>
+<span class="fc" id="L136">    public Long getBuyerCodeId() { return buyerCodeId; }</span>
+<span class="fc" id="L137">    public void setBuyerCodeId(Long buyerCodeId) { this.buyerCodeId = buyerCodeId; }</span>
 
-<span class="fc" id="L138">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
-<span class="fc" id="L139">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
+<span class="fc" id="L139">    public LocalDateTime getCreatedDate() { return createdDate; }</span>
+<span class="fc" id="L140">    public void setCreatedDate(LocalDateTime createdDate) { this.createdDate = createdDate; }</span>
 
-<span class="fc" id="L141">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
-<span class="fc" id="L142">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
+<span class="fc" id="L142">    public LocalDateTime getUpdatedDate() { return updatedDate; }</span>
+<span class="fc" id="L143">    public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }</span>
 
-<span class="fc" id="L144">    public List&lt;ShipmentDetail&gt; getShipments() { return shipments; }</span>
-<span class="fc" id="L145">    public void setShipments(List&lt;ShipmentDetail&gt; shipments) { this.shipments = shipments; }</span>
+<span class="fc" id="L145">    public List&lt;ShipmentDetail&gt; getShipments() { return shipments; }</span>
+<span class="fc" id="L146">    public void setShipments(List&lt;ShipmentDetail&gt; shipments) { this.shipments = shipments; }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

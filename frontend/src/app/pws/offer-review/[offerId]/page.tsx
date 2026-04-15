@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import styles from '../offerReview.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/offer-review';
+const BASE = `${API_BASE}/pws/offer-review`;
 
 interface OfferItemData {
   id: number;
@@ -101,7 +102,7 @@ export default function OfferDetailPage() {
 
   const loadOffer = useCallback(async () => {
     try {
-      const res = await apiFetch(`${API_BASE}/${offerId}`);
+      const res = await apiFetch(`${BASE}/${offerId}`);
       if (res.ok) setOffer(await res.json());
     } catch (err) {
       console.error('Failed to load offer:', err);
@@ -117,7 +118,7 @@ export default function OfferDetailPage() {
   async function handleItemAction(itemId: number, action: string) {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${offerId}/items/${itemId}/action`, {
+      const res = await apiFetch(`${BASE}/${offerId}/items/${itemId}/action`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
@@ -132,7 +133,7 @@ export default function OfferDetailPage() {
     const body: Record<string, number | null> = {};
     body[field] = value ? Number(value) : null;
     try {
-      const res = await apiFetch(`${API_BASE}/${offerId}/items/${itemId}/counter`, {
+      const res = await apiFetch(`${BASE}/${offerId}/items/${itemId}/counter`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -146,17 +147,48 @@ export default function OfferDetailPage() {
   async function handleBulkAction(action: string) {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${offerId}/${action}`, { method: 'POST' });
+      const res = await apiFetch(`${BASE}/${offerId}/${action}`, { method: 'POST' });
       if (res.ok) setOffer(await res.json());
     } finally {
       setActionLoading(false);
     }
   }
 
+  function handleDownload() {
+    if (!offer) return;
+    const headers = [
+      'SKU', 'Brand', 'Model', 'Carrier', 'Capacity', 'Color', 'Grade',
+      'Avl Qty', 'Min Price', 'List Price', 'Offer Qty', 'Offer Price',
+      'Offer Total', 'Status',
+    ];
+    const escapeCell = (val: unknown): string => {
+      const str = String(val ?? '');
+      return str.includes(',') || str.includes('"') || str.includes('\n')
+        ? `"${str.replace(/"/g, '""')}"` : str;
+    };
+    const rows = offer.items.map((item) => [
+      item.sku, item.brandName, item.modelName, item.carrierName,
+      item.capacityName, item.colorName, item.gradeName, item.availableQty,
+      item.minPrice, item.listPrice, item.quantity, item.price,
+      item.totalPrice, item.itemStatus,
+    ].map(escapeCell).join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `offer-${offer.offerNumber || offer.offerId}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
   async function handleCompleteReview() {
     setActionLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${offerId}/complete-review`, { method: 'POST' });
+      const res = await apiFetch(`${BASE}/${offerId}/complete-review`, { method: 'POST' });
       const data: SubmitResult = await res.json();
       setModal(data);
       if (data.success) loadOffer();
@@ -230,6 +262,7 @@ export default function OfferDetailPage() {
                       disabled={actionLoading}>Finalize All</button>
                     <button onClick={() => { handleBulkAction('decline-all'); setMoreMenuOpen(false); }}
                       disabled={actionLoading}>Decline All</button>
+                    <button onClick={() => { handleDownload(); setMoreMenuOpen(false); }}>Download</button>
                   </div>
                 )}
               </div>

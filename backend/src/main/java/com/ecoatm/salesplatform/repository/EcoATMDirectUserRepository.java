@@ -102,6 +102,56 @@ public interface EcoATMDirectUserRepository extends JpaRepository<EcoATMDirectUs
     """)
     List<Object[]> findAllBuyers();
 
+    /**
+     * Resolves the list of active EcoATMDirectUsers linked to a buyer code.
+     * Used by PWS email notifications (order, pending-order, counter-offer)
+     * which fan out to every user under the buyer — mirrors the Mendix
+     * `BuyerCode → Buyer → EcoATMDirectUser_Buyer` association walk.
+     *
+     * Returns Object[]: {email, full_name}.
+     */
+    @Query(nativeQuery = true, value = """
+        SELECT DISTINCT a.email, a.full_name
+        FROM buyer_mgmt.buyer_code_buyers bcb
+        JOIN user_mgmt.user_buyers ub ON ub.buyer_id = bcb.buyer_id
+        JOIN user_mgmt.ecoatm_direct_users edu ON edu.user_id = ub.user_id
+        JOIN identity.accounts a ON a.user_id = edu.user_id
+        WHERE bcb.buyer_code_id = :buyerCodeId
+          AND edu.overall_user_status = 'Active'
+          AND a.email IS NOT NULL
+          AND a.email <> ''
+        ORDER BY a.full_name
+    """)
+    List<Object[]> findActiveEmailsByBuyerCodeId(@Param("buyerCodeId") Long buyerCodeId);
+
+    /**
+     * Resolves a single user's email + full name — used for PWS offer
+     * confirmation which goes only to the submitting user.
+     * Returns Object[]: {email, full_name}.
+     */
+    @Query(nativeQuery = true, value = """
+        SELECT a.email, a.full_name
+        FROM identity.accounts a
+        WHERE a.user_id = :userId
+          AND a.email IS NOT NULL
+          AND a.email <> ''
+    """)
+    List<Object[]> findEmailByUserId(@Param("userId") Long userId);
+
+    /**
+     * First buyer company name associated with a buyer code — used for email
+     * subject/body substitutions.
+     */
+    @Query(nativeQuery = true, value = """
+        SELECT b.company_name
+        FROM buyer_mgmt.buyer_code_buyers bcb
+        JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
+        WHERE bcb.buyer_code_id = :buyerCodeId
+        ORDER BY b.company_name
+        LIMIT 1
+    """)
+    List<String> findBuyerCompanyNameByBuyerCodeId(@Param("buyerCodeId") Long buyerCodeId);
+
     @Query(nativeQuery = true, value = """
         SELECT COUNT(*)
         FROM user_mgmt.ecoatm_direct_users edu

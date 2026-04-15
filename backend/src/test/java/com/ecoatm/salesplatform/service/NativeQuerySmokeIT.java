@@ -193,41 +193,17 @@ class NativeQuerySmokeIT extends PostgresIntegrationTest {
         }
 
         @Test
-        @DisplayName("offer_id_sequence upsert query executes")
-        void offerIdSequenceUpsert() {
+        @DisplayName("offer_id_sequence upsert RETURNING query executes")
+        void offerIdSequenceUpsertReturning() {
             assertThatCode(() ->
                 em.createNativeQuery("""
                     INSERT INTO pws.offer_id_sequence (buyer_code_id, year_prefix, max_sequence)
                     VALUES (:bcId, :yp, 1)
                     ON CONFLICT (buyer_code_id, year_prefix)
                     DO UPDATE SET max_sequence = pws.offer_id_sequence.max_sequence + 1
+                    RETURNING max_sequence
                     """)
                     .setParameter("bcId", 99999L)
-                    .setParameter("yp", "99")
-                    .executeUpdate()
-            ).doesNotThrowAnyException();
-        }
-
-        @Test
-        @DisplayName("offer_id_sequence read query executes")
-        void offerIdSequenceRead() {
-            // Insert first so the read has something
-            em.createNativeQuery("""
-                INSERT INTO pws.offer_id_sequence (buyer_code_id, year_prefix, max_sequence)
-                VALUES (:bcId, :yp, 1)
-                ON CONFLICT (buyer_code_id, year_prefix)
-                DO UPDATE SET max_sequence = pws.offer_id_sequence.max_sequence + 1
-                """)
-                .setParameter("bcId", 99998L)
-                .setParameter("yp", "99")
-                .executeUpdate();
-
-            assertThatCode(() ->
-                em.createNativeQuery("""
-                    SELECT max_sequence FROM pws.offer_id_sequence
-                    WHERE buyer_code_id = :bcId AND year_prefix = :yp
-                    """)
-                    .setParameter("bcId", 99998L)
                     .setParameter("yp", "99")
                     .getSingleResult()
             ).doesNotThrowAnyException();

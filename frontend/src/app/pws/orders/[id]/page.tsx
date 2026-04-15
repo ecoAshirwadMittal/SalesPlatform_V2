@@ -5,8 +5,9 @@ import { useRouter, useParams } from 'next/navigation';
 import s from './orderDetails.module.css';
 import { apiFetch } from '@/lib/apiFetch';
 import { formatDate, formatCurrency, formatStatus } from '../orders-helpers';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws';
+const BASE = `${API_BASE}/pws`;
 
 // ── Types ──
 
@@ -88,7 +89,7 @@ export default function OrderDetailPage() {
       if (!userId) return;
 
       const res = await apiFetch(
-        `${API_BASE}/orders?tab=all&userId=${userId}&page=0&size=1000`
+        `${BASE}/orders?tab=all&userId=${userId}&page=0&size=1000`
       );
       if (res.ok) {
         const json = await res.json();
@@ -120,7 +121,7 @@ export default function OrderDetailPage() {
   // Fetch By SKU data
   const fetchSkuData = useCallback(async () => {
     try {
-      const res = await apiFetch(`${API_BASE}/orders/${offerId}/details/by-sku`);
+      const res = await apiFetch(`${BASE}/orders/${offerId}/details/by-sku`);
       if (res.ok) {
         setSkuData(await res.json());
       }
@@ -132,7 +133,7 @@ export default function OrderDetailPage() {
   // Fetch By Device data
   const fetchDeviceData = useCallback(async () => {
     try {
-      const res = await apiFetch(`${API_BASE}/orders/${offerId}/details/by-device`);
+      const res = await apiFetch(`${BASE}/orders/${offerId}/details/by-device`);
       if (res.ok) {
         setDeviceData(await res.json());
       }

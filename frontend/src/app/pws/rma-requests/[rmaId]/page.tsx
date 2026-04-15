@@ -4,8 +4,9 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import styles from './rmaDetails.module.css';
 import { apiFetch } from '@/lib/apiFetch';
+import { API_BASE } from '@/lib/apiRoutes';
 
-const API_BASE = '/api/v1/pws/rma';
+const BASE = `${API_BASE}/pws/rma`;
 const PAGE_SIZE = 20;
 
 interface RmaInfo {
@@ -68,7 +69,7 @@ export default function RmaDetailsBuyerPage() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await apiFetch(`${API_BASE}/${rmaId}`);
+      const res = await apiFetch(`${BASE}/${rmaId}`);
       if (res.ok) setDetail(await res.json());
     } catch (err) {
       console.error('Failed to load RMA detail:', err);

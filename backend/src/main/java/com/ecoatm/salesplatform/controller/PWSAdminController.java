@@ -96,8 +96,9 @@ public class PWSAdminController {
     public Map<String, Object> getPWSConstants() {
         List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM pws.pws_constants LIMIT 1");
         if (rows.isEmpty()) {
-            jdbc.update("INSERT INTO pws.pws_constants (sla_days, send_first_reminder, send_second_reminder) VALUES (2, true, true)");
-            return jdbc.queryForList("SELECT * FROM pws.pws_constants LIMIT 1").get(0);
+            return jdbc.queryForList(
+                    "INSERT INTO pws.pws_constants (sla_days, send_first_reminder, send_second_reminder) VALUES (2, true, true) RETURNING *"
+            ).get(0);
         }
         return rows.get(0);
     }
@@ -119,17 +120,17 @@ public class PWSAdminController {
 
     @PutMapping("/order-status/{id}")
     public ResponseEntity<Map<String, Object>> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, Object> body) {
-        jdbc.update("UPDATE pws.order_status_config SET system_status=?, internal_status_text=?, external_status_text=?, internal_hex_code=?, external_hex_code=?, description=?, updated_date=? WHERE id=?",
+        jdbc.update("UPDATE pws.order_status_config SET system_status=?, internal_status_text=?, external_status_text=?, internal_css_class=?, external_css_class=?, description=?, updated_date=? WHERE id=?",
                 body.get("systemStatus"), body.get("internalStatusText"), body.get("externalStatusText"),
-                body.get("internalHexCode"), body.get("externalHexCode"), body.get("description"), LocalDateTime.now(), id);
+                body.get("internalCssClass"), body.get("externalCssClass"), body.get("description"), LocalDateTime.now(), id);
         return ResponseEntity.ok(Map.of("success", true));
     }
 
     @PostMapping("/order-status")
     public ResponseEntity<Map<String, Object>> createOrderStatus(@RequestBody Map<String, Object> body) {
-        jdbc.update("INSERT INTO pws.order_status_config (system_status, internal_status_text, external_status_text, internal_hex_code, external_hex_code, description) VALUES (?, ?, ?, ?, ?, ?)",
+        jdbc.update("INSERT INTO pws.order_status_config (system_status, internal_status_text, external_status_text, internal_css_class, external_css_class, description) VALUES (?, ?, ?, ?, ?, ?)",
                 body.get("systemStatus"), body.get("internalStatusText"), body.get("externalStatusText"),
-                body.get("internalHexCode"), body.get("externalHexCode"), body.get("description"));
+                body.get("internalCssClass"), body.get("externalCssClass"), body.get("description"));
         return ResponseEntity.ok(Map.of("success", true));
     }
 
@@ -145,8 +146,9 @@ public class PWSAdminController {
     public Map<String, Object> getMaintenanceMode() {
         List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM pws.maintenance_mode LIMIT 1");
         if (rows.isEmpty()) {
-            jdbc.update("INSERT INTO pws.maintenance_mode (is_enabled) VALUES (false)");
-            return jdbc.queryForList("SELECT * FROM pws.maintenance_mode LIMIT 1").get(0);
+            return jdbc.queryForList(
+                    "INSERT INTO pws.maintenance_mode (is_enabled) VALUES (false) RETURNING *"
+            ).get(0);
         }
         return rows.get(0);
     }
@@ -258,7 +260,7 @@ public class PWSAdminController {
 
     @GetMapping("/deposco")
     public Map<String, Object> getDeposcoConfig() {
-        List<Map<String, Object>> configs = jdbc.queryForList("SELECT * FROM integration.deposco_config LIMIT 1");
+        List<Map<String, Object>> configs = jdbc.queryForList("SELECT id, base_url, timeout_ms, is_active, last_sync_time, updated_date FROM integration.deposco_config LIMIT 1");
         return Map.of("config", configs.isEmpty() ? Map.of() : configs.get(0));
     }
 
@@ -266,15 +268,12 @@ public class PWSAdminController {
     public ResponseEntity<Map<String, Object>> updateDeposcoConfig(@RequestBody Map<String, Object> body) {
         List<Map<String, Object>> existing = jdbc.queryForList("SELECT id FROM integration.deposco_config LIMIT 1");
         if (existing.isEmpty()) {
-            jdbc.update("INSERT INTO integration.deposco_config (base_url, username, password_hash, timeout_ms, is_active) VALUES (?, ?, ?, ?, ?)",
-                    body.get("baseUrl"), body.get("username"), body.get("password"), body.get("timeoutMs"), body.get("isActive"));
+            jdbc.update("INSERT INTO integration.deposco_config (base_url, timeout_ms, is_active) VALUES (?, ?, ?)",
+                    body.get("baseUrl"), body.get("timeoutMs"), body.get("isActive"));
         } else {
             Long id = ((Number) existing.get(0).get("id")).longValue();
-            jdbc.update("UPDATE integration.deposco_config SET base_url=?, username=?, timeout_ms=?, is_active=?, updated_date=? WHERE id=?",
-                    body.get("baseUrl"), body.get("username"), body.get("timeoutMs"), body.get("isActive"), LocalDateTime.now(), id);
-            if (body.get("password") != null && !body.get("password").toString().isBlank()) {
-                jdbc.update("UPDATE integration.deposco_config SET password_hash=? WHERE id=?", body.get("password"), id);
-            }
+            jdbc.update("UPDATE integration.deposco_config SET base_url=?, timeout_ms=?, is_active=?, updated_date=? WHERE id=?",
+                    body.get("baseUrl"), body.get("timeoutMs"), body.get("isActive"), LocalDateTime.now(), id);
         }
         return ResponseEntity.ok(Map.of("success", true));
     }
