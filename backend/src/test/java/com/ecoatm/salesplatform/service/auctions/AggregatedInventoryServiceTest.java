@@ -38,7 +38,8 @@ class AggregatedInventoryServiceTest {
                 1L, "75", "A_YYY", "Apple", "iPhone 3G",
                 "IPHONE 3G 8GB A1241/A1324", "AT&T",
                 0, new BigDecimal("0.0000"),
-                7, new BigDecimal("2.0700")
+                7, new BigDecimal("2.0700"),
+                Boolean.FALSE
         };
 
         when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);

@@ -145,7 +145,7 @@
   position: fixed; inset: 0;
   background: rgba(17, 45, 50, 0.45);
   display: flex; align-items: center; justify-content: center;
-  z-index: 100;
+  z-index: 1000;
 }
 .modal {
   background: #fff; border-radius: 6px;

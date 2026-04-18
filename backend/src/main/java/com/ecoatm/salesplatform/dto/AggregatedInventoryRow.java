@@ -13,5 +13,6 @@ public record AggregatedInventoryRow(
         int dwTotalQuantity,
         BigDecimal dwAvgTargetPrice,
         int totalQuantity,
-        BigDecimal avgTargetPrice
+        BigDecimal avgTargetPrice,
+        boolean datawipe
 ) {}

@@ -76,7 +76,8 @@ class AggregatedInventoryControllerTest {
         var row = new com.ecoatm.salesplatform.dto.AggregatedInventoryRow(
                 1L, "75", "A_YYY", "Apple", "iPhone 3G",
                 "IPHONE 3G 8GB A1241/A1324", "AT&T",
-                0, java.math.BigDecimal.ZERO, 7, new java.math.BigDecimal("2.0700"));
+                0, java.math.BigDecimal.ZERO, 7, new java.math.BigDecimal("2.0700"),
+                false);
         when(service.search(100L, null, null, null, null, null, null, 0, 20))
                 .thenReturn(new com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse(
                         List.of(row), 0, 20, 1L, 1));

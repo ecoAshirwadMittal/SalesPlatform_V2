@@ -69,7 +69,7 @@ public class AggregatedInventoryService {
         String sql = """
                 SELECT a.id, a.ecoid2, a.merged_grade, a.brand, a.model, a.name, a.carrier,
                        a.dw_total_quantity, a.dw_avg_target_price,
-                       a.total_quantity, a.avg_target_price
+                       a.total_quantity, a.avg_target_price, a.datawipe
                 FROM auctions.aggregated_inventory a
                 %s
                 ORDER BY a.ecoid2 ASC, a.merged_grade ASC
@@ -115,7 +115,8 @@ public class AggregatedInventoryService {
                         ((Number) r[7]).intValue(),
                         toBd(r[8]),
                         ((Number) r[9]).intValue(),
-                        toBd(r[10])
+                        toBd(r[10]),
+                        (Boolean) r[11]
                 ))
                 .toList();
 

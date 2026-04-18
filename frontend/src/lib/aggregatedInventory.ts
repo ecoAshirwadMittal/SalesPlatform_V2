@@ -21,6 +21,7 @@ export const InventoryRowSchema = z.object({
   dwAvgTargetPrice: z.number(),
   totalQuantity: z.number(),
   avgTargetPrice: z.number(),
+  datawipe: z.boolean(),
 });
 export type InventoryRow = z.infer<typeof InventoryRowSchema>;
 

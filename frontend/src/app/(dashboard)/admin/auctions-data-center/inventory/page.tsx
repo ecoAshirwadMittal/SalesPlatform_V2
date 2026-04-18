@@ -207,6 +207,7 @@ export default function AggregatedInventoryPage() {
                   <button
                     type="button"
                     className={styles.editLink}
+                    aria-label={`Edit ${r.ecoid2} ${r.mergedGrade ?? ''}`.trim()}
                     onClick={() => setEditRow(r)}
                   >
                     Edit
@@ -293,11 +294,26 @@ function EditModal({
   onSaved: () => void;
 }) {
   const [mergedGrade, setMergedGrade] = useState(row.mergedGrade ?? '');
-  const [datawipe, setDatawipe] = useState(false);
+  const [datawipe, setDatawipe] = useState(row.datawipe);
   const [totalQuantity, setTotalQuantity] = useState(row.totalQuantity);
   const [dwTotalQuantity, setDwTotalQuantity] = useState(row.dwTotalQuantity);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const firstFieldRef = useRef<HTMLInputElement | null>(null);
+  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    previouslyFocusedRef.current = document.activeElement as HTMLElement | null;
+    firstFieldRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      previouslyFocusedRef.current?.focus?.();
+    };
+  }, [onClose]);
 
   const onSave = async () => {
     setSaving(true);
@@ -313,15 +329,24 @@ function EditModal({
   };
 
   return (
-    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+    <div
+      className={styles.modalBackdrop}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="edit-modal-title"
+      onMouseDown={e => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className={styles.modal}>
         <h3 id="edit-modal-title" className={styles.modalTitle}>Edit Aggregated Inventory</h3>
-        <div className={styles.field}>
-          <label>Merged Grade</label>
+        <fieldset className={styles.field}>
+          <legend>Merged Grade</legend>
           <div className={styles.radioGroup}>
-            {['A_YYY', 'C_YNY/G_YNN', 'E_YYN'].map(g => (
+            {['A_YYY', 'C_YNY/G_YNN', 'E_YYN'].map((g, idx) => (
               <label key={g}>
                 <input
+                  ref={idx === 0 ? firstFieldRef : undefined}
                   type="radio"
                   name="grade"
                   value={g}
@@ -332,9 +357,9 @@ function EditModal({
               </label>
             ))}
           </div>
-        </div>
-        <div className={styles.field}>
-          <label>Data Wipe</label>
+        </fieldset>
+        <fieldset className={styles.field}>
+          <legend>Data Wipe</legend>
           <div className={styles.radioGroup}>
             <label>
               <input type="radio" name="dw" checked={datawipe} onChange={() => setDatawipe(true)} /> Yes
@@ -343,7 +368,7 @@ function EditModal({
               <input type="radio" name="dw" checked={!datawipe} onChange={() => setDatawipe(false)} /> No
             </label>
           </div>
-        </div>
+        </fieldset>
         <div className={styles.field}>
           <label htmlFor="edit-total-qty">Total Quantity</label>
           <input

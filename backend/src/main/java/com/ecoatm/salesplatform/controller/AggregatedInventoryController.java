@@ -73,7 +73,8 @@ public class AggregatedInventoryController {
                 e.getId(), e.getEcoid2(), e.getMergedGrade(),
                 e.getBrand(), e.getModel(), e.getName(), e.getCarrier(),
                 e.getDwTotalQuantity(), e.getDwAvgTargetPrice(),
-                e.getTotalQuantity(), e.getAvgTargetPrice());
+                e.getTotalQuantity(), e.getAvgTargetPrice(),
+                e.isDatawipe());
         return ResponseEntity.ok(row);
     }
 }
