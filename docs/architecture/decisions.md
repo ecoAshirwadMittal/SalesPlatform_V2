@@ -5,6 +5,117 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-18 — Aggregated Inventory: Snowflake sync via post-commit event + watermark-based incremental pull
+
+**Status:** Accepted (Phases 0–8 of `docs/tasks/aggregated-inventory-snowflake-sync-plan.md`).
+
+### Context
+
+The Mendix legacy flow synced `AggregatedInventory` from the Snowflake
+`Master_Inventory_List_Snapshot` table on every `AggregatedInventory_Home`
+page open via a synchronous `JA_SnowflakeToMendix` microflow. The port needs to:
+
+1. Avoid blocking the admin page on Snowflake response time (the legacy
+   synchronous UX regularly stalled 30s+ on the first visit each day).
+2. Not overwrite admin edits that flipped `is_total_quantity_modified = true`
+   (honors the 2026-04-17 ADR).
+3. Skip work when Snowflake has no newer data (Mendix used
+   `AggregatedInventoryTotals.MaxUploadTime` for this; we need an equivalent).
+4. Gate prod-only wiring so local dev / CI never hit Snowflake.
+
+### Decision
+
+- **Post-commit event bridge.** `AggregatedInventoryController.triggerSync`
+  publishes `AggInventorySyncRequestedEvent`. `AggInventorySyncListener`
+  handles it via `@TransactionalEventListener(phase = AFTER_COMMIT)` +
+  `@Async("snowflakeExecutor")`. HTTP returns `202 Accepted` immediately;
+  the actual sync runs on a dedicated 3-thread executor. Mirrors the
+  2026-04-13 PWS email pattern.
+- **Watermark-based incremental pull.** New table
+  `auctions.week_sync_watermark (week_id, source, last_source_upload_at,
+  last_synced_at, row_count)` PK `(week_id, source)`. Before each sync,
+  `AggregatedInventorySnowflakeSyncService` runs a cheap
+  `SELECT MAX(Upload_Time) FROM Master_Inventory_List_Snapshot
+  WHERE Auction_Week=? AND Auction_Year=?`. If the returned timestamp is
+  ≤ the stored `last_source_upload_at`, the sync short-circuits with
+  status `SKIPPED_STALE`. Otherwise it runs the paginated data query and
+  bumps the watermark on success.
+- **Admin-override preservation.** The upsert filters out rows where
+  `is_total_quantity_modified = true`. Those rows keep their
+  admin-entered `total_quantity` and `dw_total_quantity`; all other
+  columns still refresh from Snowflake. Matches the legacy Mendix
+  `SUB_UpdateAggregatedInventory` branch that skipped the quantity
+  overwrite when the flag was set.
+- **Drop the `DEVICE_ID='Total'` row at the reader layer.** The
+  Snowflake SQL appends a grand-total row via `UNION ALL`. Per the
+  2026-04-17 ADR we compute totals at read time, so
+  `SnowflakeAggInventoryReader` filters the Total row before batching.
+- **Feature flag.** `snowflake.enabled` (default `false`) gates
+  `SnowflakeDataSourceConfig`, the reader, the sync service, and the
+  listener via `@ConditionalOnProperty`. When disabled, the trigger
+  endpoint returns `{ "status": "SKIPPED_DISABLED" }` and no thread pool
+  is provisioned. `SnowflakeSyncLogRepository` is always present so the
+  status endpoint works in both modes.
+- **Fail-fast on misconfigured prod.** `SnowflakeDataSourceConfig`
+  throws at startup when `snowflake.enabled=true` and
+  `username`/`password` are blank. Prevents silent "sync always returns
+  `SKIPPED_DISABLED`" in a deploy that intended the opposite.
+- **Frontend fire-and-forget.** `/admin/auctions-data-center/inventory`
+  posts to the trigger endpoint on every week change and polls the
+  status endpoint every 3s for up to 90s. `403` from the trigger
+  (non-admin role) is swallowed so the read-only view still renders.
+
+### Alternatives considered
+
+- **Scheduled nightly pull (cron).** Rejected: admins expect the page
+  to reflect the current day's Snowflake state, not yesterday's. A
+  per-view trigger is cheaper overall because most weeks don't change
+  intraday (the watermark short-circuits the work).
+- **Synchronous pull inside the page request (Mendix 1:1).** Rejected
+  — 30s+ latency on first visit each day is unacceptable and the
+  Mendix UX regularly hung on it.
+- **Materialize totals in `aggregated_inventory_totals` and have the
+  sync write that too.** Rejected — the 2026-04-17 ADR already
+  established read-time computation as the source of truth; writing
+  both invites the exact drift bug the 2026-04-15 ADR fixed.
+- **Revive Mendix-style full-table replace (truncate + insert).**
+  Rejected — breaks admin-override preservation; an idempotent upsert
+  keyed on `(week_id, product_id, merged_grade, datawipe)` is the
+  correct shape.
+
+### Consequences
+
+- Admin inventory page latency is bounded by a single `202 Accepted`
+  response and a 3s poll cadence; Snowflake outages never block the
+  page render.
+- An admin that edits a row mid-sync is safe: the override flag
+  protects their quantity; all other fields will still catch up on the
+  next sync.
+- No DLQ in Phase 1. Failed syncs log via
+  `integration.snowflake_sync_log` (status=`FAILED`, `error_message`
+  populated). The status endpoint surfaces the failure; monitoring
+  must tail the log table.
+- Enabling prod delivery is a config-only change (`SNOWFLAKE_ENABLED=true`
+  + credentials) with no redeploy.
+- Test coverage: unit tests on reader, service (6 scenarios), listener
+  (commit fires + rollback does not), controller (MockMvc
+  `202`/`200`/`403`). Integration test is gated on
+  `@EnabledIfEnvironmentVariable("SNOWFLAKE_IT", "true")` so it only
+  runs in envs with real Snowflake creds.
+
+### References
+
+- Plan: `docs/tasks/aggregated-inventory-snowflake-sync-plan.md`
+- Schema: `backend/src/main/resources/db/migration/V67__auctions_week_sync_watermark.sql`
+- Related ADRs: 2026-04-17 (read-time totals computation),
+  2026-04-13 (PWS email async pattern template)
+- Mendix source:
+  `migration_context/backend/services/JavaActions_JavaAction/JA_SnowflakeToMendix.md`,
+  `SUB_UpdateAggregatedInventory.md`,
+  `SUB_LoadAggregatedInventoryTotals.md`
+
+---
+
 ## 2026-04-17 — Aggregated Inventory: compute totals at read time + keep quantity override flag
 
 **Status:** Accepted (Phases 3.2 and 5.1 of `docs/tasks/aggregated-inventory-page-plan.md`).

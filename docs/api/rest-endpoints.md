@@ -287,6 +287,48 @@ Admin row edit. Requires `Administrator`. Flips `is_total_quantity_modified = tr
 
 **Response**: `AggregatedInventoryRow`.
 
+### POST /admin/inventory/weeks/{weekId}/sync
+
+Trigger a Snowflake sync for the given week. Requires `Administrator` or `SalesOps`. Returns `403` for bidder roles.
+
+Publishes `AggInventorySyncRequestedEvent`; the actual sync runs on the `snowflakeExecutor` after the HTTP commit (post-commit event bridge, mirrors the PWS email pattern). The response returns immediately — poll `GET /admin/inventory/weeks/{weekId}/sync/status` for progress.
+
+**Response**: `202 Accepted` with `SyncTriggerResponse`:
+
+```json
+{ "status": "ACCEPTED", "source": "SNOWFLAKE_AGG_INVENTORY" }
+```
+
+When `snowflake.enabled=false`, no event is published and the body is:
+
+```json
+{ "status": "SKIPPED_DISABLED", "source": "SNOWFLAKE_AGG_INVENTORY" }
+```
+
+### GET /admin/inventory/weeks/{weekId}/sync/status
+
+Latest sync log entry for the week. Frontend polls this endpoint every 3s while `status ∈ {PENDING, STARTED}` (up to 90s).
+
+**Response**: `200 OK` with `SyncStatusResponse`:
+
+```json
+{
+  "status": "COMPLETED",
+  "startedAt": "2026-04-18T14:00:00",
+  "finishedAt": "2026-04-18T14:00:07",
+  "rowsUpserted": 1234,
+  "errorMessage": null
+}
+```
+
+When no log row exists for the week (no sync has ever been triggered), returns:
+
+```json
+{ "status": "NONE", "startedAt": null, "finishedAt": null, "rowsUpserted": null, "errorMessage": null }
+```
+
+`status` values: `NONE`, `PENDING`, `STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_STALE`, `SKIPPED_DISABLED`, `SKIPPED_LOCKED`.
+
 ### GET /admin/inventory/export
 
 Streams an `.xlsx` of the current filter set (same query params as list). Not paginated.

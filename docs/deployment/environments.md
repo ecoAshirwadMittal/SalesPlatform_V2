@@ -110,8 +110,53 @@ Verification checklist before enabling in an environment:
    attached. If it is missing, the two hosts are not sharing the
    registrable domain and the topology needs fixing before go-live.
 
-### Related flags (future themes)
+## Snowflake Sync (Theme 2)
 
-| Key | Theme | Default |
-|-----|-------|---------|
-| `snowflake.enabled` | 2 — Snowflake sync | `false` |
+Wires `auctions.aggregated_inventory` to the upstream `Master_Inventory_List_Snapshot`
+Snowflake table. Delivered post-commit on a dedicated `snowflakeExecutor` via a
+`@TransactionalEventListener(AFTER_COMMIT)` bridge — `AggregatedInventoryController.triggerSync`
+returns `202 Accepted` immediately and the actual pull runs asynchronously. Mirrors
+the PWS email pattern (2026-04-13 ADR) and honors the admin-override flag from
+the 2026-04-17 ADR.
+
+| Var | Dev | QA | Prod | Description |
+|-----|-----|----|------|-------------|
+| `SNOWFLAKE_ENABLED` | `false` | `true` | `true` | Gates the entire Snowflake sync pipeline via `@ConditionalOnProperty`. When `false`, the trigger endpoint returns `{ "status": "SKIPPED_DISABLED" }` and no thread pool is provisioned. `SnowflakeSyncLogRepository` is always present so the status endpoint works in both modes. |
+| `SNOWFLAKE_JDBC_URL` | `jdbc:snowflake://ecoatm.snowflakecomputing.com/?db=ECO_DEV&schema=AUCTIONS&TIMEZONE=UTC` | (QA DB) | (prod DB) | Override to swap `ECO_DEV` for `ECO_QA` / `ECO_PROD` without a code change. `TIMEZONE=UTC` is required for deterministic `Upload_Time` parsing against the watermark. |
+| `SNOWFLAKE_USERNAME` | — | (set) | (set) | Service account user. Startup fails when `SNOWFLAKE_ENABLED=true` and this is blank. |
+| `SNOWFLAKE_PASSWORD` | — | (set) | (set) | Service account password. Rotate per standard secret-rotation policy. |
+| `SNOWFLAKE_POOL_MAX` | `3` | `3` | `5` | HikariCP max pool size for the Snowflake datasource. Tune based on concurrent admin sessions. |
+
+### Fail-fast guard
+
+If `SNOWFLAKE_ENABLED=true` and either `SNOWFLAKE_USERNAME` or
+`SNOWFLAKE_PASSWORD` is blank, the app throws at startup rather than silently
+returning `SKIPPED_DISABLED`. This prevents a deploy that intended to enable
+sync from appearing healthy while producing no data.
+
+### Enabling in an environment
+
+1. Provide credentials via environment variables:
+   ```bash
+   export SNOWFLAKE_ENABLED=true
+   export SNOWFLAKE_JDBC_URL='jdbc:snowflake://ecoatm.snowflakecomputing.com/?db=ECO_QA&schema=AUCTIONS&TIMEZONE=UTC'
+   export SNOWFLAKE_USERNAME=salesplatform_sync
+   export SNOWFLAKE_PASSWORD=<from secret manager>
+   ```
+2. Restart the backend. `SnowflakeDataSourceConfig`, the reader, the
+   sync service, and the listener all come online via
+   `@ConditionalOnProperty`. No code change or redeploy needed.
+3. Open `/admin/auctions-data-center/inventory`, pick a week, and watch
+   the sync banner. `GET /admin/inventory/weeks/{weekId}/sync/status`
+   should progress `PENDING` → `STARTED` → `COMPLETED` within ~10s on a
+   warm warehouse. Rollback = unset `SNOWFLAKE_ENABLED` and restart.
+
+### Failure handling
+
+- Per-run state lives in `integration.snowflake_sync_log`. `FAILED`
+  rows carry `error_message`; the status endpoint surfaces it verbatim
+  to the admin banner.
+- Stale pulls short-circuit with `status=SKIPPED_STALE` when the
+  Snowflake `MAX(Upload_Time)` is ≤ the stored watermark.
+- No dead-letter queue in Phase 1 — same trade-off as the PWS email
+  flow. Monitoring must tail the log table for `FAILED` rows.
