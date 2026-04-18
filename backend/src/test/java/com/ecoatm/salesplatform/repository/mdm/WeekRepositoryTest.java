@@ -25,10 +25,12 @@ class WeekRepositoryTest {
     }
 
     @Test
-    @DisplayName("findCurrentWeek returns the week whose end datetime is in the future")
-    void findCurrentWeek_returnsOne() {
-        Optional<Week> current = weekRepository.findCurrentWeek();
-        assertThat(current).isPresent();
-        assertThat(current.get().getWeekEndDateTime()).isAfter(java.time.Instant.now());
+    @DisplayName("findFutureWeeks returns weeks whose end datetime is in the future")
+    void findFutureWeeks_returnsWeeksInFuture() {
+        var futureWeeks = weekRepository.findFutureWeeks();
+        assertThat(futureWeeks).isNotEmpty();
+        var firstWeek = futureWeeks.stream().findFirst();
+        assertThat(firstWeek).isPresent();
+        assertThat(firstWeek.get().getWeekEndDateTime()).isAfter(java.time.Instant.now());
     }
 }

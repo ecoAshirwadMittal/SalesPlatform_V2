@@ -11,15 +11,32 @@ public class Week {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "legacy_id")        private Long legacyId;
-    @Column(name = "week_id")          private Long weekId;
-    @Column(name = "year")             private Integer year;
-    @Column(name = "week_number")      private Integer weekNumber;
-    @Column(name = "week_start_datetime") private Instant weekStartDateTime;
-    @Column(name = "week_end_datetime")   private Instant weekEndDateTime;
-    @Column(name = "week_display")     private String weekDisplay;
-    @Column(name = "week_display_short") private String weekDisplayShort;
-    @Column(name = "auction_data_purged") private boolean auctionDataPurged;
+    @Column(name = "legacy_id")
+    private Long legacyId;
+
+    @Column(name = "week_id")
+    private Long weekId;
+
+    @Column(name = "year")
+    private Integer year;
+
+    @Column(name = "week_number")
+    private Integer weekNumber;
+
+    @Column(name = "week_start_datetime")
+    private Instant weekStartDateTime;
+
+    @Column(name = "week_end_datetime")
+    private Instant weekEndDateTime;
+
+    @Column(name = "week_display")
+    private String weekDisplay;
+
+    @Column(name = "week_display_short")
+    private String weekDisplayShort;
+
+    @Column(name = "auction_data_purged")
+    private boolean auctionDataPurged;
 
     public Long getId() { return id; }
     public Long getWeekId() { return weekId; }

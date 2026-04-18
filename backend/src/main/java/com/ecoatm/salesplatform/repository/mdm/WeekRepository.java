@@ -17,9 +17,5 @@ public interface WeekRepository extends JpaRepository<Week, Long> {
     @Query("SELECT w FROM Week w WHERE w.weekEndDateTime > CURRENT_TIMESTAMP ORDER BY w.weekStartDateTime ASC")
     List<Week> findFutureWeeks();
 
-    default Optional<Week> findCurrentWeek() {
-        return findFutureWeeks().stream().findFirst();
-    }
-
     List<Week> findAllByOrderByWeekStartDateTimeDesc();
 }
