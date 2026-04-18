@@ -57,4 +57,14 @@ class AggregatedInventoryControllerTest {
            .andExpect(jsonPath("$[0].id").value(100))
            .andExpect(jsonPath("$[0].weekDisplay").value("2026 / Wk17"));
     }
+
+    @Test
+    @WithMockUser(roles = {"SalesOps"})
+    @DisplayName("GET /weeks allows SalesOps role")
+    void weeks_salesOps_allowed() throws Exception {
+        when(weekRepo.findAllByOrderByWeekStartDateTimeDesc()).thenReturn(List.of());
+
+        mvc.perform(get("/api/v1/admin/inventory/weeks"))
+           .andExpect(status().isOk());
+    }
 }
