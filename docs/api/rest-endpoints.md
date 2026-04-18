@@ -234,6 +234,56 @@ List all case lots.
 
 ---
 
+## Aggregated Inventory (Admin)
+
+Backs `/admin/auctions-data-center/inventory`. Mirrors Mendix `AuctionUI.PG_AggregatedInventory`.
+
+### GET /admin/inventory/weeks
+
+Return all weeks ordered by start datetime descending. Used to populate the week selector.
+
+**Response**: `WeekOption[]` — `{ id, weekDisplay, weekStartDateTime, weekEndDateTime }`.
+
+### GET /admin/inventory
+
+Paginated rows for the selected week. Requires `Administrator` or `SalesOps`.
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| weekId | long | - | FK into `mdm.week` |
+| productId | string | - | Exact match on `ecoid2` |
+| grades | string | - | Contains match on `merged_grade` |
+| brand | string | - | Contains on `brand` |
+| model | string | - | Contains on `model` |
+| modelName | string | - | Contains on `name` |
+| carrier | string | - | Contains on `carrier` |
+| page | int | 0 | Page number |
+| pageSize | int | 20 | Page size |
+
+**Response**: `AggregatedInventoryPageResponse` — `{ content: AggregatedInventoryRow[], page, pageSize, totalElements, totalPages }`. Each row exposes `datawipe` alongside grades/quantities/prices so the admin edit modal can pre-fill the Data Wipe radio.
+
+### GET /admin/inventory/totals
+
+Per-week KPI totals (sum + weighted average). Rows with `is_deprecated = true` are excluded.
+
+**Response**: `{ totalQuantity, totalPayout, averageTargetPrice, dwTotalQuantity, dwTotalPayout, dwAverageTargetPrice, lastSyncedAt }`.
+
+### PUT /admin/inventory/{id}
+
+Admin row edit. Requires `Administrator`. Flips `is_total_quantity_modified = true` on save so subsequent sync runs preserve the override.
+
+**Request body**: `{ mergedGrade, datawipe, totalQuantity, dwTotalQuantity }`.
+
+**Response**: `AggregatedInventoryRow`.
+
+### GET /admin/inventory/export
+
+Streams an `.xlsx` of the current filter set (same query params as list). Not paginated.
+
+**Response**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (binary).
+
+---
+
 ## Auth
 
 ### POST /auth/login
