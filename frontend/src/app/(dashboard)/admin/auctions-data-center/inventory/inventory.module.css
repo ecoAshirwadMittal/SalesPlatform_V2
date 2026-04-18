@@ -50,9 +50,19 @@
   border: 1px solid #407874;
 }
 
+.weekLabel {
+  font-size: .85rem;
+  color: #112d32;
+}
+
 .lastSynced {
   font-size: .8rem;
   color: #6b6b6b;
+}
+
+.error {
+  font-size: .8rem;
+  color: #b3261e;
 }
 
 .kpiStrip {
