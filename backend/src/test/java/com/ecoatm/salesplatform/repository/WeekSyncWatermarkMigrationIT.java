@@ -2,9 +2,12 @@ package com.ecoatm.salesplatform.repository;
 
 import com.ecoatm.salesplatform.PostgresIntegrationTest;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.postgresql.util.PSQLException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -65,9 +68,10 @@ class WeekSyncWatermarkMigrationIT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("week_sync_watermark.week_id is primary key and FK to mdm.week")
+    @DisplayName("week_sync_watermark has composite PK (week_id, source) and FK to mdm.week")
     void watermarkPrimaryKeyAndForeignKey() {
-        Object pkCol = em.createNativeQuery("""
+        @SuppressWarnings("unchecked")
+        List<String> pkCols = em.createNativeQuery("""
                 SELECT kcu.column_name
                 FROM information_schema.table_constraints tc
                 JOIN information_schema.key_column_usage kcu
@@ -76,8 +80,9 @@ class WeekSyncWatermarkMigrationIT extends PostgresIntegrationTest {
                 WHERE tc.table_schema = 'auctions'
                   AND tc.table_name = 'week_sync_watermark'
                   AND tc.constraint_type = 'PRIMARY KEY'
-                """).getSingleResult();
-        assertThat(pkCol).isEqualTo("week_id");
+                ORDER BY kcu.ordinal_position
+                """).getResultList();
+        assertThat(pkCols).containsExactly("week_id", "source");
 
         // pg_constraint is the authoritative source for FK target resolution.
         // information_schema.constraint_column_usage has quirks across PG
@@ -156,6 +161,16 @@ class WeekSyncWatermarkMigrationIT extends PostgresIntegrationTest {
 
         // Second insert with the same (ecoid2, merged_grade, datawipe, week_id)
         // and is_deprecated=false must violate the partial unique index.
+        //
+        // Harden the exception-chain assertion: `hasMessageContaining` on the
+        // wrapping PersistenceException can silently pass on any non-duplicate
+        // error with the index name buried in an unrelated part of the
+        // message. Instead walk the chain down to the PSQLException root
+        // cause and match on the constraint name there — that is where
+        // Postgres actually names the violated index.
+        // The class-level @Transactional ensures the failing insert rolls
+        // back cleanly with the rest of the test; no poisoning of other
+        // tests because each test runs in its own rolled-back tx.
         assertThatThrownBy(() -> {
             em.createNativeQuery("""
                     INSERT INTO auctions.aggregated_inventory
@@ -166,7 +181,11 @@ class WeekSyncWatermarkMigrationIT extends PostgresIntegrationTest {
                 .setParameter("w", weekId)
                 .executeUpdate();
             em.flush();
-        }).hasMessageContaining("uq_agi_ecoid_grade_dw_week");
+        })
+            .isInstanceOfAny(DataAccessException.class, PersistenceException.class)
+            .hasRootCauseInstanceOf(PSQLException.class)
+            .rootCause()
+            .hasMessageContaining("uq_agi_ecoid_grade_dw_week");
     }
 
     @Test
