@@ -37,6 +37,8 @@ class AggregatedInventoryControllerTest {
     @MockBean private AggregatedInventoryService service;
     @MockBean private WeekRepository weekRepo;
     @MockBean private com.ecoatm.salesplatform.service.auctions.AggregatedInventoryExcelExporter excelExporter;
+    @MockBean private com.ecoatm.salesplatform.repository.integration.SnowflakeSyncLogRepository snowflakeSyncLogRepository;
+    @MockBean private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @Test
     @WithMockUser(roles = {"Administrator"})

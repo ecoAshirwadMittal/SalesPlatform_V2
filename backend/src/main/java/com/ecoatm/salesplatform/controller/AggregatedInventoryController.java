@@ -4,16 +4,25 @@ import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryRow;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest;
+import com.ecoatm.salesplatform.dto.SyncStatusResponse;
+import com.ecoatm.salesplatform.dto.SyncTriggerResponse;
 import com.ecoatm.salesplatform.dto.WeekOption;
+import com.ecoatm.salesplatform.event.AggInventorySyncRequestedEvent;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import com.ecoatm.salesplatform.model.mdm.Week;
+import com.ecoatm.salesplatform.repository.integration.SnowflakeSyncLogRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
 import com.ecoatm.salesplatform.service.auctions.AggregatedInventoryExcelExporter;
 import com.ecoatm.salesplatform.service.auctions.AggregatedInventoryService;
+import com.ecoatm.salesplatform.service.auctions.AggregatedInventorySnowflakeSyncService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,13 +39,22 @@ public class AggregatedInventoryController {
     private final AggregatedInventoryService service;
     private final WeekRepository weekRepository;
     private final AggregatedInventoryExcelExporter excelExporter;
+    private final ApplicationEventPublisher eventPublisher;
+    private final SnowflakeSyncLogRepository snowflakeSyncLogRepository;
+    private final boolean snowflakeEnabled;
 
     public AggregatedInventoryController(AggregatedInventoryService service,
                                          WeekRepository weekRepository,
-                                         AggregatedInventoryExcelExporter excelExporter) {
+                                         AggregatedInventoryExcelExporter excelExporter,
+                                         ApplicationEventPublisher eventPublisher,
+                                         SnowflakeSyncLogRepository snowflakeSyncLogRepository,
+                                         @Value("${snowflake.enabled:false}") boolean snowflakeEnabled) {
         this.service = service;
         this.weekRepository = weekRepository;
         this.excelExporter = excelExporter;
+        this.eventPublisher = eventPublisher;
+        this.snowflakeSyncLogRepository = snowflakeSyncLogRepository;
+        this.snowflakeEnabled = snowflakeEnabled;
     }
 
     @GetMapping("/weeks")
@@ -100,5 +118,32 @@ public class AggregatedInventoryController {
         return ResponseEntity.ok()
                 .header("Content-Disposition", "attachment; filename=\"aggregated-inventory.xlsx\"")
                 .body(baos.toByteArray());
+    }
+
+    @PostMapping("/weeks/{weekId}/sync")
+    public ResponseEntity<SyncTriggerResponse> triggerSync(
+            @PathVariable long weekId,
+            Authentication authentication) {
+        if (!snowflakeEnabled) {
+            return ResponseEntity.accepted().body(
+                    new SyncTriggerResponse("SKIPPED_DISABLED",
+                            AggregatedInventorySnowflakeSyncService.SOURCE));
+        }
+        String triggeredBy = authentication != null ? authentication.getName() : "unknown";
+        eventPublisher.publishEvent(new AggInventorySyncRequestedEvent(weekId, triggeredBy));
+        return ResponseEntity.accepted().body(
+                new SyncTriggerResponse("ACCEPTED",
+                        AggregatedInventorySnowflakeSyncService.SOURCE));
+    }
+
+    @GetMapping("/weeks/{weekId}/sync/status")
+    public ResponseEntity<SyncStatusResponse> syncStatus(@PathVariable long weekId) {
+        return snowflakeSyncLogRepository
+                .findFirstBySyncTypeAndTargetKeyOrderByStartedAtDesc(
+                        AggregatedInventorySnowflakeSyncService.SYNC_TYPE,
+                        String.valueOf(weekId))
+                .map(SyncStatusResponse::from)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.ok(SyncStatusResponse.none()));
     }
 }
