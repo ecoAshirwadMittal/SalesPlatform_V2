@@ -49,3 +49,38 @@ export async function fetchWeeks(): Promise<WeekOption[]> {
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return z.array(WeekOptionSchema).parse(await res.json());
 }
+
+export interface InventorySearchParams {
+  weekId: number;
+  productId?: string;
+  grades?: string;
+  brand?: string;
+  model?: string;
+  modelName?: string;
+  carrier?: string;
+  page: number;
+  pageSize: number;
+}
+
+export async function fetchInventoryPage(p: InventorySearchParams): Promise<InventoryPageResponse> {
+  const qs = new URLSearchParams();
+  qs.set('weekId', String(p.weekId));
+  qs.set('page', String(p.page));
+  qs.set('pageSize', String(p.pageSize));
+  if (p.productId)  qs.set('productId', p.productId);
+  if (p.grades)     qs.set('grades', p.grades);
+  if (p.brand)      qs.set('brand', p.brand);
+  if (p.model)      qs.set('model', p.model);
+  if (p.modelName)  qs.set('modelName', p.modelName);
+  if (p.carrier)    qs.set('carrier', p.carrier);
+
+  const res = await apiFetch(`/api/v1/admin/inventory?${qs}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return InventoryPageResponseSchema.parse(await res.json());
+}
+
+export async function fetchInventoryTotals(weekId: number): Promise<InventoryTotals> {
+  const res = await apiFetch(`/api/v1/admin/inventory/totals?weekId=${weekId}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return InventoryTotalsSchema.parse(await res.json());
+}
