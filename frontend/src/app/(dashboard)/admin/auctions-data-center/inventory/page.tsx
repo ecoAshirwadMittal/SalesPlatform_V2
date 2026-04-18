@@ -6,6 +6,8 @@ import {
   fetchWeeks,
   fetchInventoryPage,
   fetchInventoryTotals,
+  fetchSyncStatus,
+  triggerWeekSync,
   updateInventoryRow,
   type WeekOption,
   type InventoryPageResponse,
@@ -15,6 +17,11 @@ import {
 
 const PAGE_SIZE = 20;
 const FILTER_DELAY = 500;
+// Snowflake sync poll cadence: 30 ticks × 3s = 90s ceiling, matching Phase 8
+// plan. Anything longer is a silent failure we surface only via the log row.
+const SYNC_POLL_INTERVAL_MS = 3_000;
+const SYNC_POLL_MAX_TICKS = 30;
+const SYNC_PENDING_STATUSES = new Set(['PENDING', 'STARTED']);
 
 interface Filters {
   productId: string;
@@ -56,6 +63,7 @@ export default function AggregatedInventoryPage() {
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editRow, setEditRow] = useState<InventoryRow | null>(null);
+  const [syncPending, setSyncPending] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -118,6 +126,60 @@ export default function AggregatedInventoryPage() {
     };
   }, [refresh]);
 
+  // Fire-and-forget Snowflake sync when the selected week changes. The backend
+  // gates Administrator/SalesOps via @PreAuthorize and returns 403 for Bidders
+  // — intentionally swallow the rejection so the read-only view still renders.
+  useEffect(() => {
+    if (!weekId) return;
+    triggerWeekSync(weekId).catch(() => {
+      /* fire-and-forget; backend enforces role + feature flag */
+    });
+  }, [weekId]);
+
+  // Poll sync status for up to 90s while the latest log row is PENDING/STARTED.
+  // On completion, do a single final grid refetch so KPIs and rows reflect
+  // the freshly upserted numbers.
+  useEffect(() => {
+    if (!weekId) return;
+    let cancelled = false;
+    let ticks = 0;
+
+    const tick = async () => {
+      if (cancelled) return;
+      ticks += 1;
+      try {
+        const status = await fetchSyncStatus(weekId);
+        if (cancelled) return;
+        const isPending = SYNC_PENDING_STATUSES.has(status.status);
+        setSyncPending(isPending);
+        if (!isPending) {
+          clearInterval(handle);
+          refresh().catch(() => setError('Failed to load inventory'));
+          return;
+        }
+        if (ticks >= SYNC_POLL_MAX_TICKS) {
+          clearInterval(handle);
+          setSyncPending(false);
+        }
+      } catch {
+        // Transient network error — keep polling until ticks run out.
+        if (ticks >= SYNC_POLL_MAX_TICKS) {
+          clearInterval(handle);
+          setSyncPending(false);
+        }
+      }
+    };
+
+    const handle = setInterval(tick, SYNC_POLL_INTERVAL_MS);
+    void tick();
+
+    return () => {
+      cancelled = true;
+      clearInterval(handle);
+      setSyncPending(false);
+    };
+  }, [weekId, refresh]);
+
   const updateFilter = <K extends keyof Filters>(k: K, v: string) =>
     setInput(prev => ({ ...prev, [k]: v }));
 
@@ -176,6 +238,12 @@ export default function AggregatedInventoryPage() {
         <Kpi label="DW Total Payout" value={formatUsd(Number(totals?.dwTotalPayout ?? 0))} />
         <Kpi label="DW Average Target Price" value={formatUsd(Number(totals?.dwAverageTargetPrice ?? 0))} />
       </section>
+
+      {syncPending && (
+        <div className={styles.syncBanner} role="status" aria-live="polite">
+          Syncing from Snowflake…
+        </div>
+      )}
 
       <div className={styles.gridWrap}>
         <table className={styles.grid}>

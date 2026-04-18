@@ -42,8 +42,30 @@ export const InventoryTotalsSchema = z.object({
   dwTotalPayout: z.number(),
   dwAverageTargetPrice: z.number(),
   lastSyncedAt: z.string().nullable(),
+  // Phase-7 helper flags — replaces Mendix `AggInventoryHelper` microflow so the
+  // page can derive "Create Auction" enablement and banner state from one call.
+  hasInventory: z.boolean(),
+  hasAuction: z.boolean(),
+  isCurrentWeek: z.boolean(),
+  syncStatus: z.string(),
 });
 export type InventoryTotals = z.infer<typeof InventoryTotalsSchema>;
+
+// Kept as z.string() (not enum) so the backend can add statuses without
+// breaking the frontend parse step.
+export const SyncStatusSchema = z.object({
+  status: z.string(),
+  lastSyncedAt: z.string().nullable(),
+  rowsUpserted: z.number().nullable(),
+  errorMessage: z.string().nullable(),
+});
+export type SyncStatus = z.infer<typeof SyncStatusSchema>;
+
+export const SyncTriggerResponseSchema = z.object({
+  status: z.string(),
+  source: z.string(),
+});
+export type SyncTriggerResponseDto = z.infer<typeof SyncTriggerResponseSchema>;
 
 export async function fetchWeeks(): Promise<WeekOption[]> {
   const res = await apiFetch('/api/v1/admin/inventory/weeks');
@@ -97,4 +119,25 @@ export async function updateInventoryRow(
   });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return InventoryRowSchema.parse(await res.json());
+}
+
+/**
+ * Fire-and-forget Snowflake sync trigger for a week. Backend returns 202 with
+ * `ACCEPTED` when a job was queued, or `SKIPPED_DISABLED` when the feature flag
+ * is off. 403 is expected for non-Administrator/SalesOps callers — callers
+ * should swallow the rejection because the backend authoritatively gates the
+ * action and the page is read-only for bidders anyway.
+ */
+export async function triggerWeekSync(weekId: number): Promise<SyncTriggerResponseDto> {
+  const res = await apiFetch(`/api/v1/admin/inventory/weeks/${weekId}/sync`, {
+    method: 'POST',
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return SyncTriggerResponseSchema.parse(await res.json());
+}
+
+export async function fetchSyncStatus(weekId: number): Promise<SyncStatus> {
+  const res = await apiFetch(`/api/v1/admin/inventory/weeks/${weekId}/sync/status`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return SyncStatusSchema.parse(await res.json());
 }
