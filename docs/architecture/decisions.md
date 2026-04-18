@@ -5,6 +5,56 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-17 — Aggregated Inventory: compute totals at read time + keep quantity override flag
+
+**Status:** Accepted (Phases 3.2 and 5.1 of `docs/tasks/aggregated-inventory-page-plan.md`).
+
+### Context
+
+Mendix `AggregatedInventoryTotals` stored one row per week with precomputed
+sums. Mendix also exposed `isTotalQuantityModified` on `AggregatedInventory`
+so a nightly sync could tell whether to overwrite an admin-edited quantity.
+Porting 1:1 would duplicate state and require a scheduled refresher. The
+legacy bug surface is the same one the buyer-overview ADR (2026-04-15) fixed.
+
+### Decision
+
+- **Totals computed at read time** from `auctions.aggregated_inventory`
+  with weighted averages (`SUM(price * qty) / SUM(qty)`) rather than
+  reading `auctions.aggregated_inventory_totals`. The totals table stays
+  in the schema for future Snowflake export parity but is not read by the
+  page.
+- **Preserve `is_total_quantity_modified`** exactly as the legacy column.
+  The PUT handler flips it to `true` on save, and the (future) inventory
+  sync must honor the flag.
+- **Excluded rows:** `is_deprecated = true` rows never appear in the grid
+  or the KPI strip.
+
+### Alternatives considered
+
+- **Read `aggregated_inventory_totals` directly.** Rejected for the same
+  reason as the buyer overview: the denormalized row drifts whenever an
+  admin edit lands out-of-band. Recomputing is O(N) over ~87k rows
+  filtered by `week_id` — sub-second with the `idx_agi_week` index.
+- **Materialized view.** Over-engineered for 87k rows. Revisit if
+  `EXPLAIN ANALYZE` regresses past 200 ms.
+
+### Consequences
+
+- The totals table is now informational only. A follow-up can either
+  drop it or wire the Snowflake sync to populate it from the same query.
+- Create Auction remains a stub until the auction scheduling module
+  lands — the page's button shows a placeholder dialog rather than a
+  404 or a dead action.
+
+### References
+
+- Plan: `docs/tasks/aggregated-inventory-page-plan.md`
+- Schema: `backend/src/main/resources/db/migration/V60__auctions_aggregated_inventory.sql`
+- Mendix source: `migration_context/frontend/components/Pages_Page/PG_AggregatedInventory.md`
+
+---
+
 ## 2026-04-13 — Auth token moved from localStorage to HttpOnly cookie
 
 **Status:** Accepted — backend portion shipped (Phase 3.1 of Theme 3,
