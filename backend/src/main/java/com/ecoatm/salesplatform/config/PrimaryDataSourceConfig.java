@@ -1,6 +1,6 @@
 package com.ecoatm.salesplatform.config;
 
-import javax.sql.DataSource;
+import com.zaxxer.hikari.HikariDataSource;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -20,9 +20,10 @@ import org.springframework.context.annotation.Primary;
  * DataSource explicitly here restores it and pins it as {@code @Primary}
  * so Flyway, JPA, and unqualified autowires consistently resolve to it.
  *
- * <p>Configuration binding still flows through
- * {@code spring.datasource.*} (including the {@code spring.datasource.hikari.*}
- * pool tuning) — we simply take over the bean-definition step.
+ * <p>The bean method returns {@link HikariDataSource} (not the {@code DataSource}
+ * interface) so that {@code @ConfigurationProperties("spring.datasource.hikari")}
+ * reaches Hikari's own setters ({@code maximumPoolSize}, {@code connectionTimeout},
+ * etc.) — binding against the interface would silently ignore those properties.
  */
 @Configuration
 public class PrimaryDataSourceConfig {
@@ -37,9 +38,9 @@ public class PrimaryDataSourceConfig {
     @Bean
     @Primary
     @ConfigurationProperties("spring.datasource.hikari")
-    public DataSource dataSource(DataSourceProperties properties) {
+    public HikariDataSource dataSource(DataSourceProperties properties) {
         return properties.initializeDataSourceBuilder()
-                .type(com.zaxxer.hikari.HikariDataSource.class)
+                .type(HikariDataSource.class)
                 .build();
     }
 }

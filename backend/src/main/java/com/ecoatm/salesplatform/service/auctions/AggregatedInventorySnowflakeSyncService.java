@@ -14,6 +14,7 @@ import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -124,6 +125,7 @@ public class AggregatedInventorySnowflakeSyncService {
     private final AggregatedInventoryRepository aggregatedInventoryRepository;
     private final SyncLogWriter syncLogWriter;
     private final JdbcTemplate jdbcTemplate;
+    private final Clock clock;
 
     public AggregatedInventorySnowflakeSyncService(
             SnowflakeAggInventoryReader reader,
@@ -131,13 +133,15 @@ public class AggregatedInventorySnowflakeSyncService {
             WeekSyncWatermarkRepository watermarkRepository,
             AggregatedInventoryRepository aggregatedInventoryRepository,
             SyncLogWriter syncLogWriter,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            Clock clock) {
         this.reader = reader;
         this.weekRepository = weekRepository;
         this.watermarkRepository = watermarkRepository;
         this.aggregatedInventoryRepository = aggregatedInventoryRepository;
         this.syncLogWriter = syncLogWriter;
         this.jdbcTemplate = jdbcTemplate;
+        this.clock = clock;
     }
 
     /**
@@ -157,7 +161,7 @@ public class AggregatedInventorySnowflakeSyncService {
      */
     @Transactional
     public AggregatedInventorySyncResult syncWeek(long weekId, String triggeredBy) {
-        long startNs = System.nanoTime();
+        long startMillis = clock.millis();
         Week week = weekRepository.findById(weekId)
                 .orElseThrow(() -> new EntityNotFoundException("week", weekId));
 
@@ -178,18 +182,18 @@ public class AggregatedInventorySnowflakeSyncService {
         Long logId = syncLogWriter.createStarted(SYNC_TYPE, targetKey);
 
         try {
-            return runSync(weekId, auctionWeek, auctionYear, triggeredBy, logId, startNs);
+            return runSync(weekId, auctionWeek, auctionYear, triggeredBy, logId, startMillis);
         } catch (SnowflakeReadException | DataAccessException ex) {
-            return handleFailure(logId, ex, startNs);
+            return handleFailure(logId, ex, startMillis);
         } catch (RuntimeException ex) {
             // Defensive: anything unexpected still gets an audit row.
-            return handleFailure(logId, ex, startNs);
+            return handleFailure(logId, ex, startMillis);
         }
     }
 
     private AggregatedInventorySyncResult runSync(
             long weekId, int auctionWeek, int auctionYear,
-            String triggeredBy, Long logId, long startNs) {
+            String triggeredBy, Long logId, long startMillis) {
         // 3. Watermark. If Snowflake has no snapshot yet, there is nothing
         // to do — mark COMPLETED with zero counts so the audit trail is
         // correct and the caller can show "in sync".
@@ -198,7 +202,7 @@ public class AggregatedInventorySnowflakeSyncService {
             syncLogWriter.markCompleted(logId, 0, 0);
             log.info("syncWeek weekId={} COMPLETED (no snowflake watermark) triggeredBy={}",
                     weekId, triggeredBy);
-            return AggregatedInventorySyncResult.completed(0, 0, elapsedMs(startNs), logId);
+            return AggregatedInventorySyncResult.completed(0, 0, elapsedMs(startMillis), logId);
         }
         Instant sfMax = sfMaxOpt.get();
 
@@ -209,7 +213,7 @@ public class AggregatedInventorySnowflakeSyncService {
             // Our watermark is ≥ Snowflake's → no new data.
             syncLogWriter.markSkippedUpToDate(logId);
             log.info("syncWeek weekId={} SKIPPED_UP_TO_DATE triggeredBy={}", weekId, triggeredBy);
-            return AggregatedInventorySyncResult.skippedUpToDate(logId, elapsedMs(startNs));
+            return AggregatedInventorySyncResult.skippedUpToDate(logId, elapsedMs(startMillis));
         }
 
         // 4. Iterate pages and batch-upsert. weekId is bound on each row —
@@ -234,7 +238,7 @@ public class AggregatedInventorySnowflakeSyncService {
         log.info("syncWeek weekId={} COMPLETED rowsRead={} rowsUpserted={} triggeredBy={}",
                 weekId, rowsRead, rowsUpserted, triggeredBy);
         return AggregatedInventorySyncResult.completed(
-                rowsRead, rowsUpserted, elapsedMs(startNs), logId);
+                rowsRead, rowsUpserted, elapsedMs(startMillis), logId);
     }
 
     private int upsertPage(List<SnowflakeAggInventoryRow> page, long weekId) {
@@ -282,23 +286,23 @@ public class AggregatedInventorySnowflakeSyncService {
         wm.setWeekId(weekId);
         wm.setSource(SOURCE);
         wm.setLastSourceUploadAt(sfMax);
-        wm.setLastSyncedAt(Instant.now());
+        wm.setLastSyncedAt(clock.instant());
         wm.setRowCount(rowsUpserted);
         watermarkRepository.save(wm);
     }
 
     private AggregatedInventorySyncResult handleFailure(
-            Long logId, Exception ex, long startNs) {
+            Long logId, Exception ex, long startMillis) {
         String message = ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName();
         log.error("syncWeek logId={} FAILED: {}", logId, message, ex);
         // REQUIRES_NEW ensures this write commits even though the outer tx
         // rolls back. Without this the failure would be silent.
         syncLogWriter.markFailed(logId, message);
-        return AggregatedInventorySyncResult.failed(logId, elapsedMs(startNs), message);
+        return AggregatedInventorySyncResult.failed(logId, elapsedMs(startMillis), message);
     }
 
-    private static long elapsedMs(long startNs) {
-        return (System.nanoTime() - startNs) / 1_000_000L;
+    private long elapsedMs(long startMillis) {
+        return clock.millis() - startMillis;
     }
 
     /**

@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.lang.reflect.Field;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -87,7 +88,8 @@ class AggregatedInventorySnowflakeSyncServiceTest {
                 watermarkRepository,
                 aggregatedInventoryRepository,
                 syncLogWriter,
-                jdbcTemplate);
+                jdbcTemplate,
+                Clock.systemUTC());
     }
 
     // ────────────────────────────────────────────────────────────────────

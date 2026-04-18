@@ -14,10 +14,14 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,12 +58,26 @@ class AggregatedInventorySnowflakeSyncServiceIT extends PostgresIntegrationTest 
 
     private static final String SOURCE = AggregatedInventorySnowflakeSyncService.SOURCE;
 
+    @TestConfiguration
+    static class TestReaderConfig {
+        @Bean
+        @Primary
+        public SnowflakeAggInventoryReader testReader() {
+            return Mockito.mock(SnowflakeAggInventoryReader.class);
+        }
+    }
+
     @Autowired private AggregatedInventorySnowflakeSyncService service;
     @Autowired private WeekSyncWatermarkRepository watermarkRepository;
     @Autowired private SnowflakeSyncLogRepository logRepository;
     @Autowired private EntityManager em;
 
-    @MockBean private SnowflakeAggInventoryReader reader;
+    @Autowired private SnowflakeAggInventoryReader reader;
+
+    @BeforeEach
+    void resetMocks() {
+        Mockito.reset(reader);
+    }
 
     @Test
     @DisplayName("syncWeek preserves admin-edited total_quantity while refreshing every other column")
