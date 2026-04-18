@@ -29,6 +29,16 @@ public class SnowflakeDataSourceConfig {
     private static final String POOL_NAME = "snowflake-pool";
     private static final String DRIVER_CLASS = "net.snowflake.client.jdbc.SnowflakeDriver";
 
+    /**
+     * Secondary datasource — never {@code @Primary}. When
+     * {@code snowflake.enabled=true}, Spring Boot autoconfig sees two
+     * {@link DataSource} beans (the Postgres one from
+     * {@code spring.datasource.*} via {@link PrimaryDataSourceConfig} and
+     * this one). Flyway and JPA resolve the Postgres one via {@code @Primary};
+     * only {@code @Qualifier("snowflakeDataSource")} routes here — which is
+     * what {@code SnowflakeAggInventoryReader} does, and is the sole
+     * intended consumer.
+     */
     @Bean(name = SNOWFLAKE_DATASOURCE, destroyMethod = "close")
     public DataSource snowflakeDataSource(SnowflakeProperties props) {
         requireNonBlank(props.username(), "snowflake.username");
@@ -46,10 +56,16 @@ public class SnowflakeDataSourceConfig {
         config.setDriverClassName(DRIVER_CLASS);
         config.setPoolName(POOL_NAME);
         config.setMaximumPoolSize(props.pool().maximumSize());
-        // Lazy init — HikariCP otherwise opens a probe connection on startup
-        // which would hang any env where enabled=true but the network path
-        // to Snowflake is not yet reachable (e.g. first prod deploy).
+        // Fully lazy — HikariCP would otherwise open a probe connection on
+        // startup (initialization) AND keep {@code minimumIdle} warm
+        // connections open at all times, both of which would hang or spam
+        // the logs in any env where enabled=true but the network path to
+        // Snowflake is not yet reachable (e.g. first prod deploy, ITs that
+        // mock the reader, or dev). setMinimumIdle(0) means the pool grows
+        // only when getConnection() is called and shrinks back to zero
+        // when connections expire.
         config.setInitializationFailTimeout(-1);
+        config.setMinimumIdle(0);
         return new HikariDataSource(config);
     }
 
