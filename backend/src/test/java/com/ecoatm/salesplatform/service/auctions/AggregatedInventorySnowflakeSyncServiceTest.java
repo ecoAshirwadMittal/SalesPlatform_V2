@@ -58,7 +58,8 @@ import static org.mockito.Mockito.when;
  *
  * <p>The {@code snowflake.enabled=false} case is gated by
  * {@link org.springframework.boot.autoconfigure.condition.ConditionalOnProperty}
- * and is a Spring-context concern, covered in the IT class.
+ * and is a Spring-context concern, covered in
+ * {@code AggregatedInventorySnowflakeSyncServiceDisabledIT}.
  */
 @ExtendWith(MockitoExtension.class)
 class AggregatedInventorySnowflakeSyncServiceTest {
