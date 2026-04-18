@@ -145,7 +145,11 @@ export default function AggregatedInventoryPage() {
             </option>
           ))}
         </select>
-        <button className={styles.button} type="button">
+        <button
+          className={styles.button}
+          type="button"
+          onClick={() => alert('Auction scheduling is being ported — see docs/tasks/auctions-schema-migration-plan.md')}
+        >
           Create Auction
         </button>
         <button
