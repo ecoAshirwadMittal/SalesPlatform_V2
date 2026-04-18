@@ -6,7 +6,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import javax.sql.DataSource;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
 /**
@@ -24,15 +23,8 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
  */
 class SnowflakeDataSourceConfigTest {
 
-    // Exclude Spring Boot's default datasource autoconfig so the test context
-    // isn't polluted by an H2 primary DataSource — we only care about the
-    // conditional Snowflake bean here.
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
-            .withConfiguration(
-                    org.springframework.boot.autoconfigure.AutoConfigurations.of(
-                            DataSourceAutoConfiguration.class))
-            .withUserConfiguration(SnowflakeDataSourceConfig.class)
-            .withPropertyValues("spring.autoconfigure.exclude=" + DataSourceAutoConfiguration.class.getName());
+            .withUserConfiguration(SnowflakeDataSourceConfig.class);
 
     @Test
     @DisplayName("bean absent when snowflake.enabled=false")

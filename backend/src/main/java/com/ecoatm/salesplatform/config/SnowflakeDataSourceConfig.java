@@ -3,7 +3,6 @@ package com.ecoatm.salesplatform.config;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import javax.sql.DataSource;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -30,8 +29,7 @@ public class SnowflakeDataSourceConfig {
     private static final String POOL_NAME = "snowflake-pool";
     private static final String DRIVER_CLASS = "net.snowflake.client.jdbc.SnowflakeDriver";
 
-    @Bean(name = SNOWFLAKE_DATASOURCE)
-    @Qualifier(SNOWFLAKE_DATASOURCE)
+    @Bean(name = SNOWFLAKE_DATASOURCE, destroyMethod = "close")
     public DataSource snowflakeDataSource(SnowflakeProperties props) {
         requireNonBlank(props.username(), "snowflake.username");
         requireNonBlank(props.password(), "snowflake.password");
@@ -68,7 +66,6 @@ public class SnowflakeDataSourceConfig {
      */
     @ConfigurationProperties(prefix = "snowflake")
     public record SnowflakeProperties(
-            boolean enabled,
             String jdbcUrl,
             String username,
             String password,
