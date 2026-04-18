@@ -21,7 +21,7 @@ const FILTER_DELAY = 500;
 // plan. Anything longer is a silent failure we surface only via the log row.
 const SYNC_POLL_INTERVAL_MS = 3_000;
 const SYNC_POLL_MAX_TICKS = 30;
-const SYNC_PENDING_STATUSES = new Set(['PENDING', 'STARTED']);
+const SYNC_PENDING_STATUSES = new Set(['STARTED']);
 
 interface Filters {
   productId: string;
@@ -136,7 +136,7 @@ export default function AggregatedInventoryPage() {
     });
   }, [weekId]);
 
-  // Poll sync status for up to 90s while the latest log row is PENDING/STARTED.
+  // Poll sync status for up to 90s while the latest log row is STARTED.
   // On completion, do a single final grid refetch so KPIs and rows reflect
   // the freshly upserted numbers.
   useEffect(() => {

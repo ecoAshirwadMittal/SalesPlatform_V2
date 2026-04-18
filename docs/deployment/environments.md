@@ -156,7 +156,7 @@ sync from appearing healthy while producing no data.
 - Per-run state lives in `integration.snowflake_sync_log`. `FAILED`
   rows carry `error_message`; the status endpoint surfaces it verbatim
   to the admin banner.
-- Stale pulls short-circuit with `status=SKIPPED_STALE` when the
+- Stale pulls short-circuit with `status=SKIPPED_UP_TO_DATE` when the
   Snowflake `MAX(Upload_Time)` is ≤ the stored watermark.
 - No dead-letter queue in Phase 1 — same trade-off as the PWS email
   flow. Monitoring must tail the log table for `FAILED` rows.

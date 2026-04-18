@@ -38,7 +38,7 @@ page open via a synchronous `JA_SnowflakeToMendix` microflow. The port needs to:
   `SELECT MAX(Upload_Time) FROM Master_Inventory_List_Snapshot
   WHERE Auction_Week=? AND Auction_Year=?`. If the returned timestamp is
   ≤ the stored `last_source_upload_at`, the sync short-circuits with
-  status `SKIPPED_STALE`. Otherwise it runs the paginated data query and
+  status `SKIPPED_UP_TO_DATE`. Otherwise it runs the paginated data query and
   bumps the watermark on success.
 - **Admin-override preservation.** The upsert filters out rows where
   `is_total_quantity_modified = true`. Those rows keep their

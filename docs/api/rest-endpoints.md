@@ -327,7 +327,7 @@ When no log row exists for the week (no sync has ever been triggered), returns:
 { "status": "NONE", "startedAt": null, "finishedAt": null, "rowsUpserted": null, "errorMessage": null }
 ```
 
-`status` values: `NONE`, `PENDING`, `STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_STALE`, `SKIPPED_DISABLED`, `SKIPPED_LOCKED`.
+`status` values: `NONE`, `STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_UP_TO_DATE`, `SKIPPED_DISABLED`, `SKIPPED_LOCKED`.
 
 ### GET /admin/inventory/export
 

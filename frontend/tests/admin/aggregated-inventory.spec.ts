@@ -34,12 +34,12 @@ test.describe('Aggregated Inventory', () => {
  *
  * Mocks only the two new sync endpoints (POST trigger + GET status) so the
  * live backend continues to serve the grid/KPI requests. The mocked GET
- * returns PENDING on the first call and COMPLETED on the second, so the
+ * returns STARTED on the first call and COMPLETED on the second, so the
  * banner appears briefly then clears after the 3s poll tick — matching the
  * real backend's async completion path without depending on Snowflake.
  */
 test.describe('Aggregated Inventory — Snowflake sync banner', () => {
-  test('shows syncing banner while backend status is PENDING, then clears after COMPLETED', async ({ page }) => {
+  test('shows syncing banner while backend status is STARTED, then clears after COMPLETED', async ({ page }) => {
     let statusCalls = 0;
 
     await page.route('**/api/v1/admin/inventory/weeks/*/sync', async route => {
@@ -57,7 +57,7 @@ test.describe('Aggregated Inventory — Snowflake sync banner', () => {
     await page.route('**/api/v1/admin/inventory/weeks/*/sync/status', async route => {
       statusCalls += 1;
       const body = statusCalls === 1
-        ? { status: 'PENDING', lastSyncedAt: null, rowsUpserted: null, errorMessage: null }
+        ? { status: 'STARTED', lastSyncedAt: null, rowsUpserted: null, errorMessage: null }
         : { status: 'COMPLETED', lastSyncedAt: '2026-04-18T10:00:00Z', rowsUpserted: 1234, errorMessage: null };
       await route.fulfill({
         status: 200,
@@ -73,7 +73,7 @@ test.describe('Aggregated Inventory — Snowflake sync banner', () => {
     // Wait for the page skeleton so the week-change effect has fired.
     await expect(page.getByRole('heading', { name: 'Inventory' })).toBeVisible();
 
-    // Banner is driven by the PENDING response on the first status poll.
+    // Banner is driven by the STARTED response on the first status poll.
     await expect(page.getByText('Syncing from Snowflake…')).toBeVisible({ timeout: 10_000 });
 
     // After ~3s the poll fires again and the COMPLETED response clears it.
