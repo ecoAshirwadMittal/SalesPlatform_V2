@@ -3,7 +3,10 @@ package com.ecoatm.salesplatform.service.auctions;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryRow;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
+import com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest;
+import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -155,5 +158,20 @@ public class AggregatedInventoryService {
                 toBd(r[5]),
                 lastSynced
         );
+    }
+
+    @Transactional
+    public AggregatedInventory updateRow(Long id, AggregatedInventoryUpdateRequest req) {
+        var entity = em.find(AggregatedInventory.class, id);
+        if (entity == null) {
+            throw new EntityNotFoundException("AggregatedInventory not found: " + id);
+        }
+        entity.setMergedGrade(req.mergedGrade());
+        entity.setDatawipe(req.datawipe());
+        entity.setTotalQuantity(req.totalQuantity());
+        entity.setDwTotalQuantity(req.dwTotalQuantity());
+        entity.setTotalQuantityModified(true);
+        entity.setChangedDate(Instant.now());
+        return em.merge(entity);
     }
 }

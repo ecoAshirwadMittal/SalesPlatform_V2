@@ -74,4 +74,27 @@ class AggregatedInventoryServiceTest {
         assertThat(totals.totalPayout()).isEqualByComparingTo(new BigDecimal("1855306.00"));
         assertThat(totals.dwAverageTargetPrice()).isEqualByComparingTo(new BigDecimal("214.5400"));
     }
+
+    @Test
+    @DisplayName("updateRow saves mergedGrade, datawipe, totals and flips isTotalQuantityModified")
+    void updateRow_persistsAdminEdit() {
+        var entity = new com.ecoatm.salesplatform.model.auctions.AggregatedInventory();
+        entity.setTotalQuantity(5);
+        entity.setDwTotalQuantity(2);
+        entity.setMergedGrade("A_YYY");
+        when(em.find(com.ecoatm.salesplatform.model.auctions.AggregatedInventory.class, 99L))
+                .thenReturn(entity);
+        when(em.merge(entity)).thenReturn(entity);
+
+        var req = new com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest(
+                "E_YYN", true, 9, 4);
+
+        var updated = service.updateRow(99L, req);
+
+        assertThat(updated.getMergedGrade()).isEqualTo("E_YYN");
+        assertThat(updated.isDatawipe()).isTrue();
+        assertThat(updated.getTotalQuantity()).isEqualTo(9);
+        assertThat(updated.getDwTotalQuantity()).isEqualTo(4);
+        assertThat(updated.isTotalQuantityModified()).isTrue();
+    }
 }

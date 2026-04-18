@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AggregatedInventoryController.class)
@@ -99,5 +100,26 @@ class AggregatedInventoryControllerTest {
            .andExpect(status().isOk())
            .andExpect(jsonPath("$.totalQuantity").value(186020))
            .andExpect(jsonPath("$.dwAverageTargetPrice").value(214.54));
+    }
+
+    @Test
+    @WithMockUser(roles = {"Administrator"})
+    @DisplayName("PUT /{id} saves admin edit")
+    void update_savesEdit() throws Exception {
+        var entity = new com.ecoatm.salesplatform.model.auctions.AggregatedInventory();
+        entity.setEcoid2("75");
+        entity.setMergedGrade("E_YYN");
+        entity.setDatawipe(true);
+        entity.setTotalQuantity(9);
+        entity.setDwTotalQuantity(4);
+        when(service.updateRow(org.mockito.ArgumentMatchers.eq(42L),
+                               org.mockito.ArgumentMatchers.any())).thenReturn(entity);
+
+        mvc.perform(put("/api/v1/admin/inventory/42")
+                .contentType("application/json")
+                .content("{\"mergedGrade\":\"E_YYN\",\"datawipe\":true,\"totalQuantity\":9,\"dwTotalQuantity\":4}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.mergedGrade").value("E_YYN"))
+           .andExpect(jsonPath("$.totalQuantity").value(9));
     }
 }
