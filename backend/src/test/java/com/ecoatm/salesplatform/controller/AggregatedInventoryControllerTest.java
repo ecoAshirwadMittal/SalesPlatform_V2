@@ -122,4 +122,14 @@ class AggregatedInventoryControllerTest {
            .andExpect(jsonPath("$.mergedGrade").value("E_YYN"))
            .andExpect(jsonPath("$.totalQuantity").value(9));
     }
+
+    @Test
+    @WithMockUser(roles = {"SalesOps"})
+    @DisplayName("PUT /{id} is denied for SalesOps — admin only")
+    void update_withSalesOps_returns403() throws Exception {
+        mvc.perform(put("/api/v1/admin/inventory/42")
+                .contentType("application/json")
+                .content("{\"mergedGrade\":\"E_YYN\",\"datawipe\":true,\"totalQuantity\":9,\"dwTotalQuantity\":4}"))
+           .andExpect(status().isForbidden());
+    }
 }

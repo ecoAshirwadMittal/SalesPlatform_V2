@@ -4,9 +4,9 @@ import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryRow;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest;
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import jakarta.persistence.EntityManager;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
