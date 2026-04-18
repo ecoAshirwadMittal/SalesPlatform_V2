@@ -266,7 +266,18 @@ Paginated rows for the selected week. Requires `Administrator` or `SalesOps`.
 
 Per-week KPI totals (sum + weighted average). Rows with `is_deprecated = true` are excluded.
 
-**Response**: `{ totalQuantity, totalPayout, averageTargetPrice, dwTotalQuantity, dwTotalPayout, dwAverageTargetPrice, lastSyncedAt }`.
+**Response**: `{ totalQuantity, totalPayout, averageTargetPrice, dwTotalQuantity, dwTotalPayout, dwAverageTargetPrice, lastSyncedAt, hasInventory, hasAuction, isCurrentWeek, syncStatus }`.
+
+The four trailing helper flags replace the Mendix `AggInventoryHelper` microflow so the page can drive the Snowflake sync banner and the "Create Auction" button without a separate call:
+
+| Field | Type | Description |
+|---|---|---|
+| `hasInventory` | boolean | `EXISTS` against `auctions.aggregated_inventory` for the week — true even when all quantities are zero, so the UI distinguishes "no rows yet" from "rows present but empty". |
+| `hasAuction` | boolean | `EXISTS` against `auctions.auctions` for the week — used to suppress the "Create Auction" button once an auction already exists. |
+| `isCurrentWeek` | boolean | True when the selected week's `week_end_datetime > now()` (Mendix-parity filter). |
+| `syncStatus` | string | Latest `integration.snowflake_sync_log.status` for `SNOWFLAKE_AGG_INVENTORY` + this week (`STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_UP_TO_DATE`, `SKIPPED_LOCKED`), or `"NONE"` if no run exists yet. |
+
+When `weekId` is omitted, the helper flags return safe defaults (`hasInventory=false`, `hasAuction=false`, `isCurrentWeek=false`, `syncStatus="NONE"`).
 
 ### PUT /admin/inventory/{id}
 

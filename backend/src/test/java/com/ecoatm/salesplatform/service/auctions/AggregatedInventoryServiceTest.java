@@ -1,6 +1,8 @@
 package com.ecoatm.salesplatform.service.auctions;
 
 import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
+import com.ecoatm.salesplatform.model.integration.SnowflakeSyncLog;
+import com.ecoatm.salesplatform.repository.integration.SnowflakeSyncLogRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,12 +26,13 @@ class AggregatedInventoryServiceTest {
 
     @Mock private EntityManager em;
     @Mock private Query nativeQuery;
+    @Mock private SnowflakeSyncLogRepository syncLogRepository;
 
     private AggregatedInventoryService service;
 
     @BeforeEach
     void setUp() {
-        service = new AggregatedInventoryService(em);
+        service = new AggregatedInventoryService(em, syncLogRepository);
     }
 
     @Test
@@ -57,8 +61,8 @@ class AggregatedInventoryServiceTest {
     }
 
     @Test
-    @DisplayName("getTotals computes averages from totals row + aggregated inventory")
-    void getTotals_withTotalsRow_returnsKpis() {
+    @DisplayName("getTotals computes averages and surfaces helper flags for the selected week")
+    void getTotals_withWeekId_returnsKpisAndFlags() {
         Object[] row = new Object[] {
                 186020, new BigDecimal("1855306.00"), new BigDecimal("42.1700"),
                 57298,  new BigDecimal("5269391.00"), new BigDecimal("214.5400"),
@@ -67,13 +71,51 @@ class AggregatedInventoryServiceTest {
 
         when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
         when(nativeQuery.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(nativeQuery);
-        when(nativeQuery.getSingleResult()).thenReturn(row);
+        // Order matches the four queries inside getTotals(weekId): totals row,
+        // hasInventory, hasAuction, isCurrentWeek.
+        when(nativeQuery.getSingleResult())
+                .thenReturn(row)
+                .thenReturn(Boolean.TRUE)
+                .thenReturn(Boolean.FALSE)
+                .thenReturn(Boolean.TRUE);
+
+        var log = new SnowflakeSyncLog();
+        log.setStatus("COMPLETED");
+        when(syncLogRepository.findFirstBySyncTypeAndTargetKeyOrderByStartedAtDesc(
+                AggregatedInventorySnowflakeSyncService.SYNC_TYPE, "100"))
+                .thenReturn(Optional.of(log));
 
         var totals = service.getTotals(100L);
 
         assertThat(totals.totalQuantity()).isEqualTo(186020);
         assertThat(totals.totalPayout()).isEqualByComparingTo(new BigDecimal("1855306.00"));
         assertThat(totals.dwAverageTargetPrice()).isEqualByComparingTo(new BigDecimal("214.5400"));
+        assertThat(totals.hasInventory()).isTrue();
+        assertThat(totals.hasAuction()).isFalse();
+        assertThat(totals.isCurrentWeek()).isTrue();
+        assertThat(totals.syncStatus()).isEqualTo("COMPLETED");
+    }
+
+    @Test
+    @DisplayName("getTotals with null weekId returns safe-default helper flags and no sync lookup")
+    void getTotals_withNullWeekId_returnsSafeDefaults() {
+        Object[] row = new Object[] {
+                0, BigDecimal.ZERO, BigDecimal.ZERO,
+                0, BigDecimal.ZERO, BigDecimal.ZERO,
+                null
+        };
+
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(nativeQuery);
+        when(nativeQuery.getSingleResult()).thenReturn(row);
+
+        var totals = service.getTotals(null);
+
+        assertThat(totals.hasInventory()).isFalse();
+        assertThat(totals.hasAuction()).isFalse();
+        assertThat(totals.isCurrentWeek()).isFalse();
+        assertThat(totals.syncStatus()).isEqualTo("NONE");
+        org.mockito.Mockito.verifyNoInteractions(syncLogRepository);
     }
 
     @Test

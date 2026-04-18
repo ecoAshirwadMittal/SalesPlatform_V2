@@ -93,17 +93,22 @@ class AggregatedInventoryControllerTest {
 
     @Test
     @WithMockUser(roles = {"Administrator"})
-    @DisplayName("GET /totals returns KPI payload")
+    @DisplayName("GET /totals returns KPI payload with helper flags")
     void totals_returnsKpis() throws Exception {
         when(service.getTotals(100L)).thenReturn(new com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse(
                 186020, new java.math.BigDecimal("1855306.00"), new java.math.BigDecimal("42.1700"),
                 57298,  new java.math.BigDecimal("5269391.00"), new java.math.BigDecimal("214.5400"),
-                Instant.parse("2026-04-17T08:40:00Z")));
+                Instant.parse("2026-04-17T08:40:00Z"),
+                true, false, true, "COMPLETED"));
 
         mvc.perform(get("/api/v1/admin/inventory/totals?weekId=100"))
            .andExpect(status().isOk())
            .andExpect(jsonPath("$.totalQuantity").value(186020))
-           .andExpect(jsonPath("$.dwAverageTargetPrice").value(214.54));
+           .andExpect(jsonPath("$.dwAverageTargetPrice").value(214.54))
+           .andExpect(jsonPath("$.hasInventory").value(true))
+           .andExpect(jsonPath("$.hasAuction").value(false))
+           .andExpect(jsonPath("$.isCurrentWeek").value(true))
+           .andExpect(jsonPath("$.syncStatus").value("COMPLETED"));
     }
 
     @Test

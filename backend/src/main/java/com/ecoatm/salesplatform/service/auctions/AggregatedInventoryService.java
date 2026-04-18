@@ -6,6 +6,8 @@ import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest;
 import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
+import com.ecoatm.salesplatform.model.integration.SnowflakeSyncLog;
+import com.ecoatm.salesplatform.repository.integration.SnowflakeSyncLogRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +19,20 @@ import java.util.List;
 @Service
 public class AggregatedInventoryService {
 
-    private final EntityManager em;
+    /**
+     * Sentinel returned for {@code syncStatus} when no Snowflake sync log
+     * exists for the selected week (or when no week is selected). Matches
+     * the value the UI expects to suppress the sync banner.
+     */
+    private static final String SYNC_STATUS_NONE = "NONE";
 
-    public AggregatedInventoryService(EntityManager em) {
+    private final EntityManager em;
+    private final SnowflakeSyncLogRepository syncLogRepository;
+
+    public AggregatedInventoryService(EntityManager em,
+                                      SnowflakeSyncLogRepository syncLogRepository) {
         this.em = em;
+        this.syncLogRepository = syncLogRepository;
     }
 
     private static String blankToNull(String s) {
@@ -124,6 +136,13 @@ public class AggregatedInventoryService {
         return new AggregatedInventoryPageResponse(content, page, pageSize, total, totalPages);
     }
 
+    /**
+     * KPI totals plus the four helper flags consumed by the admin page
+     * ({@code hasInventory}, {@code hasAuction}, {@code isCurrentWeek},
+     * {@code syncStatus}). With {@code weekId == null} the page is in its
+     * pre-selection state, so the flags are forced to safe defaults to
+     * suppress the "Create Auction" button and the sync banner.
+     */
     @Transactional(readOnly = true)
     public AggregatedInventoryTotalsResponse getTotals(Long weekId) {
         String sql = """
@@ -150,6 +169,38 @@ public class AggregatedInventoryService {
         if (r[6] instanceof java.sql.Timestamp ts) lastSynced = ts.toInstant();
         else if (r[6] instanceof Instant inst) lastSynced = inst;
 
+        boolean hasInventory = false;
+        boolean hasAuction = false;
+        boolean isCurrentWeek = false;
+        String syncStatus = SYNC_STATUS_NONE;
+        if (weekId != null) {
+            // Dedicated EXISTS so "rows present but quantities all zero" still
+            // reports hasInventory=true — totalQuantity alone would lie.
+            hasInventory = ((Boolean) em.createNativeQuery(
+                    "SELECT EXISTS (SELECT 1 FROM auctions.aggregated_inventory "
+                            + "WHERE week_id = :weekId AND is_deprecated = false)")
+                    .setParameter("weekId", weekId)
+                    .getSingleResult());
+
+            hasAuction = ((Boolean) em.createNativeQuery(
+                    "SELECT EXISTS (SELECT 1 FROM auctions.auctions WHERE week_id = :weekId)")
+                    .setParameter("weekId", weekId)
+                    .getSingleResult());
+
+            isCurrentWeek = ((Boolean) em.createNativeQuery(
+                    "SELECT EXISTS (SELECT 1 FROM mdm.week "
+                            + "WHERE id = :weekId AND week_end_datetime > now())")
+                    .setParameter("weekId", weekId)
+                    .getSingleResult());
+
+            syncStatus = syncLogRepository
+                    .findFirstBySyncTypeAndTargetKeyOrderByStartedAtDesc(
+                            AggregatedInventorySnowflakeSyncService.SYNC_TYPE,
+                            String.valueOf(weekId))
+                    .map(SnowflakeSyncLog::getStatus)
+                    .orElse(SYNC_STATUS_NONE);
+        }
+
         return new AggregatedInventoryTotalsResponse(
                 ((Number) r[0]).intValue(),
                 toBd(r[1]),
@@ -157,7 +208,11 @@ public class AggregatedInventoryService {
                 ((Number) r[3]).intValue(),
                 toBd(r[4]),
                 toBd(r[5]),
-                lastSynced
+                lastSynced,
+                hasInventory,
+                hasAuction,
+                isCurrentWeek,
+                syncStatus
         );
     }
 
