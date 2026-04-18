@@ -25,7 +25,14 @@ When planning a feature, ALWAYS start by querying the directory structure inside
 - Comment philosophy: explain "Why" not "What"
 
 ### Styling QA Verification (MANDATORY)
-After building any new frontend page, you MUST visually compare the page against the live QA environment at **https://buy-qa.ecoatmdirect.com** using browser screenshots or the Playwright MCP tools. Check:
+After building any new frontend page, you MUST visually compare the page against the live QA environment using browser screenshots or the Playwright MCP tools. Pick the correct QA entry point based on the surface:
+
+| Surface | Login URL | Credentials |
+|---|---|---|
+| **Buyer / PWS pages** | `https://buy-qa.ecoatmdirect.com/p/login/web` | see *QA Environment (Buyer / PWS Layout)* below |
+| **Admin / SalesOps pages** (e.g. `/admin/**`) | `https://buy-qa.ecoatmdirect.com/login.html` | see *QA Environment (Admin)* below |
+
+Check:
 1. Layout structure (sidebar, header, content area positioning)
 2. Color tokens (#407874 teal, #112d32 dark, #F7F7F7 background, etc.)
 3. Font sizes, weights, and spacing match the Mendix original
@@ -123,6 +130,12 @@ Seeded by Flyway migration `V15__seed_dev_roles_and_users.sql` — available on 
 - **Email**: `nadia.ecoatm@gmail.com`
 - **Password**: `Test100%`
 - **Buyer code**: `NB_PWS`
+
+### QA Environment (Admin)
+Use this login when pixel-matching any `/admin/**` page (e.g. `/admin/auctions-data-center/inventory`).
+- **URL**: `https://buy-qa.ecoatmdirect.com/login.html`
+- **Username**: `ashirwadmittal`
+- **Password**: `Password123#`
 
 ### Database Credentials (Dev)
 | Key | Value |
