@@ -90,13 +90,6 @@ public class AggregatedInventory {
     @Column(name = "changed_date")
     private Instant changedDate;
 
-    @PrePersist
-    protected void onCreate() {
-        if (createdDate == null) {
-            createdDate = Instant.now();
-        }
-    }
-
     // Getters and setters
 
     public Long getId() {
@@ -213,5 +206,9 @@ public class AggregatedInventory {
 
     public void setTotalQuantityModified(boolean totalQuantityModified) {
         this.totalQuantityModified = totalQuantityModified;
+    }
+
+    public void setCreatedDate(Instant createdDate) {
+        this.createdDate = createdDate;
     }
 }

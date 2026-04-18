@@ -8,6 +8,9 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.NONE;
 
+import java.math.BigDecimal;
+import java.time.Instant;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -28,8 +31,9 @@ class AggregatedInventoryRepositoryTest {
         a.setMergedGrade("A_YYY");
         a.setTotalQuantity(5);
         a.setDwTotalQuantity(2);
-        a.setAvgTargetPrice(new java.math.BigDecimal("12.3400"));
-        a.setChangedDate(java.time.Instant.now());
+        a.setAvgTargetPrice(new BigDecimal("12.3400"));
+        a.setCreatedDate(Instant.now());
+        a.setChangedDate(Instant.now());
 
         AggregatedInventory saved = repo.save(a);
         assertThat(saved.getId()).isNotNull();
