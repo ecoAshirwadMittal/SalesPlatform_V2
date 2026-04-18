@@ -36,6 +36,7 @@ class AggregatedInventoryControllerTest {
     @Autowired private MockMvc mvc;
     @MockBean private AggregatedInventoryService service;
     @MockBean private WeekRepository weekRepo;
+    @MockBean private com.ecoatm.salesplatform.service.auctions.AggregatedInventoryExcelExporter excelExporter;
 
     @Test
     @WithMockUser(roles = {"Administrator"})

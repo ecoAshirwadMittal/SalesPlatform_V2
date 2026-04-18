@@ -8,6 +8,7 @@ import com.ecoatm.salesplatform.dto.WeekOption;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
+import com.ecoatm.salesplatform.service.auctions.AggregatedInventoryExcelExporter;
 import com.ecoatm.salesplatform.service.auctions.AggregatedInventoryService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -28,10 +29,14 @@ public class AggregatedInventoryController {
 
     private final AggregatedInventoryService service;
     private final WeekRepository weekRepository;
+    private final AggregatedInventoryExcelExporter excelExporter;
 
-    public AggregatedInventoryController(AggregatedInventoryService service, WeekRepository weekRepository) {
+    public AggregatedInventoryController(AggregatedInventoryService service,
+                                         WeekRepository weekRepository,
+                                         AggregatedInventoryExcelExporter excelExporter) {
         this.service = service;
         this.weekRepository = weekRepository;
+        this.excelExporter = excelExporter;
     }
 
     @GetMapping("/weeks")
@@ -76,5 +81,24 @@ public class AggregatedInventoryController {
                 e.getTotalQuantity(), e.getAvgTargetPrice(),
                 e.isDatawipe());
         return ResponseEntity.ok(row);
+    }
+
+    @GetMapping(value = "/export", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    public ResponseEntity<byte[]> export(
+            @RequestParam(required = false) Long weekId,
+            @RequestParam(required = false) String productId,
+            @RequestParam(required = false) String grades,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
+            @RequestParam(required = false) String modelName,
+            @RequestParam(required = false) String carrier) throws java.io.IOException {
+
+        var all = service.search(weekId, productId, grades, brand, model, modelName, carrier, 0, Integer.MAX_VALUE);
+        var baos = new java.io.ByteArrayOutputStream();
+        excelExporter.write(all.content(), baos);
+
+        return ResponseEntity.ok()
+                .header("Content-Disposition", "attachment; filename=\"aggregated-inventory.xlsx\"")
+                .body(baos.toByteArray());
     }
 }
