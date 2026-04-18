@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -52,5 +53,25 @@ class AggregatedInventoryServiceTest {
         assertThat(resp.content().get(0).ecoid2()).isEqualTo("75");
         assertThat(resp.content().get(0).brand()).isEqualTo("Apple");
         assertThat(resp.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getTotals computes averages from totals row + aggregated inventory")
+    void getTotals_withTotalsRow_returnsKpis() {
+        Object[] row = new Object[] {
+                186020, new BigDecimal("1855306.00"), new BigDecimal("42.1700"),
+                57298,  new BigDecimal("5269391.00"), new BigDecimal("214.5400"),
+                java.sql.Timestamp.from(Instant.parse("2026-04-17T08:40:00Z"))
+        };
+
+        when(em.createNativeQuery(anyString())).thenReturn(nativeQuery);
+        when(nativeQuery.setParameter(anyString(), org.mockito.ArgumentMatchers.any())).thenReturn(nativeQuery);
+        when(nativeQuery.getSingleResult()).thenReturn(row);
+
+        var totals = service.getTotals(100L);
+
+        assertThat(totals.totalQuantity()).isEqualTo(186020);
+        assertThat(totals.totalPayout()).isEqualByComparingTo(new BigDecimal("1855306.00"));
+        assertThat(totals.dwAverageTargetPrice()).isEqualByComparingTo(new BigDecimal("214.5400"));
     }
 }

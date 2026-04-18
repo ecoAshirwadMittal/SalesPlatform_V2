@@ -2,11 +2,13 @@ package com.ecoatm.salesplatform.service.auctions;
 
 import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryRow;
+import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -116,5 +118,42 @@ public class AggregatedInventoryService {
 
         int totalPages = pageSize == 0 ? 0 : (int) Math.ceil((double) total / pageSize);
         return new AggregatedInventoryPageResponse(content, page, pageSize, total, totalPages);
+    }
+
+    @Transactional(readOnly = true)
+    public AggregatedInventoryTotalsResponse getTotals(Long weekId) {
+        String sql = """
+                SELECT
+                  COALESCE(SUM(a.total_quantity), 0)                                           AS total_qty,
+                  COALESCE(SUM(a.total_payout), 0)                                             AS total_payout,
+                  CASE WHEN COALESCE(SUM(a.total_quantity), 0) = 0 THEN 0
+                       ELSE SUM(a.avg_target_price * a.total_quantity) / SUM(a.total_quantity) END AS avg_target,
+                  COALESCE(SUM(a.dw_total_quantity), 0)                                        AS dw_total_qty,
+                  COALESCE(SUM(a.dw_total_payout), 0)                                          AS dw_total_payout,
+                  CASE WHEN COALESCE(SUM(a.dw_total_quantity), 0) = 0 THEN 0
+                       ELSE SUM(a.dw_avg_target_price * a.dw_total_quantity) / SUM(a.dw_total_quantity) END AS dw_avg_target,
+                  MAX(a.changed_date)                                                          AS last_synced
+                FROM auctions.aggregated_inventory a
+                WHERE a.is_deprecated = false
+                  AND (CAST(:weekId AS bigint) IS NULL OR a.week_id = CAST(:weekId AS bigint))
+                """;
+
+        Object[] r = (Object[]) em.createNativeQuery(sql)
+                .setParameter("weekId", weekId)
+                .getSingleResult();
+
+        Instant lastSynced = null;
+        if (r[6] instanceof java.sql.Timestamp ts) lastSynced = ts.toInstant();
+        else if (r[6] instanceof Instant inst) lastSynced = inst;
+
+        return new AggregatedInventoryTotalsResponse(
+                ((Number) r[0]).intValue(),
+                toBd(r[1]),
+                toBd(r[2]),
+                ((Number) r[3]).intValue(),
+                toBd(r[4]),
+                toBd(r[5]),
+                lastSynced
+        );
     }
 }
