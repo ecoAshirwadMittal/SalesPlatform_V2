@@ -84,3 +84,16 @@ export async function fetchInventoryTotals(weekId: number): Promise<InventoryTot
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return InventoryTotalsSchema.parse(await res.json());
 }
+
+export async function updateInventoryRow(
+  id: number,
+  body: { mergedGrade: string; datawipe: boolean; totalQuantity: number; dwTotalQuantity: number; }
+): Promise<InventoryRow> {
+  const res = await apiFetch(`/api/v1/admin/inventory/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return InventoryRowSchema.parse(await res.json());
+}

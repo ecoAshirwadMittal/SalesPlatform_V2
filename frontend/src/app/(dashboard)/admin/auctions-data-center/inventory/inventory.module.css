@@ -140,3 +140,32 @@
   color: #555;
   font-size: .85rem;
 }
+
+.modalBackdrop {
+  position: fixed; inset: 0;
+  background: rgba(17, 45, 50, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.modal {
+  background: #fff; border-radius: 6px;
+  width: min(420px, 92vw);
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+.modalTitle {
+  margin: 0 0 1rem; font-size: 1.15rem; color: #112d32;
+}
+.field { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.75rem; }
+.field label { font-size: 0.8rem; color: #555; }
+.field input, .field select {
+  height: 34px; padding: 0 0.5rem;
+  border: 1px solid #cfcfcf; border-radius: 4px; font: inherit;
+}
+.radioGroup { display: flex; gap: 1rem; }
+.modalActions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
+.editLink {
+  color: #407874; background: none; border: 0; cursor: pointer;
+  text-decoration: underline; padding: 0; font: inherit;
+}
+

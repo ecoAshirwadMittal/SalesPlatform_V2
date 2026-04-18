@@ -6,9 +6,11 @@ import {
   fetchWeeks,
   fetchInventoryPage,
   fetchInventoryTotals,
+  updateInventoryRow,
   type WeekOption,
   type InventoryPageResponse,
   type InventoryTotals,
+  type InventoryRow,
 } from '@/lib/aggregatedInventory';
 
 const PAGE_SIZE = 20;
@@ -53,6 +55,7 @@ export default function AggregatedInventoryPage() {
   const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [editRow, setEditRow] = useState<InventoryRow | null>(null);
 
   useEffect(() => {
     let ignore = false;
@@ -200,7 +203,15 @@ export default function AggregatedInventoryPage() {
                 <td>{formatUsd(Number(r.dwAvgTargetPrice))}</td>
                 <td>{formatInt(r.totalQuantity)}</td>
                 <td>{formatUsd(Number(r.avgTargetPrice))}</td>
-                <td />
+                <td>
+                  <button
+                    type="button"
+                    className={styles.editLink}
+                    onClick={() => setEditRow(r)}
+                  >
+                    Edit
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -226,6 +237,17 @@ export default function AggregatedInventoryPage() {
           </button>
         </div>
       </div>
+      {editRow && (
+        <EditModal
+          row={editRow}
+          onClose={() => setEditRow(null)}
+          onSaved={() => {
+            setEditRow(null);
+            setError(null);
+            refresh().catch(() => setError('Failed to load inventory'));
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -258,5 +280,96 @@ function HeaderCell({ label, filter, onChange, kind = 'contains' }: HeaderCellPr
         inputMode={kind === 'equal' ? 'numeric' : 'text'}
       />
     </th>
+  );
+}
+
+function EditModal({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: InventoryRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [mergedGrade, setMergedGrade] = useState(row.mergedGrade ?? '');
+  const [datawipe, setDatawipe] = useState(false);
+  const [totalQuantity, setTotalQuantity] = useState(row.totalQuantity);
+  const [dwTotalQuantity, setDwTotalQuantity] = useState(row.dwTotalQuantity);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  const onSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      await updateInventoryRow(row.id, { mergedGrade, datawipe, totalQuantity, dwTotalQuantity });
+      onSaved();
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Save failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className={styles.modalBackdrop} role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+      <div className={styles.modal}>
+        <h3 id="edit-modal-title" className={styles.modalTitle}>Edit Aggregated Inventory</h3>
+        <div className={styles.field}>
+          <label>Merged Grade</label>
+          <div className={styles.radioGroup}>
+            {['A_YYY', 'C_YNY/G_YNN', 'E_YYN'].map(g => (
+              <label key={g}>
+                <input
+                  type="radio"
+                  name="grade"
+                  value={g}
+                  checked={mergedGrade === g}
+                  onChange={() => setMergedGrade(g)}
+                />
+                {' '}{g}
+              </label>
+            ))}
+          </div>
+        </div>
+        <div className={styles.field}>
+          <label>Data Wipe</label>
+          <div className={styles.radioGroup}>
+            <label>
+              <input type="radio" name="dw" checked={datawipe} onChange={() => setDatawipe(true)} /> Yes
+            </label>
+            <label>
+              <input type="radio" name="dw" checked={!datawipe} onChange={() => setDatawipe(false)} /> No
+            </label>
+          </div>
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="edit-total-qty">Total Quantity</label>
+          <input
+            id="edit-total-qty"
+            type="number"
+            value={totalQuantity}
+            onChange={e => setTotalQuantity(Number(e.target.value))}
+          />
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="edit-dw-total-qty">DW Total Quantity</label>
+          <input
+            id="edit-dw-total-qty"
+            type="number"
+            value={dwTotalQuantity}
+            onChange={e => setDwTotalQuantity(Number(e.target.value))}
+          />
+        </div>
+        {saveError && <span className={styles.error}>{saveError}</span>}
+        <div className={styles.modalActions}>
+          <button type="button" className={styles.buttonGhost} onClick={onClose} disabled={saving}>Cancel</button>
+          <button type="button" className={styles.button} onClick={onSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
