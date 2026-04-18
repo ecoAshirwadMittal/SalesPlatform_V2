@@ -1,0 +1,51 @@
+import { z } from 'zod';
+import { apiFetch } from './apiFetch';
+
+export const WeekOptionSchema = z.object({
+  id: z.number(),
+  weekDisplay: z.string(),
+  weekStartDateTime: z.string(),
+  weekEndDateTime: z.string(),
+});
+export type WeekOption = z.infer<typeof WeekOptionSchema>;
+
+export const InventoryRowSchema = z.object({
+  id: z.number(),
+  ecoid2: z.string(),
+  mergedGrade: z.string().nullable(),
+  brand: z.string().nullable(),
+  model: z.string().nullable(),
+  name: z.string().nullable(),
+  carrier: z.string().nullable(),
+  dwTotalQuantity: z.number(),
+  dwAvgTargetPrice: z.number(),
+  totalQuantity: z.number(),
+  avgTargetPrice: z.number(),
+});
+export type InventoryRow = z.infer<typeof InventoryRowSchema>;
+
+export const InventoryPageResponseSchema = z.object({
+  content: z.array(InventoryRowSchema),
+  page: z.number(),
+  pageSize: z.number(),
+  totalElements: z.number(),
+  totalPages: z.number(),
+});
+export type InventoryPageResponse = z.infer<typeof InventoryPageResponseSchema>;
+
+export const InventoryTotalsSchema = z.object({
+  totalQuantity: z.number(),
+  totalPayout: z.number(),
+  averageTargetPrice: z.number(),
+  dwTotalQuantity: z.number(),
+  dwTotalPayout: z.number(),
+  dwAverageTargetPrice: z.number(),
+  lastSyncedAt: z.string().nullable(),
+});
+export type InventoryTotals = z.infer<typeof InventoryTotalsSchema>;
+
+export async function fetchWeeks(): Promise<WeekOption[]> {
+  const res = await apiFetch('/api/v1/admin/inventory/weeks');
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return z.array(WeekOptionSchema).parse(await res.json());
+}
