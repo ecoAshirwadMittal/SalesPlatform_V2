@@ -52,7 +52,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @ConditionalOnProperty(name = "snowflake.enabled", havingValue = "true")
-public class SnowflakeAggInventoryReader {
+public final class SnowflakeAggInventoryReader {
 
     private static final Logger log = LoggerFactory.getLogger(SnowflakeAggInventoryReader.class);
 
@@ -165,10 +165,14 @@ public class SnowflakeAggInventoryReader {
             ps.setInt(2, auctionYear);
             try (ResultSet rs = ps.executeQuery()) {
                 if (!rs.next()) {
+                    log.debug("readWatermark week={} year={} result={}", auctionWeek, auctionYear, null);
                     return Optional.empty();
                 }
                 Instant watermark = readUtcTimestamp(rs, 1);
-                return Optional.ofNullable(watermark);
+                Optional<Instant> result = Optional.ofNullable(watermark);
+                log.debug("readWatermark week={} year={} result={}",
+                        auctionWeek, auctionYear, result.orElse(null));
+                return result;
             }
         } catch (SQLException ex) {
             throw new SnowflakeReadException(
@@ -201,6 +205,8 @@ public class SnowflakeAggInventoryReader {
                     }
                     rows.add(mapRow(rs));
                 }
+                log.debug("readPage week={} year={} offset={} rows={}",
+                        auctionWeek, auctionYear, offset, rows.size());
                 return rows;
             }
         } catch (SQLException ex) {
@@ -226,6 +232,26 @@ public class SnowflakeAggInventoryReader {
         return () -> new PageIterator(auctionWeek, auctionYear);
     }
 
+    /**
+     * Lazy page iterator over {@link #readPage} results.
+     *
+     * <p><strong>End-of-data detection.</strong> The iterator stops on the
+     * first short page (a page with fewer than {@link #PAGE_SIZE} rows
+     * after the {@code DEVICE_ID='Total'} filter). At exact multiples of
+     * {@code PAGE_SIZE} this means one trailing zero-row query is made to
+     * detect end-of-data — there is no cheaper way to know the last full
+     * page was actually the last without issuing a {@code COUNT(*)} on
+     * Snowflake first, which is slower than a bounded OFFSET/FETCH probe.
+     * This trailing empty page is <em>intentional</em> and is suppressed
+     * from the iterator's output — {@code hasNext()} returns {@code false}
+     * and callers never observe a phantom iteration.
+     *
+     * <p><strong>Empty first page.</strong> When the very first page comes
+     * back empty ({@code offset == 0} and no rows), the iterator yields a
+     * single empty list. Callers that want to distinguish "no rows at all"
+     * from "consumed all rows" should inspect the first element returned
+     * by {@link Iterator#next()}.
+     */
     private final class PageIterator implements Iterator<List<SnowflakeAggInventoryRow>> {
         private final int auctionWeek;
         private final int auctionYear;
@@ -258,9 +284,11 @@ public class SnowflakeAggInventoryReader {
                 offset += PAGE_SIZE;
             }
             if (page.isEmpty() && offset > 0) {
-                // Already produced the final non-empty page; suppress the
-                // trailing empty page so the caller doesn't see a phantom
-                // iteration.
+                // Trailing empty page at an exact PAGE_SIZE boundary — the
+                // previous iteration already returned the final non-empty
+                // page. See class Javadoc: this zero-row query is the
+                // unavoidable cost of end-of-data detection without a
+                // COUNT(*), and it must NOT be surfaced to the caller.
                 buffered = null;
                 return false;
             }
@@ -332,16 +360,5 @@ public class SnowflakeAggInventoryReader {
     private static Instant readUtcTimestamp(ResultSet rs, int columnIndex) throws SQLException {
         Timestamp ts = rs.getTimestamp(columnIndex, (Calendar) UTC_CALENDAR.clone());
         return ts == null ? null : ts.toInstant();
-    }
-
-    /**
-     * Wraps a {@link SQLException} from the Snowflake datasource so upstream
-     * code can catch a single domain exception without depending on
-     * {@code java.sql}.
-     */
-    public static final class SnowflakeReadException extends RuntimeException {
-        public SnowflakeReadException(String message, Throwable cause) {
-            super(message, cause);
-        }
     }
 }

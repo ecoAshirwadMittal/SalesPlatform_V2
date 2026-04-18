@@ -1,6 +1,5 @@
 package com.ecoatm.salesplatform.service.auctions.snowflake;
 
-import com.ecoatm.salesplatform.service.auctions.snowflake.SnowflakeAggInventoryReader.SnowflakeReadException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -155,12 +154,20 @@ class SnowflakeAggInventoryReaderTest {
         assertThat(out.datawipe()).isTrue();
         assertThat(out.maxUploadTime()).isEqualTo(Instant.parse("2026-04-10T12:00:00Z"));
         assertThat(out.avgTargetPrice()).isEqualByComparingTo("10.50");
+        assertThat(out.avgPayout()).isEqualByComparingTo("8.25");
+        assertThat(out.totalPayout()).isEqualByComparingTo("82.50");
         assertThat(out.totalQuantity()).isEqualTo(10);
+        assertThat(out.dwAvgTargetPrice()).isEqualByComparingTo("11.00");
+        assertThat(out.dwAvgPayout()).isEqualByComparingTo("9.00");
+        assertThat(out.dwTotalPayout()).isEqualByComparingTo("90.00");
         assertThat(out.dwTotalQuantity()).isEqualTo(10);
         assertThat(out.round1TargetPrice()).isEqualByComparingTo("10.50");
         assertThat(out.round1TargetPriceDw()).isEqualByComparingTo("11.00");
         assertThat(out.name()).isEqualTo("iPhone X 64GB");
+        assertThat(out.model()).isEqualTo("iPhone X");
         assertThat(out.brand()).isEqualTo("Apple");
+        assertThat(out.carrier()).isEqualTo("UNLOCKED");
+        assertThat(out.category()).isEqualTo("Phone");
         assertThat(out.createdAt()).isEqualTo(Instant.parse("2024-01-01T00:00:00Z"));
     }
 
@@ -171,6 +178,11 @@ class SnowflakeAggInventoryReaderTest {
         real.ecoId = "eco-1";
         real.deviceId = "dev-1";
         real.datawipe = "";
+        real.name = "iPhone 13 128GB";
+        real.model = "iPhone 13";
+        real.brand = "Apple";
+        real.carrier = "VERIZON";
+        real.category = "Phone";
 
         RowStub totals = new RowStub();
         totals.ecoId = "eco-total";
@@ -182,8 +194,14 @@ class SnowflakeAggInventoryReaderTest {
         List<SnowflakeAggInventoryRow> page = reader.readPage(15, 2026, 0);
 
         assertThat(page).hasSize(1);
-        assertThat(page.get(0).deviceId()).isEqualTo("dev-1");
-        assertThat(page.get(0).datawipe()).isFalse();
+        SnowflakeAggInventoryRow surviving = page.get(0);
+        assertThat(surviving.deviceId()).isEqualTo("dev-1");
+        assertThat(surviving.datawipe()).isFalse();
+        assertThat(surviving.name()).isEqualTo("iPhone 13 128GB");
+        assertThat(surviving.model()).isEqualTo("iPhone 13");
+        assertThat(surviving.brand()).isEqualTo("Apple");
+        assertThat(surviving.carrier()).isEqualTo("VERIZON");
+        assertThat(surviving.category()).isEqualTo("Phone");
     }
 
     @Test
@@ -220,6 +238,7 @@ class SnowflakeAggInventoryReaderTest {
                 .isInstanceOf(SnowflakeReadException.class)
                 .hasMessageContaining("week=15")
                 .hasMessageContaining("year=2026")
+                .hasMessageContaining("offset=0")
                 .hasCauseInstanceOf(SQLException.class);
     }
 
@@ -281,6 +300,58 @@ class SnowflakeAggInventoryReaderTest {
         assertThat(it.hasNext()).isTrue();
         List<SnowflakeAggInventoryRow> first = it.next();
         assertThat(first).hasSize(1);
+        assertThat(it.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("iterateAllPages at exact PAGE_SIZE boundary emits one page and stops")
+    void iterateAllPages_atExactPageSizeBoundary_emitsOnePageAndStops() throws SQLException {
+        // Simulate a week whose row count is exactly PAGE_SIZE. The iterator
+        // must yield that single full page, then — on the mandatory trailing
+        // zero-row probe that detects end-of-data — suppress the empty page
+        // and report hasNext()=false.
+        List<RowStub> fullPage = new java.util.ArrayList<>(SnowflakeAggInventoryReader.PAGE_SIZE);
+        for (int i = 0; i < SnowflakeAggInventoryReader.PAGE_SIZE; i++) {
+            RowStub r = new RowStub();
+            r.ecoId = "eco-" + i;
+            r.deviceId = "dev-" + i;
+            r.datawipe = "";
+            fullPage.add(r);
+        }
+        // After the first readPage drains this list, the shared rs.next()
+        // stub keeps returning false, which is exactly what the trailing
+        // zero-row probe needs to see.
+        stubRows(fullPage);
+
+        Iterable<List<SnowflakeAggInventoryRow>> pages = reader.iterateAllPages(15, 2026);
+        Iterator<List<SnowflakeAggInventoryRow>> it = pages.iterator();
+
+        assertThat(it.hasNext()).isTrue();
+        List<SnowflakeAggInventoryRow> page = it.next();
+        assertThat(page).hasSize(SnowflakeAggInventoryReader.PAGE_SIZE);
+        assertThat(it.hasNext()).isFalse();
+        // Sanity: a second hasNext() remains idempotently false, not an
+        // exception — guards against the iterator accidentally re-firing
+        // the probe.
+        assertThat(it.hasNext()).isFalse();
+    }
+
+    @Test
+    @DisplayName("iterateAllPages with no rows yields a single empty list")
+    void iterateAllPages_withNoRows_yieldsSingleEmptyList() throws SQLException {
+        // Documented behavior (see PageIterator Javadoc): an empty first
+        // page yields a single empty list so callers can distinguish
+        // "no rows at all" from "consumed all rows". The `page.isEmpty()
+        // && offset > 0` guard in hasNext() requires offset > 0 to
+        // suppress, so the first empty page IS surfaced.
+        when(resultSet.next()).thenReturn(false);
+
+        Iterable<List<SnowflakeAggInventoryRow>> pages = reader.iterateAllPages(15, 2026);
+        Iterator<List<SnowflakeAggInventoryRow>> it = pages.iterator();
+
+        assertThat(it.hasNext()).isTrue();
+        List<SnowflakeAggInventoryRow> page = it.next();
+        assertThat(page).isEmpty();
         assertThat(it.hasNext()).isFalse();
     }
 
