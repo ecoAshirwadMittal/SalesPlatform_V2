@@ -68,6 +68,9 @@ public class WeekSyncWatermark {
 
     @PreUpdate
     void onUpdate() {
+        // lastSyncedAt is caller-managed on update (sync service sets it
+        // alongside row_count / last_source_upload_at). Only updatedAt is
+        // auto-maintained here.
         updatedAt = Instant.now();
     }
 
@@ -134,6 +137,8 @@ public class WeekSyncWatermark {
      */
     public static class Key implements Serializable {
 
+        private static final long serialVersionUID = 1L;
+
         private Long weekId;
         private String source;
 
@@ -149,16 +154,8 @@ public class WeekSyncWatermark {
             return weekId;
         }
 
-        public void setWeekId(Long weekId) {
-            this.weekId = weekId;
-        }
-
         public String getSource() {
             return source;
-        }
-
-        public void setSource(String source) {
-            this.source = source;
         }
 
         @Override
