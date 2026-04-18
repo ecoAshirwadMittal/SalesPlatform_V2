@@ -108,9 +108,9 @@
 
 .grid th {
   text-align: left;
-  background: #f3f3f3;
+  background: #F7F7F7;
   padding: .55rem .5rem;
-  border-bottom: 1px solid #d7d7d7;
+  border-bottom: 1px solid #ddd;
   font-weight: 600;
   color: #112d32;
   position: sticky; top: 0;
@@ -118,7 +118,7 @@
 
 .grid td {
   padding: .45rem .5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #ddd;
 }
 
 .filterInput {
