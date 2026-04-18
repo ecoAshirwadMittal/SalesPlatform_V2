@@ -67,4 +67,37 @@ class AggregatedInventoryControllerTest {
         mvc.perform(get("/api/v1/admin/inventory/weeks"))
            .andExpect(status().isOk());
     }
+
+    @Test
+    @WithMockUser(roles = {"Administrator"})
+    @DisplayName("GET / returns paginated response")
+    void list_returnsPage() throws Exception {
+        var row = new com.ecoatm.salesplatform.dto.AggregatedInventoryRow(
+                1L, "75", "A_YYY", "Apple", "iPhone 3G",
+                "IPHONE 3G 8GB A1241/A1324", "AT&T",
+                0, java.math.BigDecimal.ZERO, 7, new java.math.BigDecimal("2.0700"));
+        when(service.search(100L, null, null, null, null, null, null, 0, 20))
+                .thenReturn(new com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse(
+                        List.of(row), 0, 20, 1L, 1));
+
+        mvc.perform(get("/api/v1/admin/inventory?weekId=100&page=0&pageSize=20"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.content[0].ecoid2").value("75"))
+           .andExpect(jsonPath("$.totalElements").value(1));
+    }
+
+    @Test
+    @WithMockUser(roles = {"Administrator"})
+    @DisplayName("GET /totals returns KPI payload")
+    void totals_returnsKpis() throws Exception {
+        when(service.getTotals(100L)).thenReturn(new com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse(
+                186020, new java.math.BigDecimal("1855306.00"), new java.math.BigDecimal("42.1700"),
+                57298,  new java.math.BigDecimal("5269391.00"), new java.math.BigDecimal("214.5400"),
+                Instant.parse("2026-04-17T08:40:00Z")));
+
+        mvc.perform(get("/api/v1/admin/inventory/totals?weekId=100"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.totalQuantity").value(186020))
+           .andExpect(jsonPath("$.dwAverageTargetPrice").value(214.54));
+    }
 }
