@@ -4,6 +4,7 @@ import com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryRow;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryTotalsResponse;
 import com.ecoatm.salesplatform.dto.AggregatedInventoryUpdateRequest;
+import com.ecoatm.salesplatform.dto.SyncStatusResponse;
 import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import com.ecoatm.salesplatform.model.integration.SnowflakeSyncLog;
@@ -18,13 +19,6 @@ import java.util.List;
 
 @Service
 public class AggregatedInventoryService {
-
-    /**
-     * Sentinel returned for {@code syncStatus} when no Snowflake sync log
-     * exists for the selected week (or when no week is selected). Matches
-     * the value the UI expects to suppress the sync banner.
-     */
-    private static final String SYNC_STATUS_NONE = "NONE";
 
     private final EntityManager em;
     private final SnowflakeSyncLogRepository syncLogRepository;
@@ -172,24 +166,25 @@ public class AggregatedInventoryService {
         boolean hasInventory = false;
         boolean hasAuction = false;
         boolean isCurrentWeek = false;
-        String syncStatus = SYNC_STATUS_NONE;
+        String syncStatus = SyncStatusResponse.none().status();
         if (weekId != null) {
             // Dedicated EXISTS so "rows present but quantities all zero" still
             // reports hasInventory=true — totalQuantity alone would lie.
-            hasInventory = ((Boolean) em.createNativeQuery(
+            hasInventory = Boolean.TRUE.equals(em.createNativeQuery(
                     "SELECT EXISTS (SELECT 1 FROM auctions.aggregated_inventory "
-                            + "WHERE week_id = :weekId AND is_deprecated = false)")
+                            + "WHERE week_id = CAST(:weekId AS bigint) AND is_deprecated = false)")
                     .setParameter("weekId", weekId)
                     .getSingleResult());
 
-            hasAuction = ((Boolean) em.createNativeQuery(
-                    "SELECT EXISTS (SELECT 1 FROM auctions.auctions WHERE week_id = :weekId)")
+            hasAuction = Boolean.TRUE.equals(em.createNativeQuery(
+                    "SELECT EXISTS (SELECT 1 FROM auctions.auctions "
+                            + "WHERE week_id = CAST(:weekId AS bigint))")
                     .setParameter("weekId", weekId)
                     .getSingleResult());
 
-            isCurrentWeek = ((Boolean) em.createNativeQuery(
+            isCurrentWeek = Boolean.TRUE.equals(em.createNativeQuery(
                     "SELECT EXISTS (SELECT 1 FROM mdm.week "
-                            + "WHERE id = :weekId AND week_end_datetime > now())")
+                            + "WHERE id = CAST(:weekId AS bigint) AND week_end_datetime > now())")
                     .setParameter("weekId", weekId)
                     .getSingleResult());
 
@@ -198,7 +193,7 @@ public class AggregatedInventoryService {
                             AggregatedInventorySnowflakeSyncService.SYNC_TYPE,
                             String.valueOf(weekId))
                     .map(SnowflakeSyncLog::getStatus)
-                    .orElse(SYNC_STATUS_NONE);
+                    .orElse(SyncStatusResponse.none().status());
         }
 
         return new AggregatedInventoryTotalsResponse(
