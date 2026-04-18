@@ -237,6 +237,27 @@ export default function AggregatedInventoryPage() {
             »
           </button>
         </div>
+
+        <div className={styles.downloadBar}>
+          <button
+            type="button"
+            className={styles.button}
+            disabled={!weekId}
+            onClick={() => {
+              if (!weekId) return;
+              const qs = new URLSearchParams({ weekId: String(weekId) });
+              if (applied.productId) qs.set('productId', applied.productId);
+              if (applied.grades)    qs.set('grades', applied.grades);
+              if (applied.brand)     qs.set('brand', applied.brand);
+              if (applied.model)     qs.set('model', applied.model);
+              if (applied.modelName) qs.set('modelName', applied.modelName);
+              if (applied.carrier)   qs.set('carrier', applied.carrier);
+              window.location.href = `/api/v1/admin/inventory/export?${qs}`;
+            }}
+          >
+            Download
+          </button>
+        </div>
       </div>
       {editRow && (
         <EditModal

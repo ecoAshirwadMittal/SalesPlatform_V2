@@ -168,4 +168,8 @@
   color: #407874; background: none; border: 0; cursor: pointer;
   text-decoration: underline; padding: 0; font: inherit;
 }
+.downloadBar {
+  padding: .75rem 1rem;
+  border-top: 1px solid #e5e5e5;
+}
 
