@@ -143,6 +143,12 @@ export default function AggregatedInventoryPage() {
     if (!weekId) return;
     let cancelled = false;
     let ticks = 0;
+    let handle: ReturnType<typeof setTimeout> | null = null;
+
+    const scheduleNext = () => {
+      if (cancelled) return;
+      handle = setTimeout(tick, SYNC_POLL_INTERVAL_MS);
+    };
 
     const tick = async () => {
       if (cancelled) return;
@@ -153,29 +159,32 @@ export default function AggregatedInventoryPage() {
         const isPending = SYNC_PENDING_STATUSES.has(status.status);
         setSyncPending(isPending);
         if (!isPending) {
-          clearInterval(handle);
-          refresh().catch(() => setError('Failed to load inventory'));
+          refresh().catch(() => {
+            if (!cancelled) setError('Failed to load inventory');
+          });
           return;
         }
         if (ticks >= SYNC_POLL_MAX_TICKS) {
-          clearInterval(handle);
           setSyncPending(false);
+          return;
         }
+        scheduleNext();
       } catch {
         // Transient network error — keep polling until ticks run out.
+        if (cancelled) return;
         if (ticks >= SYNC_POLL_MAX_TICKS) {
-          clearInterval(handle);
           setSyncPending(false);
+          return;
         }
+        scheduleNext();
       }
     };
 
-    const handle = setInterval(tick, SYNC_POLL_INTERVAL_MS);
     void tick();
 
     return () => {
       cancelled = true;
-      clearInterval(handle);
+      if (handle) clearTimeout(handle);
       setSyncPending(false);
     };
   }, [weekId, refresh]);

@@ -47,7 +47,7 @@ export const InventoryTotalsSchema = z.object({
   hasInventory: z.boolean(),
   hasAuction: z.boolean(),
   isCurrentWeek: z.boolean(),
-  syncStatus: z.string(),
+  syncStatus: z.string().default('NONE'),
 });
 export type InventoryTotals = z.infer<typeof InventoryTotalsSchema>;
 
