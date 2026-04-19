@@ -72,13 +72,16 @@ public class AggregatedInventoryService {
                   AND (CAST(:carrier AS text) IS NULL OR LOWER(a.carrier)        LIKE LOWER(CONCAT('%', CAST(:carrier AS text), '%')))
                 """;
 
+        // ecoid2 is VARCHAR to match Mendix, but the ecoATM codes are always
+        // numeric — sort by the numeric value so Mendix parity (75, 78, 113...)
+        // holds instead of falling into lexicographic order (10003, 1005...).
         String sql = """
                 SELECT a.id, a.ecoid2, a.merged_grade, a.brand, a.model, a.name, a.carrier,
                        a.dw_total_quantity, a.dw_avg_target_price,
                        a.total_quantity, a.avg_target_price, a.datawipe
                 FROM auctions.aggregated_inventory a
                 %s
-                ORDER BY a.ecoid2 ASC, a.merged_grade ASC
+                ORDER BY a.ecoid2::bigint ASC, a.merged_grade ASC
                 LIMIT :limit OFFSET :offset
                 """.formatted(where);
 
