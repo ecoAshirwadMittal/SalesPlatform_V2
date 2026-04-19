@@ -139,12 +139,21 @@ public class AggregatedInventoryService {
      */
     @Transactional(readOnly = true)
     public AggregatedInventoryTotalsResponse getTotals(Long weekId) {
+        // Non-DW KPIs exclude DW-only groups. Snowflake's upstream query wraps
+        // TotalPayout and AvgTargetPrice in COALESCE(non-DW, DW), so DW-only
+        // groups carry DW values in the non-DW columns. Including them would
+        // double-count with the DW KPIs and diverge from Mendix Total-row math.
         String sql = """
                 SELECT
                   COALESCE(SUM(a.total_quantity), 0)                                           AS total_qty,
-                  COALESCE(SUM(a.total_payout), 0)                                             AS total_payout,
-                  CASE WHEN COALESCE(SUM(a.total_quantity), 0) = 0 THEN 0
-                       ELSE SUM(a.avg_target_price * a.total_quantity) / SUM(a.total_quantity) END AS avg_target,
+                  COALESCE(SUM(a.total_payout)
+                           FILTER (WHERE a.total_quantity > a.dw_total_quantity), 0)           AS total_payout,
+                  CASE WHEN COALESCE(SUM(a.total_quantity - a.dw_total_quantity)
+                                     FILTER (WHERE a.total_quantity > a.dw_total_quantity), 0) = 0 THEN 0
+                       ELSE SUM(a.avg_target_price * (a.total_quantity - a.dw_total_quantity))
+                              FILTER (WHERE a.total_quantity > a.dw_total_quantity)
+                            / SUM(a.total_quantity - a.dw_total_quantity)
+                              FILTER (WHERE a.total_quantity > a.dw_total_quantity) END        AS avg_target,
                   COALESCE(SUM(a.dw_total_quantity), 0)                                        AS dw_total_qty,
                   COALESCE(SUM(a.dw_total_payout), 0)                                          AS dw_total_payout,
                   CASE WHEN COALESCE(SUM(a.dw_total_quantity), 0) = 0 THEN 0
