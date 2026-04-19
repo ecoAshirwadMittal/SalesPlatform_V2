@@ -240,7 +240,7 @@ Backs `/admin/auctions-data-center/inventory`. Mirrors Mendix `AuctionUI.PG_Aggr
 
 ### GET /admin/inventory/weeks
 
-Return all weeks ordered by start datetime descending. Used to populate the week selector.
+Return current and past weeks (`week_start_datetime <= now()`), ordered by start datetime descending. Future weeks are excluded because they have no Snowflake data to render. Used to populate the week selector.
 
 **Response**: `WeekOption[]` — `{ id, weekDisplay, weekStartDateTime, weekEndDateTime }`.
 
