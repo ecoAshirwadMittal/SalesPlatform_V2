@@ -1,0 +1,526 @@
+/* ===================================================================
+   Buyer Edit Page — Mendix Buyer_Edit / Buyer_Edit_Compliance parity
+   Source: migration_context/styling/EcoAtm.css
+   ================================================================= */
+
+.pageContainer {
+  width: 100%;
+  max-width: 960px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 300;
+  color: #3C3C3C;
+  margin: 0;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ---- Close button ---- */
+.closeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  background-color: #f0f0f0;
+}
+
+/* ---- Top info row (avatar + added date + status) ---- */
+.topInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  background-color: #6B4C3B;
+}
+
+.addedDate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.addedLabel {
+  font-size: 12px;
+  color: #999;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.addedValue {
+  font-size: 14px;
+  color: #3C3C3C;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ---- Status dropdown ---- */
+.statusSelect {
+  height: 34px;
+  padding: 4px 12px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+  color: #555;
+  background: #fff;
+  cursor: pointer;
+  min-width: 100px;
+}
+
+.statusSelect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---- Banners ---- */
+.errorBanner {
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+  color: #a94442;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.successBanner {
+  background-color: #dff0d8;
+  border: 1px solid #d6e9c6;
+  color: #3c763d;
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.loadingState,
+.errorState {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ---- Form fields ---- */
+.formSection {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.fieldRow {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.fieldLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: #555;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  margin-bottom: 4px;
+}
+
+.fieldInput {
+  flex: 1;
+  height: 34px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+  color: #555;
+  box-sizing: border-box;
+}
+
+.fieldInput:focus {
+  border-color: #66afe9;
+  outline: none;
+  box-shadow: 0 0 4px rgba(102, 175, 233, 0.4);
+}
+
+.statusLabel {
+  font-size: 14px;
+  color: #3C3C3C;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.statusActive {
+  background-color: #dff0d8;
+  color: #3c763d;
+}
+
+.statusDisabled {
+  background-color: #f2dede;
+  color: #a94442;
+}
+
+.toggleStatusBtn {
+  margin-left: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 4px 14px;
+  background: #fff;
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.toggleStatusBtn:hover {
+  background-color: #f0f0f0;
+}
+
+.toggleStatusBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.readOnlyValue {
+  font-size: 14px;
+  color: #555;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.noData {
+  font-size: 13px;
+  color: #999;
+  font-style: italic;
+}
+
+/* ---- Special buyer row (centered between info row and form) ---- */
+.specialBuyerRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.specialBuyerLabel {
+  font-size: 14px;
+  font-weight: 400;
+  color: #555;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+/* ---- Switch (special buyer) ---- */
+.switchLabel {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.switchLabel input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.switchSlider {
+  width: 40px;
+  height: 22px;
+  background-color: #ccc;
+  border-radius: 11px;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.switchSlider::before {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  left: 2px;
+  top: 2px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+}
+
+.switchLabel input:checked + .switchSlider {
+  background-color: #14AC36;
+}
+
+.switchLabel input:checked + .switchSlider::before {
+  transform: translateX(18px);
+}
+
+/* ---- Sales rep multi-select ---- */
+.salesRepList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.salesRepItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #3C3C3C;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  cursor: pointer;
+}
+
+/* ---- Buyer codes section ---- */
+.codesSection {
+  margin-bottom: 20px;
+}
+
+.addCodeBtn {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 20px;
+  background-color: #fff;
+  color: #555;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.addCodeBtn:hover {
+  background-color: #f0f0f0;
+}
+
+.gridWrapper {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+.codesGrid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3C3C3C;
+}
+
+.codesGrid thead tr {
+  background-color: #F7F7F7;
+}
+
+.codesGrid th {
+  background-color: #F7F7F7;
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid #ddd;
+  font-size: 14px;
+  font-weight: 600;
+  color: #3C3C3C;
+}
+
+.codesGrid td {
+  padding: 6px 12px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+}
+
+.codeInput {
+  width: 100%;
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+  color: #555;
+  box-sizing: border-box;
+}
+
+.codeInput:focus {
+  border-color: #66afe9;
+  outline: none;
+  box-shadow: 0 0 4px rgba(102, 175, 233, 0.4);
+}
+
+.codeSelect {
+  width: 100%;
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+  color: #555;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.deleteCodeBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.deleteCodeBtn:hover {
+  background-color: #f2dede;
+}
+
+.deletedRow {
+  opacity: 0.4;
+  background-color: #fdf2f2;
+}
+
+.notUniqueRow td:first-child .codeInput {
+  border-color: #D9534F;
+  background-color: #fdf2f2;
+}
+
+.deletedLabel {
+  font-size: 12px;
+  color: #D9534F;
+  font-style: italic;
+}
+
+.thContent {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortArrows {
+  color: #999;
+  font-size: 12px;
+}
+
+.codesPagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #999;
+  border-top: 1px solid #eee;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.codesPaginationText {
+  font-size: 12px;
+  color: #555;
+}
+
+.addCodeRow {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.emptyCell {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ---- Footer actions ---- */
+.footerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelBtn {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px 24px;
+  background: #fff;
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.cancelBtn:hover {
+  background-color: #f0f0f0;
+}
+
+.saveBtn {
+  border: none;
+  border-radius: 4px;
+  padding: 10px 24px;
+  background-color: #337ab7;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.saveBtn:hover {
+  background-color: #286090;
+}
+
+.saveBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

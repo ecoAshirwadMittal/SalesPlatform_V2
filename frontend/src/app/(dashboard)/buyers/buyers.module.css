@@ -1,0 +1,308 @@
+/* ===================================================================
+   Users Overview — pixel-perfect clone of Mendix Data Grid 2
+   Source: migration_context/styling/EcoAtm.css
+   Classes: .datagridfilter .user-management-grid .widget-datagrid
+   ================================================================= */
+
+.pageContainer {
+  width: 100%;
+}
+
+/* ---- Page header ---- */
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.pageTitle {
+  font-size: 28px;
+  font-weight: 300;
+  color: #3C3C3C;
+  margin: 0;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+}
+
+.createBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  border-radius: 44px;
+  padding: 10px 24px;
+  background-color: #14AC36;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  transition: background-color 0.15s;
+}
+
+.createBtn:hover {
+  background-color: #0e8f2b;
+}
+
+.createIcon {
+  flex-shrink: 0;
+}
+
+/* ---- Data grid wrapper ---- */
+.gridWrapper {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow-x: auto;
+}
+
+/* ---- Table (widget-datagrid .table) ---- */
+.datagrid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  color: #3C3C3C;
+}
+
+.datagrid thead tr {
+  background-color: #F7F7F7;
+}
+
+/* ---- Column headers (.th) ---- */
+.datagrid th {
+  background-color: #F7F7F7;
+  padding: 6px 6px 6px 15px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap;
+}
+
+.columnHeaderRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.sortBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.columnHeader {
+  font-size: 16px;
+  font-weight: 400;
+  color: #3C3C3C;
+}
+
+/* ---- Sort icons ---- */
+.sortIcon {
+  display: inline-flex;
+  flex-direction: column;
+  line-height: 1;
+  font-size: 8px;
+  margin-left: 4px;
+  gap: 0;
+}
+
+.sortArrow {
+  color: #ccc;
+  line-height: 1;
+}
+
+.sortActive {
+  color: #3C3C3C;
+  line-height: 1;
+}
+
+/* ---- Filter inputs (.form-control in data grid) ---- */
+.filterInput,
+.filterSelect {
+  display: block;
+  width: 100%;
+  height: 30px;
+  padding: 4px 8px;
+  font-size: 13px;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  border: 1px solid #D0D0D0;
+  border-radius: 4px;
+  background: #fff;
+  color: #555;
+  box-sizing: border-box;
+}
+
+.filterInput:focus,
+.filterSelect:focus {
+  border-color: #66afe9;
+  outline: none;
+  box-shadow: 0 0 4px rgba(102, 175, 233, 0.4);
+}
+
+.filterSelect {
+  cursor: pointer;
+}
+
+/* ---- Table cells (.td) ---- */
+.datagrid td {
+  padding: 8px 6px 8px 19px;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  max-width: 300px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datagrid tbody tr:hover {
+  background-color: #F2F9FF;
+  cursor: pointer;
+}
+
+/* ---- Name column with avatar ---- */
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
+  background-color: #6B4C3B;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  text-transform: uppercase;
+}
+
+/* ---- Email column (auto-fill, no fixed min-width to allow all cols to fit) ---- */
+.emailCol {
+  min-width: 200px;
+}
+
+/* ---- Status column ---- */
+.statusCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.statusIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statusDate {
+  font-size: 13px;
+  color: #3C3C3C;
+}
+
+/* ---- Actions column ---- */
+.actionsHeader {
+  width: 40px;
+  text-align: center;
+  padding: 6px !important;
+}
+
+.actionsCell {
+  width: 40px;
+  text-align: center;
+  padding: 6px !important;
+}
+
+.editBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editBtn:hover {
+  background-color: #f0f0f0;
+}
+
+.columnPickerBtn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.columnPickerBtn:hover {
+  background-color: #eee;
+  border-radius: 4px;
+}
+
+/* ---- Loading / empty state ---- */
+.loadingCell {
+  text-align: center;
+  padding: 40px;
+  color: #999;
+  font-size: 14px;
+}
+
+/* ---- Pagination (buttons style, bottom position) ---- */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 0;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 13px;
+  color: #555;
+}
+
+.pageBtn {
+  min-width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  color: #333;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s;
+}
+
+.pageBtn:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.pageBtn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pageInfo {
+  padding: 0 8px;
+  font-weight: 400;
+  color: #555;
+}
