@@ -21,6 +21,7 @@ public class OfferListItem {
     private BigDecimal totalPrice;
     private LocalDateTime submissionDate;
     private LocalDateTime updatedDate;
+    private String changedBy;
 
     // Getters and setters
     public Long getOfferId() { return offerId; }
@@ -58,4 +59,7 @@ public class OfferListItem {
 
     public LocalDateTime getUpdatedDate() { return updatedDate; }
     public void setUpdatedDate(LocalDateTime updatedDate) { this.updatedDate = updatedDate; }
+
+    public String getChangedBy() { return changedBy; }
+    public void setChangedBy(String changedBy) { this.changedBy = changedBy; }
 }

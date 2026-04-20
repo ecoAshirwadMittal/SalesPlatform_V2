@@ -2,6 +2,8 @@ package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.service.OfferReviewService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,6 +37,16 @@ public class OfferReviewController {
     public ResponseEntity<List<OfferListItem>> listOffers(
             @RequestParam(required = false) String status) {
         return ResponseEntity.ok(reviewService.listOffers(status));
+    }
+
+    /** Paginated list for the admin Offers grid — Phase 2. */
+    @GetMapping("/paged")
+    public ResponseEntity<Page<OfferListItem>> listOffersPaged(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String buyerCode,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "25") int size) {
+        return ResponseEntity.ok(reviewService.listOffersPage(status, buyerCode, PageRequest.of(page, size)));
     }
 
     /** Get offer detail with all items for the review page. */

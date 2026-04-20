@@ -78,6 +78,21 @@ public class PricingController {
         }
     }
 
+    @DeleteMapping("/devices/{id}")
+    public ResponseEntity<?> softDeleteDevice(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String reason = body != null ? body.get("reason") : null;
+        try {
+            pricingService.softDeleteDevice(id, reason);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(409).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     @GetMapping("/devices/{id}/history")
     public ResponseEntity<List<PriceHistoryResponse>> getDevicePriceHistory(@PathVariable Long id) {
         List<PriceHistoryResponse> history = pricingService.getPriceHistory(id);

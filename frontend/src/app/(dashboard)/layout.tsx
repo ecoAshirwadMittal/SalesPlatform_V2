@@ -100,15 +100,34 @@ const navItems: NavItem[] = [
       { label: 'PWS Control Center', href: '/settings/pws-control-center' },
     ],
   },
+  {
+    label: 'Admin', href: '/admin', expandable: true,
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/>
+      </svg>
+    ),
+    children: [
+      { label: 'Application Control Center', href: '/admin/app-control-center' },
+      { label: 'Auctions Data Center', href: '/admin/auctions-data-center' },
+      { label: 'PWS Data Center', href: '/admin/pws-data-center' },
+    ],
+  },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(() => getAuthUser());
+  // Initialize as null so SSR and the first client render agree; load the
+  // real user from localStorage only after mount to avoid hydration mismatch.
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(() => new Set());
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setUser(getAuthUser());
+  }, []);
 
   // Auto-expand menus whose children or parent href match the current path
   useEffect(() => {

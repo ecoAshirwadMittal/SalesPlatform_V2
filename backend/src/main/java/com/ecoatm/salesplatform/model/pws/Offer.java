@@ -80,6 +80,9 @@ public class Offer {
     @Column(name = "updated_date")
     private LocalDateTime updatedDate;
 
+    @Column(name = "changed_by")
+    private String changedBy;
+
     @OneToMany(mappedBy = "offer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OfferItem> items = new ArrayList<>();
 
@@ -167,4 +170,7 @@ public class Offer {
 
     public List<OfferItem> getItems() { return items; }
     public void setItems(List<OfferItem> items) { this.items = items; }
+
+    public String getChangedBy() { return changedBy; }
+    public void setChangedBy(String changedBy) { this.changedBy = changedBy; }
 }

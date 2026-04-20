@@ -7,11 +7,15 @@ import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.model.pws.PwsOfferStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.pws.OfferRepository;
+import com.ecoatm.salesplatform.security.CurrentPrincipal;
 import com.ecoatm.salesplatform.service.email.PwsOfferEmailEvent;
 import jakarta.persistence.EntityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -171,8 +175,32 @@ public class OfferReviewService {
             item.setTotalSkus(skuCount);
             item.setSubmissionDate(offer.getSubmissionDate());
             item.setUpdatedDate(offer.getUpdatedDate());
+            item.setChangedBy(offer.getChangedBy());
             return item;
         }).toList();
+    }
+
+    /**
+     * Paginated list for the admin Offers grid. Applies optional status and
+     * buyer-code-contains filters in-memory on top of listOffers() — safe while
+     * the admin dataset is bounded, and avoids a second Criteria query path.
+     * Phase 2 of docs/tasks/pws-data-center-port.md.
+     */
+    public Page<OfferListItem> listOffersPage(String status, String buyerCodeContains, Pageable pageable) {
+        List<OfferListItem> all = listOffers(status);
+        if (buyerCodeContains != null && !buyerCodeContains.isBlank()) {
+            String needle = buyerCodeContains.toLowerCase();
+            all = all.stream()
+                    .filter(o -> o.getBuyerCode() != null && o.getBuyerCode().toLowerCase().contains(needle))
+                    .toList();
+        }
+        int from = (int) Math.min(pageable.getOffset(), all.size());
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(all.subList(from, to), pageable, all.size());
+    }
+
+    private void stampChangedBy(Offer offer) {
+        offer.setChangedBy(CurrentPrincipal.displayName());
     }
 
     /**
@@ -235,6 +263,7 @@ public class OfferReviewService {
             default -> throw new IllegalArgumentException("Invalid action: " + action);
         }
 
+        stampChangedBy(offer);
         offerRepository.save(offer);
         return getOfferDetail(offerId);
     }
@@ -261,6 +290,7 @@ public class OfferReviewService {
         BigDecimal price = item.getCounterPrice() != null ? item.getCounterPrice() : BigDecimal.ZERO;
         item.setCounterTotal(price.multiply(BigDecimal.valueOf(qty)));
 
+        stampChangedBy(offer);
         offerRepository.save(offer);
         return getOfferDetail(offerId);
     }
@@ -283,6 +313,7 @@ public class OfferReviewService {
             }
         }
 
+        stampChangedBy(offer);
         offerRepository.save(offer);
         log.info("Accept All: offerId={}", offerId);
         return getOfferDetail(offerId);
@@ -306,6 +337,7 @@ public class OfferReviewService {
             }
         }
 
+        stampChangedBy(offer);
         offerRepository.save(offer);
         log.info("Decline All: offerId={}", offerId);
         return getOfferDetail(offerId);
@@ -332,6 +364,7 @@ public class OfferReviewService {
             // (sales rep fills in final values manually)
         }
 
+        stampChangedBy(offer);
         offerRepository.save(offer);
         log.info("Finalize All: offerId={}", offerId);
         return getOfferDetail(offerId);
@@ -365,6 +398,7 @@ public class OfferReviewService {
             // Decline the entire offer
             offer.setStatus(STATUS_DECLINED);
             offer.setSalesReviewCompletedOn(LocalDateTime.now());
+            stampChangedBy(offer);
             offerRepository.save(offer);
 
             log.info("Offer declined (all items declined): offerId={}", offerId);
@@ -436,6 +470,7 @@ public class OfferReviewService {
             offer.setCounterOfferTotalQty(counterQty);
             offer.setCounterOfferTotalPrice(counterTotal);
 
+            stampChangedBy(offer);
             offerRepository.save(offer);
 
             // SUB_SendPWSCounterOfferEmail — delivered after commit

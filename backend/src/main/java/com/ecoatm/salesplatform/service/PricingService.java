@@ -8,6 +8,8 @@ import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.mdm.PriceHistory;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
 import com.ecoatm.salesplatform.repository.mdm.PriceHistoryRepository;
+import com.ecoatm.salesplatform.security.CurrentPrincipal;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -32,10 +34,14 @@ public class PricingService {
 
     private final DeviceRepository deviceRepository;
     private final PriceHistoryRepository priceHistoryRepository;
+    private final EntityManager entityManager;
 
-    public PricingService(DeviceRepository deviceRepository, PriceHistoryRepository priceHistoryRepository) {
+    public PricingService(DeviceRepository deviceRepository,
+                          PriceHistoryRepository priceHistoryRepository,
+                          EntityManager entityManager) {
         this.deviceRepository = deviceRepository;
         this.priceHistoryRepository = priceHistoryRepository;
+        this.entityManager = entityManager;
     }
 
     @Transactional(readOnly = true)
@@ -62,33 +68,35 @@ public class PricingService {
                 preds.add(cb.like(cb.lower(root.get("sku")),
                         "%" + sku.toLowerCase() + "%"));
             }
+            // Phase 2 (pws-data-center-port): swap Mendix's default `=`
+            // string filters for case-insensitive `contains` on display names.
             if (category != null && !category.isBlank()) {
                 var join = root.join("category", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), category));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + category.toLowerCase() + "%"));
             }
             if (brand != null && !brand.isBlank()) {
                 var join = root.join("brand", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), brand));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + brand.toLowerCase() + "%"));
             }
             if (model != null && !model.isBlank()) {
                 var join = root.join("model", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), model));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + model.toLowerCase() + "%"));
             }
             if (carrier != null && !carrier.isBlank()) {
                 var join = root.join("carrier", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), carrier));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + carrier.toLowerCase() + "%"));
             }
             if (capacity != null && !capacity.isBlank()) {
                 var join = root.join("capacity", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), capacity));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + capacity.toLowerCase() + "%"));
             }
             if (color != null && !color.isBlank()) {
                 var join = root.join("color", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), color));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + color.toLowerCase() + "%"));
             }
             if (grade != null && !grade.isBlank()) {
                 var join = root.join("grade", JoinType.INNER);
-                preds.add(cb.equal(join.get("displayName"), grade));
+                preds.add(cb.like(cb.lower(join.get("displayName")), "%" + grade.toLowerCase() + "%"));
             }
 
             if (currentListPrice != null) {
@@ -191,6 +199,38 @@ public class PricingService {
         }
 
         return new CsvUploadResult(totalRows, updatedCount, errors.size(), errors);
+    }
+
+    /**
+     * Soft-delete a device: flips isActive off and writes a pws.admin_audit_log
+     * row stamped with the current principal and an admin-supplied reason.
+     * Replaces Mendix's untracked trash-delete button
+     * (see docs/tasks/pws-data-center-port.md → "Legacy anti-patterns").
+     */
+    @Transactional
+    public void softDeleteDevice(Long deviceId, String reason) {
+        if (reason == null || reason.isBlank()) {
+            throw new IllegalArgumentException("Reason is required for device deletion");
+        }
+        Device device = deviceRepository.findById(deviceId)
+                .orElseThrow(() -> new IllegalArgumentException("Device not found: " + deviceId));
+        if (Boolean.FALSE.equals(device.getIsActive())) {
+            throw new IllegalStateException("Device already inactive: " + deviceId);
+        }
+        String before = "sku=" + device.getSku() + ",isActive=true";
+        device.setIsActive(false);
+        deviceRepository.save(device);
+
+        String actor = CurrentPrincipal.displayName();
+        entityManager.createNativeQuery(
+                "INSERT INTO pws.admin_audit_log (entity_type, entity_id, action, reason, actor, before_state, after_state) "
+                        + "VALUES ('Device', :id, 'SOFT_DELETE', :reason, :actor, :before, :after)")
+                .setParameter("id", deviceId)
+                .setParameter("reason", reason)
+                .setParameter("actor", actor)
+                .setParameter("before", before)
+                .setParameter("after", "sku=" + device.getSku() + ",isActive=false")
+                .executeUpdate();
     }
 
     @Transactional(readOnly = true)

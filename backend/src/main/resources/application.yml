@@ -135,6 +135,16 @@ pws:
     counter-offer-url: ${PWS_EMAIL_COUNTER_OFFER_URL:https://buy.ecoatmdirect.com/p/counter-offer}
 
 # ─────────────────────────────────────
+# Buyer Snowflake sync (PWS Data Center Phase 3.3)
+# enabled=false → BuyerSnowflakeListener bean is not registered; events are
+# published but silently dropped. Flip enabled=true in QA/prod once the
+# buyer-sync Snowflake integration is wired.
+# ─────────────────────────────────────
+buyers:
+  snowflake:
+    enabled: ${BUYERS_SNOWFLAKE_ENABLED:false}
+
+# ─────────────────────────────────────
 # Snowflake (Theme 2 — aggregated inventory sync infrastructure)
 # enabled=false → SnowflakeDataSourceConfig bean is not registered, so no
 # connection is ever attempted in dev/test. Flip enabled=true in QA/prod

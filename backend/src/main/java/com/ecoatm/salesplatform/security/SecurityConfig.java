@@ -48,6 +48,7 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/api/v1/admin/inventory/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/auctions/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .anyRequest().authenticated()
@@ -69,7 +70,7 @@ public class SecurityConfig {
         // like "https://*.ngrok-free.dev" — required when exposing the local
         // frontend through an ngrok tunnel for external testing.
         configuration.setAllowedOriginPatterns(List.copyOf(allowedOrigins));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
                 "Authorization", "Content-Type", "X-CSRF-TOKEN", "ngrok-skip-browser-warning"));
         configuration.setAllowCredentials(true);
