@@ -122,6 +122,20 @@ pws:
     sales-address: ${PWS_EMAIL_SALES:sales@ecoatmdirect.com}
     counter-offer-url: ${PWS_EMAIL_COUNTER_OFFER_URL:https://buy.ecoatmdirect.com/p/counter-offer}
 
+# ─────────────────────────────────────
+# Snowflake (Theme 2 — aggregated inventory sync infrastructure)
+# enabled=false → SnowflakeDataSourceConfig bean is not registered, so no
+# connection is ever attempted in dev/test. Flip enabled=true in QA/prod
+# after credentials are wired via env. Real creds live in .env (gitignored).
+# ─────────────────────────────────────
+snowflake:
+  enabled: ${SNOWFLAKE_ENABLED:false}
+  jdbc-url: ${SNOWFLAKE_JDBC_URL:jdbc:snowflake://ecoatm.snowflakecomputing.com/?db=ECO_DEV&schema=AUCTIONS&TIMEZONE=UTC}
+  username: ${SNOWFLAKE_USERNAME:}
+  password: ${SNOWFLAKE_PASSWORD:}
+  pool:
+    maximum-size: ${SNOWFLAKE_POOL_MAX:3}
+
 ---
 # ─────────────────────────────────────
 # Profile: local (override for dev convenience)

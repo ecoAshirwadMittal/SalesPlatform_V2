@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.config;
 
+import java.time.Clock;
 import java.util.concurrent.Executor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,6 +34,11 @@ public class AsyncConfig {
         executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
+    }
+
+    @Bean
+    public Clock clock() {
+        return Clock.systemUTC();
     }
 
     @Bean(name = SNOWFLAKE_EXECUTOR)

@@ -234,6 +234,109 @@ List all case lots.
 
 ---
 
+## Aggregated Inventory (Admin)
+
+Backs `/admin/auctions-data-center/inventory`. Mirrors Mendix `AuctionUI.PG_AggregatedInventory`.
+
+### GET /admin/inventory/weeks
+
+Return all weeks ordered by start datetime descending. Used to populate the week selector.
+
+**Response**: `WeekOption[]` — `{ id, weekDisplay, weekStartDateTime, weekEndDateTime }`.
+
+### GET /admin/inventory
+
+Paginated rows for the selected week. Requires `Administrator` or `SalesOps`.
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| weekId | long | - | FK into `mdm.week` |
+| productId | string | - | Exact match on `ecoid2` |
+| grades | string | - | Contains match on `merged_grade` |
+| brand | string | - | Contains on `brand` |
+| model | string | - | Contains on `model` |
+| modelName | string | - | Contains on `name` |
+| carrier | string | - | Contains on `carrier` |
+| page | int | 0 | Page number |
+| pageSize | int | 20 | Page size |
+
+**Response**: `AggregatedInventoryPageResponse` — `{ content: AggregatedInventoryRow[], page, pageSize, totalElements, totalPages }`. Each row exposes `datawipe` alongside grades/quantities/prices so the admin edit modal can pre-fill the Data Wipe radio.
+
+### GET /admin/inventory/totals
+
+Per-week KPI totals (sum + weighted average). Rows with `is_deprecated = true` are excluded.
+
+**Response**: `{ totalQuantity, totalPayout, averageTargetPrice, dwTotalQuantity, dwTotalPayout, dwAverageTargetPrice, lastSyncedAt, hasInventory, hasAuction, isCurrentWeek, syncStatus }`.
+
+The four trailing helper flags replace the Mendix `AggInventoryHelper` microflow so the page can drive the Snowflake sync banner and the "Create Auction" button without a separate call:
+
+| Field | Type | Description |
+|---|---|---|
+| `hasInventory` | boolean | `EXISTS` against `auctions.aggregated_inventory` for the week — true even when all quantities are zero, so the UI distinguishes "no rows yet" from "rows present but empty". |
+| `hasAuction` | boolean | `EXISTS` against `auctions.auctions` for the week — used to suppress the "Create Auction" button once an auction already exists. |
+| `isCurrentWeek` | boolean | True when the selected week's `week_end_datetime > now()` (Mendix-parity filter). |
+| `syncStatus` | string | Latest `integration.snowflake_sync_log.status` for `SNOWFLAKE_AGG_INVENTORY` + this week (`STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_UP_TO_DATE`, `SKIPPED_LOCKED`), or `"NONE"` if no run exists yet. |
+
+When `weekId` is omitted, the helper flags return safe defaults (`hasInventory=false`, `hasAuction=false`, `isCurrentWeek=false`, `syncStatus="NONE"`).
+
+### PUT /admin/inventory/{id}
+
+Admin row edit. Requires `Administrator`. Flips `is_total_quantity_modified = true` on save so subsequent sync runs preserve the override.
+
+**Request body**: `{ mergedGrade, datawipe, totalQuantity, dwTotalQuantity }`.
+
+**Response**: `AggregatedInventoryRow`.
+
+### POST /admin/inventory/weeks/{weekId}/sync
+
+Trigger a Snowflake sync for the given week. Requires `Administrator` or `SalesOps`. Returns `403` for bidder roles.
+
+Publishes `AggInventorySyncRequestedEvent`; the actual sync runs on the `snowflakeExecutor` after the HTTP commit (post-commit event bridge, mirrors the PWS email pattern). The response returns immediately — poll `GET /admin/inventory/weeks/{weekId}/sync/status` for progress.
+
+**Response**: `202 Accepted` with `SyncTriggerResponse`:
+
+```json
+{ "status": "ACCEPTED", "source": "SNOWFLAKE_AGG_INVENTORY" }
+```
+
+When `snowflake.enabled=false`, no event is published and the body is:
+
+```json
+{ "status": "SKIPPED_DISABLED", "source": "SNOWFLAKE_AGG_INVENTORY" }
+```
+
+### GET /admin/inventory/weeks/{weekId}/sync/status
+
+Latest sync log entry for the week. Frontend polls this endpoint every 3s while `status ∈ {PENDING, STARTED}` (up to 90s).
+
+**Response**: `200 OK` with `SyncStatusResponse`:
+
+```json
+{
+  "status": "COMPLETED",
+  "startedAt": "2026-04-18T14:00:00",
+  "finishedAt": "2026-04-18T14:00:07",
+  "rowsUpserted": 1234,
+  "errorMessage": null
+}
+```
+
+When no log row exists for the week (no sync has ever been triggered), returns:
+
+```json
+{ "status": "NONE", "startedAt": null, "finishedAt": null, "rowsUpserted": null, "errorMessage": null }
+```
+
+`status` values: `NONE`, `STARTED`, `COMPLETED`, `FAILED`, `SKIPPED_UP_TO_DATE`, `SKIPPED_DISABLED`, `SKIPPED_LOCKED`.
+
+### GET /admin/inventory/export
+
+Streams an `.xlsx` of the current filter set (same query params as list). Not paginated.
+
+**Response**: `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet` (binary).
+
+---
+
 ## Auth
 
 ### POST /auth/login
