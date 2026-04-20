@@ -1,7 +1,53 @@
-# Node
+# ─────────────────────────────────────
+# Node / Next.js
+# ─────────────────────────────────────
 node_modules/
+.pnp
+.pnp.*
+.next/
+out/
+/build
+.vercel
+*.tsbuildinfo
+next-env.d.ts
 
-# AI Assistants
+# ─────────────────────────────────────
+# Java / Maven build output
+# ─────────────────────────────────────
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ─────────────────────────────────────
+# Gradle (future-proof)
+# ─────────────────────────────────────
+.gradle/
+
+# ─────────────────────────────────────
+# IDEs / editors
+# ─────────────────────────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.project
+.classpath
+.settings/
+.factorypath
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ─────────────────────────────────────
+# AI assistants
+# ─────────────────────────────────────
 .claude/
 .gemini/
 .antigravityignore
@@ -9,7 +55,73 @@ node_modules/
 *claude-code*
 *clauderules*
 
+# ─────────────────────────────────────
 # Python
+# ─────────────────────────────────────
 __pycache__/
 *.pyc
+.venv/
+venv/
+
+# ─────────────────────────────────────
+# Env files — NEVER commit secrets.
+# Allow *.example templates.
+# ─────────────────────────────────────
 .env
+.env.local
+.env.*.local
+.env.*
+!.env.example
+!.env.*.example
+
+# ─────────────────────────────────────
+# Logs (npm, yarn, app boot, flyway, maven)
+# ─────────────────────────────────────
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+boot_*.log
+boot_*.txt
+boot_err*.txt
+boot_error*.log
+flyway*.log
+flyway*.txt
+mvn.log
+backend_run*.log
+backend-launch.log
+
+# ─────────────────────────────────────
+# Local dev scripts / scratch
+# ─────────────────────────────────────
+backend/run-with-env.sh
+backend/boot_smoke*.log
+
+# ─────────────────────────────────────
+# Playwright / test artifacts
+# ─────────────────────────────────────
+.playwright-mcp/
+playwright-report/
+test-results/
+**/test-results/
+/coverage
+/.nyc_output
+
+# ─────────────────────────────────────
+# Debug screenshots at project root.
+# Allow intentional assets under docs/, migration_context/,
+# frontend/public/, frontend/src/.
+# ─────────────────────────────────────
+/*.png
+/*.jpg
+/*.jpeg
+/*.gif
+/*.webp
+
+# ─────────────────────────────────────
+# Misc
+# ─────────────────────────────────────
+*.pem
+*.tmp
+*.bak

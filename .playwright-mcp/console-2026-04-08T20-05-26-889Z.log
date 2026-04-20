@@ -1,2 +1,0 @@
-[     342ms] [ERROR] Failed to load resource: the server responded with a status of 500 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/_next/static/chunks/0vi_ho_tnahqf.js:0
-[   19513ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://designatory-scrawnier-rocco.ngrok-free.dev/api/v1/inventory/devices?itemType=PWS&minAtpQty=0&excludeGrade=A_YYY:0
