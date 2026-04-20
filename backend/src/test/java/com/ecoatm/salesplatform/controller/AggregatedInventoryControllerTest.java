@@ -54,7 +54,7 @@ class AggregatedInventoryControllerTest {
         java.lang.reflect.Field endField = Week.class.getDeclaredField("weekEndDateTime");
         endField.setAccessible(true); endField.set(w, Instant.parse("2026-04-27T00:00:00Z"));
 
-        when(weekRepo.findAllByOrderByWeekStartDateTimeDesc()).thenReturn(List.of(w));
+        when(weekRepo.findCurrentAndPastWeeks()).thenReturn(List.of(w));
 
         mvc.perform(get("/api/v1/admin/inventory/weeks"))
            .andExpect(status().isOk())
@@ -66,7 +66,7 @@ class AggregatedInventoryControllerTest {
     @WithMockUser(roles = {"SalesOps"})
     @DisplayName("GET /weeks allows SalesOps role")
     void weeks_salesOps_allowed() throws Exception {
-        when(weekRepo.findAllByOrderByWeekStartDateTimeDesc()).thenReturn(List.of());
+        when(weekRepo.findCurrentAndPastWeeks()).thenReturn(List.of());
 
         mvc.perform(get("/api/v1/admin/inventory/weeks"))
            .andExpect(status().isOk());

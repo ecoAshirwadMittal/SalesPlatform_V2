@@ -58,6 +58,18 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.NOT_FOUND, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(DuplicateAuctionTitleException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateAuctionTitle(DuplicateAuctionTitleException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(AuctionAlreadyExistsException.class)
+    public ResponseEntity<Map<String, Object>> handleAuctionAlreadyExists(AuctionAlreadyExistsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
         // Fallback for legacy call sites that still throw RuntimeException("… not found").

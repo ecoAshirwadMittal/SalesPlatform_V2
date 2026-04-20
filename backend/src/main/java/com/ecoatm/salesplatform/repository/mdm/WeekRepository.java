@@ -18,4 +18,12 @@ public interface WeekRepository extends JpaRepository<Week, Long> {
     List<Week> findFutureWeeks();
 
     List<Week> findAllByOrderByWeekStartDateTimeDesc();
+
+    /**
+     * Weeks that have already started (current + past), newest first.
+     * Admin inventory dropdown hides not-yet-started weeks because they have
+     * no Snowflake data to render.
+     */
+    @Query("SELECT w FROM Week w WHERE w.weekStartDateTime <= CURRENT_TIMESTAMP ORDER BY w.weekStartDateTime DESC")
+    List<Week> findCurrentAndPastWeeks();
 }

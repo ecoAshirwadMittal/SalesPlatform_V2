@@ -1,3 +1,0 @@
-[ 1328536ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://buy-qa.ecoatmdirect.com/xas/:0
-[ 1328537ms] [INFO] [Auth] The client is not authorized. Request failed with status code 419. Removing session. @ https://buy-qa.ecoatmdirect.com/mxclientsystem/mxui/mxui.js?639111995520314897:50
-[ 1329364ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ https://buy-qa.ecoatmdirect.com/p/login/web:0

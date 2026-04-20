@@ -59,7 +59,7 @@ public class AggregatedInventoryController {
 
     @GetMapping("/weeks")
     public ResponseEntity<List<WeekOption>> listWeeks() {
-        List<Week> weeks = weekRepository.findAllByOrderByWeekStartDateTimeDesc();
+        List<Week> weeks = weekRepository.findCurrentAndPastWeeks();
         List<WeekOption> options = weeks.stream()
                 .map(w -> new WeekOption(w.getId(), w.getWeekDisplay(),
                         w.getWeekStartDateTime(), w.getWeekEndDateTime()))

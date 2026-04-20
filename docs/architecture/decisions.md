@@ -5,6 +5,245 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-19 — Create Auction: dedicated endpoint + in-tx round creation + enum-as-varchar
+
+**Status:** Accepted (Phases 1–3 of `docs/tasks/create-auction-plan.md`).
+
+### Context
+
+The admin inventory page's `Create Auction` button was a placeholder
+`alert()` stub. Mendix `ACT_Create_Auction` writes one
+`AuctionUI.Auction` plus three `SchedulingAuction` rows (rounds 1–3)
+with fixed hour offsets from `Week.weekStartDateTime`, case-insensitive
+title uniqueness, and one-auction-per-week invariants. The port needs
+to:
+
+1. Place the write behind a stable REST surface without coupling to
+   `/admin/inventory`.
+2. Persist the three rounds atomically so a partial commit can't leave
+   an auction without rounds (which would crash the round editor).
+3. Represent the four status enums (`AuctionStatus`,
+   `SchedulingAuctionStatus`, `ScheduleAuctionInitStatus`,
+   `ReminderEmails`) in a way that matches V58's `CHECK` constraints
+   without adding a separate lookup table.
+
+### Decision
+
+- **New controller at `/api/v1/admin/auctions`.** A dedicated
+  `AuctionController` owns the POST rather than bolting onto
+  `AggregatedInventoryController`. The resource is `auctions`, not
+  `inventory`; a follow-up round-edit screen will add `GET /{id}` and
+  `PUT /{id}/rounds/{r}` to the same controller without touching the
+  inventory surface. Method-level `@PreAuthorize("hasAnyRole('Administrator','SalesOps')")`
+  is paired with an explicit `SecurityConfig.requestMatchers` rule
+  because the filter-chain short-circuits `/api/v1/admin/**` on the
+  Administrator role before method security runs — without the explicit
+  matcher, SalesOps gets 403 at the filter instead of reaching
+  `@PreAuthorize`. This pattern matches the existing
+  `/api/v1/admin/inventory` rule.
+- **In-transaction round creation, no post-commit event.** Unlike the
+  PWS email flow (2026-04-13 ADR) and Snowflake sync (2026-04-18 ADR),
+  Create Auction has no external side effects — no email, no Snowflake
+  push, no notification. All writes belong in the same `@Transactional`
+  method. Splitting the rounds into a post-commit listener would
+  introduce the exact partial-state bug the atomic write prevents.
+- **Enum storage: `VARCHAR(20)` with `@Enumerated(EnumType.STRING)`.**
+  V58 already enforces values with CHECK constraints:
+  `chk_auctions_status IN ('Unscheduled','Scheduled','Started','Closed')`
+  et al. `EnumType.STRING` makes Java and Postgres representations
+  identical so a DB browser round-trip doesn't show opaque ordinals.
+  `EnumType.ORDINAL` is rejected: renaming an enum constant in code
+  would silently reinterpret existing rows. A dedicated lookup table
+  is overkill for four immutable states.
+- **`Week` as entity-less `Long` FK.** `Auction.weekId` is a plain
+  `Long`, not `@ManyToOne Week`. The round editor and overview pages
+  will load the `Week` via `WeekRepository` when they land; we avoid
+  premature bidirectional mapping and keep `Auction` small.
+- **Title composition mirrors Mendix verbatim.** `AuctionService.buildAuctionTitle`
+  returns `"Auction " + weekDisplay.trim()`, then appends
+  `" " + customSuffix.trim()` when the suffix is non-blank. Matches
+  `VAL_Create_Auction` character-for-character — important because the
+  `existsByAuctionTitleIgnoreCase` check runs against Mendix-written
+  history.
+- **Two distinct 409s, disambiguated by message.** The backend throws
+  `DuplicateAuctionTitleException` (title collision, most common admin
+  mistake — shown as inline field error in the modal) and
+  `AuctionAlreadyExistsException` (week collision, a race the frontend
+  also guards via `totals.hasAuction` — shown as a banner). Both map
+  to HTTP 409 via `GlobalExceptionHandler`; the frontend distinguishes
+  by substring-matching `"name already exists"` in the response body.
+  Typed client-side error classes (`DuplicateAuctionTitleError` /
+  `AuctionAlreadyExistsError`) make the distinction explicit at the
+  call site.
+- **Frontend button gating.** The button is rendered only when
+  `hasInventory && isCurrentWeek && !hasAuction`. Mirrors the Mendix
+  visibility expression and avoids a second API call — the helper
+  flags land as part of `/admin/inventory/totals` (2026-04-18 ADR).
+  Creating an auction triggers a `refresh()` that flips `hasAuction`
+  to `true`, causing the button to disappear on the next render.
+
+### Alternatives considered
+
+- **Extend `AggregatedInventoryController`.** Rejected: the controller
+  name would lie about its responsibility, and the round-edit /
+  overview endpoints coming later would compound the mismatch.
+- **Post-commit event for round creation.** Rejected: atomic failure
+  semantics matter — a rolled-back auction must not leave three
+  orphaned rounds pointing at a non-existent `auction_id`.
+- **Dedicated lookup tables for status enums.** Rejected: the four
+  states are immutable Mendix constants; a FK adds joins and migration
+  surface for zero benefit.
+- **DB-level partial unique index `(week_id) WHERE auction_status <> 'Closed'`.**
+  Deferred: `existsByWeekId` inside the tx is sufficient for the
+  single-admin flow; a concurrent double-click is the only realistic
+  race and would produce a 409 on the second attempt after the first
+  commits. Revisit if QA surfaces it.
+
+### Consequences
+
+- One auction + three rounds always commit together — the round editor
+  can assume the rounds exist whenever an auction does.
+- Admin users see the button disappear immediately after success
+  without a second totals fetch — the existing `refresh()` call
+  already refetches `/totals`.
+- Enum renames now require a two-step migration (alter CHECK
+  constraint + rewrite rows) instead of a silent ordinal shift — a
+  win for safety, a small cost at migration time.
+- Test coverage: 7 unit tests in `AuctionServiceTest` (happy path,
+  custom suffix, whitespace suffix, missing week, duplicate week,
+  duplicate title, null weekId) + 4 MockMvc tests in
+  `AuctionControllerTest` (admin 201 + Location header, SalesOps 201,
+  bidder 403, duplicate title 409). All green.
+- Follow-ups:
+  - Round editor screen — will add `GET /admin/auctions/{id}` and
+    `PUT /admin/auctions/{id}/rounds/{r}` to `AuctionController`.
+  - `snowflake_json` audit push — separate nightly job, separate ADR.
+  - `ACT_UnscheduleAuction` port — separate plan once the round
+    editor lands.
+
+### References
+
+- Plan: `docs/tasks/create-auction-plan.md`
+- API: `docs/api/rest-endpoints.md` (`## Auctions (Admin)`)
+- Schema: `backend/src/main/resources/db/migration/V58__auctions_core.sql`
+- Files: `controller/AuctionController.java`,
+  `service/auctions/AuctionService.java`,
+  `model/auctions/Auction.java`,
+  `model/auctions/SchedulingAuction.java`,
+  `security/SecurityConfig.java`,
+  `frontend/src/lib/auctions.ts`,
+  `frontend/.../inventory/CreateAuctionModal.tsx`
+- Related ADRs: 2026-04-18 (helper flags in `/totals`),
+  2026-04-13 (post-commit event pattern used elsewhere but not here)
+- Mendix source:
+  `migration_context/backend/ACT_Create_Auction.md`,
+  `migration_context/backend/domain/VAL_Create_Auction.md`,
+  `migration_context/frontend/components/Pages_Page/Create_Auction.md`
+
+---
+
+## 2026-04-18 — Aggregated Inventory: non-DW KPI totals must filter DW-only groups
+
+**Status:** Accepted (Phase 9 pixel-match reconciliation of
+`docs/tasks/aggregated-inventory-snowflake-sync-plan.md`).
+
+### Context
+
+After Wk17 2026 data landed in `auctions.aggregated_inventory` via the
+new Snowflake sync, the admin KPI strip diverged from Mendix QA:
+
+| KPI | QA (Mendix) | Local (pre-fix) | Delta |
+|---|---|---|---|
+| Total Payout | $1,855,306.30 | $2,043,895.24 | +$188,588.94 |
+| Avg Target Price | $42.17 | $93.27 | +$51.10 |
+| Total Quantity, DW KPIs | all match | all match | 0 |
+
+Root cause: Snowflake's `DATA_QUERY` in `SnowflakeAggInventoryReader`
+wraps TotalPayout and AvgTargetPrice in
+`COALESCE(SUM(CASE WHEN Data_WIPE_GOOD='' ...), SUM(CASE WHEN Data_WIPE_GOOD='DW' ...))`.
+For groups where every device is DW (so the non-DW CASE sums to 0), the
+COALESCE falls through and the DW aggregate is persisted into the
+**non-DW columns** `total_payout` / `avg_target_price`. Mendix's totals
+row (`DEVICE_ID = 'Total'`) is computed upstream and already excludes
+these DW-only groups, which is why the legacy UI matched.
+
+Our `AggregatedInventoryService.getTotals()` was summing
+`total_payout` and weighting `avg_target_price` by `total_quantity`
+unconditionally, so DW-only groups were double-counted — once in the
+non-DW KPIs and once in the DW KPIs.
+
+### Decision
+
+- **Filter DW-only groups from the non-DW KPIs.** `getTotals()` now uses
+  PostgreSQL `FILTER (WHERE a.total_quantity > a.dw_total_quantity)` on
+  the non-DW sum and weighted average. A group is "non-DW" when its
+  total quantity exceeds its DW quantity; if they're equal, the group
+  is DW-only and excluded.
+- **Weighted average uses the non-DW slice of quantity.** The divisor
+  becomes `SUM(total_quantity - dw_total_quantity)` filtered to the
+  same predicate, matching Mendix's Total-row math.
+- **DW KPIs are unchanged.** `dw_total_payout`, `dw_total_quantity`,
+  and `dw_avg_target_price` already read from the DW-specific columns,
+  which are accurate regardless of the COALESCE behavior above.
+
+### Why not fix it upstream in the Snowflake SQL?
+
+Tempting, but the Mendix source of truth (`JA_SnowflakeToMendix` →
+`DATA_QUERY`) uses the same COALESCE pattern, and the grand-total row
+Mendix UI consumes is computed by the same upstream query. Changing
+the reader SQL to split non-DW vs DW into separate columns would
+diverge from Mendix's row-level shape and complicate the eventual
+parity comparison of the per-row grid. Filtering at read time in
+Postgres is cheap, local, and leaves the Mendix-parity column layout
+intact.
+
+### Also in this commit: Snowflake JDBC driver quirks
+
+Two reader-layer fixes were required to get rows flowing at all:
+
+- **Case-sensitive column labels.** Snowflake JDBC uppercases every
+  unquoted alias in the result set metadata, so `rs.getString("ecoID")`
+  silently returned `null` on every row. `mapRow` now uses the
+  canonical uppercase form for all ResultSet lookups
+  (`ECOID`, `MAXUPLOADTIME`, `AVGTARGETPRICE`, etc.). The SQL aliases
+  can stay mixed-case — it's the runtime label lookup that matters.
+- **TIMESTAMP_TZ → VARCHAR fallback.** When per-row TZ offsets differ
+  from the session `TIMEZONE`, the driver can surface the column as a
+  VARCHAR, and `rs.getTimestamp` throws. `readUtcTimestamp` now catches
+  the SQLException and falls back to parsing the string via
+  `OffsetDateTime` / `LocalDateTime`. The `MaxUploadInventory` CTE also
+  exposes `MaxUploadTime` as
+  `CONVERT_TIMEZONE('UTC', MAX(Upload_Time))::TIMESTAMP_NTZ` so the
+  materialized column is portable across clients; the inner join still
+  uses the raw `MaxUploadTimeRaw` alias so equality compares at the
+  original precision.
+
+### Consequences
+
+- All six admin KPIs (Total Quantity, Total Payout, Avg Target Price
+  plus their DW counterparts) match Mendix QA to the cent for Wk17
+  2026 (11,735 rows).
+- Future Snowflake syncs remain drift-free because the filter is keyed
+  on the row-level invariant `total_quantity > dw_total_quantity`, not
+  on any sync-time flag.
+- Unit tests in `AggregatedInventoryServiceTest` continue to pass —
+  they mock the EntityManager return values, so the SQL change is
+  transparent to the test suite. An integration test covering the
+  DW-only-group case would strengthen coverage and is queued as
+  follow-up.
+
+### References
+
+- Plan: `docs/tasks/aggregated-inventory-snowflake-sync-plan.md` (Phase 9)
+- Files: `service/auctions/AggregatedInventoryService.java`,
+  `service/auctions/snowflake/SnowflakeAggInventoryReader.java`
+- Related ADRs: 2026-04-18 (sync pattern), 2026-04-17 (read-time totals)
+- Mendix source:
+  `migration_context/backend/services/JavaActions_JavaAction/JA_SnowflakeToMendix.md`,
+  `SUB_LoadAggregatedInventoryTotals.md`
+
+---
+
 ## 2026-04-18 — Aggregated Inventory: Snowflake sync via post-commit event + watermark-based incremental pull
 
 **Status:** Accepted (Phases 0–8 of `docs/tasks/aggregated-inventory-snowflake-sync-plan.md`).

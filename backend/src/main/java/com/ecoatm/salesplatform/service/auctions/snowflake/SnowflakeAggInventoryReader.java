@@ -7,6 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Iterator;
@@ -85,7 +88,9 @@ public final class SnowflakeAggInventoryReader {
      */
     private static final String DATA_QUERY = """
             WITH MaxUploadInventory AS (
-                SELECT MAX(Upload_Time) AS MaxUploadTime
+                SELECT
+                    MAX(Upload_Time) AS MaxUploadTimeRaw,
+                    CONVERT_TIMEZONE('UTC', MAX(Upload_Time))::TIMESTAMP_NTZ AS MaxUploadTime
                 FROM Master_Inventory_List_Snapshot
                 WHERE Auction_Week = ? AND Auction_Year = ?
             ),
@@ -115,7 +120,7 @@ public final class SnowflakeAggInventoryReader {
                     COUNT(CASE WHEN Data_WIPE_GOOD = 'DW' THEN 1 END) AS DWTotalQuantity
                 FROM Master_Inventory_List_Snapshot
                 WHERE Auction_Year = ? AND Auction_Week = ?
-                  AND Upload_Time = (SELECT MaxUploadTime FROM MaxUploadInventory)
+                  AND Upload_Time = (SELECT MaxUploadTimeRaw FROM MaxUploadInventory)
                 GROUP BY current_device_ecoatm_code, MG
             ),
             DimDeviceFiltered AS (
@@ -142,7 +147,7 @@ public final class SnowflakeAggInventoryReader {
             """;
 
     private static final String WATERMARK_QUERY = """
-            SELECT MAX(Upload_Time) AS MAX_UPLOAD_TIME
+            SELECT CONVERT_TIMEZONE('UTC', MAX(Upload_Time))::TIMESTAMP_NTZ AS MAX_UPLOAD_TIME
             FROM Master_Inventory_List_Snapshot
             WHERE Auction_Week = ? AND Auction_Year = ?
             """;
@@ -320,29 +325,32 @@ public final class SnowflakeAggInventoryReader {
     }
 
     private static SnowflakeAggInventoryRow mapRow(ResultSet rs) throws SQLException {
-        String ecoId = rs.getString("ecoID");
+        // Snowflake uppercases unquoted aliases, so every lookup uses the
+        // canonical uppercase form. Keeping the SQL aliases in mixed case
+        // is fine — it is the column LABELS in the ResultSet that matter.
+        String ecoId = rs.getString("ECOID");
         String deviceId = rs.getString("DEVICE_ID");
         String mergedGrade = rs.getString("MG");
-        boolean datawipe = DW_MARKER.equals(rs.getString("DataWipe"));
-        Instant maxUploadTime = readUtcTimestamp(rs, "MaxUploadTime");
+        boolean datawipe = DW_MARKER.equals(rs.getString("DATAWIPE"));
+        Instant maxUploadTime = readUtcTimestamp(rs, "MAXUPLOADTIME");
 
-        BigDecimal avgTargetPrice = rs.getBigDecimal("AvgTargetPrice");
-        BigDecimal avgPayout = rs.getBigDecimal("AvgPayout");
-        BigDecimal totalPayout = rs.getBigDecimal("TotalPayout");
-        int totalQuantity = rs.getInt("TotalQuantity");
-        BigDecimal dwAvgTargetPrice = rs.getBigDecimal("DWAvgTargetPrice");
-        BigDecimal dwAvgPayout = rs.getBigDecimal("DWAvgPayout");
-        BigDecimal dwTotalPayout = rs.getBigDecimal("DWTotalPayout");
-        int dwTotalQuantity = rs.getInt("DWTotalQuantity");
+        BigDecimal avgTargetPrice = rs.getBigDecimal("AVGTARGETPRICE");
+        BigDecimal avgPayout = rs.getBigDecimal("AVGPAYOUT");
+        BigDecimal totalPayout = rs.getBigDecimal("TOTALPAYOUT");
+        int totalQuantity = rs.getInt("TOTALQUANTITY");
+        BigDecimal dwAvgTargetPrice = rs.getBigDecimal("DWAVGTARGETPRICE");
+        BigDecimal dwAvgPayout = rs.getBigDecimal("DWAVGPAYOUT");
+        BigDecimal dwTotalPayout = rs.getBigDecimal("DWTOTALPAYOUT");
+        int dwTotalQuantity = rs.getInt("DWTOTALQUANTITY");
         BigDecimal round1TargetPrice = rs.getBigDecimal("ROUND1TARGETPRICE");
         BigDecimal round1TargetPriceDw = rs.getBigDecimal("ROUND1TARGETPRICE_DW");
 
-        String name = rs.getString("name");
-        String model = rs.getString("model");
-        String brand = rs.getString("brand");
-        String carrier = rs.getString("carrier");
-        String category = rs.getString("category");
-        Instant createdAt = readUtcTimestamp(rs, "created_at");
+        String name = rs.getString("NAME");
+        String model = rs.getString("MODEL");
+        String brand = rs.getString("BRAND");
+        String carrier = rs.getString("CARRIER");
+        String category = rs.getString("CATEGORY");
+        Instant createdAt = readUtcTimestamp(rs, "CREATED_AT");
 
         return new SnowflakeAggInventoryRow(
                 ecoId, deviceId, mergedGrade, datawipe, maxUploadTime,
@@ -353,12 +361,37 @@ public final class SnowflakeAggInventoryReader {
     }
 
     private static Instant readUtcTimestamp(ResultSet rs, String columnName) throws SQLException {
-        Timestamp ts = rs.getTimestamp(columnName, (Calendar) UTC_CALENDAR.clone());
-        return ts == null ? null : ts.toInstant();
+        try {
+            Timestamp ts = rs.getTimestamp(columnName, (Calendar) UTC_CALENDAR.clone());
+            return ts == null ? null : ts.toInstant();
+        } catch (SQLException ex) {
+            return parseTimestampString(rs.getString(columnName));
+        }
     }
 
     private static Instant readUtcTimestamp(ResultSet rs, int columnIndex) throws SQLException {
-        Timestamp ts = rs.getTimestamp(columnIndex, (Calendar) UTC_CALENDAR.clone());
-        return ts == null ? null : ts.toInstant();
+        try {
+            Timestamp ts = rs.getTimestamp(columnIndex, (Calendar) UTC_CALENDAR.clone());
+            return ts == null ? null : ts.toInstant();
+        } catch (SQLException ex) {
+            return parseTimestampString(rs.getString(columnIndex));
+        }
+    }
+
+    /**
+     * Fallback parser when the Snowflake JDBC driver surfaces a
+     * {@code TIMESTAMP_TZ} column as a VARCHAR (happens when the per-row
+     * offset differs from the session {@code TIMEZONE}). Accepts ISO-8601
+     * strings with or without an offset; naive strings are assumed UTC.
+     */
+    private static Instant parseTimestampString(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return OffsetDateTime.parse(raw).toInstant();
+        } catch (java.time.format.DateTimeParseException offsetMiss) {
+            return LocalDateTime.parse(raw).toInstant(ZoneOffset.UTC);
+        }
     }
 }

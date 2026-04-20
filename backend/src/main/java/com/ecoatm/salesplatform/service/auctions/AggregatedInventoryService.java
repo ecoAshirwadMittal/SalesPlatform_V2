@@ -72,13 +72,16 @@ public class AggregatedInventoryService {
                   AND (CAST(:carrier AS text) IS NULL OR LOWER(a.carrier)        LIKE LOWER(CONCAT('%', CAST(:carrier AS text), '%')))
                 """;
 
+        // ecoid2 is VARCHAR to match Mendix, but the ecoATM codes are always
+        // numeric — sort by the numeric value so Mendix parity (75, 78, 113...)
+        // holds instead of falling into lexicographic order (10003, 1005...).
         String sql = """
                 SELECT a.id, a.ecoid2, a.merged_grade, a.brand, a.model, a.name, a.carrier,
                        a.dw_total_quantity, a.dw_avg_target_price,
                        a.total_quantity, a.avg_target_price, a.datawipe
                 FROM auctions.aggregated_inventory a
                 %s
-                ORDER BY a.ecoid2 ASC, a.merged_grade ASC
+                ORDER BY CAST(a.ecoid2 AS bigint) ASC, a.merged_grade ASC
                 LIMIT :limit OFFSET :offset
                 """.formatted(where);
 
@@ -139,12 +142,21 @@ public class AggregatedInventoryService {
      */
     @Transactional(readOnly = true)
     public AggregatedInventoryTotalsResponse getTotals(Long weekId) {
+        // Non-DW KPIs exclude DW-only groups. Snowflake's upstream query wraps
+        // TotalPayout and AvgTargetPrice in COALESCE(non-DW, DW), so DW-only
+        // groups carry DW values in the non-DW columns. Including them would
+        // double-count with the DW KPIs and diverge from Mendix Total-row math.
         String sql = """
                 SELECT
                   COALESCE(SUM(a.total_quantity), 0)                                           AS total_qty,
-                  COALESCE(SUM(a.total_payout), 0)                                             AS total_payout,
-                  CASE WHEN COALESCE(SUM(a.total_quantity), 0) = 0 THEN 0
-                       ELSE SUM(a.avg_target_price * a.total_quantity) / SUM(a.total_quantity) END AS avg_target,
+                  COALESCE(SUM(a.total_payout)
+                           FILTER (WHERE a.total_quantity > a.dw_total_quantity), 0)           AS total_payout,
+                  CASE WHEN COALESCE(SUM(a.total_quantity - a.dw_total_quantity)
+                                     FILTER (WHERE a.total_quantity > a.dw_total_quantity), 0) = 0 THEN 0
+                       ELSE SUM(a.avg_target_price * (a.total_quantity - a.dw_total_quantity))
+                              FILTER (WHERE a.total_quantity > a.dw_total_quantity)
+                            / SUM(a.total_quantity - a.dw_total_quantity)
+                              FILTER (WHERE a.total_quantity > a.dw_total_quantity) END        AS avg_target,
                   COALESCE(SUM(a.dw_total_quantity), 0)                                        AS dw_total_qty,
                   COALESCE(SUM(a.dw_total_payout), 0)                                          AS dw_total_payout,
                   CASE WHEN COALESCE(SUM(a.dw_total_quantity), 0) = 0 THEN 0
