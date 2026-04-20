@@ -3,6 +3,18 @@ spring:
     name: salesplatform
 
   # ─────────────────────────────────────
+  # Load secrets from the repo-root .env (gitignored). `optional:` means
+  # startup doesn't fail in CI/Docker where the file is absent; `[.properties]`
+  # tells the Spring config importer to parse KEY=VALUE lines as properties.
+  # Any key here (e.g. SNOWFLAKE_ENABLED, SNOWFLAKE_USERNAME) becomes
+  # resolvable via ${SNOWFLAKE_ENABLED} in this file, matching OS-env behavior.
+  # Shell-exported env vars still win — Spring property precedence gives OS
+  # env higher priority than imported config files.
+  # ─────────────────────────────────────
+  config:
+    import: optional:file:../.env[.properties]
+
+  # ─────────────────────────────────────
   # Local PostgreSQL (already running)
   # ─────────────────────────────────────
   datasource:

@@ -337,6 +337,70 @@ Streams an `.xlsx` of the current filter set (same query params as list). Not pa
 
 ---
 
+## Auctions (Admin)
+
+Backs the "Create Auction" button on `/admin/auctions-data-center/inventory`. Mirrors Mendix `AuctionUI.ACT_Create_Auction`.
+
+### POST /admin/auctions
+
+Create a new auction for a week. Writes one `auctions.auctions` row plus three `auctions.scheduling_auctions` rows (rounds 1–3) in a single transaction.
+
+**Roles**: `Administrator` or `SalesOps`. Bidder and other roles → `403`.
+
+**Request body**:
+
+```json
+{ "weekId": 42, "customSuffix": "Pilot" }
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `weekId` | long | yes | FK into `mdm.week`. Must resolve to an existing week. |
+| `customSuffix` | string | no | Optional label appended to the auto-generated title. Trimmed server-side; blank/whitespace is treated as absent. |
+
+**Title composition**: `"Auction " + week.weekDisplay` (e.g. `"Auction Week 17 2026"`), optionally suffixed by a single space + the trimmed `customSuffix` (e.g. `"Auction Week 17 2026 Pilot"`). Titles are case-insensitively unique across `auctions.auctions`.
+
+**Round offsets** (from `week.week_start_datetime`):
+
+| Round | Start offset | End offset |
+|---|---|---|
+| 1 | +16h | +103h |
+| 2 | +104h | +128h |
+| 3 | +129h | +156h |
+
+All three rounds start in status `Scheduled`. The parent auction starts in `Unscheduled` (flips to `Scheduled` once the round editor lands — separate follow-up).
+
+**Response**: `201 Created` with `Location: /api/v1/admin/auctions/{id}` and body:
+
+```json
+{
+  "id": 101,
+  "auctionTitle": "Auction Week 17 2026",
+  "auctionStatus": "Unscheduled",
+  "weekId": 42,
+  "weekDisplay": "Week 17 2026",
+  "rounds": [
+    { "id": 301, "round": 1, "startDatetime": "2026-04-21T16:00:00Z", "endDatetime": "2026-04-25T07:00:00Z", "status": "Scheduled" },
+    { "id": 302, "round": 2, "startDatetime": "2026-04-25T08:00:00Z", "endDatetime": "2026-04-26T08:00:00Z", "status": "Scheduled" },
+    { "id": 303, "round": 3, "startDatetime": "2026-04-26T09:00:00Z", "endDatetime": "2026-04-27T12:00:00Z", "status": "Scheduled" }
+  ]
+}
+```
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `400` | `weekId` missing/null | `"weekId is required"` |
+| `403` | Non-Administrator/SalesOps role | `"Access denied"` |
+| `404` | `weekId` doesn't resolve | `"Week not found: id=…"` |
+| `409` | Week already has an auction | `"An auction already exists for week id=…"` |
+| `409` | Title collides (case-insensitive) | `"An auction with this name already exists: …"` |
+
+The frontend disambiguates the two 409 bodies by substring-matching `"name already exists"` — duplicate title becomes an inline field error; auction-already-exists surfaces as a banner.
+
+---
+
 ## Auth
 
 ### POST /auth/login

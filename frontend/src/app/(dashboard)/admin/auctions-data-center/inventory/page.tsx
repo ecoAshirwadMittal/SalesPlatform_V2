@@ -14,6 +14,7 @@ import {
   type InventoryTotals,
   type InventoryRow,
 } from '@/lib/aggregatedInventory';
+import { CreateAuctionModal } from './CreateAuctionModal';
 
 const PAGE_SIZE = 20;
 const FILTER_DELAY = 500;
@@ -64,6 +65,7 @@ export default function AggregatedInventoryPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editRow, setEditRow] = useState<InventoryRow | null>(null);
   const [syncPending, setSyncPending] = useState(false);
+  const [showCreateAuction, setShowCreateAuction] = useState(false);
 
   useEffect(() => {
     let ignore = false;
@@ -196,6 +198,11 @@ export default function AggregatedInventoryPage() {
   const startIdx = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const endIdx = Math.min(total, (page + 1) * PAGE_SIZE);
 
+  const selectedWeek = weeks.find(w => w.id === weekId) ?? null;
+  const canCreateAuction = Boolean(
+    totals?.hasInventory && totals?.isCurrentWeek && !totals?.hasAuction,
+  );
+
   return (
     <div className={styles.page}>
       <header className={styles.header}>
@@ -216,13 +223,15 @@ export default function AggregatedInventoryPage() {
             </option>
           ))}
         </select>
-        <button
-          className={styles.button}
-          type="button"
-          onClick={() => alert('Auction scheduling is being ported — see docs/tasks/auctions-schema-migration-plan.md')}
-        >
-          Create Auction
-        </button>
+        {canCreateAuction && (
+          <button
+            className={styles.button}
+            type="button"
+            onClick={() => setShowCreateAuction(true)}
+          >
+            Create Auction
+          </button>
+        )}
         <button
           className={styles.buttonGhost}
           type="button"
@@ -346,6 +355,18 @@ export default function AggregatedInventoryPage() {
           onClose={() => setEditRow(null)}
           onSaved={() => {
             setEditRow(null);
+            setError(null);
+            refresh().catch(() => setError('Failed to load inventory'));
+          }}
+        />
+      )}
+      {showCreateAuction && weekId && selectedWeek && (
+        <CreateAuctionModal
+          weekId={weekId}
+          weekDisplay={selectedWeek.weekDisplay}
+          onClose={() => setShowCreateAuction(false)}
+          onCreated={() => {
+            setShowCreateAuction(false);
             setError(null);
             refresh().catch(() => setError('Failed to load inventory'));
           }}

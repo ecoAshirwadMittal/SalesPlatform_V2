@@ -81,7 +81,7 @@ public class AggregatedInventoryService {
                        a.total_quantity, a.avg_target_price, a.datawipe
                 FROM auctions.aggregated_inventory a
                 %s
-                ORDER BY a.ecoid2::bigint ASC, a.merged_grade ASC
+                ORDER BY CAST(a.ecoid2 AS bigint) ASC, a.merged_grade ASC
                 LIMIT :limit OFFSET :offset
                 """.formatted(where);
 
