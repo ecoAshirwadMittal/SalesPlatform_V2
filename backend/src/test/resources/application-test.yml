@@ -31,3 +31,8 @@ server:
 auctions:
   lifecycle:
     enabled: false
+  # R1 init listener is off by default in tests so unit/slice tests that
+  # publish RoundStartedEvent don't touch the DB. The end-to-end IT
+  # (R1InitializationIT) opts in via @TestPropertySource.
+  r1-init:
+    enabled: false

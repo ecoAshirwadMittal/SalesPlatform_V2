@@ -176,6 +176,14 @@ auctions:
   # ─────────────────────────────────────
   snowflake-push:
     enabled: ${AUCTIONS_SNOWFLAKE_PUSH_ENABLED:false}
+  # ─────────────────────────────────────
+  # R1 initialization listener (Sub-project 2)
+  # enabled=false → R1InitListener bean is not created; RoundStartedEvent(round=1)
+  # is handled only by the stub. Flip enabled=true (default) so the real service
+  # clamps target prices and seeds qualified_buyer_codes on every R1 transition.
+  # ─────────────────────────────────────
+  r1-init:
+    enabled: ${AUCTIONS_R1_INIT_ENABLED:true}
 
 ---
 # ─────────────────────────────────────
