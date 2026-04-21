@@ -33,7 +33,7 @@ public class BidRound {
     private Long schedulingAuctionId;
 
     @Column(name = "submitted", nullable = false)
-    private Boolean submitted = false;
+    private boolean submitted = false;
 
     @Column(name = "submitted_datetime")
     private Instant submittedDatetime;
@@ -57,11 +57,11 @@ public class BidRound {
         this.schedulingAuctionId = schedulingAuctionId;
     }
 
-    public Boolean getSubmitted() {
+    public boolean getSubmitted() {
         return submitted;
     }
 
-    public void setSubmitted(Boolean submitted) {
+    public void setSubmitted(boolean submitted) {
         this.submitted = submitted;
     }
 
