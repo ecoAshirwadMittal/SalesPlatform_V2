@@ -25,3 +25,9 @@ server:
   error:
     include-message: never
     include-exception: false
+
+# Disable auction lifecycle scheduler in tests — tests call
+# AuctionLifecycleService.tick() directly to drive transitions.
+auctions:
+  lifecycle:
+    enabled: false

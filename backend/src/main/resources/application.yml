@@ -158,6 +158,17 @@ snowflake:
   pool:
     maximum-size: ${SNOWFLAKE_POOL_MAX:3}
 
+# ─────────────────────────────────────
+# Auction lifecycle scheduler (Sub-project 0)
+# enabled=false → @Scheduled tick is suppressed; round transitions are only
+# driven by direct service.tick() calls (used in tests). Polls every poll-ms
+# milliseconds when enabled. Mirrors Mendix scheduled-event interval (60s).
+# ─────────────────────────────────────
+auctions:
+  lifecycle:
+    enabled: ${AUCTIONS_LIFECYCLE_ENABLED:true}
+    poll-ms: ${AUCTIONS_LIFECYCLE_POLL_MS:60000}
+
 ---
 # ─────────────────────────────────────
 # Profile: local (override for dev convenience)
