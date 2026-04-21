@@ -25,16 +25,16 @@ public class BidDataDoc {
     @Column(name = "week_id", nullable = false)
     private Long weekId;
 
-    @Column(name = "file_name")
+    @Column(name = "file_name", length = 500)
     private String fileName;
 
-    @Column(name = "file_ref")
+    @Column(name = "file_ref", length = 1000)
     private String fileRef;
 
     @Column(name = "file_size")
     private Long fileSize;
 
-    @Column(name = "content_type")
+    @Column(name = "content_type", length = 200)
     private String contentType;
 
     @Column(name = "uploaded_datetime")
