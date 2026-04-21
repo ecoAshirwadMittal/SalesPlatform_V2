@@ -5,6 +5,110 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-22 — Auction R1 init: listener + admin endpoint + QBC schema flattening
+
+**Status:** Accepted (sub-project 2 of `docs/tasks/auction-lifecycle-cron-design.md`).
+
+### Context
+
+Mendix `SUB_InitializeRound1` fires when a Round 1 scheduling auction
+transitions `Scheduled → Started`. It performs three effects:
+(1) clamp aggregated-inventory non-DW `avg_target_price` below the
+`minimum_allowed_bid` floor; (2) clamp DW `dw_avg_target_price` the
+same way; (3) rewrite the Qualified Buyer Codes set — delete any
+existing QBCs for the scheduling auction, insert one fresh QBC per
+active wholesale/data-wipe buyer code with
+`qualification_type='Qualified'`, `included=true`,
+`is_special_treatment=false`. Ports `ACT_UpdateRound1TargetPrice_MinBid`
++ `SUB_CreateQualifiedBuyersEntity` + `SUB_ClearQualifiedBuyerList`
+into our listener + service model, skipping
+`SUB_HandleSpecialTreatmentBuyerOnRoundStart` (deferred).
+
+### Decision
+
+- **Post-commit listener + admin recovery endpoint.** `R1InitListener`
+  is a `@TransactionalEventListener(AFTER_COMMIT)` + `@Async("snowflakeExecutor")`
+  consumer of `RoundStartedEvent`, gated by `auctions.r1-init.enabled`
+  via `@ConditionalOnProperty`. Admin endpoint
+  `POST /api/v1/admin/auctions/{id}/rounds/1/init` (Administrator only,
+  synchronous) calls the same `Round1InitializationService.initialize`
+  entry point and is never gated.
+- **Single `@Transactional(REQUIRES_NEW, timeout=30)` method owns all
+  three effects.** All-or-nothing: any failure rolls back the clamp
+  and QBC rewrite together. The round transition itself has already
+  committed by the time this runs, so a failure here does not undo
+  Started status — matches the 2026-04-20 cron ADR.
+- **QBC schema flattening (V72).** Mendix modeled SA ↔ QBC and
+  BuyerCode ↔ QBC as M:N junctions (`qbc_scheduling_auctions`,
+  `qbc_buyer_codes`). Each QBC row in practice belongs to exactly one
+  SA and one BuyerCode. V72 adds `scheduling_auction_id` +
+  `buyer_code_id` directly on `qualified_buyer_codes`, backfills from
+  the junctions, drops both junction tables, and enforces
+  `UNIQUE(scheduling_auction_id, buyer_code_id)`. Enables one-hop
+  delete on the SA rewrite (`SUB_ClearQualifiedBuyerList` parity) and
+  eliminates a degenerate 2-hop join for "which auction is this QBC
+  for".
+- **Direct SA ↔ BuyerCode association (`SchedulingAuction_QualifiedBuyers`)
+  dropped.** The QBC graph already encodes the same set; the Mendix
+  association was historical modeling duplication.
+- **Dev-first rollout.** `auctions.r1-init.enabled=true` in dev
+  `application.yml`; `false` in `application-test.yml` so unit/IT
+  suites stay deterministic (the full-chain IT opts in via
+  `@TestPropertySource`). QA enables via env var after one full
+  manual dev cycle + intentional failure drill.
+
+### Alternatives considered
+
+- **Split into three services** (clamp, clear QBCs, create QBCs).
+  Rejected — YAGNI. The three effects are cohesive by contract and
+  Mendix treats them as one microflow. Nothing else in the port needs
+  any step in isolation.
+- **Per-listener audit table** (e.g., `auctions.round_init_run`).
+  Deferred — logs are the audit surface for Phase 1, consistent with
+  sub-project 1's `[deferred-writer]` stance. `integration.scheduled_job_run`
+  already captures the tick-level aggregate.
+- **Keep the Mendix `SchedulingAuction_QualifiedBuyers` association as
+  a parallel junction.** Rejected — duplicates state that the
+  flattened QBC row already encodes; a QBC rewrite would have to stay
+  in sync with two tables.
+- **Rename `snowflakeExecutor` → `auctionDownstreamExecutor`.** YAGNI
+  until 2–3 more listeners share the pool.
+
+### Consequences
+
+- One R1 listener invocation performs at most two UPDATEs + one DELETE
+  + N INSERTs (one per active wholesale/data-wipe buyer code — ~580
+  in prod). All within a single tx bounded by 30s.
+- Listener failures are logged at ERROR and swallowed — the async
+  executor thread is not poisoned. Monitoring must watch the
+  `r1-init failed ...` log line.
+- Admin endpoint is the recovery path. Running it a second time
+  against the same auction is a no-op on clamp counts (nothing below
+  floor anymore) but fully rewrites the QBC set.
+- Unique constraint `uq_qbc_sa_bc` means a concurrent double-fire
+  (listener + admin) would throw and roll back the later run — safe
+  by construction.
+- Special-treatment buyer handling (Mendix
+  `SUB_HandleSpecialTreatmentBuyerOnRoundStart`) is deferred to a
+  later sub-project.
+
+### References
+
+- Plan: `docs/tasks/auction-r1-init-plan.md`
+- Spec: `docs/tasks/auction-r1-init-design.md`
+- Schema: `V72__buyer_mgmt_qbc_flatten.sql`
+- Related ADRs: 2026-04-21 (Snowflake push pattern + executor),
+  2026-04-20 (cron + event contract), 2026-04-19 (admin security
+  matcher ordering, entity-less FK)
+- Mendix source:
+  `migration_context/backend/services/SUB_InitializeRound1.md`,
+  `ACT_UpdateRound1TargetPrice_MinBid.md`,
+  `services/SUB_CreateQualifiedBuyersEntity.md`,
+  `services/SUB_ClearQualifiedBuyerList.md`,
+  `Act_GetOrCreateBuyerCodeSubmitConfig.md`
+
+---
+
 ## 2026-04-21 — Auction status Snowflake push: listener wired, writer deferred
 
 **Status:** Accepted (Phase 1 of sub-project 1,

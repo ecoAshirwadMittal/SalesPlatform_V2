@@ -17,7 +17,7 @@ per job. Add new entries newest-first as cron jobs are introduced.
 | **Feature flag** | `auctions.lifecycle.enabled` (default `true`; `false` in `application-test.yml`) |
 | **Mendix parity** | `AuctionUI.ACT_ScheduleAuctionCheckStatus` (1-minute scheduled event) |
 | **Emits** | `RoundStartedEvent`, `RoundClosedEvent` (post-commit) |
-| **Consumers** | `AuctionStatusSnowflakePushListener` (sub-project 1, live, deferred-writer); `R1InitStubListener`, `R2InitStubListener`, `R3InitStubListener`, `BidRankingStubListener`, `R3PreProcessStubListener` (logging-only stubs pending sub-projects 2-6) |
+| **Consumers** | `AuctionStatusSnowflakePushListener` (sub-project 1, live, deferred-writer); `R1InitListener` (sub-project 2, live — target-price clamp + QBC rewrite); `R2InitStubListener`, `R3InitStubListener`, `BidRankingStubListener`, `R3PreProcessStubListener` (logging-only stubs pending sub-projects 3-6) |
 
 Counters JSONB shape:
 

@@ -680,6 +680,46 @@ Update the Round 2 / Round 3 Selection Rules. Writes all editable columns in a s
 | `403` | Role is not Administrator | `"Access denied"` |
 | `404` | No row exists for the requested round | `"BidRoundSelectionFilter not found for round=…"` |
 
+### POST /admin/auctions/{auctionId}/rounds/1/init
+
+Manually (re)initialize Round 1 for the given auction. Ports Mendix
+`SUB_InitializeRound1` — clamps aggregated-inventory target prices to
+the configured `minimum_allowed_bid` floor (both non-DW and DW variants)
+and rewrites the Qualified Buyer Codes (QBC) set. Idempotent: running
+twice in a row produces identical state.
+
+Normally triggered automatically by the `auctionLifecycle` cron when a
+Round 1 `SchedulingAuction` transitions `Scheduled → Started`. This
+endpoint is the admin recovery lever — use it when the listener was
+disabled at the time of transition, or to force a re-initialization.
+
+**Roles**: `Administrator` only. `SalesOps` and all other roles → `403`.
+An explicit matcher at `POST /api/v1/admin/auctions/*/rounds/1/init` in
+`SecurityConfig` is required to restrict writes, declared **before** the
+broader `/api/v1/admin/auctions/**` matcher that also permits SalesOps.
+
+**Response**: `200 OK` with `Round1InitializationResult`:
+
+```json
+{
+  "schedulingAuctionId": 301,
+  "auctionId": 101,
+  "weekId": 42,
+  "clampedNonDw": 3,
+  "clampedDw": 1,
+  "qbcsCreated": 579,
+  "durationMs": 187
+}
+```
+
+**Errors**:
+
+| Status | Cause |
+|---|---|
+| `403` | Role is not Administrator |
+| `404` | Auction has no Round 1 scheduling auction |
+| `500` | Unexpected runtime error — tx is rolled back; check logs for `r1-init failed ...` |
+
 > **Out-of-band status changes:** the `auctionLifecycle` cron job
 > (see `docs/app-metadata/scheduled-events.md`) transitions
 > `auction_status` and `round_status` automatically every minute when a
