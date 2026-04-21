@@ -168,6 +168,14 @@ auctions:
   lifecycle:
     enabled: ${AUCTIONS_LIFECYCLE_ENABLED:true}
     poll-ms: ${AUCTIONS_LIFECYCLE_POLL_MS:60000}
+  # ─────────────────────────────────────
+  # Auction status Snowflake push (Sub-project 1)
+  # enabled=false → AuctionStatusSnowflakePushListener short-circuits before
+  # any DB read; no payload is constructed and the writer is never invoked.
+  # Flip enabled=true in QA/prod once the Snowflake-bound writer lands.
+  # ─────────────────────────────────────
+  snowflake-push:
+    enabled: ${AUCTIONS_SNOWFLAKE_PUSH_ENABLED:false}
 
 ---
 # ─────────────────────────────────────
