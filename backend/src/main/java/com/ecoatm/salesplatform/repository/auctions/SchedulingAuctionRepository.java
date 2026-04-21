@@ -19,6 +19,14 @@ public interface SchedulingAuctionRepository extends JpaRepository<SchedulingAuc
     List<SchedulingAuction> findByAuctionIdOrderByRoundAsc(Long auctionId);
 
     /**
+     * Derived lookup for a single round of an auction. Used by the admin
+     * R1 init endpoint to resolve the SchedulingAuction row for
+     * {@code (auctionId, 1)} before handing off to
+     * {@code Round1InitializationService}.
+     */
+    Optional<SchedulingAuction> findByAuctionIdAndRound(Long auctionId, int round);
+
+    /**
      * Delete-and-recreate pathway for the Save Schedule flow. Used only from
      * inside a {@code @Transactional} service method that has already taken
      * a pessimistic lock on the parent {@code Auction} row, so we can rely
