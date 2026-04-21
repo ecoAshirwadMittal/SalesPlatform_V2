@@ -1,0 +1,217 @@
+/*
+ * Round 2 / Round 3 Selection Rules (Criteria) page. Mirrors the
+ * Mendix acc_RoundTwoCriteriaPage / PG_Round3Criteria look, reusing the
+ * same EcoAtm.css tokens as the adjacent auction scheduling module.
+ * Teal #407874 primary, dark #112d32 text, greige #F7F7F7 surface,
+ * label #514F4E, border #B7B5B5.
+ */
+
+.page {
+  padding: 1.25rem 1.5rem;
+  background: #F7F7F7;
+  color: #112d32;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.header {
+  margin-bottom: 1rem;
+}
+
+.backLink {
+  font-size: 0.85rem;
+  color: #407874;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #112d32;
+  margin: 0.25rem 0 0.25rem;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #514F4E;
+  margin: 0;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  max-width: 720px;
+}
+
+.cardTitle {
+  margin: 0 0 1rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #112d32;
+  border-bottom: 1px solid #e5e5e5;
+  padding-bottom: 0.45rem;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fieldFull {
+  grid-column: 1 / -1;
+}
+
+.field label {
+  font-size: 0.75rem;
+  color: #514F4E;
+  font-weight: 500;
+}
+
+.field input[type="number"],
+.field input[type="text"],
+.field select {
+  height: 34px;
+  padding: 0 0.5rem;
+  border: 1px solid #B7B5B5;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+  color: #112d32;
+}
+
+.field input:disabled,
+.field select:disabled {
+  background: #f3f3f3;
+  color: #8a8a8a;
+  cursor: not-allowed;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: #514F4E;
+}
+
+.hint {
+  display: block;
+  font-size: 0.7rem;
+  color: #8a8a8a;
+  margin-top: 0.2rem;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  max-width: 720px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.button {
+  background: #407874;
+  color: #fff;
+  border: 0;
+  padding: 0 1rem;
+  height: 36px;
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #356562;
+}
+
+.button:disabled {
+  background: #8fb5b2;
+  cursor: not-allowed;
+}
+
+.buttonGhost {
+  background: #fff;
+  color: #407874;
+  border: 1px solid #407874;
+  padding: 0 1rem;
+  height: 36px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+.buttonGhost:hover {
+  background: #f1f7f6;
+}
+
+.buttonGhost:disabled {
+  color: #8fb5b2;
+  border-color: #8fb5b2;
+  cursor: not-allowed;
+}
+
+.bannerError {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  background: #fdecea;
+  border: 1px solid #f5c2bd;
+  border-radius: 4px;
+  color: #b3261e;
+  font-size: 0.85rem;
+  max-width: 720px;
+}
+
+.bannerSuccess {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  background: #ecf7ee;
+  border: 1px solid #bfe3c4;
+  border-radius: 4px;
+  color: #1f6b29;
+  font-size: 0.85rem;
+  max-width: 720px;
+}
+
+.bannerInfo {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  background: #F0F3F3;
+  border: 1px solid #d0dbda;
+  border-radius: 4px;
+  color: #112d32;
+  font-size: 0.85rem;
+  max-width: 720px;
+}
+
+.loading {
+  padding: 2rem 1rem;
+  color: #514F4E;
+  font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+}
