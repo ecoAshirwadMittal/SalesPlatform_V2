@@ -44,6 +44,7 @@ public class Auction {
     private Long changedById;
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public String getAuctionTitle() { return auctionTitle; }
     public void setAuctionTitle(String auctionTitle) { this.auctionTitle = auctionTitle; }

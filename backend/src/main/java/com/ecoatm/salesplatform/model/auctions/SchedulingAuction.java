@@ -82,6 +82,7 @@ public class SchedulingAuction {
     private Long changedById;
 
     public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
     public Long getAuctionId() { return auctionId; }
     public void setAuctionId(Long auctionId) { this.auctionId = auctionId; }
