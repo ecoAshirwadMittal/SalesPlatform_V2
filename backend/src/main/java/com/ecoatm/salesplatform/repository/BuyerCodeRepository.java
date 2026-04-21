@@ -30,4 +30,14 @@ public interface BuyerCodeRepository extends JpaRepository<BuyerCode, Long> {
     boolean existsByCodeIgnoreCaseAndNotSoftDeleted(
             @Param("code") String code,
             @Param("excludeId") Long excludeId);
+
+    @Query(nativeQuery = true, value = """
+        SELECT DISTINCT bc.* FROM buyer_mgmt.buyer_codes bc
+        JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
+        JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
+        WHERE bc.buyer_code_type IN ('Data_Wipe','Wholesale')
+          AND bc.soft_delete = false
+          AND b.status = 'Active'
+    """)
+    List<BuyerCode> findActiveWholesaleOrDataWipe();
 }
