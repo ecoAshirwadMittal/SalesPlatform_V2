@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './inventory.module.css';
 import {
@@ -53,6 +54,7 @@ const formatUsd = (n: number) => usdFormatter.format(n);
 const formatInt = (n: number) => intFormatter.format(n);
 
 export default function AggregatedInventoryPage() {
+  const router = useRouter();
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
   const [weekId, setWeekId] = useState<number | null>(null);
   const [page, setPage] = useState(0);
@@ -365,10 +367,13 @@ export default function AggregatedInventoryPage() {
           weekId={weekId}
           weekDisplay={selectedWeek.weekDisplay}
           onClose={() => setShowCreateAuction(false)}
-          onCreated={() => {
+          onCreated={(newAuctionId) => {
+            // Mendix parity: the admin lands on the Auction Scheduling page
+            // immediately after creating the auction. See
+            // docs/tasks/auction-scheduling-plan.md section 1.1 (user flow).
             setShowCreateAuction(false);
             setError(null);
-            refresh().catch(() => setError('Failed to load inventory'));
+            router.push(`/admin/auctions-data-center/auctions/${newAuctionId}/schedule`);
           }}
         />
       )}

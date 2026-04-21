@@ -70,6 +70,29 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(AuctionAlreadyStartedException.class)
+    public ResponseEntity<Map<String, Object>> handleAuctionAlreadyStarted(AuctionAlreadyStartedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(AuctionHasBidsException.class)
+    public ResponseEntity<Map<String, Object>> handleAuctionHasBids(AuctionHasBidsException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(RoundValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleRoundValidation(RoundValidationException ex) {
+        // Comma-joined error string per Mendix VAL_Schedule_Auction; the per-error
+        // list is exposed as `details` so UIs can pin inline errors per round.
+        List<Map<String, String>> details = ex.errors().stream()
+                .map(err -> Map.of("message", err))
+                .toList();
+        return ResponseEntity.badRequest()
+                .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), details));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleRuntime(RuntimeException ex) {
         // Fallback for legacy call sites that still throw RuntimeException("… not found").

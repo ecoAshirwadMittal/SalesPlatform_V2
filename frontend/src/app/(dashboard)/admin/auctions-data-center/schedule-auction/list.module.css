@@ -1,0 +1,130 @@
+.page {
+  padding: 1.25rem 1.5rem;
+  background: #F7F7F7;
+  color: #112d32;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #112d32;
+  margin: 0;
+  margin-right: auto;
+}
+
+.button {
+  background: #407874;
+  color: #fff;
+  border: 0;
+  padding: 0 .9rem;
+  height: 34px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover { background: #356562; }
+
+.buttonGhost {
+  background: #fff;
+  color: #407874;
+  border: 1px solid #407874;
+}
+
+.error {
+  font-size: .8rem;
+  color: #b3261e;
+}
+
+.gridWrap {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  overflow: auto;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+
+.grid th {
+  text-align: left;
+  background: #F7F7F7;
+  padding: .55rem .5rem;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  color: #112d32;
+  position: sticky; top: 0;
+  white-space: nowrap;
+}
+
+.grid td {
+  padding: .45rem .5rem;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+
+.filterInput, .filterSelect {
+  width: 100%;
+  padding: 2px 4px;
+  height: 24px;
+  border: 1px solid #cfcfcf;
+  border-radius: 3px;
+  font: inherit;
+  background: #fff;
+  color: inherit;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  border-top: 1px solid #e5e5e5;
+  background: #fafafa;
+  color: #555;
+  font-size: .85rem;
+}
+
+.editLink {
+  color: #407874;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+  font: inherit;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: .75rem;
+  font-weight: 600;
+  color: #fff;
+  background: #6b6b6b;
+  white-space: nowrap;
+}
+
+.statusUnscheduled { background: #a0a0a0; }
+.statusScheduled { background: #407874; }
+.statusStarted { background: #d08214; }
+.statusClosed { background: #112d32; }
+
+.empty {
+  text-align: center;
+  padding: 2rem 0;
+  color: #6b6b6b;
+  font-size: .9rem;
+}

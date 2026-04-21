@@ -1,0 +1,353 @@
+/*
+ * Auction Scheduling page + Confirm modal. Style vocabulary mirrors
+ * Mendix EcoAtm.css (teal #407874 primary, dark #112d32 text, greige
+ * #F7F7F7 surface, label #514F4E, border #B7B5B5) matching the existing
+ * admin inventory module for visual parity.
+ */
+
+.page {
+  padding: 1.25rem 1.5rem;
+  background: #F7F7F7;
+  color: #112d32;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  min-height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #112d32;
+  margin: 0;
+  margin-right: auto;
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #514F4E;
+  margin: 0;
+}
+
+.statusPill {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #fff;
+  background: #407874;
+  text-transform: capitalize;
+}
+
+.statusPillMuted {
+  background: #8a8a8a;
+}
+
+.backLink {
+  font-size: 0.85rem;
+  color: #407874;
+  text-decoration: none;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  max-width: 820px;
+}
+
+.roundCard {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
+  max-width: 820px;
+}
+
+.roundHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.roundTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #112d32;
+}
+
+.activeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: #514F4E;
+}
+
+.roundHeaderRight {
+  display: inline-flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.selectionRulesLink {
+  font-size: 0.8rem;
+  color: #407874;
+  text-decoration: none;
+}
+
+.selectionRulesLink:hover {
+  text-decoration: underline;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.field label {
+  font-size: 0.75rem;
+  color: #514F4E;
+  font-weight: 500;
+}
+
+.field input[type="date"],
+.field input[type="time"] {
+  height: 34px;
+  padding: 0 0.5rem;
+  border: 1px solid #B7B5B5;
+  border-radius: 4px;
+  font: inherit;
+  background: #fff;
+  color: #112d32;
+}
+
+.field input:disabled {
+  background: #f3f3f3;
+  color: #8a8a8a;
+  cursor: not-allowed;
+}
+
+.fieldReadOnly input[type="date"],
+.fieldReadOnly input[type="time"] {
+  background: #f7f7f7;
+  color: #514F4E;
+}
+
+.inlineError {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  color: #b3261e;
+}
+
+.actionsRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+  max-width: 820px;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.button {
+  background: #407874;
+  color: #fff;
+  border: 0;
+  padding: 0 1rem;
+  height: 36px;
+  border-radius: 4px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: #356562;
+}
+
+.button:disabled {
+  background: #8fb5b2;
+  cursor: not-allowed;
+}
+
+.buttonGhost {
+  background: #fff;
+  color: #407874;
+  border: 1px solid #407874;
+  padding: 0 1rem;
+  height: 36px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.buttonGhost:hover {
+  background: #f1f7f6;
+}
+
+.buttonGhost:disabled {
+  color: #8fb5b2;
+  border-color: #8fb5b2;
+  cursor: not-allowed;
+}
+
+.buttonDanger {
+  background: #fff;
+  color: #b3261e;
+  border: 1px solid #b3261e;
+  padding: 0 1rem;
+  height: 36px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.buttonDanger:hover {
+  background: #fdecea;
+}
+
+.buttonDanger:disabled {
+  color: #d59995;
+  border-color: #d59995;
+  cursor: not-allowed;
+}
+
+.bannerError {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  background: #fdecea;
+  border: 1px solid #f5c2bd;
+  border-radius: 4px;
+  color: #b3261e;
+  font-size: 0.85rem;
+  max-width: 820px;
+}
+
+.bannerInfo {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.85rem;
+  background: #F0F3F3;
+  border: 1px solid #d0dbda;
+  border-radius: 4px;
+  color: #112d32;
+  font-size: 0.85rem;
+  max-width: 820px;
+}
+
+.loading {
+  padding: 2rem 1rem;
+  color: #514F4E;
+  font-size: 0.9rem;
+}
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 45, 50, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 6px;
+  width: min(520px, 92vw);
+  padding: 1.5rem 1.75rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.modalTitle {
+  margin: 0 0 1rem;
+  font-size: 1.25rem;
+  color: #112d32;
+}
+
+.modalSubtitle {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: #514F4E;
+}
+
+.summaryList {
+  list-style: none;
+  margin: 0 0 1.25rem;
+  padding: 0;
+}
+
+.summaryItem {
+  padding: 0.6rem 0;
+  border-bottom: 1px solid #e5e5e5;
+  font-size: 0.9rem;
+  color: #112d32;
+}
+
+.summaryItem:last-child {
+  border-bottom: 0;
+}
+
+.summaryRound {
+  font-weight: 600;
+  color: #112d32;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+.summaryTime {
+  color: #514F4E;
+  font-size: 0.85rem;
+}
+
+.summaryInactive {
+  color: #8a8a8a;
+  font-style: italic;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.confirmWarning {
+  margin: 0.5rem 0 1.25rem;
+  padding: 0.5rem 0.75rem;
+  background: #fdecea;
+  border: 1px solid #f5c2bd;
+  border-radius: 4px;
+  color: #b3261e;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 720px) {
+  .fieldGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

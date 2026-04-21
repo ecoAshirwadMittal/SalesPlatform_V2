@@ -12,7 +12,12 @@ interface CreateAuctionModalProps {
   weekId: number;
   weekDisplay: string;
   onClose: () => void;
-  onCreated: () => void;
+  /**
+   * Invoked with the new auction id on successful create. The parent page
+   * navigates to the auction scheduling page — matches the Mendix
+   * "Create → land on Scheduling page" flow (see auction-scheduling-plan.md).
+   */
+  onCreated: (auctionId: number) => void;
 }
 
 const TITLE_PREFIX = 'Auction';
@@ -48,11 +53,11 @@ export function CreateAuctionModal({
     setFieldError(null);
     setBannerError(null);
     try {
-      await createAuction({
+      const created = await createAuction({
         weekId,
         customSuffix: suffix.trim() ? suffix.trim() : undefined,
       });
-      onCreated();
+      onCreated(created.id);
     } catch (err: unknown) {
       if (err instanceof DuplicateAuctionTitleError) {
         setFieldError('An auction with this name already exists.');

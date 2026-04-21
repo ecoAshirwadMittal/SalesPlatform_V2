@@ -7,11 +7,8 @@ import com.ecoatm.salesplatform.exception.DuplicateAuctionTitleException;
 import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.Auction;
 import com.ecoatm.salesplatform.model.auctions.AuctionStatus;
-import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
-import com.ecoatm.salesplatform.model.auctions.SchedulingAuctionStatus;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
-import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,13 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.lang.reflect.Field;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -44,18 +39,17 @@ class AuctionServiceTest {
     private static final Instant WEEK_START = Instant.parse("2026-04-20T07:00:00Z");
 
     @Mock private AuctionRepository auctionRepository;
-    @Mock private SchedulingAuctionRepository schedulingAuctionRepository;
     @Mock private WeekRepository weekRepository;
 
     private AuctionService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuctionService(auctionRepository, schedulingAuctionRepository, weekRepository);
+        service = new AuctionService(auctionRepository, weekRepository);
     }
 
     @Test
-    @DisplayName("happy path — writes auction + 3 rounds with Mendix offsets")
+    @DisplayName("happy path — writes auction row only (no rounds)")
     void createAuction_happyPath() {
         Week week = week(WEEK_ID, WEEK_DISPLAY, WEEK_START);
         when(weekRepository.findById(WEEK_ID)).thenReturn(Optional.of(week));
@@ -66,14 +60,6 @@ class AuctionServiceTest {
             setField(a, "id", 42L);
             return a;
         });
-        when(schedulingAuctionRepository.saveAll(anyList())).thenAnswer(inv -> {
-            List<SchedulingAuction> list = inv.getArgument(0);
-            long next = 1000L;
-            for (SchedulingAuction sa : list) {
-                setField(sa, "id", next++);
-            }
-            return list;
-        });
 
         CreateAuctionResponse response = service.createAuction(new CreateAuctionRequest(WEEK_ID, null));
 
@@ -82,25 +68,6 @@ class AuctionServiceTest {
         assertThat(response.auctionStatus()).isEqualTo(AuctionStatus.Unscheduled.name());
         assertThat(response.weekId()).isEqualTo(WEEK_ID);
         assertThat(response.weekDisplay()).isEqualTo(WEEK_DISPLAY);
-
-        assertThat(response.rounds()).hasSize(3);
-        assertThat(response.rounds()).extracting(CreateAuctionResponse.Round::round)
-                .containsExactly(1, 2, 3);
-        assertThat(response.rounds()).extracting(CreateAuctionResponse.Round::status)
-                .containsOnly(SchedulingAuctionStatus.Scheduled.name());
-
-        assertThat(response.rounds().get(0).startDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(16)));
-        assertThat(response.rounds().get(0).endDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(103)));
-        assertThat(response.rounds().get(1).startDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(104)));
-        assertThat(response.rounds().get(1).endDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(128)));
-        assertThat(response.rounds().get(2).startDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(129)));
-        assertThat(response.rounds().get(2).endDatetime())
-                .isEqualTo(WEEK_START.plus(Duration.ofHours(156)));
 
         ArgumentCaptor<Auction> auctionCaptor = ArgumentCaptor.forClass(Auction.class);
         verify(auctionRepository).save(auctionCaptor.capture());
@@ -123,7 +90,6 @@ class AuctionServiceTest {
             setField(a, "id", 43L);
             return a;
         });
-        when(schedulingAuctionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         CreateAuctionResponse response = service.createAuction(
                 new CreateAuctionRequest(WEEK_ID, "Launch"));
@@ -143,7 +109,6 @@ class AuctionServiceTest {
             setField(a, "id", 44L);
             return a;
         });
-        when(schedulingAuctionRepository.saveAll(anyList())).thenAnswer(inv -> inv.getArgument(0));
 
         CreateAuctionResponse response = service.createAuction(
                 new CreateAuctionRequest(WEEK_ID, "   "));
@@ -160,7 +125,6 @@ class AuctionServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
 
         verify(auctionRepository, never()).save(any());
-        verify(schedulingAuctionRepository, never()).saveAll(anyList());
     }
 
     @Test
