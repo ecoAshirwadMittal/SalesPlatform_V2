@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -31,6 +32,7 @@ public interface AggregatedInventoryRepository extends JpaRepository<AggregatedI
      * {@code SUB_LoopForRound1TargetPrice}.
      */
     @Modifying
+    @Transactional
     @Query(value = """
             UPDATE auctions.aggregated_inventory
                SET avg_target_price = :min
@@ -47,6 +49,7 @@ public interface AggregatedInventoryRepository extends JpaRepository<AggregatedI
      * Parity with Mendix {@code SUB_LoopForRound1TargetPrice_DW}.
      */
     @Modifying
+    @Transactional
     @Query(value = """
             UPDATE auctions.aggregated_inventory
                SET dw_avg_target_price = :min

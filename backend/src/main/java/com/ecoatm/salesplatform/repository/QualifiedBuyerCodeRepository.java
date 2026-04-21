@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Repository for {@link QualifiedBuyerCode}.
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Repository;
 public interface QualifiedBuyerCodeRepository extends JpaRepository<QualifiedBuyerCode, Long> {
 
     @Modifying
+    @Transactional
     @Query(value = """
             DELETE FROM buyer_mgmt.qualified_buyer_codes
              WHERE scheduling_auction_id = :saId

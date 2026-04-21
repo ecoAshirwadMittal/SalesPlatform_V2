@@ -10,7 +10,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 @Component
-@ConditionalOnProperty(name = "auctions.r1-init.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "auctions.r1-init.enabled", havingValue = "true", matchIfMissing = true)
 public class R1InitListener {
 
     private static final Logger log = LoggerFactory.getLogger(R1InitListener.class);

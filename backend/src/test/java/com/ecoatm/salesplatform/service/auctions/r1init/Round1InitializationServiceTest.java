@@ -54,6 +54,7 @@ class Round1InitializationServiceTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void initialize_happyPath_clampsBothAndCreatesQbcs() {
         stubSaAndAuction();
         stubConfig();
@@ -62,7 +63,6 @@ class Round1InitializationServiceTest {
         when(qbcRepo.deleteBySchedulingAuctionId(SA_ID)).thenReturn(0);
         when(buyerCodeRepo.findActiveWholesaleOrDataWipe())
                 .thenReturn(List.of(buyerCode(10L), buyerCode(11L), buyerCode(12L)));
-        when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Round1InitializationResult result = service.initialize(SA_ID);
 
@@ -72,20 +72,23 @@ class Round1InitializationServiceTest {
         assertThat(result.auctionId()).isEqualTo(AUCTION_ID);
         assertThat(result.weekId()).isEqualTo(WEEK_ID);
 
-        ArgumentCaptor<QualifiedBuyerCode> qbcCaptor = ArgumentCaptor.forClass(QualifiedBuyerCode.class);
-        verify(qbcRepo, org.mockito.Mockito.times(3)).save(qbcCaptor.capture());
-        assertThat(qbcCaptor.getAllValues()).allSatisfy(q -> {
+        ArgumentCaptor<List<QualifiedBuyerCode>> qbcCaptor = ArgumentCaptor.forClass(List.class);
+        verify(qbcRepo).saveAll(qbcCaptor.capture());
+        List<QualifiedBuyerCode> saved = qbcCaptor.getValue();
+        assertThat(saved).hasSize(3);
+        assertThat(saved).allSatisfy(q -> {
             assertThat(q.getSchedulingAuctionId()).isEqualTo(SA_ID);
             assertThat(q.getQualificationType()).isEqualTo(QualificationType.Qualified);
             assertThat(q.isIncluded()).isTrue();
             assertThat(q.isSpecialTreatment()).isFalse();
         });
-        assertThat(qbcCaptor.getAllValues())
+        assertThat(saved)
                 .extracting(QualifiedBuyerCode::getBuyerCodeId)
                 .containsExactlyInAnyOrder(10L, 11L, 12L);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void initialize_emptyBuyerList_createsZeroQbcsAndDoesNotThrow() {
         stubSaAndAuction();
         stubConfig();
@@ -98,6 +101,9 @@ class Round1InitializationServiceTest {
 
         assertThat(result.qbcsCreated()).isZero();
         verify(qbcRepo, never()).save(any());
+        ArgumentCaptor<List<QualifiedBuyerCode>> qbcCaptor = ArgumentCaptor.forClass(List.class);
+        verify(qbcRepo).saveAll(qbcCaptor.capture());
+        assertThat(qbcCaptor.getValue()).isEmpty();
     }
 
     @Test
@@ -120,7 +126,6 @@ class Round1InitializationServiceTest {
         when(qbcRepo.deleteBySchedulingAuctionId(SA_ID)).thenReturn(0);
         when(buyerCodeRepo.findActiveWholesaleOrDataWipe())
                 .thenReturn(List.of(buyerCode(10L)));
-        when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
 
         Round1InitializationResult result = service.initialize(SA_ID);
 

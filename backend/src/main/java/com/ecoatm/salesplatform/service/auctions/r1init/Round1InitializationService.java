@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -69,6 +70,7 @@ public class Round1InitializationService {
         qbcRepo.deleteBySchedulingAuctionId(schedulingAuctionId);
 
         List<BuyerCode> buyerCodes = buyerCodeRepo.findActiveWholesaleOrDataWipe();
+        List<QualifiedBuyerCode> qbcs = new ArrayList<>(buyerCodes.size());
         for (BuyerCode bc : buyerCodes) {
             QualifiedBuyerCode qbc = new QualifiedBuyerCode();
             qbc.setSchedulingAuctionId(schedulingAuctionId);
@@ -76,8 +78,11 @@ public class Round1InitializationService {
             qbc.setQualificationType(QualificationType.Qualified);
             qbc.setIncluded(true);
             qbc.setSpecialTreatment(false);
-            qbcRepo.save(qbc);
+            qbcs.add(qbc);
         }
+        // saveAll + hibernate.jdbc.batch_size=50 batches the ~579 inserts into
+        // ~12 round-trips instead of 579, per the post-review performance note.
+        qbcRepo.saveAll(qbcs);
 
         long durationMs = System.currentTimeMillis() - startedAt;
         log.info("r1-init completed auctionId={} schedulingAuctionId={} weekId={} "
