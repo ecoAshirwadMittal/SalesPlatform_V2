@@ -341,9 +341,91 @@ Streams an `.xlsx` of the current filter set (same query params as list). Not pa
 
 Backs the "Create Auction" button on `/admin/auctions-data-center/inventory`. Mirrors Mendix `AuctionUI.ACT_Create_Auction`.
 
+### GET /admin/auctions
+
+Paginated, filterable list backing `/admin/auctions-data-center/auctions` (QA parity with `Mx_Admin.Pages.Auctions`). Each row carries the parent week's `weekDisplay` plus a scalar `roundCount` (COUNT(*) from `auctions.scheduling_auctions`) so the grid can render the "Rounds" column without a join fan-out.
+
+**Roles**: `Administrator` or `SalesOps`.
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `title` | string | - | Case-insensitive contains on `auction_title`. |
+| `weekId` | long | - | Exact match on `week_id`. |
+| `status` | string | - | Exact match on `auction_status` (`Unscheduled` / `Scheduled` / `Started` / `Closed`). |
+| `page` | int | 0 | Zero-based page number. |
+| `pageSize` | int | 20 | Page size. |
+
+Rows are ordered by `created_date DESC, id DESC` so the most recently created auction lands first.
+
+**Response**: `200 OK` with `AuctionListPageResponse`:
+
+```json
+{
+  "content": [
+    {
+      "id": 101,
+      "auctionTitle": "Auction 2026 / Wk17",
+      "auctionStatus": "Scheduled",
+      "weekId": 42,
+      "weekDisplay": "2026 / Wk17",
+      "createdDate": "2026-04-20T14:05:00Z",
+      "changedDate": "2026-04-20T14:05:00Z",
+      "createdBy": "ashirwadmittal",
+      "updatedBy": "ashirwadmittal",
+      "roundCount": 3
+    }
+  ],
+  "page": 0,
+  "pageSize": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
+### GET /admin/scheduling-auctions
+
+Paginated, filterable list backing `/admin/auctions-data-center/schedule-auction` (QA parity with `Mx_Admin.Pages.Scheduling_Auctions`). Each row is one round of a parent auction — three rounds per scheduled auction — and joins to `auctions.auctions` for the parent title.
+
+**Roles**: `Administrator` or `SalesOps`. An explicit matcher at `/api/v1/admin/scheduling-auctions/**` in `SecurityConfig` is required; without it the catch-all `/api/v1/admin/**` matcher would reject `SalesOps` at the filter chain before `@PreAuthorize` runs.
+
+| Param | Type | Default | Description |
+|---|---|---|---|
+| `auctionId` | long | - | Exact match on parent `auction_id`. |
+| `status` | string | - | Exact match on `round_status`. |
+| `weekDisplay` | string | - | Case-insensitive contains on the denormalized `auction_week_year` column (e.g. `"2026 / Wk17"`). |
+| `page` | int | 0 | Zero-based page number. |
+| `pageSize` | int | 20 | Page size. |
+
+Rows are ordered by `start_datetime DESC NULLS LAST, auction_id DESC, round ASC` so the soonest active round lands first and unscheduled rounds (null `start_datetime`) sink to the bottom.
+
+**Response**: `200 OK` with `SchedulingAuctionListPageResponse`:
+
+```json
+{
+  "content": [
+    {
+      "id": 301,
+      "auctionId": 101,
+      "auctionTitle": "Auction 2026 / Wk17",
+      "auctionWeekYear": "2026 / Wk17",
+      "round": 1,
+      "name": "Round 1",
+      "startDatetime": "2026-04-21T16:00:00Z",
+      "endDatetime": "2026-04-25T07:00:00Z",
+      "roundStatus": "Scheduled",
+      "hasRound": true
+    }
+  ],
+  "page": 0,
+  "pageSize": 20,
+  "totalElements": 1,
+  "totalPages": 1
+}
+```
+
 ### POST /admin/auctions
 
-Create a new auction for a week. Writes one `auctions.auctions` row plus three `auctions.scheduling_auctions` rows (rounds 1–3) in a single transaction.
+Create a new auction for a week. Writes a single `auctions.auctions` row. Per the 2026-04-20 ADR amendment, the three `auctions.scheduling_auctions` rounds are persisted later by the Schedule endpoint (`PUT /admin/auctions/{id}/schedule`, Phase C) — an `Unscheduled` auction legitimately has zero rounds until the admin confirms the schedule.
 
 **Roles**: `Administrator` or `SalesOps`. Bidder and other roles → `403`.
 
@@ -358,32 +440,17 @@ Create a new auction for a week. Writes one `auctions.auctions` row plus three `
 | `weekId` | long | yes | FK into `mdm.week`. Must resolve to an existing week. |
 | `customSuffix` | string | no | Optional label appended to the auto-generated title. Trimmed server-side; blank/whitespace is treated as absent. |
 
-**Title composition**: `"Auction " + week.weekDisplay` (e.g. `"Auction Week 17 2026"`), optionally suffixed by a single space + the trimmed `customSuffix` (e.g. `"Auction Week 17 2026 Pilot"`). Titles are case-insensitively unique across `auctions.auctions`.
-
-**Round offsets** (from `week.week_start_datetime`):
-
-| Round | Start offset | End offset |
-|---|---|---|
-| 1 | +16h | +103h |
-| 2 | +104h | +128h |
-| 3 | +129h | +156h |
-
-All three rounds start in status `Scheduled`. The parent auction starts in `Unscheduled` (flips to `Scheduled` once the round editor lands — separate follow-up).
+**Title composition**: `"Auction " + week.weekDisplay` (e.g. `"Auction 2026 / Wk17"`), optionally suffixed by a single space + the trimmed `customSuffix` (e.g. `"Auction 2026 / Wk17 Pilot"`). Titles are case-insensitively unique across `auctions.auctions`.
 
 **Response**: `201 Created` with `Location: /api/v1/admin/auctions/{id}` and body:
 
 ```json
 {
   "id": 101,
-  "auctionTitle": "Auction Week 17 2026",
+  "auctionTitle": "Auction 2026 / Wk17",
   "auctionStatus": "Unscheduled",
   "weekId": 42,
-  "weekDisplay": "Week 17 2026",
-  "rounds": [
-    { "id": 301, "round": 1, "startDatetime": "2026-04-21T16:00:00Z", "endDatetime": "2026-04-25T07:00:00Z", "status": "Scheduled" },
-    { "id": 302, "round": 2, "startDatetime": "2026-04-25T08:00:00Z", "endDatetime": "2026-04-26T08:00:00Z", "status": "Scheduled" },
-    { "id": 303, "round": 3, "startDatetime": "2026-04-26T09:00:00Z", "endDatetime": "2026-04-27T12:00:00Z", "status": "Scheduled" }
-  ]
+  "weekDisplay": "2026 / Wk17"
 }
 ```
 
@@ -398,6 +465,227 @@ All three rounds start in status `Scheduled`. The parent auction starts in `Unsc
 | `409` | Title collides (case-insensitive) | `"An auction with this name already exists: …"` |
 
 The frontend disambiguates the two 409 bodies by substring-matching `"name already exists"` — duplicate title becomes an inline field error; auction-already-exists surfaces as a banner.
+
+### GET /admin/auctions/{id}
+
+Fetch a single auction with its rounds. Backs the Auction Scheduling page header and, after Phase D lands, the auction overview screen.
+
+**Roles**: `Administrator` or `SalesOps`.
+
+**Response**: `200 OK` with `AuctionDetailResponse`:
+
+```json
+{
+  "id": 42,
+  "auctionTitle": "Auction 2026 / Wk17",
+  "auctionStatus": "Scheduled",
+  "weekId": 100,
+  "weekDisplay": "2026 / Wk17",
+  "rounds": [
+    { "id": 301, "round": 1, "name": "Round 1", "startDatetime": "2026-04-21T16:00:00Z", "endDatetime": "2026-04-25T07:00:00Z", "roundStatus": "Scheduled", "hasRound": true },
+    { "id": 302, "round": 2, "name": "Round 2", "startDatetime": "2026-04-25T13:00:00Z", "endDatetime": "2026-04-26T08:00:00Z", "roundStatus": "Scheduled", "hasRound": true },
+    { "id": 303, "round": 3, "name": "Upsell Round", "startDatetime": "2026-04-26T11:00:00Z", "endDatetime": "2026-04-27T12:00:00Z", "roundStatus": "Scheduled", "hasRound": true }
+  ]
+}
+```
+
+`rounds` is an empty list when the auction is `Unscheduled`. Round 3's `name` is the literal `"Upsell Round"` — it is the customer-facing label inherited from the Mendix source.
+
+**Errors**: `404` when the id does not resolve.
+
+### GET /admin/auctions/{id}/schedule-defaults
+
+Return the default (or current) round start/end datetimes for the Auction Scheduling page. Ports Mendix `ACT_LoadScheduleAuction_Helper` plus `ACT_Create_SchedulingAuction_Helper_Default`.
+
+**Roles**: `Administrator` or `SalesOps`.
+
+**Response**: `200 OK` with `ScheduleDefaultsResponse`:
+
+```json
+{
+  "round1Start": "2026-04-21T16:00:00Z",
+  "round1End": "2026-04-25T07:00:00Z",
+  "round2Start": "2026-04-25T13:00:00Z",
+  "round2End": "2026-04-26T08:00:00Z",
+  "round3Start": "2026-04-26T11:00:00Z",
+  "round3End": "2026-04-27T12:00:00Z",
+  "round2Active": true,
+  "round3Active": true,
+  "round2MinutesOffset": 360,
+  "round3MinutesOffset": 180
+}
+```
+
+When the auction has no rounds yet, values are derived from `week.week_start_datetime` using offsets 16h (R1 start), 103h (R1 end), 128h (R2 end), 156h (R3 end), plus the config-driven `round2MinutesOffset` / `round3MinutesOffset` gap between rounds. When rounds already exist (reschedule), the stored start/end times and `hasRound`/`roundStatus` flags are used instead. The two offset fields are returned so the frontend can recompute later rounds' `From` values locally when an admin tweaks an earlier round's `End`.
+
+### PUT /admin/auctions/{id}/schedule
+
+Save or reschedule an auction. Mirrors Mendix `ACT_SaveScheduleAuction` + `VAL_Schedule_Auction`. Deletes the auction's existing rounds and writes three fresh `auctions.scheduling_auctions` rows in a single pessimistic-locked transaction. The parent `auctions.auctions.auction_status` flips to `Scheduled`. A post-commit `AuctionScheduledEvent` is published for audit (Phase F will wire the Snowflake push).
+
+**Roles**: `Administrator` or `SalesOps`.
+
+**Request body**:
+
+```json
+{
+  "round1Start": "2026-04-21T16:00:00Z",
+  "round1End":   "2026-04-25T07:00:00Z",
+  "round2Start": "2026-04-25T13:00:00Z",
+  "round2End":   "2026-04-26T08:00:00Z",
+  "round2Active": true,
+  "round3Start": "2026-04-26T11:00:00Z",
+  "round3End":   "2026-04-27T12:00:00Z",
+  "round3Active": true
+}
+```
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `round1Start`, `round1End` | `Instant` | yes | Round 1 is always active. |
+| `round2Start`, `round2End` | `Instant` | yes when `round2Active=true` | Persisted even when inactive so the round-edit modal can reveal them later. |
+| `round2Active` | boolean | yes | Maps to `has_round` on the persisted row; also drives `round_status` (`Scheduled` vs `Unscheduled`). |
+| `round3Start`, `round3End` | `Instant` | yes when `round3Active=true` | Same semantics as R2. |
+| `round3Active` | boolean | yes | Upsell-round toggle — mirrors Mendix. |
+
+**Response**: `200 OK` with the same `AuctionDetailResponse` as `GET /admin/auctions/{id}`.
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `400` | Any active round with `end <= start` | Comma-joined list: `"Round 1 end date must be later than start date, Round 2 end date must be later than start date"`. Per-round errors are also surfaced in the `details[]` array so the UI can pin inline errors. |
+| `404` | `id` does not resolve, or week missing | `"Auction not found: id=…"` |
+| `409` | Any round already in `Started` status | `"Auction has started; this action is not available."` |
+| `409` | Existing bids recorded for any round | `"Bids have already been submitted; reschedule is not available."` |
+
+### POST /admin/auctions/{id}/unschedule
+
+Flip an auction from `Scheduled` back to `Unscheduled`. Every round is moved to `Unscheduled`; no rows are deleted (bids, if any, remain intact for audit). Publishes `AuctionUnscheduledEvent` post-commit.
+
+**Roles**: `Administrator` or `SalesOps`.
+
+**Response**: `200 OK` with `AuctionDetailResponse` (`auctionStatus = "Unscheduled"`).
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `404` | `id` does not resolve | `"Auction not found: id=…"` |
+| `409` | Any round already in `Started` status | `"Auction has started. Unscheduling the auction is not available."` |
+
+### DELETE /admin/auctions/{id}
+
+Delete an auction and all its scheduling / bid rows. Relies on the `ON DELETE CASCADE` on `auctions.scheduling_auctions.auction_id` (V58) and `auctions.bid_rounds.scheduling_auction_id` (V59).
+
+**Roles**: `Administrator` only — `SalesOps` is denied (`403`). Matches Mendix parity where the legacy admin UI restricted delete to Admins even though the schedule flow also permitted SalesOps.
+
+**Response**: `204 No Content`.
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `403` | Role is not Administrator | `"Access denied"` |
+| `404` | `id` does not resolve | `"Auction not found: id=…"` |
+| `409` | Any round already in `Started` status | `"Auction has started. Deleting the auction is not available."` |
+
+### GET /admin/auctions/round-filters/{round}
+
+Fetch the Round 2 or Round 3 Selection Rules (qualification filters) row. Backs the `acc_RoundTwoCriteriaPage` / `PG_Round3Criteria` port at `/admin/auctions-data-center/auctions/round-filters/[round]`. Exactly one row per round is stored in `auctions.bid_round_selection_filters`.
+
+**Roles**: `Administrator` or `SalesOps`. Both roles can read; only `Administrator` can write via PUT.
+
+**Path params**:
+
+| Name | Type | Description |
+|---|---|---|
+| `round` | int | Must be `2` or `3`. Any other value returns `400`. |
+
+**Response**: `200 OK` with `BidRoundSelectionFilterResponse`:
+
+```json
+{
+  "id": 1,
+  "legacyId": 101,
+  "round": 2,
+  "targetPercent": 85.0,
+  "targetValue": 50.0,
+  "totalValueFloor": 25.0,
+  "mergedGrade1": "Good",
+  "mergedGrade2": "Fair",
+  "mergedGrade3": null,
+  "stbAllowAllBuyersOverride": true,
+  "stbIncludeAllInventory": false,
+  "regularBuyerQualification": "Only_Qualified",
+  "regularBuyerInventoryOptions": "InventoryRound1QualifiedBids",
+  "createdDate": "2026-04-20T12:00:00Z",
+  "changedDate": "2026-04-20T12:00:00Z"
+}
+```
+
+`regularBuyerQualification` is one of `"Only_Qualified" | "All_Buyers"`. `regularBuyerInventoryOptions` is one of `"InventoryRound1QualifiedBids" | "ShowAllInventory"`. The three numeric columns (`targetPercent`, `targetValue`, `totalValueFloor`) are plain JSON numbers, not strings — the backend serializes `BigDecimal` via Jackson with numeric output, and the three columns are nullable.
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `400` | `round` is not `2` or `3` | `"Round must be 2 or 3, got: …"` |
+| `403` | Role is not Administrator/SalesOps | `"Access denied"` |
+| `404` | No row exists for the requested round | `"BidRoundSelectionFilter not found for round=…"` |
+
+### PUT /admin/auctions/round-filters/{round}
+
+Update the Round 2 / Round 3 Selection Rules. Writes all editable columns in a single transaction and bumps `changed_date`.
+
+**Roles**: `Administrator` only. `SalesOps` is denied at the filter chain with `403` — matches the 2026-04-19 ADR pattern, because the existing `/api/v1/admin/auctions/**` matcher permits `Administrator` or `SalesOps`, and the PUT matcher is declared **before** it in `SecurityConfig` to restrict writes.
+
+**Path params**: same as GET.
+
+**Request body** (`BidRoundSelectionFilterRequest`):
+
+```json
+{
+  "targetPercent": 85.0,
+  "targetValue": 50.0,
+  "totalValueFloor": 25.0,
+  "mergedGrade1": "Good",
+  "mergedGrade2": "Fair",
+  "mergedGrade3": null,
+  "stbAllowAllBuyersOverride": true,
+  "stbIncludeAllInventory": false,
+  "regularBuyerQualification": "Only_Qualified",
+  "regularBuyerInventoryOptions": "InventoryRound1QualifiedBids"
+}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `targetPercent` | `BigDecimal` (nullable) | Target qualification percent, e.g. `85` for 85%. |
+| `targetValue` | `BigDecimal` (nullable) | Dollar threshold for qualification. |
+| `totalValueFloor` | `BigDecimal` (nullable) | Floor applied to the buyer's total order value. |
+| `mergedGrade1`, `mergedGrade2`, `mergedGrade3` | string (nullable) | Grade codes merged into a combined tier. Max 30 chars each (matches V59 column). Blank strings are coerced to `null` server-side. |
+| `stbAllowAllBuyersOverride` | boolean | Special-treatment buyers: allow All-buyers override. Required; `null` is coerced to `false` so the NOT NULL column is never violated. |
+| `stbIncludeAllInventory` | boolean | Special-treatment buyers: include all inventory regardless of Round 1 qualification. Same `null → false` default. |
+| `regularBuyerQualification` | enum | `"Only_Qualified" \| "All_Buyers"`. |
+| `regularBuyerInventoryOptions` | enum | `"InventoryRound1QualifiedBids" \| "ShowAllInventory"`. |
+
+**Response**: `200 OK` with the updated `BidRoundSelectionFilterResponse` (same shape as GET).
+
+**Errors**:
+
+| Status | Cause | Body `message` |
+|---|---|---|
+| `400` | `round` is not `2` or `3` | `"Round must be 2 or 3, got: …"` |
+| `400` | Enum value outside the allowed set | Bean-validation / deserialization message |
+| `403` | Role is not Administrator | `"Access denied"` |
+| `404` | No row exists for the requested round | `"BidRoundSelectionFilter not found for round=…"` |
+
+> **Out-of-band status changes:** the `auctionLifecycle` cron job
+> (see `docs/app-metadata/scheduled-events.md`) transitions
+> `auction_status` and `round_status` automatically every minute when a
+> round's start or end time has passed. API consumers should treat these
+> fields as eventually consistent — a `Scheduled` auction may flip to
+> `Started` without any HTTP call having been made.
 
 ---
 

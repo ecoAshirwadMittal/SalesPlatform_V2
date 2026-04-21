@@ -5,6 +5,182 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-20 — Auction lifecycle cron: per-row tx, ShedLock leader election, event-driven downstream
+
+**Status:** Accepted (sub-project 0 of `docs/tasks/auction-lifecycle-cron-design.md`).
+
+### Context
+
+Mendix `AuctionUI.ACT_ScheduleAuctionCheckStatus` runs every minute and
+transitions auction rounds (`Scheduled→Started`, `Started→Closed`),
+fanning out into Round 1/2/3 init, bid ranking, target price calc,
+special-buyer processing, and Snowflake push. The downstream tree is the
+entire Mendix bid engine. We split the port into seven sub-projects;
+this ADR covers sub-project 0 — the cron skeleton and event contract
+that the other six will subscribe to.
+
+### Decision
+
+- **Multi-instance safety via ShedLock + `infra.shedlock`.** Spring
+  `@Scheduled` runs on every JVM by default; ShedLock's
+  `@SchedulerLock(name="auctionLifecycle", lockAtLeastFor=10s,
+  lockAtMostFor=55s)` ensures only one node executes per tick.
+  `lockAtMostFor < poll-ms` so a crashed leader is reclaimable on the
+  next minute.
+- **Per-row REQUIRES_NEW transactions.** The orchestrator
+  (`AuctionLifecycleService.tick()`) opens no tx itself; each row
+  transition runs in its own short tx via `RoundTransitionService`,
+  guarded by a `SELECT ... FOR UPDATE` re-check. One bad row logs at
+  ERROR and is skipped; others proceed. Trades the legacy Mendix
+  all-or-nothing atomicity for forward-progress under partial failure.
+- **Hybrid event contract.** Cron-driven transitions emit
+  `RoundStartedEvent` / `RoundClosedEvent` (post-commit). The existing
+  `AuctionScheduledEvent` / `AuctionUnscheduledEvent` continue to fire
+  from the admin HTTP flows. Downstream listeners filter on `round`
+  field instead of subscribing to a generic transition event.
+- **Reusable `infra` schema.** `infra.scheduled_job_run` records every
+  tick (status, duration, counters JSONB, node id) and is reusable for
+  any future cron job. `infra.shedlock` is the ShedLock JDBC table.
+  Audit shape is *lightweight + payload counters* — same write cost as
+  status-only, ~10× more useful for forensic debugging.
+- **Six stub listeners ship with this PR.** They log "would do X" and
+  define the contract sub-projects 1-6 must preserve when they replace
+  each stub with real logic (Snowflake push, R1/R2/R3 init, bid
+  ranking, special-buyer processing, R3 pre-process).
+
+### Alternatives considered
+
+- **Postgres advisory lock** (`pg_try_advisory_lock`) — simpler than
+  ShedLock, no new dependency. Rejected because the user explicitly
+  anticipates many more cron jobs, and ShedLock provides per-job naming
+  and TTL semantics out of the box.
+- **Single tx for the whole tick** (Mendix shape) — preserves legacy
+  atomicity. Rejected because one bad row would block all others on
+  every tick until manually cleared; per-row tx prefers liveness.
+- **Reuse `AuctionScheduleService` for the cron entry point.**
+  Rejected — it conflates user-driven actions (HTTP, validates against
+  bids/started rounds) with system-driven actions (cron, no validation,
+  just transitions). Different invariants, different audit needs,
+  different test surface.
+
+### Consequences
+
+- A round picked up by the selector but flipped between selector and
+  `FOR UPDATE` re-check throws `RoundAlreadyTransitionedException`,
+  which the orchestrator treats as benign and logs at DEBUG only.
+- Listener failures do NOT roll back the round transition (they fire
+  post-commit). Sub-projects 1-6 must each handle their own retry /
+  DLQ semantics.
+- The `counters` JSONB allows future jobs to add their own keys without
+  schema migrations — but the existing four (`roundsStarted`,
+  `roundsClosed`, `auctionsAffected`, `errorCount`) are part of the
+  audit contract and cannot be renamed.
+- Tests disable the cron via `application-test.yml`; integration tests
+  drive `service.tick()` (or `scheduler.runTick()`) directly.
+- Coverage target on `service/auctions/lifecycle/**` and
+  `infra/scheduledjob/**` is 90%+ — central code, must stay tested.
+
+### References
+
+- Plan: `docs/tasks/auction-lifecycle-cron-plan.md`
+- Spec: `docs/tasks/auction-lifecycle-cron-design.md`
+- Schema: `V70__infra_schema_and_scheduled_job_run.sql`,
+  `V71__infra_shedlock.sql`
+- Mendix source: `migration_context/backend/ACT_ScheduleAuctionCheckStatus.md`,
+  `ACT_SetAuctionScheduleClosed.md`, `ACT_SetAuctionScheduleStarted.md`,
+  `services/SUB_SetAuctionStatus.md`
+
+---
+
+## 2026-04-20 — Auction lifecycle: Create persists only the auction row; Schedule persists the rounds (partial supersession of 2026-04-19)
+
+**Status:** Accepted. Partially supersedes the 2026-04-19 ADR
+("Create Auction: dedicated endpoint + in-tx round creation +
+enum-as-varchar"). The enum-as-varchar, dedicated-endpoint, and
+method-security decisions from the prior ADR remain in force.
+
+### Context
+
+Porting the Mendix Auction Scheduling + Confirm flow
+(`docs/tasks/auction-scheduling-plan.md`) surfaced three divergences
+between the 2026-04-19 implementation and the Mendix source of truth:
+
+1. **Title example in the ADR is wrong.** The narrative used
+   `"Auction Week 17 2026"`, but `Week.weekDisplay` has shape
+   `"YYYY / WkNN"` (see `V58__create_auctions_schema_and_core.sql:29`
+   and `V65__seed_mdm_week.sql:42`). Existing legacy rows in
+   `auctions.auctions` use titles like `"Auction 2026 / Wk04"`. The
+   runtime code in `AuctionService.buildAuctionTitle` is already
+   correct — only the ADR example was misleading.
+2. **Round-creation timing is wrong (architectural).** The 2026-04-19
+   ADR stated that `POST /admin/auctions` writes the auction row plus
+   three `SchedulingAuction` rows in one tx. Mendix
+   `ACT_Create_Auction` only writes the Auction row plus a transient
+   helper; the three rounds are persisted later by
+   `ACT_SaveScheduleAuction` when the admin clicks **Confirm** on the
+   scheduling page. Our current endpoint conflates the two Mendix
+   steps.
+3. **Round 3 display name is wrong.** The ADR and current code emit
+   `"Round 3"`. Mendix `ACT_SaveScheduleAuction` uses the verbatim
+   string `"Upsell Round"`, which surfaces in the scheduling UI and
+   in email templates.
+
+### Decision
+
+- **Title example correction.** The canonical title is
+  `"Auction " + Week.weekDisplay`, e.g. `"Auction 2026 / Wk04"`. No
+  code change — this is a narrative fix only.
+- **Split Create from Schedule.** `POST /admin/auctions` will persist
+  **only** the `auctions.auctions` row (status `Unscheduled`). A new
+  `PUT /admin/auctions/{id}/schedule` will persist the three
+  `auctions.scheduling_auctions` rows and flip the auction to
+  `Scheduled` in a single tx. The lifecycle invariant is explicit:
+  - `Unscheduled` → exactly 0 rounds.
+  - `Scheduled` / `Started` / `Closed` → exactly 3 rounds.
+- **Round 3 name.** Round 3's display name is `"Upsell Round"`, not
+  `"Round 3"`. Rounds 1 and 2 keep their numeric labels. The name is
+  a presentation concern; the underlying `round` column stays `1|2|3`.
+- **No data migration.** No auctions have been created through the
+  new-app endpoint in any real environment yet, so refactoring does
+  not require backfilling or splitting existing rows.
+
+### Consequences
+
+- `AuctionService.createAuction` will be refactored in Phase B of
+  `docs/tasks/auction-scheduling-plan.md` to stop writing rounds.
+  A new `AuctionService.scheduleAuction(id, offsets)` will own the
+  round persistence and status flip.
+- `docs/api/rest-endpoints.md` will be updated: the `rounds[]` block
+  drops out of the `POST /admin/auctions` `201` response, and a new
+  `PUT /admin/auctions/{id}/schedule` section is added.
+- The 2026-04-19 ADR stays in place as historical context — its
+  decisions on enum storage (`VARCHAR(20)` + `@Enumerated(STRING)`),
+  the dedicated `/api/v1/admin/auctions` controller, the explicit
+  `SecurityConfig.requestMatchers` rule for SalesOps, and the two
+  distinct 409 error shapes (duplicate title vs. duplicate week)
+  remain in force and are not revisited here.
+- The existing atomicity argument from the 2026-04-19 ADR
+  (auction + rounds must commit together) still applies — but now it
+  applies to the `PUT .../schedule` transaction, not to `POST`. An
+  `Unscheduled` auction with zero rounds is a valid, expected state.
+- Tests: the seven `AuctionServiceTest` cases and four
+  `AuctionControllerTest` cases will be re-shaped in Phase B. No
+  test is deleted; assertions on round creation move to the new
+  schedule-service tests.
+
+### References
+
+- Plan: `docs/tasks/auction-scheduling-plan.md`
+- Amended ADR: 2026-04-19 — Create Auction (this file, below)
+- Mendix source:
+  `migration_context/backend/ACT_Create_Auction.md`,
+  `migration_context/backend/ACT_SaveScheduleAuction.md`,
+  `migration_context/backend/ACT_Create_SchedulingAuction_Helper_Default.md`
+- Schema: `backend/src/main/resources/db/migration/V58__create_auctions_schema_and_core.sql`,
+  `V65__seed_mdm_week.sql`
+
+---
+
 ## 2026-04-19 — Create Auction: dedicated endpoint + in-tx round creation + enum-as-varchar
 
 **Status:** Accepted (Phases 1–3 of `docs/tasks/create-auction-plan.md`).
