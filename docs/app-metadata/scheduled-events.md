@@ -17,6 +17,7 @@ per job. Add new entries newest-first as cron jobs are introduced.
 | **Feature flag** | `auctions.lifecycle.enabled` (default `true`; `false` in `application-test.yml`) |
 | **Mendix parity** | `AuctionUI.ACT_ScheduleAuctionCheckStatus` (1-minute scheduled event) |
 | **Emits** | `RoundStartedEvent`, `RoundClosedEvent` (post-commit) |
+| **Consumers** | `AuctionStatusSnowflakePushListener` (sub-project 1, live, deferred-writer); `R1InitStubListener`, `R2InitStubListener`, `R3InitStubListener`, `BidRankingStubListener`, `R3PreProcessStubListener` (logging-only stubs pending sub-projects 2-6) |
 
 Counters JSONB shape:
 
@@ -24,5 +25,13 @@ Counters JSONB shape:
 { "roundsStarted": 0, "roundsClosed": 0, "auctionsAffected": 0, "errorCount": 0 }
 ```
 
+`AuctionStatusSnowflakePushListener` is gated by
+`auctions.snowflake-push.enabled` (default `false`). When enabled, it
+emits a single INFO line per event prefixed
+`[deferred-writer] auction-snowflake-push …` containing the full
+payload the real Snowflake writer will eventually persist. See ADR
+`2026-04-21 — Auction status Snowflake push` for the rationale.
+
 See ADR `2026-04-20 — Auction lifecycle cron` in
-`docs/architecture/decisions.md` for the full rationale.
+`docs/architecture/decisions.md` for the full rationale on the cron
+itself.

@@ -5,6 +5,88 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-21 — Auction status Snowflake push: listener wired, writer deferred
+
+**Status:** Accepted (Phase 1 of sub-project 1,
+`docs/tasks/auction-status-snowflake-push-plan.md`).
+
+### Context
+
+Mendix `SUB_SendAuctionAndSchedulingActionToSnowflake_async` pushes one row
+to Snowflake on every round Start/Close transition. The microflow docs
+describe the call shape (export XML → resolve username → `ExecuteDatabaseQuery`)
+but the target Snowflake table schema is opaque — we don't yet know the
+column set or type mapping. Blocking sub-project 1 on that archaeology
+would starve the listener contract the other five sub-projects (R1/R2/R3
+init, bid ranking, R3 pre-process) need to co-exist with on the event bus.
+
+### Decision
+
+- **Ship the listener, payload record, writer interface, and feature flag
+  now.** `AuctionStatusSnowflakePushListener` consumes
+  `RoundStartedEvent` / `RoundClosedEvent` via
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async("snowflakeExecutor")`,
+  re-fetches the auction + week aggregate in a REQUIRES_NEW read-only tx,
+  and hands an `AuctionStatusPushPayload` to an
+  `AuctionStatusSnowflakeWriter`.
+- **Default writer is logging-only.** `LoggingAuctionStatusSnowflakeWriter`
+  emits a single structured INFO line prefixed with `[deferred-writer]`
+  containing every field the real writer will eventually persist
+  (`action`, `auctionId`, `auctionTitle`, `weekId`, `weekDisplay`,
+  `round`, `transitionedAt`, `actor`). The marker makes it trivial to
+  grep logs for unshipped payloads once the real writer lands.
+- **Feature flag at the listener, not the writer.**
+  `auctions.snowflake-push.enabled=false` short-circuits inside the
+  listener before any DB read, so the feature is fully inert in dev/CI.
+  Flipping it on in QA/prod is a config change, no redeploy.
+- **Swallow writer failures.** The listener catches `RuntimeException`
+  from the writer and logs at ERROR — matches the "downstream failures
+  never undo the round transition" contract from the 2026-04-20 cron ADR
+  (listeners fire post-commit; their failures cannot roll back the
+  transaction that already committed).
+
+### Alternatives considered
+
+- **Port the real Snowflake `INSERT` now.** Rejected: target table is
+  unknown; guessing would bake in a shape we'd have to migrate off.
+- **Pull the feature flag from `BuyerCodeSubmitConfig.SendAuctionDataToSnowflake`
+  (Mendix parity).** Rejected: the `AuctionsFeatureConfig` entity sits on
+  a parallel branch; coupling the two is avoided by using yml. When that
+  entity lands, swapping the flag source is a one-line change.
+- **Let writer exceptions propagate to fail the round transition.**
+  Rejected: the transaction has already committed by the time the
+  `AFTER_COMMIT` listener runs — propagating would at best log a second
+  stack trace, at worst poison the `snowflakeExecutor` thread.
+
+### Consequences
+
+- The six-listener contract from the 2026-04-20 cron ADR is unbroken:
+  push is live, consuming events, on `snowflakeExecutor`.
+- Flipping to real Snowflake delivery is a single-class drop-in
+  (`@Primary` override or a second `@ConditionalOnProperty`-gated bean).
+  The payload shape is part of the contract and must not change without
+  a writer migration.
+- The INFO log line is the current audit surface.
+  `integration.snowflake_sync_log` will be wired when the real writer
+  lands — the agg-inventory sync already uses it, so the table is ready.
+- Test coverage: 3 unit test classes (`AuctionStatusPushPayloadTest`,
+  `LoggingAuctionStatusSnowflakeWriterTest`,
+  `AuctionStatusSnowflakePushListenerTest` — 5 branches) + 1 IT
+  (`AuctionStatusSnowflakePushIT`) exercising the full
+  cron → event → listener → capturing-writer chain across the async
+  executor boundary. All green.
+
+### References
+
+- Plan: `docs/tasks/auction-status-snowflake-push-plan.md`
+- Mendix source: `migration_context/backend/services/SUB_SendAuctionAndSchedulingActionToSnowflake_async.md`,
+  `ACT_SetAuctionScheduleStarted.md`, `ACT_SetAuctionScheduleClosed.md`
+- Related ADRs: 2026-04-20 (cron skeleton, event contract),
+  2026-04-18 (agg-inventory sync — same post-commit + @Async executor
+  pattern, different writer surface).
+
+---
+
 ## 2026-04-20 — Auction lifecycle cron: per-row tx, ShedLock leader election, event-driven downstream
 
 **Status:** Accepted (sub-project 0 of `docs/tasks/auction-lifecycle-cron-design.md`).
