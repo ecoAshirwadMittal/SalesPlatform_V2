@@ -52,5 +52,17 @@ class V73MigrationIT extends PostgresIntegrationTest {
             + "AND column_name = 'bid_data_doc_id'",
             Integer.class);
         assertThat(colCount).isEqualTo(1);
+
+        Integer fkCount = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM information_schema.referential_constraints rc "
+            + "JOIN information_schema.key_column_usage kcu "
+            + "  ON kcu.constraint_name = rc.constraint_name "
+            + " AND kcu.constraint_schema = rc.constraint_schema "
+            + "WHERE kcu.table_schema = 'auctions' "
+            + "  AND kcu.table_name = 'bid_data' "
+            + "  AND kcu.column_name = 'bid_data_doc_id' "
+            + "  AND rc.delete_rule = 'SET NULL'",
+            Integer.class);
+        assertThat(fkCount).isEqualTo(1);
     }
 }
