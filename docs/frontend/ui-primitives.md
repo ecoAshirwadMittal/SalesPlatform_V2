@@ -18,10 +18,11 @@ tokens; no hardcoded hexes.
 | `--color-text-body` | `#3C3C3C` | Default text |
 | `--color-text-muted` | `#666766` | Grid column headers, secondary labels |
 | `--color-brand-teal-dark` | `#112d32` | Login primary, top-bar chip bg, dark pills |
-| `--color-brand-teal` | `#407874` | Forgot Password link, Employee Login |
+| `--color-brand-teal` | `#407874` | Secondary teal: Forgot Password link, Employee Login |
 | `--color-brand-teal-mid` | `#00969F` | Sidebar gradient endpoint, focus rings |
 | `--color-brand-green` | `#14AC36` | Primary CTAs: Submit Bids, Import, sidebar gradient start |
 | `--color-carryover-tint` | `rgba(0, 150, 159, 0.18)` | Carryover button background (teal tint, not green) |
+| `--color-carryover-tint-hover` | `rgba(0, 150, 159, 0.26)` | Carryover button hover state |
 | `--color-text-inverse` | `#FFFFFF` | Text on brand-colored pill buttons (green, teal) |
 | `--color-input-border` | `#D0D0D0` | Default input / outline-button border |
 | `--color-warning-red` | `#C21E1E` | "Minimum starting bid" label (provisional — TODO eyedropper) |
@@ -35,7 +36,7 @@ tokens; no hardcoded hexes.
 | `--font-weight-body` | `400` | Body copy, large pill labels |
 | `--font-size-button-lg` | `18px` | Submit Bids, Import, Login labels |
 | `--font-size-button-sm` | `14px` | Export / Import outline buttons |
-| `--font-weight-button` | `500` | Small buttons, timer, column headers |
+| `--font-weight-button-sm` | `500` | Small outline/carryover buttons (14px); large pill buttons use `--font-weight-body` (400) per QA |
 
 ### Radii
 
@@ -48,7 +49,7 @@ tokens; no hardcoded hexes.
 
 | Token | Value |
 |---|---|
-| `--sidebar-gradient` | `linear-gradient(155.66deg, #14AC36 -12.99%, #00969F 83.48%)` |
+| `--sidebar-gradient` | `linear-gradient(155.66deg, var(--color-brand-green) -12.99%, var(--color-brand-teal-mid) 83.48%)` |
 
 Apply to the `.region-sidebar` container (not individual menu items).
 
@@ -103,7 +104,7 @@ Tertiary actions in the auction header: **Export**, **Import** (the small ones n
 |---|---|
 | Background | `var(--color-bg-body)` `#F7F7F7` |
 | Border | `1px solid var(--color-input-border)` `#D0D0D0` |
-| Text | `var(--color-text-body)`, 14px / 500 |
+| Text | `var(--color-text-body)`, 14px / `var(--font-weight-button-sm)` 500 |
 | Radius | `var(--radius-input)` 4px |
 | Padding | `7px 14px` |
 
@@ -119,7 +120,7 @@ The **Carryover** pill in the sub-header row above the grid.
 |---|---|
 | Background | `var(--color-carryover-tint)` `rgba(0, 150, 159, 0.18)` |
 | Border | none |
-| Text | `var(--color-text-body)`, 14px / 500 |
+| Text | `var(--color-text-body)`, 14px / `var(--font-weight-button-sm)` 500 |
 | Radius | `var(--radius-pill)` 44px |
 | Padding | `7px 18px` |
 

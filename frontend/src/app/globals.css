@@ -70,6 +70,7 @@
   --color-brand-teal-mid: #00969F;      /* sidebar gradient endpoint (bottom) */
   --color-brand-green: #14AC36;         /* primary CTA: Submit Bids, Import; sidebar gradient start */
   --color-carryover-tint: rgba(0, 150, 159, 0.18);  /* Carryover button bg — tint of teal, not green */
+  --color-carryover-tint-hover: rgba(0, 150, 159, 0.26); /* Carryover hover state */
   --color-text-inverse: #FFFFFF;        /* White for text on brand-colored pill buttons */
   --color-input-border: #D0D0D0;        /* Default input/outline border */
   /* TODO(Phase 1): eyedropper-confirm against qa-03 */
@@ -81,14 +82,14 @@
   --font-weight-body: 400;
   --font-size-button-lg: 18px;          /* Submit Bids, Import, Login labels */
   --font-size-button-sm: 14px;          /* Export/Import outline buttons */
-  --font-weight-button: 500;
+  --font-weight-button-sm: 500;
 
   /* Border radii */
   --radius-pill: 44px;                  /* Submit Bids, Login, Contact Us, buyer-code cards */
   --radius-input: 4px;                  /* text inputs, filter search boxes */
 
   /* Sidebar */
-  --sidebar-gradient: linear-gradient(155.66deg, #14AC36 -12.99%, #00969F 83.48%);
+  --sidebar-gradient: linear-gradient(155.66deg, var(--color-brand-green) -12.99%, var(--color-brand-teal-mid) 83.48%);
 }
 
 @theme inline {
@@ -107,13 +108,12 @@ body {
 
 /* ── Button Primitives (Phase 0) ───────────────────────────────────────────
    Global utility classes that consume design tokens. Components apply these
-   class names directly (className="btn-primary-green") or extend them via
-   CSS modules using @composes / nested selectors.
+   class names directly (className="btn-primary-green"). CSS-Module consumers
+   should write their own scoped classes and reference these tokens directly —
+   do not attempt to @composes from a global stylesheet, as @composes is a
+   CSS-Modules-only feature and is invalid here. Shared base rules are applied
+   via the multi-selector block below instead.
    See docs/frontend/ui-primitives.md for usage guidance.
-
-   NOTE: composes is a CSS-Modules-only feature and is invalid in a global
-   stylesheet. Shared base rules are applied via the multi-selector block
-   below instead.
    ─────────────────────────────────────────────────────────────────────── */
 
 /* Shared base: applied to all four button variants */
@@ -184,7 +184,7 @@ body {
   border: 1px solid var(--color-input-border);
   color: var(--color-text-body);
   font-size: var(--font-size-button-sm);
-  font-weight: var(--font-weight-button);
+  font-weight: var(--font-weight-button-sm);
   border-radius: var(--radius-input);
   padding: 7px 14px;
 }
@@ -199,11 +199,11 @@ body {
   border: none;
   color: var(--color-text-body);
   font-size: var(--font-size-button-sm);
-  font-weight: var(--font-weight-button);
+  font-weight: var(--font-weight-button-sm);
   border-radius: var(--radius-pill);
   padding: 7px 18px;
 }
 
 .btn-carryover:hover:not(:disabled) {
-  background: rgba(0, 150, 159, 0.26);
+  background: var(--color-carryover-tint-hover);
 }
