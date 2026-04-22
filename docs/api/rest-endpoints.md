@@ -729,6 +729,189 @@ broader `/api/v1/admin/auctions/**` matcher that also permits SalesOps.
 
 ---
 
+## Bidder Dashboard
+
+Backs `/bidder/dashboard`. Ports Mendix `ACT_OpenBidderDashboard` +
+`ACT_CreateBidData` + `ACT_SubmitBidRound`. All three endpoints live under
+`/api/v1/bidder/**` and require `Bidder` or `Administrator` roles; both the
+`SecurityConfig` matcher and the class-level `@PreAuthorize` on
+`BidderDashboardController` must agree, or the filter chain will reject
+requests before method security runs.
+
+### GET /api/v1/bidder/dashboard?buyerCodeId={id}
+
+Landing-route + grid load. Resolves the auction state and, when a Started
+round is active, synchronously materializes any missing `auctions.bid_data`
+rows for the `(buyer_code, bid_round)` pair via a single
+`INSERT ... SELECT` guarded by a Postgres advisory lock. Re-entrant: a
+second call with rows already present is a no-op on the creation path.
+
+**Roles**: `Bidder` (own buyer codes) or `Administrator`.
+
+**Query params**:
+
+| Name | Type | Description |
+|---|---|---|
+| `buyerCodeId` | long | FK into `buyer_mgmt.buyer_codes`. Bidder callers must own this buyer code; Administrator may pass any. |
+
+**Response**: `200 OK` with `BidderDashboardResponse`:
+
+```json
+{
+  "mode": "GRID",
+  "auction": {
+    "id": 301,
+    "auctionId": 101,
+    "auctionTitle": "Auction 2026 / Wk17",
+    "round": 1,
+    "roundName": "Round 1",
+    "status": "Started"
+  },
+  "bidRound": {
+    "id": 9001,
+    "schedulingAuctionId": 301,
+    "round": 1,
+    "roundStatus": "Started",
+    "startDatetime": "2026-04-21T16:00:00Z",
+    "endDatetime":   "2026-04-25T07:00:00Z",
+    "submitted": false,
+    "submittedDatetime": null
+  },
+  "rows": [
+    {
+      "id": 555001,
+      "bidRoundId": 9001,
+      "ecoid": "SKU-12345",
+      "mergedGrade": "Good",
+      "buyerCodeType": "Wholesale",
+      "bidQuantity": null,
+      "bidAmount": "0.00",
+      "targetPrice": "42.17",
+      "maximumQuantity": 120,
+      "payout": "0.00",
+      "submittedBidQuantity": null,
+      "submittedBidAmount": null,
+      "lastValidBidQuantity": null,
+      "lastValidBidAmount": null,
+      "submittedDatetime": null,
+      "changedDate": "2026-04-22T14:00:00Z"
+    }
+  ],
+  "totals": {
+    "rowCount": 582,
+    "totalBidAmount": "0.00",
+    "totalPayout": "0.00",
+    "totalBidQuantity": 0
+  },
+  "timer": {
+    "now": "2026-04-22T14:00:00Z",
+    "startsAt": "2026-04-21T16:00:00Z",
+    "endsAt":   "2026-04-25T07:00:00Z",
+    "secondsUntilStart": 0,
+    "secondsUntilEnd":   234000,
+    "active": true
+  }
+}
+```
+
+`mode` is one of:
+
+| Value | Meaning | Other fields |
+|---|---|---|
+| `GRID` | A Started round is active; `rows[]` populated, grid is editable. | All fields present. |
+| `DOWNLOAD` | Round 1 is Closed but Round 2 hasn't opened — bidder can download their Round 1 bids. | `auction`, `bidRound`, `totals`, `timer` are `null`; `rows=[]`. |
+| `ALL_ROUNDS_DONE` | Every round of the week's auction is `Closed`. Returns 200. | Same null-slot shape as `DOWNLOAD`. |
+| `ERROR_AUCTION_NOT_FOUND` | No auction for the current week. Returns `404 Not Found` so the frontend can distinguish from a network error. | Same null-slot shape. |
+
+`bidQuantity` of `null` is the **no-cap sentinel** — the bidder accepts any
+quantity up to `maximumQuantity`. Zero means "I'll bid this price but I
+want zero units" (valid but unusual).
+
+**Errors**:
+
+| Status | Cause |
+|---|---|
+| `403` | Bidder caller doesn't own the requested `buyerCodeId`. |
+| `404` | `mode=ERROR_AUCTION_NOT_FOUND` — the body still shapes as `BidderDashboardResponse`. |
+
+### PUT /api/v1/bidder/bid-data/{id}
+
+Save edits to one `bid_data` row. Rate-limited to **60 requests/minute** per
+`(user_id, bid_round_id)` bucket via `BidRateLimiter`. The limiter runs
+before the service layer, so a denied request never touches the database.
+
+**Request body** (`SaveBidRequest`):
+
+```json
+{ "bidQuantity": 12, "bidAmount": 40.00 }
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `bidQuantity` | int (nullable) | `null` = no-cap; `0` = zero-unit bid; negative rejected with `INVALID_QUANTITY`. |
+| `bidAmount` | decimal | Must be `>= 0`. Negative or `null` rejected with `INVALID_AMOUNT`. |
+
+**Response**: `200 OK` with the full refreshed `BidDataRow` (same shape as
+the grid's `rows[]` entry), including the newly bumped `changedDate`.
+
+**Errors**:
+
+| Status | Error code | Cause |
+|---|---|---|
+| `400` | `INVALID_QUANTITY` | `bidQuantity < 0`. |
+| `400` | `INVALID_AMOUNT` | `bidAmount` is null or negative. |
+| `403` | `NOT_YOUR_BID_DATA` | The row's `user_id` doesn't match the caller. |
+| `404` | `BID_DATA_NOT_FOUND` | No `bid_data` row with the given id. |
+| `409` | `ROUND_CLOSED` | The owning bid round has transitioned to `Closed`. |
+| `429` | — | Rate limit exhausted for this `(user, round)` bucket. Empty body. |
+
+### POST /api/v1/bidder/bid-rounds/{id}/submit?buyerCodeId={id}
+
+Re-callable submit. Copies `bid_quantity`/`bid_amount` →
+`submitted_bid_quantity`/`submitted_bid_amount`, and prior
+`submitted_*` → `last_valid_*` for every row of the given round +
+buyer code. The buyer-code scoping on the server-side UPDATE is critical:
+a bid round contains rows for every qualified buyer code of the week, and
+without the `buyer_code_id` predicate a submit by buyer A would silently
+flip rows belonging to buyer B. The `buyerCodeId` query param feeds this
+predicate.
+
+**Roles**: `Bidder` (own buyer codes) or `Administrator`.
+
+**Query params**:
+
+| Name | Type | Description |
+|---|---|---|
+| `buyerCodeId` | long | Scopes the UPDATE; caller must own it (Administrator exempt). |
+
+**Request body**: (none)
+
+**Response**: `200 OK` with `BidSubmissionResult`:
+
+```json
+{
+  "bidRoundId": 9001,
+  "rowCount": 582,
+  "submittedDatetime": "2026-04-22T14:05:00Z",
+  "resubmit": false
+}
+```
+
+`resubmit=true` indicates the bid round was already in a submitted state —
+the call still succeeded and the row count was rewritten. `rowCount` is
+the number of rows flipped (= number of rows for the `(round, buyer_code)`
+slice).
+
+**Errors**:
+
+| Status | Error code | Cause |
+|---|---|---|
+| `403` | `NOT_YOUR_BID_ROUND` | Caller doesn't own the requested `buyerCodeId`. |
+| `404` | `BID_ROUND_NOT_FOUND` | No `bid_round` with the given id. |
+| `409` | `ROUND_CLOSED` | The round has transitioned to `Closed`; resubmit is not permitted. |
+
+---
+
 ## Auth
 
 ### POST /auth/login

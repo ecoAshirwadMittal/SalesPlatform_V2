@@ -5,6 +5,151 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-23 — Bidder dashboard + bid_data generation
+
+**Status:** Accepted (sub-project 3 of
+`docs/tasks/auction-lifecycle-cron-design.md`; plan at
+`docs/tasks/auction-bid-data-create-plan.md`).
+
+### Context
+
+Mendix `ACT_OpenBidderDashboard` is a landing-route microflow that (1)
+picks the week's scheduling auction, (2) resolves which round's grid to
+show — or which "bidding closed" copy to render — and (3) on the
+`Started` branch calls `ACT_CreateBidData` to materialize one
+`BidData` row per `(aggregated_inventory, bid_round, buyer_code)` tuple.
+Rows are not pre-computed at round start: generation happens lazily the
+first time the bidder opens the page. Subsequent opens short-circuit
+because the rows already exist. Submit (`ACT_SubmitBidRound`) is a
+copy-forward: `bid_*` → `submitted_*`, prior `submitted_*` →
+`last_valid_*`. The round stays re-submittable until its status flips
+to `Closed`.
+
+Porting this verbatim surfaced four decisions worth recording.
+
+### Decision
+
+- **Synchronous generation on dashboard open.** The `GET /dashboard`
+  handler, when the landing result is `GRID`, calls
+  `BidDataCreationService.ensureRowsExist(buyerCodeId, bidRoundId, userId)`
+  **inside the request**. First open for a `(buyer_code, round)` pair
+  pays the write; all subsequent opens are a cheap existence check.
+  Matches Mendix latency on the legacy flow (~1–3s for ~580 rows) and
+  avoids a batch job that would have to fan out across every qualified
+  buyer code at round start.
+- **Single-CTE `INSERT ... SELECT` guarded by a Postgres advisory
+  lock.** All 500–600 rows land in one statement. The advisory lock is
+  keyed on `(bid_round_id, buyer_code_id)` so two concurrent tabs for
+  the same bidder serialize inside Postgres instead of racing at the
+  ORM layer. The CTE selects from `auctions.aggregated_inventory`
+  joined to the QBC set flattened in V72, filtered to non-DW rows for
+  Round 1. R2/R3 threshold filtering
+  (`bid_meets_threshold = TRUE`) is **stubbed** in this sub-project —
+  sub-project 4 will replace the placeholder with the real per-round
+  qualification logic.
+- **`bid_quantity` nullability is the no-cap sentinel.** `NULL` means
+  "I accept any quantity up to `maximum_quantity`"; `0` means "price
+  me in but ship zero units" (valid, unusual, used for hedging).
+  Storing a sentinel instead of a separate flag column keeps the save
+  path one UPDATE and keeps the grid's JSON body one-to-one with the
+  row. Reject negative quantities with `INVALID_QUANTITY` at the
+  service boundary — the frontend also clamps but the backend is the
+  authority.
+- **Submit is a re-callable copy-forward, not a state transition.**
+  `POST /bid-rounds/{id}/submit?buyerCodeId=…` flips every row in the
+  `(round, buyer_code)` slice. Calling it twice is safe: the second
+  call rewrites `submitted_*` from the latest `bid_*` and stores the
+  prior `submitted_*` into `last_valid_*`. The response's
+  `resubmit: true` flag lets the UI show "resubmitted" confirmation
+  copy. The round's own status stays `Started` until the cron closes
+  it; the submit endpoint does not mutate `bid_round.round_status`.
+- **Rate limit: 60 req/min per `(user, bid_round)`.** Enforced by
+  `BidRateLimiter` **before** the DB write on `PUT /bid-data/{id}`.
+  The limiter never touches the database on a denied request —
+  important because the realistic abuse shape is a stuck auto-save
+  loop firing hundreds of writes/min. Bucket scope is
+  `(user, round)` not `(user, buyer_code, round)` because a single
+  user + single round with N open buyer codes is not a realistic
+  workload on the Mendix-parity UI; re-scoping is a one-line change
+  if the assumption breaks.
+- **Admin bypass at the role level, not per-endpoint.**
+  `BidderDashboardController` is annotated
+  `@PreAuthorize("hasAnyRole('Bidder','Administrator')")` at the class
+  level. The Administrator bypass mirrors the existing admin-write
+  pattern in `AuctionController` — admins can act on behalf of any
+  bidder for diagnostic / recovery purposes. The `SecurityConfig`
+  matcher at `/api/v1/bidder/**` must list both roles; a mismatch
+  here fails closed at the filter chain before method security runs
+  (same ordering pitfall as the 2026-04-19 SalesOps matcher ADR).
+- **Error codes are carried in a typed field, not parsed from the
+  message.** `BidDataValidationException` and
+  `BidDataSubmissionException` expose a `code` getter
+  (`INVALID_QUANTITY`, `INVALID_AMOUNT`, `NOT_YOUR_BID_DATA`,
+  `BID_DATA_NOT_FOUND`, `ROUND_CLOSED`, `NOT_YOUR_BID_ROUND`,
+  `BID_ROUND_NOT_FOUND`). `GlobalExceptionHandler` maps them to HTTP
+  statuses; the frontend's typed error classes
+  (`VersionConflictError`, `RoundClosedError`, `RateLimitedError`)
+  check on these codes, not on substrings.
+
+### Alternatives considered
+
+- **Pre-generate all rows at Round 1 start.** Rejected: the R1 init
+  cron listener would have to fan out across every qualified buyer
+  code (~580 in prod), multiplying the listener's tx size by two
+  orders of magnitude. Lazy generation distributes the write across
+  the window when bidders actually open the page.
+- **Row-level lock (`SELECT ... FOR UPDATE`) instead of advisory lock.**
+  Rejected: there is no single row to lock — the whole point is to
+  serialize the `INSERT ... SELECT` against itself. An advisory lock
+  keyed on the pair is exactly the right primitive.
+- **Store a `no_cap` boolean alongside `bid_quantity INT NOT NULL`.**
+  Rejected: doubles the null-safety surface (both columns must agree)
+  and the save path becomes a branch. `NULL` as the sentinel is
+  idiomatic Postgres and one less column.
+- **Return `409 Conflict` with `Retry-After` on the rate limit.**
+  Rejected in favor of `429 Too Many Requests` (empty body) — the
+  standard code for the scenario. The frontend's
+  `RateLimitedError.retryAfterMs` is a client-side backoff and
+  doesn't depend on a server header.
+- **Transition `bid_round.round_status` to a synthetic `Submitted`
+  value on submit.** Rejected: Mendix keeps `round_status` as
+  lifecycle-only (`Scheduled | Started | Closed | Unscheduled`) and
+  tracks submission on the `BidRound.submitted` flag. Adding a
+  synthetic status would diverge from the cron's transition matrix.
+
+### Consequences
+
+- First-open latency scales with the row count for the bidder's
+  buyer-code slice (~500–600 rows → ~1s in dev Postgres). Subsequent
+  opens are one SELECT.
+- Two concurrent tabs for the same `(bidder, round, buyer_code)`
+  serialize at the advisory lock — the second tab waits for the
+  first to commit, then short-circuits because rows now exist.
+- Submit can be called repeatedly until the cron flips the round to
+  `Closed`. An admin recovery of a stuck submit is a plain HTTP
+  call, not a DB surgery.
+- Rate limiter state is in-process. A horizontally-scaled backend
+  would over-permit (N instances × 60/min) — acceptable for current
+  single-node deploys; revisit if/when we scale out.
+- The R2/R3 threshold stub (`bid_meets_threshold = TRUE`) is a known
+  gap. Sub-project 4 will add the real per-round qualification
+  predicates; the frontend contract (rows filtered to "qualified
+  only" on R2/R3) does not change.
+
+### References
+
+- Plan: `docs/tasks/auction-bid-data-create-plan.md`
+- Spec: `docs/tasks/auction-bid-data-create-design.md`
+- Schema: `V73__bid_data_docs_and_submit_columns.sql`
+- Related ADRs: 2026-04-22 (R1 init + QBC flattening),
+  2026-04-20 (cron skeleton + event contract),
+  2026-04-19 (admin security matcher ordering)
+- Mendix source:
+  `migration_context/backend/ACT_OpenBidderDashboard.md`,
+  `ACT_CreateBidData.md`, `ACT_SubmitBidRound.md`
+
+---
+
 ## 2026-04-22 — Auction R1 init: listener + admin endpoint + QBC schema flattening
 
 **Status:** Accepted (sub-project 2 of `docs/tasks/auction-lifecycle-cron-design.md`).
