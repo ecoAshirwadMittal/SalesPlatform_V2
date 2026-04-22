@@ -59,8 +59,19 @@ public class BidDataSubmissionService {
             WHERE ub.user_id = ? AND bcb.buyer_code_id = ?
             """;
 
-    private static final String ROUND_STATUS_SQL =
-            "SELECT round_status FROM auctions.bid_rounds WHERE id = ?";
+    /**
+     * {@code round_status} lives on {@code auctions.scheduling_auctions}, not
+     * {@code auctions.bid_rounds} — the schema collapsed the legacy Mendix
+     * {@code bidround_schedulingauction} junction into a {@code scheduling_auction_id}
+     * FK on bid_rounds (see V59). The 1-hop JOIN matches the {@link BidRound}
+     * entity's {@code round.getRoundStatus()} delegation used elsewhere.
+     */
+    private static final String ROUND_STATUS_SQL = """
+            SELECT sa.round_status
+              FROM auctions.bid_rounds br
+              JOIN auctions.scheduling_auctions sa ON sa.id = br.scheduling_auction_id
+             WHERE br.id = ?
+            """;
 
     private static final String RESOLVE_BID_ROUND_SQL =
             "SELECT bid_round_id FROM auctions.bid_data WHERE id = ?";
