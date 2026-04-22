@@ -70,6 +70,8 @@
   --color-brand-teal-mid: #00969F;      /* sidebar gradient endpoint (bottom) */
   --color-brand-green: #14AC36;         /* primary CTA: Submit Bids, Import; sidebar gradient start */
   --color-carryover-tint: rgba(0, 150, 159, 0.18);  /* Carryover button bg — tint of teal, not green */
+  --color-text-inverse: #FFFFFF;        /* White for text on brand-colored pill buttons */
+  --color-input-border: #D0D0D0;        /* Default input/outline border */
   /* TODO(Phase 1): eyedropper-confirm against qa-03 */
   --color-warning-red: #C21E1E;         /* "Minimum starting bid" label — provisional hex, needs eyedropper confirm */
 
@@ -150,7 +152,7 @@ body {
 .btn-primary-green {
   background: var(--color-brand-green);
   border: 1px solid var(--color-brand-green);
-  color: #ffffff;
+  color: var(--color-text-inverse);
   font-size: var(--font-size-button-lg);
   font-weight: var(--font-weight-body);
   border-radius: var(--radius-pill);
@@ -165,7 +167,7 @@ body {
 .btn-primary-teal {
   background: var(--color-brand-teal-dark);
   border: 1px solid var(--color-brand-teal-dark);
-  color: #ffffff;
+  color: var(--color-text-inverse);
   font-size: var(--font-size-button-lg);
   font-weight: var(--font-weight-body);
   border-radius: var(--radius-pill);
@@ -179,7 +181,7 @@ body {
 /* Outline tertiary — Export / Import header buttons */
 .btn-outline {
   background: var(--color-bg-body);
-  border: 1px solid #D0D0D0;
+  border: 1px solid var(--color-input-border);
   color: var(--color-text-body);
   font-size: var(--font-size-button-sm);
   font-weight: var(--font-weight-button);

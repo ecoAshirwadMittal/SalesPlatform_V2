@@ -22,6 +22,8 @@ tokens; no hardcoded hexes.
 | `--color-brand-teal-mid` | `#00969F` | Sidebar gradient endpoint, focus rings |
 | `--color-brand-green` | `#14AC36` | Primary CTAs: Submit Bids, Import, sidebar gradient start |
 | `--color-carryover-tint` | `rgba(0, 150, 159, 0.18)` | Carryover button background (teal tint, not green) |
+| `--color-text-inverse` | `#FFFFFF` | Text on brand-colored pill buttons (green, teal) |
+| `--color-input-border` | `#D0D0D0` | Default input / outline-button border |
 | `--color-warning-red` | `#C21E1E` | "Minimum starting bid" label (provisional — TODO eyedropper) |
 
 ### Typography
@@ -100,7 +102,7 @@ Tertiary actions in the auction header: **Export**, **Import** (the small ones n
 | Property | Value |
 |---|---|
 | Background | `var(--color-bg-body)` `#F7F7F7` |
-| Border | `1px solid #D0D0D0` |
+| Border | `1px solid var(--color-input-border)` `#D0D0D0` |
 | Text | `var(--color-text-body)`, 14px / 500 |
 | Radius | `var(--radius-input)` 4px |
 | Padding | `7px 14px` |
