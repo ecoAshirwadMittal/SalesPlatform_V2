@@ -12,6 +12,7 @@ import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -21,6 +22,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,7 +72,7 @@ class BidDataCreationServiceTest {
         verify(creationRepo, never()).generate(anyLong(), anyLong(), anyLong());
         verify(jdbc, never()).queryForObject(
             eq("SELECT pg_advisory_xact_lock(hashtext('bid_data_gen'), ?)"),
-            eq(Boolean.class), anyLong());
+            eq(Object.class), anyLong());
     }
 
     @Test
@@ -102,8 +104,18 @@ class BidDataCreationServiceTest {
         assertThat(result.durationMs()).isGreaterThanOrEqualTo(0L);
         verify(jdbc).queryForObject(
             eq("SELECT pg_advisory_xact_lock(hashtext('bid_data_gen'), ?)"),
-            eq(Boolean.class), eq(100L));
+            eq(Object.class), eq(100));
         verify(creationRepo).generate(100L, 7L, 55L);
+
+        // Double-checked locking: pre-check → lock → re-check → generate.
+        // An accidental reorder would silently break the safety guarantee.
+        InOrder inOrder = inOrder(bidDataRepo, jdbc, creationRepo);
+        inOrder.verify(bidDataRepo).countByBidRoundId(100L);
+        inOrder.verify(jdbc).queryForObject(
+            eq("SELECT pg_advisory_xact_lock(hashtext('bid_data_gen'), ?)"),
+            eq(Object.class), eq(100));
+        inOrder.verify(bidDataRepo).countByBidRoundId(100L);
+        inOrder.verify(creationRepo).generate(100L, 7L, 55L);
     }
 
     @Test
@@ -119,7 +131,7 @@ class BidDataCreationServiceTest {
         assertThat(result.rowsCreated()).isZero();
         verify(jdbc).queryForObject(
             eq("SELECT pg_advisory_xact_lock(hashtext('bid_data_gen'), ?)"),
-            eq(Boolean.class), eq(100L));
+            eq(Object.class), eq(100));
         verify(creationRepo, never()).generate(anyLong(), anyLong(), anyLong());
         verify(bidRoundRepo, never()).findById(anyLong());
     }

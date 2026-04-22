@@ -18,6 +18,10 @@ public class BidDataCreationService {
 
     private static final Logger log = LoggerFactory.getLogger(BidDataCreationService.class);
 
+    // Generous because the advisory lock serializes concurrent callers and the
+    // worst-case CTE may insert thousands of rows.
+    private static final int GENERATION_TX_TIMEOUT_SECONDS = 30;
+
     private final BidDataCreationRepository creationRepo;
     private final BidDataRepository bidDataRepo;
     private final BidDataDocService docService;
@@ -42,7 +46,19 @@ public class BidDataCreationService {
         this.jdbc = jdbc;
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 30)
+    /**
+     * @implNote The {@code (int) bidRoundId} narrowing cast on the
+     * {@code pg_advisory_xact_lock} call is intentional. Postgres exposes two
+     * overloads — {@code (bigint)} and {@code (int, int)} — and {@code hashtext()}
+     * returns {@code int4}. Binding {@code bidRoundId} as {@code int4} (rather
+     * than the default {@code BIGINT} for a Java {@code long}) selects the
+     * {@code (int, int)} overload; the {@code (int4, int8)} shape would fail at
+     * parse time with "function pg_advisory_xact_lock(integer, bigint) does not
+     * exist". Bid round ids are surrogate serial keys that fit in {@code int4}
+     * for the lifetime of this app. {@code Object.class} is used because
+     * {@code pg_advisory_xact_lock} returns SQL {@code void}.
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = GENERATION_TX_TIMEOUT_SECONDS)
     public BidDataCreationResult ensureRowsExist(long buyerCodeId, long bidRoundId, long userId) {
         long started = System.currentTimeMillis();
 
@@ -52,14 +68,17 @@ public class BidDataCreationService {
 
         jdbc.queryForObject(
             "SELECT pg_advisory_xact_lock(hashtext('bid_data_gen'), ?)",
-            Boolean.class, bidRoundId);
+            Object.class, (int) bidRoundId);
 
         if (bidDataRepo.countByBidRoundId(bidRoundId) > 0) {
             return new BidDataCreationResult(0, true, System.currentTimeMillis() - started);
         }
 
-        var round = bidRoundRepo.findById(bidRoundId).orElseThrow();
+        var round = bidRoundRepo.findById(bidRoundId)
+            .orElseThrow(() -> new java.util.NoSuchElementException("BidRound not found: id=" + bidRoundId));
+        // FK-derived from loaded row; unreachable under consistent FKs.
         var sa = saRepo.findById(round.getSchedulingAuctionId()).orElseThrow();
+        // FK-derived from loaded row; unreachable under consistent FKs.
         var auction = auctionRepo.findById(sa.getAuctionId()).orElseThrow();
 
         BidDataDoc doc = docService.getOrCreate(userId, buyerCodeId, auction.getWeekId());
