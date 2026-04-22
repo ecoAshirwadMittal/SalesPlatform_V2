@@ -17,18 +17,10 @@
   font-display: swap;
 }
 
-/* Brandon Grotesque — matches Mendix $font-family-base */
+/* Brandon Grotesque — matches Mendix $font-family-base (Phase 0: 400 + 500 only; Phase 1+ adds weights as needed) */
 @font-face {
   font-family: 'Brandon Grotesque';
-  src: url('/fonts/Brandon_light.otf') format('opentype');
-  font-weight: 100;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'Brandon Grotesque';
-  src: url('/fonts/Brandon_reg.otf') format('opentype');
+  src: url('/fonts/brandon-grotesque/Brandon_reg.otf') format('opentype');
   font-weight: 400;
   font-style: normal;
   font-display: swap;
@@ -36,21 +28,24 @@
 
 @font-face {
   font-family: 'Brandon Grotesque';
-  src: url('/fonts/Brandon_med.otf') format('opentype');
+  src: url('/fonts/brandon-grotesque/Brandon_med.otf') format('opentype');
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 
+/* Additional weights available if Phase 1+ surfaces need them (YAGNI — leave commented until needed):
 @font-face {
   font-family: 'Brandon Grotesque';
-  src: url('/fonts/Brandon_bld.otf') format('opentype');
+  src: url('/fonts/brandon-grotesque/Brandon_bld.otf') format('opentype');
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
+*/
 
 :root {
+  /* ── Legacy tokens (kept for backwards-compat; Phase 1+ will migrate consumers) ── */
   --background: #F7F7F7;
   --foreground: #3C3C3C;
   --border-color: #D0D0D0;
@@ -63,6 +58,35 @@
   --gray-dark: #666766;
   --gray-primary: #898787;
   --gray-lighter: #f8f8f8;
+
+  /* ── Phase 0 Design Tokens — verified against QA (buy-qa.ecoatmdirect.com) ── */
+
+  /* Colors */
+  --color-bg-body: #F7F7F7;
+  --color-text-body: #3C3C3C;
+  --color-text-muted: #666766;          /* grid column headers */
+  --color-brand-teal-dark: #112d32;     /* login primary button, top-bar chip bg, dark pills */
+  --color-brand-teal: #407874;          /* secondary teal: Forgot Password link, Employee Login */
+  --color-brand-teal-mid: #00969F;      /* sidebar gradient endpoint (bottom) */
+  --color-brand-green: #14AC36;         /* primary CTA: Submit Bids, Import; sidebar gradient start */
+  --color-carryover-tint: rgba(0, 150, 159, 0.18);  /* Carryover button bg — tint of teal, not green */
+  /* TODO(Phase 1): eyedropper-confirm against qa-03 */
+  --color-warning-red: #C21E1E;         /* "Minimum starting bid" label — provisional hex, needs eyedropper confirm */
+
+  /* Typography */
+  --font-family-primary: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  --font-size-body: 16px;
+  --font-weight-body: 400;
+  --font-size-button-lg: 18px;          /* Submit Bids, Import, Login labels */
+  --font-size-button-sm: 14px;          /* Export/Import outline buttons */
+  --font-weight-button: 500;
+
+  /* Border radii */
+  --radius-pill: 44px;                  /* Submit Bids, Login, Contact Us, buyer-code cards */
+  --radius-input: 4px;                  /* text inputs, filter search boxes */
+
+  /* Sidebar */
+  --sidebar-gradient: linear-gradient(155.66deg, #14AC36 -12.99%, #00969F 83.48%);
 }
 
 @theme inline {
@@ -73,8 +97,111 @@
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
-  font-size: 16px;
+  background: var(--color-bg-body);
+  color: var(--color-text-body);
+  font-family: var(--font-family-primary);
+  font-size: var(--font-size-body);
+}
+
+/* ── Button Primitives (Phase 0) ───────────────────────────────────────────
+   Global utility classes that consume design tokens. Components apply these
+   class names directly (className="btn-primary-green") or extend them via
+   CSS modules using @composes / nested selectors.
+   See docs/frontend/ui-primitives.md for usage guidance.
+
+   NOTE: composes is a CSS-Modules-only feature and is invalid in a global
+   stylesheet. Shared base rules are applied via the multi-selector block
+   below instead.
+   ─────────────────────────────────────────────────────────────────────── */
+
+/* Shared base: applied to all four button variants */
+.btn-primary-green,
+.btn-primary-teal,
+.btn-outline,
+.btn-carryover {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+  font-family: var(--font-family-primary);
+  transition: opacity 120ms ease, box-shadow 120ms ease;
+}
+
+.btn-primary-green:focus-visible,
+.btn-primary-teal:focus-visible,
+.btn-outline:focus-visible,
+.btn-carryover:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid);
+  outline-offset: 2px;
+}
+
+.btn-primary-green:disabled,
+.btn-primary-teal:disabled,
+.btn-outline:disabled,
+.btn-carryover:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Primary green pill — commit/submit actions (Submit Bids, Import, modal CTAs, Close confirmation) */
+.btn-primary-green {
+  background: var(--color-brand-green);
+  border: 1px solid var(--color-brand-green);
+  color: #ffffff;
+  font-size: var(--font-size-button-lg);
+  font-weight: var(--font-weight-body);
+  border-radius: var(--radius-pill);
+  padding: 10px 28px;   /* visual match: 152×43 observed for Submit Bids */
+}
+
+.btn-primary-green:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+/* Primary teal pill — brand/navigation primaries (Login, Contact Us) */
+.btn-primary-teal {
+  background: var(--color-brand-teal-dark);
+  border: 1px solid var(--color-brand-teal-dark);
+  color: #ffffff;
+  font-size: var(--font-size-button-lg);
+  font-weight: var(--font-weight-body);
+  border-radius: var(--radius-pill);
+  padding: 10px 28px;
+}
+
+.btn-primary-teal:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+/* Outline tertiary — Export / Import header buttons */
+.btn-outline {
+  background: var(--color-bg-body);
+  border: 1px solid #D0D0D0;
+  color: var(--color-text-body);
+  font-size: var(--font-size-button-sm);
+  font-weight: var(--font-weight-button);
+  border-radius: var(--radius-input);
+  padding: 7px 14px;
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: var(--color-text-muted);
+}
+
+/* Carryover — translucent teal tint pill */
+.btn-carryover {
+  background: var(--color-carryover-tint);
+  border: none;
+  color: var(--color-text-body);
+  font-size: var(--font-size-button-sm);
+  font-weight: var(--font-weight-button);
+  border-radius: var(--radius-pill);
+  padding: 7px 18px;
+}
+
+.btn-carryover:hover:not(:disabled) {
+  background: rgba(0, 150, 159, 0.26);
 }
