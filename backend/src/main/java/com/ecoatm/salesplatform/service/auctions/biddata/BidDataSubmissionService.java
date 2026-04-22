@@ -62,6 +62,9 @@ public class BidDataSubmissionService {
     private static final String ROUND_STATUS_SQL =
             "SELECT round_status FROM auctions.bid_rounds WHERE id = ?";
 
+    private static final String RESOLVE_BID_ROUND_SQL =
+            "SELECT bid_round_id FROM auctions.bid_data WHERE id = ?";
+
     private static final String SUBMIT_BID_DATA_SQL = """
             UPDATE auctions.bid_data SET
                 last_valid_bid_quantity = submitted_bid_quantity,
@@ -133,6 +136,30 @@ public class BidDataSubmissionService {
         jdbc.update(SUBMIT_BID_ROUND_SQL, userId, bidRoundId);
 
         return new BidSubmissionResult(bidRoundId, rowsAffected, Instant.now(), isResubmit);
+    }
+
+    /**
+     * Resolve the {@code bid_round_id} for a given {@code bid_data} row.
+     * Used by the controller layer to drive the per-(user, round)
+     * rate-limit bucket without forcing the client to send the round id
+     * on every save call.
+     *
+     * @throws BidDataSubmissionException with code {@code BID_DATA_NOT_FOUND}
+     *         when no row exists for the id.
+     */
+    @Transactional(readOnly = true, timeout = 5)
+    public long resolveBidRoundId(long bidDataId) {
+        try {
+            Long bidRoundId = jdbc.queryForObject(RESOLVE_BID_ROUND_SQL, Long.class, bidDataId);
+            if (bidRoundId == null) {
+                throw new BidDataSubmissionException("BID_DATA_NOT_FOUND",
+                        "Bid data not found: " + bidDataId);
+            }
+            return bidRoundId;
+        } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+            throw new BidDataSubmissionException("BID_DATA_NOT_FOUND",
+                    "Bid data not found: " + bidDataId);
+        }
     }
 
     private void assertOwnership(long userId, long buyerCodeId) {

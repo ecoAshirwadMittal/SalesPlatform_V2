@@ -1,5 +1,7 @@
 package com.ecoatm.salesplatform.exception;
 
+import com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionException;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidDataValidationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -91,6 +93,24 @@ public class GlobalExceptionHandler {
                 .toList();
         return ResponseEntity.badRequest()
                 .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), details));
+    }
+
+    @ExceptionHandler(BidDataValidationException.class)
+    public ResponseEntity<Map<String, String>> handleBidDataValidation(BidDataValidationException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("code", ex.code(), "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(BidDataSubmissionException.class)
+    public ResponseEntity<Map<String, String>> handleBidDataSubmission(BidDataSubmissionException ex) {
+        HttpStatus status = switch (ex.code()) {
+            case "BID_DATA_NOT_FOUND", "BID_ROUND_NOT_FOUND" -> HttpStatus.NOT_FOUND;
+            case "NOT_YOUR_BID_DATA", "NOT_YOUR_BID_ROUND"   -> HttpStatus.FORBIDDEN;
+            case "ROUND_CLOSED"                              -> HttpStatus.CONFLICT;
+            default                                          -> HttpStatus.INTERNAL_SERVER_ERROR;
+        };
+        return ResponseEntity.status(status)
+                .body(Map.of("code", ex.code(), "message", ex.getMessage()));
     }
 
     @ExceptionHandler(RuntimeException.class)
