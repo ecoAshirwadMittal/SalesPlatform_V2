@@ -74,4 +74,20 @@ public interface SchedulingAuctionRepository extends JpaRepository<SchedulingAuc
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from SchedulingAuction s where s.id = :id")
     Optional<SchedulingAuction> findByIdForUpdate(@Param("id") Long id);
+
+    /**
+     * Bidder dashboard landing matrix: the "active" round for a buyer is the
+     * most recently started SchedulingAuction. Mirrors Mendix
+     * {@code ACT_GetActiveSchedulingAuction}.
+     */
+    Optional<SchedulingAuction> findFirstByAuctionIdAndRoundStatusOrderByStartDatetimeDesc(
+            Long auctionId, SchedulingAuctionStatus status);
+
+    /**
+     * Bidder dashboard landing matrix: globally, the most recently started
+     * round across all auctions. Used to resolve the "most recent auction"
+     * for a buyer in the absence of a per-buyer auction filter.
+     */
+    Optional<SchedulingAuction> findFirstByRoundStatusOrderByStartDatetimeDesc(
+            SchedulingAuctionStatus status);
 }

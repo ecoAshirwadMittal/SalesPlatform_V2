@@ -8,4 +8,7 @@ import java.util.List;
 public interface BidDataRepository extends JpaRepository<BidData, Long> {
     long countByBidRoundId(long bidRoundId);
     List<BidData> findByBidRoundIdOrderByEcoidAscMergedGradeAsc(long bidRoundId);
+
+    List<BidData> findByBidRoundIdAndBuyerCodeIdOrderByEcoidAscMergedGradeAsc(
+            long bidRoundId, long buyerCodeId);
 }

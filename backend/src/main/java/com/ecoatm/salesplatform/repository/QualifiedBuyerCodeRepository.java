@@ -8,6 +8,10 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
+
 /**
  * Repository for {@link QualifiedBuyerCode}.
  * <p>
@@ -26,4 +30,10 @@ public interface QualifiedBuyerCodeRepository extends JpaRepository<QualifiedBuy
              WHERE scheduling_auction_id = :saId
             """, nativeQuery = true)
     int deleteBySchedulingAuctionId(@Param("saId") Long saId);
+
+    Optional<QualifiedBuyerCode> findBySchedulingAuctionIdAndBuyerCodeId(
+            Long schedulingAuctionId, Long buyerCodeId);
+
+    List<QualifiedBuyerCode> findBySchedulingAuctionIdInAndBuyerCodeId(
+            Collection<Long> schedulingAuctionIds, Long buyerCodeId);
 }
