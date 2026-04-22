@@ -1,17 +1,15 @@
-import { loadDashboard } from '@/lib/bidder';
+'use client';
+import { useSearchParams } from 'next/navigation';
 import { BidderDashboardClient } from './BidderDashboardClient';
 
-// Next.js 16: `searchParams` is a Promise that must be awaited before
-// use — previous synchronous access is a breaking-change removal.
-export default async function Page({
-  searchParams,
-}: {
-  searchParams: Promise<{ buyerCodeId?: string }>;
-}) {
-  const params = await searchParams;
-  if (!params.buyerCodeId) return <div>Missing buyerCodeId</div>;
-  const buyerCodeId = parseInt(params.buyerCodeId, 10);
+// Client-side page: `loadDashboard` uses a relative URL which only resolves
+// in the browser. Reading `searchParams` via the client hook avoids the Next
+// 16 server-component Promise dance entirely.
+export default function Page() {
+  const params = useSearchParams();
+  const raw = params.get('buyerCodeId');
+  if (!raw) return <div>Missing buyerCodeId</div>;
+  const buyerCodeId = parseInt(raw, 10);
   if (Number.isNaN(buyerCodeId)) return <div>Invalid buyerCodeId</div>;
-  const initial = await loadDashboard(buyerCodeId);
-  return <BidderDashboardClient initial={initial} buyerCodeId={buyerCodeId} />;
+  return <BidderDashboardClient buyerCodeId={buyerCodeId} />;
 }

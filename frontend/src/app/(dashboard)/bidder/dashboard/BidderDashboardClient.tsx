@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadDashboard,
   submitBidRound,
@@ -17,10 +17,15 @@ import type {
 } from '@/lib/bidder';
 import { BidGrid } from './BidGrid';
 import { DashboardHeader } from './DashboardHeader';
+import { EndOfBiddingPanel } from './EndOfBiddingPanel';
 import { SubmitBar } from './SubmitBar';
 
 interface BidderDashboardClientProps {
-  initial: BidderDashboardResponse;
+  // `initial` is optional so the component can also own its first fetch
+  // when the page is rendered entirely client-side (Next 16 SSR fetch of
+  // a relative URL fails in Node; the app's other dashboard pages also
+  // fetch in the browser).
+  initial?: BidderDashboardResponse;
   buyerCodeId: number;
 }
 
@@ -73,12 +78,16 @@ export function BidderDashboardClient({
   initial,
   buyerCodeId,
 }: BidderDashboardClientProps) {
-  const [mode, setMode] = useState<BidderDashboardResponse['mode']>(initial.mode);
-  const [grid, setGrid] = useState<GridState | null>(() => toGridState(initial));
+  const [mode, setMode] = useState<BidderDashboardResponse['mode'] | 'LOADING'>(
+    initial ? initial.mode : 'LOADING',
+  );
+  const [grid, setGrid] = useState<GridState | null>(() =>
+    initial ? toGridState(initial) : null,
+  );
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [lastSubmittedAt, setLastSubmittedAt] = useState<Date | null>(() =>
-    initialSubmittedAt(initial),
+    initial ? initialSubmittedAt(initial) : null,
   );
   // Latest buyerCodeId snapshot so callbacks stay stable without
   // re-registering on every render.
@@ -92,7 +101,30 @@ export function BidderDashboardClient({
   const applyResponse = useCallback((response: BidderDashboardResponse): void => {
     setMode(response.mode);
     setGrid(toGridState(response));
+    // Keep the post-submit stamp in sync with server state on refetch,
+    // so revisiting a submitted round shows the persisted timestamp.
+    setLastSubmittedAt(initialSubmittedAt(response));
   }, []);
+
+  // First-load fetch when the parent didn't pre-hydrate. Runs once per
+  // buyerCodeId change.
+  useEffect(() => {
+    if (initial) return;
+    let cancelled = false;
+    setMode('LOADING');
+    loadDashboard(buyerCodeId)
+      .then((response) => {
+        if (!cancelled) applyResponse(response);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        console.error('dashboard load failed', err);
+        setErrorMessage('Dashboard failed to load. Please refresh.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [initial, buyerCodeId, applyResponse]);
 
   const handleRowSaved = useCallback((row: BidDataRow): void => {
     setGrid((prev) => {
@@ -150,27 +182,32 @@ export function BidderDashboardClient({
     }
   }, [grid, applyResponse]);
 
-  if (mode === 'ERROR_AUCTION_NOT_FOUND') {
+  if (mode === 'LOADING') {
     return (
       <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
-        No scheduled auction.
+        Loading dashboard…
       </div>
+    );
+  }
+
+  if (mode === 'ERROR_AUCTION_NOT_FOUND') {
+    return (
+      <EndOfBiddingPanel subtitle="No scheduled auction is available." />
     );
   }
 
   if (mode === 'ALL_ROUNDS_DONE') {
     return (
-      <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
-        All rounds have closed.
-      </div>
+      <EndOfBiddingPanel subtitle="Please come back next week." />
     );
   }
 
   if (mode === 'DOWNLOAD') {
     return (
-      <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
-        Round 2: download inventory (coming soon).
-      </div>
+      <EndOfBiddingPanel
+        subtitle="Your bids from round 1 can be found below."
+        action={{ label: 'Download your Round 1 Bids', onClick: () => {} }}
+      />
     );
   }
 
