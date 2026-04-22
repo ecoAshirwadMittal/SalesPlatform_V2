@@ -57,6 +57,18 @@ function toGridState(response: BidderDashboardResponse): GridState | null {
 
 const FONT_STACK = "'Trebuchet MS', sans-serif";
 
+// Pull the first non-null `submittedDatetime` off the initial payload so a
+// fresh page load shows "Submitted at <stamp>" when the user already
+// submitted earlier in this round. Mendix shows the same stamp on revisit.
+function initialSubmittedAt(response: BidderDashboardResponse): Date | null {
+  for (const row of response.rows) {
+    if (row.submittedDatetime) {
+      return new Date(row.submittedDatetime);
+    }
+  }
+  return null;
+}
+
 export function BidderDashboardClient({
   initial,
   buyerCodeId,
@@ -65,6 +77,9 @@ export function BidderDashboardClient({
   const [grid, setGrid] = useState<GridState | null>(() => toGridState(initial));
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [lastSubmittedAt, setLastSubmittedAt] = useState<Date | null>(() =>
+    initialSubmittedAt(initial),
+  );
   // Latest buyerCodeId snapshot so callbacks stay stable without
   // re-registering on every render.
   const buyerCodeRef = useRef<number>(buyerCodeId);
@@ -101,6 +116,11 @@ export function BidderDashboardClient({
       // Refetch to pick up flipped `submitted` flags + updated totals.
       const fresh = await loadDashboard(buyerCodeRef.current);
       applyResponse(fresh);
+      // Stamp the post-submit confirmation line. We use `new Date()` rather
+      // than the server's `submittedDatetime` so the user sees an immediate
+      // local-clock confirmation; the resubmit path overwrites it on the
+      // next click.
+      setLastSubmittedAt(new Date());
     } catch (err: unknown) {
       if (err instanceof RateLimitedError) {
         setErrorMessage('Too many requests — please slow down and try again.');
@@ -187,6 +207,7 @@ export function BidderDashboardClient({
         onSubmit={handleSubmit}
         submitting={submitting}
         errorMessage={errorMessage}
+        lastSubmittedAt={lastSubmittedAt}
       />
     </div>
   );

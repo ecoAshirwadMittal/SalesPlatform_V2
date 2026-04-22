@@ -7,6 +7,7 @@ interface SubmitBarProps {
   onSubmit: () => void;
   submitting: boolean;
   errorMessage: string | null;
+  lastSubmittedAt: Date | null;
 }
 
 // Module-scoped so the formatter is constructed once and reused on every
@@ -17,8 +18,20 @@ const currencyFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
 });
 
+// Same module-scoped pattern as `currencyFormatter` — readable
+// medium/short stamp ("Apr 22, 2026, 3:14 PM") for the post-submit
+// confirmation line.
+const submittedAtFormatter = new Intl.DateTimeFormat('en-US', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+});
+
 function formatCurrency(value: number): string {
   return currencyFormatter.format(value);
+}
+
+function formatSubmittedAt(value: Date): string {
+  return submittedAtFormatter.format(value);
 }
 
 export function SubmitBar({
@@ -27,6 +40,7 @@ export function SubmitBar({
   onSubmit,
   submitting,
   errorMessage,
+  lastSubmittedAt,
 }: SubmitBarProps) {
   const disabled = !canSubmit || submitting;
 
@@ -38,6 +52,11 @@ export function SubmitBar({
           className="mb-2 rounded bg-red-50 px-3 py-2 text-sm text-red-700"
         >
           {errorMessage}
+        </div>
+      ) : null}
+      {lastSubmittedAt ? (
+        <div className="mb-2 text-xs text-gray-600">
+          Submitted at {formatSubmittedAt(lastSubmittedAt)}
         </div>
       ) : null}
       <div className="flex flex-wrap items-center justify-between gap-4">
