@@ -194,7 +194,8 @@ class BidderDashboardServiceTest {
         BidRound bidRound = new BidRound();
         ReflectionTestUtils.setField(bidRound, "id", BID_ROUND_ID);
         bidRound.setSchedulingAuctionId(R1_SA_ID);
-        when(bidRoundRepo.findBySchedulingAuctionId(R1_SA_ID)).thenReturn(Optional.of(bidRound));
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(R1_SA_ID, BUYER_CODE_ID))
+                .thenReturn(Optional.of(bidRound));
 
         BidderDashboardLandingResult result = service.landingRoute(USER_ID, BUYER_CODE_ID);
 

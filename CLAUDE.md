@@ -194,13 +194,20 @@ cd backend && mvn clean spring-boot:run
 - Connection: `PGPASSWORD='Agarwal1$' psql -h localhost -U postgres -d <db-name>`
 
 ## Related Documents
+
+**Auto-loaded into context (`@`):** only small high-signal docs.
+**Read on demand:** bulky reference docs — large enough that auto-loading them burns context every session.
+
 - Architecture overview: @docs/architecture/overview.md
-- Technical decisions: @docs/architecture/decisions.md
 - Data model: @docs/architecture/data-model.md
-- API documentation: @docs/api/index.md | @docs/api/rest-endpoints.md
+- API index (auth, Swagger): @docs/api/index.md
 - App metadata: @docs/app-metadata/modules.md | @docs/app-metadata/constants.md
 - Deployment guide: @docs/deployment/setup.md | @docs/deployment/deployment.md
 - Test strategy & coverage: @docs/testing/strategy.md | @docs/testing/coverage.md
 - Business logic: @docs/business-logic/index.md
 - Development rules: @docs/development-rules.md
 - ADR template: @docs/adr/template.md
+
+**Read on demand (not auto-loaded):**
+- Technical decisions (ADR log): `docs/architecture/decisions.md` — read when touching a subsystem with prior ADRs.
+- REST endpoint reference: `docs/api/rest-endpoints.md` — read when adding/modifying an endpoint; Swagger UI at `/swagger-ui/index.html` is faster for field-level lookups.

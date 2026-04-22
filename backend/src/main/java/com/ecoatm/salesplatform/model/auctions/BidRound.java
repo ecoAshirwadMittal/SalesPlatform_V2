@@ -32,6 +32,12 @@ public class BidRound {
     @Column(name = "scheduling_auction_id", nullable = false)
     private Long schedulingAuctionId;
 
+    @Column(name = "buyer_code_id", nullable = false)
+    private Long buyerCodeId;
+
+    @Column(name = "week_id")
+    private Long weekId;
+
     @Column(name = "submitted", nullable = false)
     private boolean submitted = false;
 
@@ -55,6 +61,22 @@ public class BidRound {
 
     public void setSchedulingAuctionId(Long schedulingAuctionId) {
         this.schedulingAuctionId = schedulingAuctionId;
+    }
+
+    public Long getBuyerCodeId() {
+        return buyerCodeId;
+    }
+
+    public void setBuyerCodeId(Long buyerCodeId) {
+        this.buyerCodeId = buyerCodeId;
+    }
+
+    public Long getWeekId() {
+        return weekId;
+    }
+
+    public void setWeekId(Long weekId) {
+        this.weekId = weekId;
     }
 
     public boolean getSubmitted() {

@@ -106,7 +106,8 @@ public class BidderDashboardService {
             return new BidderDashboardLandingResult.Download("ROUND2_DOWNLOAD");
         }
 
-        Optional<BidRound> bidRoundOpt = bidRoundRepo.findBySchedulingAuctionId(active.getId());
+        Optional<BidRound> bidRoundOpt =
+                bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(active.getId(), buyerCodeId);
         if (bidRoundOpt.isEmpty()) {
             return new BidderDashboardLandingResult.Error("BIDROUND_MISSING");
         }

@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions.r1init;
 
 import com.ecoatm.salesplatform.model.auctions.Auction;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
@@ -10,6 +11,7 @@ import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.auctions.AggregatedInventoryRepository;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.buyermgmt.AuctionsFeatureConfigService;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,6 +40,7 @@ class Round1InitializationServiceTest {
     @Mock AggregatedInventoryRepository aggInvRepo;
     @Mock QualifiedBuyerCodeRepository qbcRepo;
     @Mock BuyerCodeRepository buyerCodeRepo;
+    @Mock BidRoundRepository bidRoundRepo;
     @Mock AuctionsFeatureConfigService configService;
 
     Round1InitializationService service;
@@ -50,7 +53,7 @@ class Round1InitializationServiceTest {
     @BeforeEach
     void setUp() {
         service = new Round1InitializationService(
-                saRepo, auctionRepo, aggInvRepo, qbcRepo, buyerCodeRepo, configService);
+                saRepo, auctionRepo, aggInvRepo, qbcRepo, buyerCodeRepo, bidRoundRepo, configService);
     }
 
     @Test
@@ -84,6 +87,19 @@ class Round1InitializationServiceTest {
         });
         assertThat(saved)
                 .extracting(QualifiedBuyerCode::getBuyerCodeId)
+                .containsExactlyInAnyOrder(10L, 11L, 12L);
+
+        ArgumentCaptor<List<BidRound>> brCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidRoundRepo).saveAll(brCaptor.capture());
+        List<BidRound> savedRounds = brCaptor.getValue();
+        assertThat(savedRounds).hasSize(3);
+        assertThat(savedRounds).allSatisfy(br -> {
+            assertThat(br.getSchedulingAuctionId()).isEqualTo(SA_ID);
+            assertThat(br.getWeekId()).isEqualTo(WEEK_ID);
+            assertThat(br.getSubmitted()).isFalse();
+        });
+        assertThat(savedRounds)
+                .extracting(BidRound::getBuyerCodeId)
                 .containsExactlyInAnyOrder(10L, 11L, 12L);
     }
 

@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions.r1init;
 
 import com.ecoatm.salesplatform.model.auctions.Auction;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
@@ -10,6 +11,7 @@ import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.auctions.AggregatedInventoryRepository;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.buyermgmt.AuctionsFeatureConfigService;
 import org.slf4j.Logger;
@@ -32,6 +34,7 @@ public class Round1InitializationService {
     private final AggregatedInventoryRepository aggInvRepo;
     private final QualifiedBuyerCodeRepository qbcRepo;
     private final BuyerCodeRepository buyerCodeRepo;
+    private final BidRoundRepository bidRoundRepo;
     private final AuctionsFeatureConfigService configService;
 
     public Round1InitializationService(
@@ -40,12 +43,14 @@ public class Round1InitializationService {
             AggregatedInventoryRepository aggInvRepo,
             QualifiedBuyerCodeRepository qbcRepo,
             BuyerCodeRepository buyerCodeRepo,
+            BidRoundRepository bidRoundRepo,
             AuctionsFeatureConfigService configService) {
         this.saRepo = saRepo;
         this.auctionRepo = auctionRepo;
         this.aggInvRepo = aggInvRepo;
         this.qbcRepo = qbcRepo;
         this.buyerCodeRepo = buyerCodeRepo;
+        this.bidRoundRepo = bidRoundRepo;
         this.configService = configService;
     }
 
@@ -83,6 +88,27 @@ public class Round1InitializationService {
         // saveAll + hibernate.jdbc.batch_size=50 batches the ~579 inserts into
         // ~12 round-trips instead of 579, per the post-review performance note.
         qbcRepo.saveAll(qbcs);
+
+        // Seed one bid_round per qualified buyer code for this scheduling auction.
+        // The dashboard's GRID branch reads from bid_rounds via
+        // findBySchedulingAuctionIdAndBuyerCodeId — without this seed the
+        // landing route returns BIDROUND_MISSING for every otherwise-qualified
+        // bidder. Idempotent on re-init: existing rows are skipped via the
+        // (scheduling_auction_id, buyer_code_id) lookup.
+        List<BidRound> bidRounds = new ArrayList<>(buyerCodes.size());
+        for (BuyerCode bc : buyerCodes) {
+            if (bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(
+                    schedulingAuctionId, bc.getId()).isPresent()) {
+                continue;
+            }
+            BidRound br = new BidRound();
+            br.setSchedulingAuctionId(schedulingAuctionId);
+            br.setBuyerCodeId(bc.getId());
+            br.setWeekId(weekId);
+            br.setSubmitted(false);
+            bidRounds.add(br);
+        }
+        bidRoundRepo.saveAll(bidRounds);
 
         long durationMs = System.currentTimeMillis() - startedAt;
         log.info("r1-init completed auctionId={} schedulingAuctionId={} weekId={} "

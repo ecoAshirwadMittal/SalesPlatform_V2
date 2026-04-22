@@ -16,4 +16,15 @@ public interface BidRoundRepository extends JpaRepository<BidRound, Long> {
     boolean existsBySchedulingAuctionIdIn(Collection<Long> schedulingAuctionIds);
 
     Optional<BidRound> findBySchedulingAuctionId(Long schedulingAuctionId);
+
+    /**
+     * Per-(scheduling_auction, buyer_code) lookup. Required because the
+     * {@code idx_br_sa_buyer_code} unique-shape (V59) means a given
+     * {@code scheduling_auction_id} has one row per qualifying buyer code,
+     * not a single row. {@link #findBySchedulingAuctionId} would throw
+     * {@code IncorrectResultSizeDataAccessException} the moment R1 init
+     * seeds more than one buyer code.
+     */
+    Optional<BidRound> findBySchedulingAuctionIdAndBuyerCodeId(
+            Long schedulingAuctionId, Long buyerCodeId);
 }
