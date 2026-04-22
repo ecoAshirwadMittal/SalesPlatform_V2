@@ -36,6 +36,7 @@ public final class BidDataScenario {
     private boolean specialTreatment = false;
     private boolean included = true;
     private final Map<InventoryKey, InventorySpec> inventory = new HashMap<>();
+    private final Map<InventoryKey, DualInventorySpec> dualInventory = new HashMap<>();
     private final Map<InventoryKey, BidSpec> priorRoundBids = new HashMap<>();
     private FilterSpec filter = null;
 
@@ -74,6 +75,42 @@ public final class BidDataScenario {
     public BidDataScenario inventory(String ecoid, String grade, int qty, BigDecimal targetPrice) {
         inventory.put(new InventoryKey(ecoid, grade), new InventorySpec(qty, targetPrice));
         return this;
+    }
+
+    /**
+     * Register an aggregated-inventory row that populates BOTH the wholesale and
+     * DW column families on the same row. Used by DW-branch tests that need to
+     * assert the CTE picks the DW columns even when wholesale columns are also
+     * non-zero, and to verify the {@code dw_total_quantity > 0} filter gate
+     * (e.g. wholesale-only rows must not surface for a DW buyer).
+     *
+     * <p>Inserts as {@code datawipe = true} when {@code dwQty > 0}, otherwise
+     * {@code false}, matching how the legacy Snowflake sync stamps the column.
+     */
+    public BidDataScenario dwInventory(String ecoid, String grade,
+                                       int totalQty, BigDecimal totalPrice,
+                                       int dwQty,    BigDecimal dwPrice) {
+        dualInventory.put(
+                new InventoryKey(ecoid, grade),
+                new DualInventorySpec(totalQty, totalPrice, dwQty, dwPrice));
+        return this;
+    }
+
+    /**
+     * Alias of {@link #included(boolean)} — sets the QBC {@code included} flag.
+     * Provided for call-site clarity in tests that want to spell out the
+     * QBC-vs-row distinction.
+     */
+    public BidDataScenario qbcIncluded(boolean b) {
+        return included(b);
+    }
+
+    /**
+     * Alias of {@link #specialTreatment(boolean)} — sets the QBC
+     * {@code is_special_treatment} flag.
+     */
+    public BidDataScenario qbcSpecialTreatment(boolean b) {
+        return specialTreatment(b);
     }
 
     /**
@@ -125,10 +162,24 @@ public final class BidDataScenario {
                     "BidDataScenario requires at least one mdm.week row — none found");
         }
 
-        Long buyerCodeId = jdbc.queryForObject(
-                "SELECT id FROM buyer_mgmt.buyer_codes WHERE buyer_code_type = ? LIMIT 1",
-                Long.class,
-                buyerCodeType);
+        // Translate the fixture's collapsed "DW" alias into the actual schema
+        // values the buyer_codes table stores (V8 enumerates the four legacy
+        // Mendix values). The CTE later collapses Data_Wipe and
+        // Purchasing_Order_Data_Wipe back into the 'DW' branch.
+        String[] candidateTypes = "DW".equalsIgnoreCase(buyerCodeType)
+                ? new String[] { "Data_Wipe", "Purchasing_Order_Data_Wipe" }
+                : new String[] { buyerCodeType };
+
+        Long buyerCodeId = null;
+        for (String candidate : candidateTypes) {
+            buyerCodeId = jdbc.query(
+                    "SELECT id FROM buyer_mgmt.buyer_codes WHERE buyer_code_type = ? LIMIT 1",
+                    rs -> rs.next() ? rs.getLong(1) : null,
+                    candidate);
+            if (buyerCodeId != null) {
+                break;
+            }
+        }
         if (buyerCodeId == null) {
             throw new IllegalStateException(
                     "BidDataScenario requires at least one buyer_mgmt.buyer_codes row "
@@ -276,6 +327,27 @@ public final class BidDataScenario {
             }
         }
 
+        // Dual-column inventory rows — both wholesale and DW columns set on
+        // the same row so the CTE's DW/Wholesale branching can be exercised
+        // independently of which side has non-zero quantity.
+        for (Map.Entry<InventoryKey, DualInventorySpec> entry : dualInventory.entrySet()) {
+            InventoryKey key       = entry.getKey();
+            String ecoid           = key.ecoid();
+            String grade           = key.grade();
+            DualInventorySpec spec = entry.getValue();
+
+            jdbc.update(
+                    "INSERT INTO auctions.aggregated_inventory "
+                            + "(week_id, ecoid2, merged_grade, datawipe, "
+                            + " total_quantity, avg_target_price, "
+                            + " dw_total_quantity, dw_avg_target_price) "
+                            + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    weekId, ecoid, grade,
+                    spec.dwQuantity() > 0,
+                    spec.totalQuantity(), spec.totalPrice(),
+                    spec.dwQuantity(),    spec.dwPrice());
+        }
+
         // ── Step 7: prior-round bid_data ─────────────────────────────────────────
         // Only inserted when round > 1 and the map is non-empty.
         // bid_data_doc_id is left null per V73 (nullable column).
@@ -345,6 +417,10 @@ public final class BidDataScenario {
     // ── Value types ───────────────────────────────────────────────────────────────
 
     public record InventorySpec(int quantity, BigDecimal targetPrice) {}
+
+    public record DualInventorySpec(
+            int totalQuantity, BigDecimal totalPrice,
+            int dwQuantity,    BigDecimal dwPrice) {}
 
     public record BidSpec(int quantity, BigDecimal amount) {}
 
