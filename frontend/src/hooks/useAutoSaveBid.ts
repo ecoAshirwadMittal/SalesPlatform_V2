@@ -5,6 +5,7 @@ import type { SaveBidPayload, BidDataRow } from '../lib/bidder';
 export function useAutoSaveBid(
   rowId: number,
   onSaved: (row: BidDataRow) => void,
+  onError?: (err: unknown) => void,
 ): { dirty: boolean; save: (payload: SaveBidPayload) => void } {
   const [dirty, setDirty] = useState(false);
   const pending = useRef<SaveBidPayload | null>(null);
@@ -17,10 +18,12 @@ export function useAutoSaveBid(
     try {
       const row = await saveBid(rowId, payload);
       onSaved(row);
-    } finally {
       setDirty(false);
+    } catch (err: unknown) {
+      if (onError) onError(err);
+      // leave dirty=true; caller's onError can decide what to do
     }
-  }, [rowId, onSaved]);
+  }, [rowId, onSaved, onError]);
 
   const save = useCallback((payload: SaveBidPayload): void => {
     pending.current = payload;

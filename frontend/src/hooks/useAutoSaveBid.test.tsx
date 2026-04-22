@@ -35,4 +35,19 @@ describe('useAutoSaveBid', () => {
 
     expect(saveSpy).toHaveBeenCalledWith(123, { bidQuantity: null, bidAmount: 10 });
   });
+
+  it('keeps dirty=true when saveBid rejects', async () => {
+    const saveSpy = vi.spyOn(bidderApi, 'saveBid').mockRejectedValue(new Error('boom'));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useAutoSaveBid(123, () => {}, onError));
+
+    act(() => { result.current.save({ bidQuantity: 1, bidAmount: 10 }); });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    // let the rejection microtask resolve
+    await act(async () => { await Promise.resolve(); });
+
+    expect(result.current.dirty).toBe(true);
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError.mock.calls[0][0]).toBeInstanceOf(Error);
+  });
 });
