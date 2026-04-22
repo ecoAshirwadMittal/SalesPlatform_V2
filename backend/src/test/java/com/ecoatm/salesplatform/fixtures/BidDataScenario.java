@@ -35,8 +35,8 @@ public final class BidDataScenario {
     private String buyerCodeType = "Wholesale"; // "Wholesale" or "DW"
     private boolean specialTreatment = false;
     private boolean included = true;
-    private final Map<String, InventorySpec> inventory = new HashMap<>();
-    private final Map<String, BidSpec> priorRoundBids = new HashMap<>();
+    private final Map<InventoryKey, InventorySpec> inventory = new HashMap<>();
+    private final Map<InventoryKey, BidSpec> priorRoundBids = new HashMap<>();
     private FilterSpec filter = null;
 
     public BidDataScenario(JdbcTemplate jdbc) {
@@ -69,7 +69,7 @@ public final class BidDataScenario {
      * at commit time.
      */
     public BidDataScenario inventory(String ecoid, String grade, int qty, BigDecimal targetPrice) {
-        inventory.put(ecoid + "|" + grade, new InventorySpec(qty, targetPrice));
+        inventory.put(new InventoryKey(ecoid, grade), new InventorySpec(qty, targetPrice));
         return this;
     }
 
@@ -80,7 +80,7 @@ public final class BidDataScenario {
      * is populated; {@code bid_data_doc_id} is left null.
      */
     public BidDataScenario priorRoundBid(String ecoid, String grade, int qty, BigDecimal amount) {
-        priorRoundBids.put(ecoid + "|" + grade, new BidSpec(qty, amount));
+        priorRoundBids.put(new InventoryKey(ecoid, grade), new BidSpec(qty, amount));
         return this;
     }
 
@@ -117,10 +117,20 @@ public final class BidDataScenario {
 
         // ── Step 1: resolve FK anchor rows ───────────────────────────────────────
         Long weekId = jdbc.queryForObject("SELECT id FROM mdm.week LIMIT 1", Long.class);
+        if (weekId == null) {
+            throw new IllegalStateException(
+                    "BidDataScenario requires at least one mdm.week row — none found");
+        }
+
         Long buyerCodeId = jdbc.queryForObject(
                 "SELECT id FROM buyer_mgmt.buyer_codes WHERE buyer_code_type = ? LIMIT 1",
                 Long.class,
                 buyerCodeType);
+        if (buyerCodeId == null) {
+            throw new IllegalStateException(
+                    "BidDataScenario requires at least one buyer_mgmt.buyer_codes row "
+                            + "with buyer_code_type='" + buyerCodeType + "' — none found");
+        }
 
         // ── Step 2: auction row ───────────────────────────────────────────────────
         Long auctionId = jdbc.queryForObject(
@@ -215,10 +225,10 @@ public final class BidDataScenario {
 
         // ── Step 6: aggregated_inventory ─────────────────────────────────────────
         boolean isDw = "DW".equalsIgnoreCase(buyerCodeType);
-        for (Map.Entry<String, InventorySpec> entry : inventory.entrySet()) {
-            String[] parts    = entry.getKey().split("\\|", 2);
-            String ecoid      = parts[0];
-            String grade      = parts[1];
+        for (Map.Entry<InventoryKey, InventorySpec> entry : inventory.entrySet()) {
+            InventoryKey key  = entry.getKey();
+            String ecoid      = key.ecoid();
+            String grade      = key.grade();
             InventorySpec spec = entry.getValue();
 
             if (isDw) {
@@ -242,11 +252,11 @@ public final class BidDataScenario {
         // Only inserted when round > 1 and the map is non-empty.
         // bid_data_doc_id is left null per V73 (nullable column).
         if (round > 1 && priorBidRoundId != null && !priorRoundBids.isEmpty()) {
-            for (Map.Entry<String, BidSpec> entry : priorRoundBids.entrySet()) {
-                String[] parts = entry.getKey().split("\\|", 2);
-                String ecoid   = parts[0];
-                String grade   = parts[1];
-                BidSpec spec   = entry.getValue();
+            for (Map.Entry<InventoryKey, BidSpec> entry : priorRoundBids.entrySet()) {
+                InventoryKey key = entry.getKey();
+                String ecoid     = key.ecoid();
+                String grade     = key.grade();
+                BidSpec spec     = entry.getValue();
 
                 jdbc.update(
                         "INSERT INTO auctions.bid_data "
@@ -285,4 +295,6 @@ public final class BidDataScenario {
     public record BidSpec(int quantity, BigDecimal amount) {}
 
     public record FilterSpec(BigDecimal targetPercent, BigDecimal targetValue, BigDecimal floor) {}
+
+    private record InventoryKey(String ecoid, String grade) {}
 }
