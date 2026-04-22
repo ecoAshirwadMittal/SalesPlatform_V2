@@ -8,6 +8,8 @@ import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.repository.auctions.BidDataRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -179,11 +181,27 @@ public class BidDataSubmissionService {
     }
 
     private void assertOwnership(long userId, long buyerCodeId) {
+        if (hasAdministratorRole()) {
+            return;
+        }
         Long count = jdbc.queryForObject(OWNERSHIP_SQL, Long.class, userId, buyerCodeId);
         if (count == null || count == 0L) {
             throw new BidDataSubmissionException("NOT_YOUR_BID_DATA",
                     "User does not own buyer_code_id=" + buyerCodeId);
         }
+    }
+
+    private static boolean hasAdministratorRole() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getAuthorities() == null) {
+            return false;
+        }
+        for (var authority : auth.getAuthorities()) {
+            if ("ROLE_Administrator".equals(authority.getAuthority())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void assertRoundOpen(long bidRoundId) {

@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.model.auctions.BidData;
 import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.repository.auctions.BidDataRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,6 +15,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+
+import java.util.List;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -61,6 +67,12 @@ class BidDataSubmissionServiceTest {
     @BeforeEach
     void setUp() {
         service = new BidDataSubmissionService(bidDataRepo, bidRoundRepo, jdbc);
+    }
+
+    @AfterEach
+    void clearSecurityContext() {
+        // Tests that authenticate as Administrator must not leak into siblings.
+        SecurityContextHolder.clearContext();
     }
 
     // -----------------------------------------------------------------------
@@ -266,6 +278,32 @@ class BidDataSubmissionServiceTest {
         // No round lookup, no UPDATEs.
         verify(bidRoundRepo, never()).findById(any());
         verify(jdbc, never()).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    void submit_administratorBypass_skipsOwnershipCheck() {
+        // Mendix-parity admin bypass: an Administrator caller can act on
+        // behalf of any bidder for diagnostic / recovery without owning the
+        // buyer code. The ownership SQL must never run; the round + UPDATEs
+        // proceed as normal.
+        authenticateAsAdministrator();
+        BidRound round = bidRound(false, "Started");
+        when(bidRoundRepo.findById(BID_ROUND_ID)).thenReturn(Optional.of(round));
+        when(jdbc.update(anyString(), eq(USERNAME), eq(USER_ID), eq(BID_ROUND_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(3);
+        when(jdbc.update(anyString(), eq(USER_ID), eq(BID_ROUND_ID))).thenReturn(1);
+
+        BidSubmissionResult result = service.submit(USER_ID, USERNAME, BID_ROUND_ID, BUYER_CODE_ID);
+
+        assertThat(result.rowCount()).isEqualTo(3);
+        // Critical: ownership query must not have been issued.
+        verify(jdbc, never()).queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID));
+    }
+
+    private static void authenticateAsAdministrator() {
+        var auth = new UsernamePasswordAuthenticationToken(
+                "admin@test.com", "n/a", List.of(new SimpleGrantedAuthority("ROLE_Administrator")));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     // -----------------------------------------------------------------------
