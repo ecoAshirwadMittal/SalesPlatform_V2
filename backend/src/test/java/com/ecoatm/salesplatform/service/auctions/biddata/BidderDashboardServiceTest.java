@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -28,8 +29,11 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -50,13 +54,18 @@ class BidderDashboardServiceTest {
     @Mock private BidRoundRepository bidRoundRepo;
     @Mock private QualifiedBuyerCodeRepository qbcRepo;
     @Mock private BidDataRepository bidDataRepo;
+    @Mock private JdbcTemplate jdbc;
 
     private BidderDashboardService service;
 
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
-        service = new BidderDashboardService(saRepo, auctionRepo, bidRoundRepo, qbcRepo, bidDataRepo, clock);
+        service = new BidderDashboardService(saRepo, auctionRepo, bidRoundRepo, qbcRepo, bidDataRepo, jdbc, clock);
+        // Default ownership pass for landingRoute() — individual tests can override
+        // (loadGrid does not call assertOwnership, so lenient() avoids unused-stub errors).
+        lenient().when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
     }
 
     @Test
@@ -68,6 +77,17 @@ class BidderDashboardServiceTest {
 
         assertThat(result).isInstanceOf(BidderDashboardLandingResult.Error.class);
         assertThat(((BidderDashboardLandingResult.Error) result).reason()).isEqualTo("AUCTION_NOT_FOUND");
+    }
+
+    @Test
+    void landingRoute_throwsWhenBuyerCodeNotOwnedByUser() {
+        // Override the @BeforeEach default — ownership query returns 0 → user does not own buyer code.
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(0L);
+
+        assertThatThrownBy(() -> service.landingRoute(USER_ID, BUYER_CODE_ID))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("NOT_YOUR_BID_DATA");
     }
 
     @Test

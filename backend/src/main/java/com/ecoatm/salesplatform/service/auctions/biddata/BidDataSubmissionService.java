@@ -120,6 +120,11 @@ public class BidDataSubmissionService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW, timeout = 15)
     public BidSubmissionResult submit(long userId, String username, long bidRoundId, long buyerCodeId) {
+        // IDOR guard: assert before any DB read or write. The round-level
+        // submitted flag would otherwise flip even when the per-buyer-code
+        // bid_data UPDATE wrote 0 rows.
+        assertOwnership(userId, buyerCodeId);
+
         BidRound round = bidRoundRepo.findById(bidRoundId)
                 .orElseThrow(() -> new BidDataSubmissionException("BID_ROUND_NOT_FOUND",
                         "Bid round not found: " + bidRoundId));

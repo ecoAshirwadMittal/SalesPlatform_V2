@@ -161,6 +161,9 @@ class BidDataSubmissionServiceTest {
 
     @Test
     void submit_firstSubmit_copiesBidToSubmittedWithNullLastValid() {
+        // ownership passes
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
         BidRound round = bidRound(false /* not previously submitted */, "Started");
         when(bidRoundRepo.findById(BID_ROUND_ID)).thenReturn(Optional.of(round));
         when(jdbc.update(anyString(), eq(USERNAME), eq(USER_ID), eq(BID_ROUND_ID), eq(BUYER_CODE_ID)))
@@ -202,6 +205,9 @@ class BidDataSubmissionServiceTest {
         // same shape; what changes is the result.resubmit() flag and the
         // semantic that submitted_* on each row already has prior values which
         // the SQL slides into last_valid_* before overwriting with bid_*.
+        // ownership passes
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
         BidRound round = bidRound(true /* previously submitted */, "Started");
         when(bidRoundRepo.findById(BID_ROUND_ID)).thenReturn(Optional.of(round));
         when(jdbc.update(anyString(), eq(USERNAME), eq(USER_ID), eq(BID_ROUND_ID), eq(BUYER_CODE_ID)))
@@ -229,6 +235,9 @@ class BidDataSubmissionServiceTest {
 
     @Test
     void submit_closedRound_throws() {
+        // ownership passes
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
         BidRound round = bidRound(false, "Closed");
         when(bidRoundRepo.findById(BID_ROUND_ID)).thenReturn(Optional.of(round));
 
@@ -237,6 +246,25 @@ class BidDataSubmissionServiceTest {
                 .isInstanceOf(BidDataSubmissionException.class)
                 .extracting("code").isEqualTo("ROUND_CLOSED");
 
+        verify(jdbc, never()).update(anyString(), any(Object[].class));
+    }
+
+    @Test
+    void submit_throwsWhenBuyerCodeNotOwnedByUser() {
+        // ownership query (2-hop JOIN) returns 0 → user does not own buyer code.
+        // Critically, this must throw BEFORE any DB read or write — otherwise
+        // SUBMIT_BID_ROUND_SQL would flip the round-level submitted flag even
+        // though the per-buyer-code SUBMIT_BID_DATA_SQL writes 0 rows.
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(0L);
+
+        assertThatThrownBy(() ->
+                service.submit(USER_ID, USERNAME, BID_ROUND_ID, BUYER_CODE_ID))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("NOT_YOUR_BID_DATA");
+
+        // No round lookup, no UPDATEs.
+        verify(bidRoundRepo, never()).findById(any());
         verify(jdbc, never()).update(anyString(), any(Object[].class));
     }
 

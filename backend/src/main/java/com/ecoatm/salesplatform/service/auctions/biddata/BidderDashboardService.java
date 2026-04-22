@@ -17,6 +17,7 @@ import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidDataRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,11 +31,26 @@ import java.util.Optional;
 @Service
 public class BidderDashboardService {
 
+    /**
+     * Mirrors {@link BidDataSubmissionService#OWNERSHIP_SQL} — the actual
+     * schema is {@code user_mgmt.user_buyers (user_id, buyer_id)} +
+     * {@code buyer_mgmt.buyer_code_buyers (buyer_code_id, buyer_id)}; a
+     * user owns a buyer code iff at least one shared {@code buyer_id}
+     * exists. Duplicated here (not extracted to a shared helper) to
+     * keep the IDOR fix as a minimal diff — see Task 12 fix notes.
+     */
+    private static final String OWNERSHIP_SQL = """
+            SELECT COUNT(*) FROM user_mgmt.user_buyers ub
+            JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_id = ub.buyer_id
+            WHERE ub.user_id = ? AND bcb.buyer_code_id = ?
+            """;
+
     private final SchedulingAuctionRepository saRepo;
     private final AuctionRepository auctionRepo;
     private final BidRoundRepository bidRoundRepo;
     private final QualifiedBuyerCodeRepository qbcRepo;
     private final BidDataRepository bidDataRepo;
+    private final JdbcTemplate jdbc;
     private final Clock clock;
 
     public BidderDashboardService(SchedulingAuctionRepository saRepo,
@@ -42,18 +58,22 @@ public class BidderDashboardService {
                                   BidRoundRepository bidRoundRepo,
                                   QualifiedBuyerCodeRepository qbcRepo,
                                   BidDataRepository bidDataRepo,
+                                  JdbcTemplate jdbc,
                                   Clock clock) {
         this.saRepo = saRepo;
         this.auctionRepo = auctionRepo;
         this.bidRoundRepo = bidRoundRepo;
         this.qbcRepo = qbcRepo;
         this.bidDataRepo = bidDataRepo;
+        this.jdbc = jdbc;
         this.clock = clock;
     }
 
     @Transactional(readOnly = true)
-    @SuppressWarnings("unused")
     public BidderDashboardLandingResult landingRoute(long userId, long buyerCodeId) {
+        // IDOR guard: assert before probing any auction/round/QBC state.
+        assertOwnership(userId, buyerCodeId);
+
         Optional<SchedulingAuction> activeOpt =
                 saRepo.findFirstByRoundStatusOrderByStartDatetimeDesc(SchedulingAuctionStatus.Started);
         if (activeOpt.isEmpty()) {
@@ -205,6 +225,14 @@ public class BidderDashboardService {
         long secsToEnd = ends == null ? -1 : Math.max(0, ends.getEpochSecond() - now.getEpochSecond());
         boolean active = starts != null && ends != null && !now.isBefore(starts) && now.isBefore(ends);
         return new RoundTimerState(now, starts, ends, secsToStart, secsToEnd, active);
+    }
+
+    private void assertOwnership(long userId, long buyerCodeId) {
+        Long count = jdbc.queryForObject(OWNERSHIP_SQL, Long.class, userId, buyerCodeId);
+        if (count == null || count == 0L) {
+            throw new BidDataSubmissionException("NOT_YOUR_BID_DATA",
+                    "User does not own buyer_code_id=" + buyerCodeId);
+        }
     }
 
     private static BidDataRow toRow(BidData b) {
