@@ -26,6 +26,26 @@ import java.util.Map;
  * {@link #qualificationFilter} has been called AND {@code round} is 2 or 3.
  * The table CHECK constraint rejects round=1, so filter inserts for round=1
  * are silently skipped.
+ *
+ * <p><strong>Buyer-code reuse:</strong> the buyer-code lookup in
+ * {@link #commitAndReturnBidRoundId()} resolves
+ * {@code buyer_mgmt.buyer_codes} by {@code buyer_code_type} with
+ * {@code LIMIT 1}. Two scenarios in the same test class that pass the
+ * same {@link #buyerCodeType(String)} (e.g. both {@code "Wholesale"})
+ * therefore resolve the <em>same</em> {@code buyer_code_id}. This is
+ * safe under {@code @DataJpaTest} because each test method runs in an
+ * isolated rollback transaction — every fixture write (including the
+ * {@code qualified_buyer_codes} row, scheduling auctions, bid rounds,
+ * and bid_data) is rolled back at the end of the test. A future
+ * maintainer who introduces a non-rollback integration test (e.g.
+ * {@code @Commit}, {@code @Transactional(propagation = NOT_SUPPORTED)},
+ * or a TestContainers IT outside {@code @DataJpaTest}) MUST be aware
+ * that subsequent scenarios in the same JVM run can collide on the
+ * shared buyer code — for example, the
+ * {@code uq_qbc_sa_bc UNIQUE (scheduling_auction_id, buyer_code_id)}
+ * constraint on {@code qualified_buyer_codes} (V72) will reject the
+ * second QBC insert if both scenarios target the same scheduling
+ * auction and buyer code.
  */
 public final class BidDataScenario {
 

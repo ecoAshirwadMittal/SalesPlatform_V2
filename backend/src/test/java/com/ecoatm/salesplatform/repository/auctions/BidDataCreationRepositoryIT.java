@@ -228,6 +228,23 @@ class BidDataCreationRepositoryIT {
         long buyerCodeId  = scenario.lastBuyerCodeId();
         long bidDataDocId = scenario.lastBidDataDocId();
 
+        // Precondition: the QBC chain must be in place so that a zero
+        // result is unambiguously attributable to the inventory-side
+        // filter, not to the silent-zero "missing QBC" mode (b) called
+        // out in BidDataCreationRepository#generate's @implNote.
+        Long schedulingAuctionId = jdbc.queryForObject(
+                "SELECT scheduling_auction_id FROM auctions.bid_rounds WHERE id = ?",
+                Long.class, bidRoundId);
+        Integer qbcCount = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM buyer_mgmt.qualified_buyer_codes "
+                        + "WHERE scheduling_auction_id = ? "
+                        + "  AND buyer_code_id         = ? "
+                        + "  AND included              = true",
+                Integer.class, schedulingAuctionId, buyerCodeId);
+        assertThat(qbcCount)
+                .as("QBC chain must be set up before testing inventory filter")
+                .isEqualTo(1);
+
         int inserted = repo.generate(bidRoundId, buyerCodeId, bidDataDocId);
 
         assertThat(inserted).isZero();

@@ -190,6 +190,9 @@ public class BidDataCreationRepository {
             (SELECT buyer_code_type FROM params),
             qr.prev_qty, qr.prev_amount,
             (SELECT round FROM params),
+            /* mdm.week.id is BIGINT but bid_data.week_id is INTEGER (V61);
+               narrowing is intentional and safe given week IDs are small
+               surrogate serials. */
             (SELECT CAST(week_id AS integer) FROM params),
             :bid_data_doc_id,
             NOW(), NOW()
@@ -206,7 +209,47 @@ public class BidDataCreationRepository {
      * @param buyerCodeId  the {@code buyer_mgmt.buyer_codes.id} bidding
      * @param bidDataDocId the {@code auctions.bid_data_docs.id} slot —
      *                     stamped on every inserted row
-     * @return number of {@code bid_data} rows inserted
+     * @return number of {@code bid_data} rows inserted. A return value of
+     *         {@code 0} is ambiguous and can mean any of the following,
+     *         which the caller must distinguish out-of-band:
+     *         <ul>
+     *           <li><strong>(a) Idempotent skip</strong> —
+     *               {@code auctions.bid_data} already has at least one row
+     *               for this {@code bid_round_id} and the {@code existing_check}
+     *               CTE short-circuited the INSERT.</li>
+     *           <li><strong>(b) Missing QBC row</strong> — no
+     *               {@code buyer_mgmt.qualified_buyer_codes} row exists for
+     *               the {@code (scheduling_auction_id, buyer_code_id)} pair.
+     *               The {@code inventory_qualified} CTE uses an implicit
+     *               cross join against {@code qualified_buyer_check}, so a
+     *               missing QBC produces zero qualified rows. R1 init
+     *               (sub-project 3) is responsible for seeding QBCs;
+     *               callers in Task 8 should verify QBC presence before
+     *               invoking this method.</li>
+     *           <li><strong>(c) Zero qualified inventory</strong> — every
+     *               {@code aggregated_inventory} row for the week was
+     *               filtered out by the deprecation flag, the DW vs
+     *               wholesale quantity predicate, or the QBC
+     *               {@code included = true} gate.</li>
+     *         </ul>
+     * @implNote The {@code existing_check} CTE is a <em>soft</em> guard,
+     *           not a true mutex. Two concurrent callers can both observe
+     *           {@code n=0} within their snapshots and both proceed to
+     *           INSERT, producing duplicate {@code bid_data} rows for the
+     *           same {@code bid_round_id}. The real safety net is
+     *           {@code pg_advisory_xact_lock(hashtext('bid_data_gen'),
+     *           bid_round_id)} acquired by {@code BidDataCreationService}
+     *           in Task 8. Direct callers that bypass that service MUST
+     *           acquire the same advisory lock before invoking this
+     *           method; otherwise duplicate-row anomalies are possible
+     *           under concurrent load.
+     * @implNote Sub-project 4 will redesign the {@code row_visible} +
+     *           {@code bid_meets_threshold} stubs (currently constant
+     *           {@code TRUE}) and may also convert the
+     *           {@code inventory_qualified} cross join to a {@code LEFT JOIN}
+     *           so that "missing QBC" can be distinguished from "QBC
+     *           present but excluded". Until then, mode (b) above is the
+     *           caller's responsibility to detect.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public int generate(long bidRoundId, long buyerCodeId, long bidDataDocId) {
