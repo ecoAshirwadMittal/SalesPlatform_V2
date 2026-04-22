@@ -9,8 +9,16 @@ interface SubmitBarProps {
   errorMessage: string | null;
 }
 
+// Module-scoped so the formatter is constructed once and reused on every
+// render; cheaper than a per-call `Intl.NumberFormat(...)` and produces
+// locale-correct grouping/decimal separators.
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
+
 function formatCurrency(value: number): string {
-  return `$${value.toFixed(2)}`;
+  return currencyFormatter.format(value);
 }
 
 export function SubmitBar({

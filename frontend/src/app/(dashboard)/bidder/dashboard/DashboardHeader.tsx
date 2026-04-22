@@ -41,7 +41,10 @@ function Countdown({ endsAt }: { endsAt: string }) {
 export function DashboardHeader({ auction, bidRound, timer }: DashboardHeaderProps) {
   const statusIsStarted = bidRound.roundStatus === 'Started';
   const badgeBg = statusIsStarted ? '#407874' : '#9ca3af';
-  const showCountdown = timer !== null && timer.active && timer.endsAt !== null;
+  // Narrow timer + active + endsAt into a single non-null value so TS
+  // control flow carries the guarantee into the JSX branch without a
+  // second explicit check or non-null assertion.
+  const endsAt = timer !== null && timer.active ? timer.endsAt : null;
 
   return (
     <header className="mb-4 border-b border-[#407874]/30 pb-3">
@@ -57,10 +60,10 @@ export function DashboardHeader({ auction, bidRound, timer }: DashboardHeaderPro
           {bidRound.roundStatus}
         </span>
         <span className="ml-auto text-sm text-[#112d32]">
-          {showCountdown && timer && timer.endsAt !== null ? (
+          {endsAt !== null ? (
             <>
               <span className="mr-2">Ends in</span>
-              <Countdown endsAt={timer.endsAt} />
+              <Countdown endsAt={endsAt} />
             </>
           ) : (
             <span className="italic text-gray-500">Round closed</span>

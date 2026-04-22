@@ -69,6 +69,10 @@ export function BidderDashboardClient({
   // re-registering on every render.
   const buyerCodeRef = useRef<number>(buyerCodeId);
   buyerCodeRef.current = buyerCodeId;
+  // Synchronous guard against double-submit: two rapid clicks can land
+  // in the same React batch before `setSubmitting(true)` flushes. The
+  // ref check rejects the second call immediately.
+  const submitInFlight = useRef<boolean>(false);
 
   const applyResponse = useCallback((response: BidderDashboardResponse): void => {
     setMode(response.mode);
@@ -86,7 +90,8 @@ export function BidderDashboardClient({
   }, []);
 
   const handleSubmit = useCallback(async (): Promise<void> => {
-    if (!grid) return;
+    if (submitInFlight.current || !grid) return;
+    submitInFlight.current = true;
     const roundId = grid.bidRound.id;
     setSubmitting(true);
     setErrorMessage(null);
@@ -120,6 +125,7 @@ export function BidderDashboardClient({
         setErrorMessage('Submit failed. Please try again.');
       }
     } finally {
+      submitInFlight.current = false;
       setSubmitting(false);
     }
   }, [grid, applyResponse]);
@@ -163,6 +169,7 @@ export function BidderDashboardClient({
     .filter((r): r is BidDataRow => r !== undefined);
 
   const canSubmit =
+    !submitting &&
     grid.bidRound.roundStatus === 'Started' &&
     (grid.timer === null || grid.timer.active);
 
