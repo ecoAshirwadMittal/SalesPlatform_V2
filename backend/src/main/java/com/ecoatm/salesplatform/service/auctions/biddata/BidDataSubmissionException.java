@@ -8,7 +8,7 @@ public class BidDataSubmissionException extends RuntimeException {
         this.code = code;
     }
 
-    public String getCode() {
+    public String code() {
         return code;
     }
 }
