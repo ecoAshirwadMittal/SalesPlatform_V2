@@ -23,13 +23,16 @@ public class BidRateLimiter {
     public boolean tryAcquire(long userId, long bidRoundId) {
         String key = userId + ":" + bidRoundId;
         long minute = clock.instant().getEpochSecond() / 60;
-        Bucket b = buckets.compute(key, (k, existing) -> {
+        int[] countHolder = {0};
+        buckets.compute(key, (k, existing) -> {
             if (existing == null || existing.minute != minute) {
-                return new Bucket(minute, new AtomicInteger(0));
+                countHolder[0] = 1;
+                return new Bucket(minute, new AtomicInteger(1));
             }
+            countHolder[0] = existing.count.incrementAndGet();
             return existing;
         });
-        return b.count.incrementAndGet() <= maxPerMinute;
+        return countHolder[0] <= maxPerMinute;
     }
 
     private record Bucket(long minute, AtomicInteger count) {}
