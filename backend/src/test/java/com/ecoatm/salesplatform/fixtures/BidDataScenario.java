@@ -39,6 +39,9 @@ public final class BidDataScenario {
     private final Map<InventoryKey, BidSpec> priorRoundBids = new HashMap<>();
     private FilterSpec filter = null;
 
+    private Long resolvedBuyerCodeId;
+    private Long resolvedBidDataDocId;
+
     public BidDataScenario(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
     }
@@ -131,6 +134,31 @@ public final class BidDataScenario {
                     "BidDataScenario requires at least one buyer_mgmt.buyer_codes row "
                             + "with buyer_code_type='" + buyerCodeType + "' — none found");
         }
+        this.resolvedBuyerCodeId = buyerCodeId;
+
+        // Resolve any user — bid_data_docs has a NOT NULL FK to identity.users.
+        Long userId = jdbc.queryForObject(
+                "SELECT id FROM identity.users LIMIT 1", Long.class);
+        if (userId == null) {
+            throw new IllegalStateException(
+                    "BidDataScenario requires at least one identity.users row — none found");
+        }
+
+        // Insert the bid_data_docs row keyed by (user, buyer_code, week). The
+        // unique constraint uq_bdd_user_buyer_week means we must reuse an
+        // existing row when one is already present for this triple — multiple
+        // BidDataScenario calls in the same test would otherwise collide.
+        Long bidDataDocId = jdbc.queryForObject(
+                "INSERT INTO auctions.bid_data_docs (user_id, buyer_code_id, week_id) "
+                        + "VALUES (?, ?, ?) "
+                        + "ON CONFLICT (user_id, buyer_code_id, week_id) "
+                        + "DO UPDATE SET changed_date = NOW() "
+                        + "RETURNING id",
+                Long.class,
+                userId,
+                buyerCodeId,
+                weekId);
+        this.resolvedBidDataDocId = bidDataDocId;
 
         // ── Step 2: auction row ───────────────────────────────────────────────────
         Long auctionId = jdbc.queryForObject(
@@ -286,6 +314,32 @@ public final class BidDataScenario {
         }
 
         return bidRoundId;
+    }
+
+    /**
+     * Returns the {@code buyer_mgmt.buyer_codes.id} resolved during the most
+     * recent {@link #commitAndReturnBidRoundId()} call. Throws
+     * {@link IllegalStateException} when called before commit.
+     */
+    public long lastBuyerCodeId() {
+        if (resolvedBuyerCodeId == null) {
+            throw new IllegalStateException(
+                    "commitAndReturnBidRoundId() must be called first");
+        }
+        return resolvedBuyerCodeId;
+    }
+
+    /**
+     * Returns the {@code auctions.bid_data_docs.id} inserted (or upserted)
+     * during the most recent {@link #commitAndReturnBidRoundId()} call. Throws
+     * {@link IllegalStateException} when called before commit.
+     */
+    public long lastBidDataDocId() {
+        if (resolvedBidDataDocId == null) {
+            throw new IllegalStateException(
+                    "commitAndReturnBidRoundId() must be called first");
+        }
+        return resolvedBidDataDocId;
     }
 
     // ── Value types ───────────────────────────────────────────────────────────────
