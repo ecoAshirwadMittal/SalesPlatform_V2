@@ -25,18 +25,14 @@ import { apiFetch } from './apiFetch';
  *   with HTTP 404 + this enum in the body.
  * `ALL_ROUNDS_DONE` — every round for the active auction already closed.
  */
-export type LandingMode =
-  | 'GRID'
-  | 'DOWNLOAD'
-  | 'ERROR_AUCTION_NOT_FOUND'
-  | 'ALL_ROUNDS_DONE';
-
 const LandingModeSchema = z.enum([
   'GRID',
   'DOWNLOAD',
   'ERROR_AUCTION_NOT_FOUND',
   'ALL_ROUNDS_DONE',
 ]);
+
+export type LandingMode = z.infer<typeof LandingModeSchema>;
 
 export const BidDataRowSchema = z.object({
   id: z.number(),
@@ -252,7 +248,7 @@ export async function submitBidRound(
     const { code, message } = await readErrorEnvelope(res);
     if (code === 'ROUND_CLOSED') throw new RoundClosedError(message);
     if (code === 'VERSION_CONFLICT') throw new VersionConflictError(message);
-    throw new Error(`HTTP 409: ${message}`);
+    throw new Error(`HTTP ${res.status}`);
   }
 
   if (!res.ok) {

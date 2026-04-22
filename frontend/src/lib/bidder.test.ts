@@ -175,6 +175,12 @@ describe('saveBid', () => {
       RateLimitedError,
     );
   });
+
+  it('throws a generic Error on non-200/non-429 responses', async () => {
+    fetchMock.mockResolvedValueOnce(emptyResponse(500));
+
+    await expect(saveBid(501, { bidQuantity: 5, bidAmount: 120.5 })).rejects.toThrow('HTTP 500');
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -216,5 +222,13 @@ describe('submitBidRound', () => {
     );
 
     await expect(submitBidRound(100, 777)).rejects.toBeInstanceOf(VersionConflictError);
+  });
+
+  it('throws a generic Error on 409 with an unknown code', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(409, { code: 'SOME_FUTURE_CODE', message: 'Unknown conflict' }),
+    );
+
+    await expect(submitBidRound(100, 777)).rejects.toThrow('HTTP 409');
   });
 });
