@@ -229,7 +229,7 @@ export function BidderDashboardClient({
         onExport={handleExport}
         onImport={handleImport}
       />
-      <BidGrid rows={rows} onRowSaved={handleRowSaved} />
+      <BidGrid rows={rows} onRowSaved={handleRowSaved} totalRowCount={rows.length} />
     </div>
   );
 }

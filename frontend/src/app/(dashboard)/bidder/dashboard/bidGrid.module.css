@@ -1,0 +1,89 @@
+/* BidGrid — sortable / filterable header, fixed-height scroll wrapper, footer */
+
+.wrapper {
+  overflow: auto;
+  max-height: 600px;
+  border: 1px solid var(--border-color, #D0D0D0);
+  border-radius: 2px;
+}
+
+.table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: collapse;
+}
+
+/* ── Sticky header ── */
+.thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: #407874;
+  color: #fff;
+}
+
+/* Two-row header: label+sort row on top, filter row below */
+.thLabelRow th {
+  padding: 6px 8px 2px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.thFilterRow th {
+  padding: 2px 8px 6px;
+}
+
+/* Sort button inside the label cell */
+.sortBtn {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 0 0 0 4px;
+  font-size: 0.75rem;
+  line-height: 1;
+  vertical-align: middle;
+  /* Screen-reader visible: aria-sort on the <th> carries the a11y state */
+}
+
+.sortBtn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* Filter inputs */
+.filterInput {
+  width: 100%;
+  padding: 2px 4px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  box-sizing: border-box;
+}
+
+.filterInput::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.filterInput:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.7);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Numeric filter — align text right to mirror the data column */
+.filterInputRight {
+  text-align: right;
+}
+
+/* ── Footer ── */
+.footer {
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  color: var(--gray-dark, #666766);
+  border-top: 1px solid var(--border-color, #D0D0D0);
+  background: #fafafa;
+}

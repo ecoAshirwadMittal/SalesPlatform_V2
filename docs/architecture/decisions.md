@@ -5,6 +5,77 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-23 — Round 3 displays as "Round 3" (not "Upsell Round") — reverses 2026-04-20 ADR
+
+**Status:** Accepted. Reverses the display-name portion of the 2026-04-20
+ADR ("Auction lifecycle: Create persists only the auction row; Schedule
+persists the rounds"). The enum-as-varchar, dedicated-endpoint, and
+method-security decisions from that ADR remain in force.
+
+### Context
+
+The Mendix source (`migration_context/backend/ACT_SaveScheduleAuction.md`)
+and the original 2026-04-20 ADR both specified that Round 3's
+customer-facing label should be `"Upsell Round"`, matching the string
+persisted in the `auctions.scheduling_auctions.name` column. This string
+appeared in the scheduling UI, the scheduling-auctions list grid, and —
+under the original plan — the bidder-facing dashboard round header.
+
+During the 2026-04-22 QA walkthrough with the wholesale buyer user,
+the product owner directed that **all bidder-facing UI should render
+`Round {n}` uniformly** — including Round 3. The rationale: wholesale
+buyers should not be confused by a different label for the third round;
+the "Upsell" framing is internal operations language and has no meaning
+to the buyer.
+
+The QA capture at `docs/qa-reference/qa-03-bidder-dashboard-ad.png`
+confirms the expected bidder-facing panel reads "Round 3".
+
+### Decision
+
+- **Frontend derives the round label from the numeric `round` field.**
+  Every consumer of a `SchedulingAuctionSummary` or equivalent round
+  shape should render `` `Round ${round}` `` regardless of the value in
+  the `name` or `roundName` fields.
+- **Backend `name` column is preserved.** `auctions.scheduling_auctions.name`
+  retains `"Upsell Round"` for Round 3. The value is still returned in
+  the API response (`GET /admin/auctions/{id}` and the
+  `SchedulingAuctionSummary` DTO) for audit and historical parity with
+  Mendix. No migration needed.
+- **Admin-facing surfaces (scheduling grid, auction detail) may choose
+  to display the `name` field** — this ADR restricts only the
+  bidder-facing UI.
+
+### Alternatives considered
+
+- **Rename the DB column value to `"Round 3"`.** Rejected: breaks
+  historical parity with the Mendix source and removes the ability to
+  surface the Upsell label on admin surfaces or in Snowflake push
+  payloads.
+- **Add a separate `displayName` field computed server-side.**
+  Rejected: over-engineered for a single-string override; the frontend
+  derivation rule is trivially expressed and has no edge cases.
+
+### Consequences
+
+- Simpler bidder UI — all round headers are uniform `"Round N"` copy.
+- Audit consumers (admin grids, Snowflake, reporting) can still query
+  the original Mendix `"Upsell Round"` value from the `name` column.
+- Any future bidder-facing feature that wants to surface the Upsell
+  meaning must opt in explicitly (i.e., read `name` rather than
+  deriving from `round`).
+- The scheduling-auctions admin list grid currently renders the `name`
+  column; that is unchanged by this ADR.
+
+### References
+
+- Reversed decision: 2026-04-20 ADR ("Round 3 name is `Upsell Round`"
+  section), archived in `decisions-archive.md`.
+- QA capture: `docs/qa-reference/qa-03-bidder-dashboard-ad.png`.
+- Mendix source: `migration_context/backend/ACT_SaveScheduleAuction.md`.
+
+---
+
 ## 2026-04-23 — Bidder dashboard + bid_data generation
 
 **Status:** Accepted (sub-project 3 of
