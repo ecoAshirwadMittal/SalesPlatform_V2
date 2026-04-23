@@ -62,9 +62,21 @@ class V74MigrationTest {
         assertThat(orphans).isZero();
     }
 
+    @Test
+    void dataLoaded() {
+        Integer rb = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid", Integer.class);
+        assertThat(rb).isGreaterThan(14000);  // 14,657 actual from qa-0327 (deduped)
+        Integer audit = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid_audit", Integer.class);
+        assertThat(audit).isGreaterThanOrEqualTo(4);
+        // sync singleton still 1 row after replacement
+        Integer sync = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid_sync", Integer.class);
+        assertThat(sync).isEqualTo(1);
+    }
+
     @AfterEach
     void cleanup() {
-        jdbc.update("DELETE FROM auctions.reserve_bid_audit");
-        jdbc.update("DELETE FROM auctions.reserve_bid");
+        jdbc.update("DELETE FROM auctions.reserve_bid_audit WHERE reserve_bid_id IN "
+                  + "(SELECT id FROM auctions.reserve_bid WHERE product_id IN ('18509','99001'))");
+        jdbc.update("DELETE FROM auctions.reserve_bid WHERE product_id IN ('18509','99001')");
     }
 }
