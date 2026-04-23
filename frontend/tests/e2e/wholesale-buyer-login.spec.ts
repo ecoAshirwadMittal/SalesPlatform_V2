@@ -5,10 +5,15 @@ import { test, expect } from '@playwright/test';
  * Requires the dev server running at http://localhost:3000 and the backend at
  * http://localhost:8080.  The Playwright config wires `webServer` to start the
  * frontend automatically when not already running.
+ *
+ * Happy-path test verifies the multi-code buyer-select landing.  Single-code
+ * deep-linking (skip-to-shell) is Phase 2's job — if bidder@buyerco.com turns
+ * out to have exactly one code in Phase 2, this test may need a data-setup shim
+ * to ensure the multi-code path is exercised.
  */
 
 test.describe('Wholesale buyer login', () => {
-  test('bidder can log in and lands on a buyer shell route', async ({ page }) => {
+  test('bidder can log in and lands on /buyer-select', async ({ page }) => {
     await page.goto('/login');
 
     // Verify the page headline is present and correct
@@ -18,9 +23,9 @@ test.describe('Wholesale buyer login', () => {
     await page.getByPlaceholder('Password').fill('Bidder123!');
     await page.getByRole('button', { name: 'Login', exact: true }).click();
 
-    // The Bidder role currently routes to /pws/order (Phase 2 will adjust to
-    // /buyer-select once the picker is wired).  Accept either destination.
-    await expect(page).toHaveURL(/\/(pws|buyer-select)/, { timeout: 15_000 });
+    // Phase 1: Bidder role routes to /buyer-select (the code picker).
+    // Single-code deep-linking is Phase 2's job.
+    await expect(page).toHaveURL(/\/buyer-select/, { timeout: 15_000 });
   });
 
   test('password eye-toggle is keyboard accessible', async ({ page }) => {

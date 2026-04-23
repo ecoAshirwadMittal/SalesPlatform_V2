@@ -98,7 +98,9 @@ export default function LoginForm() {
         } else {
           const roles: string[] = data.user?.roles ?? [];
           const isBuyerOnly = roles.length > 0 && roles.every(r => r === 'Bidder');
-          router.push(isBuyerOnly ? '/pws/order' : '/users');
+          // Bidder users pick a buyer code at /buyer-select; the picker handles
+          // skip-to-shell routing for single-code users (Phase 2 completes this).
+          router.push(isBuyerOnly ? '/buyer-select' : '/users');
         }
       } else {
         const data = await response.json();

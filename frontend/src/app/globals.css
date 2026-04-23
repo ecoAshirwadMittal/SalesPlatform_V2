@@ -81,6 +81,10 @@
   --color-divider: #D1CDC6;             /* Horizontal rule between Employee Login and footer section */
   --color-input-border-dark: #898787;   /* Login input border (stronger contrast than --color-input-border) */
   --color-input-text: #333333;          /* Login input text (one step darker than --color-text-body) */
+  --color-surface-white: #FFFFFF;       /* Pure-white surface background (login-card left panel behind hero photo) */
+
+  /* Shadows */
+  --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.2);  /* Login card + modal surface elevation */
 
   /* Typography */
   --font-family-primary: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
