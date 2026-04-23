@@ -5,6 +5,139 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-23 — Wholesale buyer portal: two-shell routing + parity baselines
+
+**Status:** Accepted (wholesale-buyer parity closeout, Phases 0-14 except 13).
+
+### Context
+
+Porting the Mendix wholesale buyer portal (`https://buy-qa.ecoatmdirect.com`)
+to Next.js surfaced that a Mendix user with mixed code types (auction +
+PWS) never sees a merged menu — the shell is chosen by the currently
+selected buyer code's type. Auction-only users see Auction + Buyer User
+Guide + the bidder dashboard grid. PWS users see Orders / Offers /
+Pricing / Profile / Notifications + the Shop page. Switching between
+shells requires returning to the buyer-code picker via a "Switch Buyer
+Code" link.
+
+The 14 phases documented in `docs/tasks/wholesale-buyer-parity-plan.md`
+implemented the auction-code-selected shell end to end. The PWS shell
+parity is deferred to a separate walkthrough because the QA account
+used (`akshay+4@learnfastthinkslow.com`) only holds auction codes.
+
+### Decision
+
+- **Two sibling shells gated on the active buyer code's type, not on the
+  user's portfolio.** `BidderShell` (auction codes) and `PwsShell` (PWS
+  codes) share only the top-bar chrome (logo + Switch Buyer Code link +
+  user avatar popover) and the login/picker flow. The active code is
+  persisted to `localStorage['activeBuyerCode']`; picker routing sets
+  this key and redirects to the appropriate shell's default landing.
+  Single-code users bypass the picker via `router.replace()`.
+- **Chrome primitives live in `frontend/src/components/chrome/`** —
+  `BuyerPortalChrome`, `BuyerCodeChip` (framed + filled variants),
+  `UserAvatarPopover` (injectable items for shell-specific menus),
+  `SidebarToggle`, `SidebarContext`. Both shells consume these.
+- **Backend surface for bidder:** `GET/PUT/POST /api/v1/bidder/**` plus
+  new endpoints from Phases 9/10/12/14 — `carryover`, `export`,
+  `import`, `buyer-user-guide`, `forgot-password`, `reset-password`.
+  Admin surface added: `POST /api/v1/admin/buyer-user-guide` for PDF
+  upload.
+- **Visual parity source of truth:** ten QA screenshots persisted in
+  `docs/qa-reference/` (captured 2026-04-22). Every frontend phase
+  compares against the corresponding file in that directory. Pixel-diff
+  tolerance (≤2% delta) + resolution-aware comparison are Phase 13
+  deferred work, but the reference bitmaps are committed.
+- **Key copy decisions** (verbatim from QA walkthrough):
+  - Round 3 displays as `Round 3`, not `"Upsell Round"` (reverses the
+    2026-04-20 ADR — see below).
+  - Submit Bids has no pre-submit confirmation. The empty-state modal
+    ("No Bids to Submit") fires client-side when no bids are entered;
+    the success modal ("Your Bids have been Submitted!") fires
+    post-commit. Both use verbatim Mendix copy including the double
+    space in `Bids  have` and the `3.Upload your file here` artifact
+    in the Import modal's step 3.
+  - The "Minimum starting bid - $2.50" label is advisory, not a hard
+    gate — the backend accepts $2.50 without complaint.
+  - The 4-step Import instructions preserve the Mendix typo where
+    step 3 has no space between `3.` and `Upload`.
+- **Layout strategy:** `bidder/layout.tsx` sits inside the shared
+  `(dashboard)` route group and uses `position: fixed; inset: 0;` to
+  visually override the inherited admin chrome. A cleaner route-group
+  restructure (move `bidder/` into its own `(buyer-portal)` group) is
+  technically viable but deferred — requires moving 8+ files for
+  marginal gain while Phase 6B is still pending.
+- **Grid footer:** `Currently showing N of M`. No totals bar
+  (`SubmitBar` was removed in Phase 5 — QA has no bottom totals row).
+  Submit Bids lives in the header.
+- **Bid cell inputs:** `PriceCell` (dollar-formatted, strip-on-focus,
+  reformat-on-blur) and `QtyCapCell` (integer-only, `null` = no-cap
+  sentinel, `0` = zero-unit bid). Debounced save via the existing
+  `useAutoSaveBid` hook (500 ms). Three error paths surface through a
+  shared `BidToast` with a 5-second auto-clear: `RateLimitedError`,
+  `RoundClosedError`, `VersionConflictError`.
+
+### Deferred follow-ups (tracked in
+`docs/tasks/wholesale-buyer-continuous-run-log.md`)
+
+- **Phase 6B — backend DTO expansion.** `BidDataRow` only exposes
+  `ecoid` + `mergedGrade`. QA shows Brand / Model / Model Name /
+  Carrier / Added alongside. Needs a SELECT joining
+  `auctions.aggregated_inventory` → `mdm.device` + related reference
+  tables. The export endpoint duplicates this join today; when 6B
+  ships, the two queries should share a helper.
+- **Phase 13 — E2E + pixel QA.** Specs exist per-phase (25 tests
+  across 5 files). Pixel-compare fixtures, axe-core, and CI workflow
+  are documented in `docs/tasks/phase-13-e2e-handoff.md`.
+- **DOWNLOAD mode button** has no live endpoint — it requires a new
+  `GET /bidder/download-round-1?buyerCodeId=X` backend. `onClick` is
+  currently a no-op with a TODO.
+- **ALL_ROUNDS_DONE / ERROR_AUCTION_NOT_FOUND / Carryover success**
+  copy is provisional. Needs a live QA walkthrough when those states
+  are reachable.
+- **Brandon Grotesque license** confirmation and any additional weights
+  (Phase 0 ships 400 + 500; 700 is commented out).
+- **PWS shell parity walkthrough** — the other half of the buyer
+  portal. Separate plan stub needed; no QA capture yet.
+- **Email SMTP for password reset** — `PasswordResetService` logs the
+  raw token at INFO with `DEV:` prefix. Real delivery follows the
+  2026-04-13 PWS email-delivery ADR pattern.
+- **Buyer User Guide storage** lives on local disk in Phase 12. Multi-
+  instance deploys need shared storage (S3 or equivalent).
+
+### Consequences
+
+- Future buyer-portal work consumes the same chrome primitives and
+  `useActiveBuyerCode` hook; PWS shell slot-in is structural.
+- The `BidderModal` primitive (Phase 8) serves Phase 9 (Carryover) and
+  Phase 10 (Import) — future modal-driven bidder features reuse it.
+- Design tokens in `globals.css` now have a stable surface (Phase 0 +
+  phase additions) documented in `docs/frontend/ui-primitives.md` —
+  future components should read from the table before adding new
+  tokens.
+- Rate-limiter bucket `(userId, bidRoundId)` is shared across Save +
+  Import. If abuse patterns diverge across these endpoints, split the
+  buckets.
+- The 2026-04-22 QA screenshots are the parity ground truth. Any QA-
+  visible drift on the Mendix side that changes bidder behavior requires
+  a re-capture (new dated file under `docs/qa-reference/`, don't
+  overwrite existing ones).
+
+### References
+
+- Plan: `docs/tasks/wholesale-buyer-parity-plan.md`
+- Analysis: `docs/tasks/wholesale-buyer-qa-analysis.md`
+- Continuous run log: `docs/tasks/wholesale-buyer-continuous-run-log.md`
+- Phase 13 handoff: `docs/tasks/phase-13-e2e-handoff.md`
+- QA references: `docs/qa-reference/README.md` + 10 PNGs
+- UI primitives: `docs/frontend/ui-primitives.md`
+- Related prior ADRs: 2026-04-23 (Round 3 label reversal), 2026-04-23
+  (Bidder dashboard + bid_data generation), 2026-04-13 (email-delivery
+  event pattern), 2026-04-20 (auction lifecycle cron), 2026-04-19
+  (admin security matcher ordering).
+
+---
+
 ## 2026-04-23 — Round 3 displays as "Round 3" (not "Upsell Round") — reverses 2026-04-20 ADR
 
 **Status:** Accepted. Reverses the display-name portion of the 2026-04-20
