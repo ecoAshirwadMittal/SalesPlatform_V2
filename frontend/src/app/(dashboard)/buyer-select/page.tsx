@@ -243,6 +243,14 @@ export default function BuyerSelectPage() {
             </section>
           )}
         </div>
+
+        {/* Empty-state fallback — shown when the API returns no codes at all */}
+        {!hasPws && !hasAuction && (
+          <p className={styles.emptyState}>
+            No active buyer codes are assigned to your account. Please contact your
+            sales representative.
+          </p>
+        )}
       </main>
     </div>
   );

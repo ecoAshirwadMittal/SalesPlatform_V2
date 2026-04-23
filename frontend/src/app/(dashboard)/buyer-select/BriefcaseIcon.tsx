@@ -1,7 +1,7 @@
 /**
  * Inline briefcase SVG used in the buyer-code pill avatar.
  * Pure presentational component — no state, no side effects.
- * Dimensions sized for the 28px green circular avatar container.
+ * Dimensions sized for the 32px green circular avatar container.
  */
 export default function BriefcaseIcon() {
   return (

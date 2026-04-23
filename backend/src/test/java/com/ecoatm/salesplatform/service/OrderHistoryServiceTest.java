@@ -82,7 +82,7 @@ class OrderHistoryServiceTest {
     }
 
     private BuyerCodeResponse makeCode(Long id) {
-        return new BuyerCodeResponse(id, "BC-" + id, "Test Account", null);
+        return new BuyerCodeResponse(id, "BC-" + id, "Test Account", "Wholesale");
     }
 
     // -------------------------------------------------------------------------
