@@ -7,6 +7,11 @@ import styles from './buyerSelect.module.css';
 import BriefcaseIcon from './BriefcaseIcon';
 import { apiFetch } from '@/lib/apiFetch';
 import { API_BASE } from '@/lib/apiRoutes';
+import {
+  setActiveBuyerCode,
+  resolveShellRoute,
+  type ActiveBuyerCode,
+} from '@/lib/activeBuyerCode';
 
 /**
  * Buyer Code Select page — pixel-match of legacy Mendix Buyer_Code_Select.
@@ -21,15 +26,22 @@ import { API_BASE } from '@/lib/apiRoutes';
  *   - Routing: AUCTION → /bidder/dashboard?buyerCodeId=…
  *              PWS    → /pws/order?buyerCodeId=…
  *   - codeType field from backend API drives all category and routing logic.
+ *
+ * Phase 3 changes:
+ *   - setActiveBuyerCode and resolveShellRoute extracted to lib/activeBuyerCode.ts.
+ *   - console.error replaced with a proper loadError state rendered in the UI.
+ *   - Image priority: PWS image gets priority only when it's the sole section
+ *     (no auction section); auction image gets priority only when it's the
+ *     sole section (no PWS section). When both sections coexist neither is
+ *     above-the-fold, so priority=false on both avoids unnecessary preloads.
+ *   - Non-interactive userIconWrapper div: aria-label="User menu" dropped
+ *     because the div is not interactive. UserAvatarPopover (Phase 4) will
+ *     own that a11y role when it is wired into the top-bar.
  */
 
-interface BuyerCode {
-  id: number;
-  code: string;
-  buyerName: string;
-  buyerCodeType: string;
-  codeType: 'PWS' | 'AUCTION'; // derived on the backend from buyerCodeType
-}
+// Re-export the BuyerCode shape from activeBuyerCode so local code
+// continues to reference a concrete type without re-declaring it.
+type BuyerCode = ActiveBuyerCode;
 
 interface UserInfo {
   userId: number;
@@ -48,32 +60,13 @@ function getAuthUser(): UserInfo | null {
   return null;
 }
 
-function setActiveBuyerCode(code: BuyerCode): void {
-  if (typeof window !== 'undefined') {
-    // Phase 2: canonical storage is localStorage under 'activeBuyerCode'.
-    // Also write the legacy sessionStorage key so Phase 2 PWS pages that
-    // still call getBuyerCodeId() → sessionStorage['selectedBuyerCode']
-    // keep working until Phase 3 migrates them to the URL param.
-    localStorage.setItem('activeBuyerCode', JSON.stringify(code));
-    sessionStorage.setItem('selectedBuyerCode', JSON.stringify(code));
-  }
-}
-
-function resolveShellRoute(code: BuyerCode): string {
-  // PWS codes route to the PWS order page; all others go to the bidder dashboard.
-  // Phase 3+ will formalise these as dedicated layout shells.
-  if (code.codeType === 'PWS') {
-    return `/pws/order?buyerCodeId=${code.id}`;
-  }
-  return `/bidder/dashboard?buyerCodeId=${code.id}`;
-}
-
 export default function BuyerSelectPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [pwsCodes, setPwsCodes] = useState<BuyerCode[]>([]);
   const [auctionCodes, setAuctionCodes] = useState<BuyerCode[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadBuyerCodes();
@@ -108,7 +101,9 @@ export default function BuyerSelectPage() {
       setPwsCodes(codes.filter(c => c.codeType === 'PWS'));
       setAuctionCodes(codes.filter(c => c.codeType === 'AUCTION'));
     } catch (err) {
-      console.error('Failed to load buyer codes', err);
+      // Surface the error in the UI instead of silently logging to the console.
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      setLoadError(`Unable to load buyer codes: ${message}. Please refresh or contact support.`);
     } finally {
       setLoading(false);
     }
@@ -124,6 +119,24 @@ export default function BuyerSelectPage() {
       <div className={styles.pageWrapper}>
         <header className={styles.header}>
           <Image src="/images/ecoatm_logo.svg" alt="ecoATM" width={120} height={28} className={styles.logo} />
+          {/* User icon placeholder — UserAvatarPopover will replace this in Phase 4 */}
+          <div className={styles.userIconWrapper}>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="18"
+              height="18"
+              fill="none"
+              stroke="#2a8a7a"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+            </svg>
+          </div>
         </header>
         <div className={styles.contentArea}>
           <p className={styles.loadingText}>Loading...</p>
@@ -132,15 +145,40 @@ export default function BuyerSelectPage() {
     );
   }
 
+  // Show the error state if the buyer-code fetch failed.
+  if (loadError) {
+    return (
+      <div className={styles.pageWrapper}>
+        <header className={styles.header}>
+          <Image src="/images/ecoatm_logo.svg" alt="ecoATM" width={120} height={28} className={styles.logo} />
+        </header>
+        <div className={styles.contentArea}>
+          <p className={styles.errorState} role="alert">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
   const hasPws = pwsCodes.length > 0;
   const hasAuction = auctionCodes.length > 0;
 
+  // Image priority: when only one section is visible its hero image is
+  // above-the-fold and warrants a preload (priority=true). When both sections
+  // coexist both images sit below the welcome heading and neither is the
+  // single most important LCP candidate, so both get priority=false to avoid
+  // unnecessary preload contention.
+  const pwsImagePriority = hasPws && !hasAuction;
+  const auctionImagePriority = hasAuction && !hasPws;
+
   return (
     <div className={styles.pageWrapper}>
-      {/* Header — dark teal bar, ecoATM wordmark left, user avatar right */}
+      {/* Header — dark teal bar, ecoATM wordmark left, user avatar right.
+          The user icon div is presentational only — UserAvatarPopover (Phase 4)
+          will replace it with an interactive button. aria-label is intentionally
+          absent here because the element is non-interactive. */}
       <header className={styles.header}>
         <Image src="/images/ecoatm_logo.svg" alt="ecoATM" width={120} height={28} className={styles.logo} />
-        <div className={styles.userIconWrapper} aria-label="User menu">
+        <div className={styles.userIconWrapper}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -176,7 +214,7 @@ export default function BuyerSelectPage() {
                 width={460}
                 height={200}
                 className={styles.heroImage}
-                priority={false}
+                priority={pwsImagePriority}
               />
               <div className={styles.sectionBody}>
                 <h2 className={styles.sectionTitle}>Premium Wholesale Devices</h2>
@@ -214,7 +252,7 @@ export default function BuyerSelectPage() {
                 width={460}
                 height={200}
                 className={styles.heroImage}
-                priority={true}
+                priority={auctionImagePriority}
               />
               <div className={styles.sectionBody}>
                 <h2 className={styles.sectionTitle}>Weekly Wholesale Auction</h2>

@@ -206,6 +206,18 @@
   margin-left: 4px;
 }
 
+/* ── Error state ─────────────────────────────────────── */
+/* Shown when the buyer-code fetch fails — surfaces the error in the UI
+   instead of silently dropping it (Phase 3 quality fix). */
+.errorState {
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-warning-red, #C21E1E);
+  padding-top: 24px;
+  margin: 0;
+  line-height: 1.5;
+}
+
 /* ── Empty state ────────────────────────────────────── */
 /* Shown when the API returns zero buyer codes — user has no assigned codes yet. */
 .emptyState {

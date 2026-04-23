@@ -1,0 +1,309 @@
+/* =================================================================
+   Chrome module — shared top-bar, buyer-code chip, avatar popover,
+   and sidebar toggle for the buyer portal shells.
+
+   DO NOT MODERNIZE: tokens must match the Mendix QA reference.
+   All colors via CSS custom properties defined in globals.css.
+
+   QA references:
+     qa-03-bidder-dashboard-ad.png  → top-bar layout + chip
+     qa-06-avatar-popover.png       → popover card + pill items
+     qa-07-sidebar-collapsed.png    → sidebar toggle button
+   ================================================================= */
+
+/* ── Top-bar chrome ─────────────────────────────────────────────── */
+
+.chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  background-color: var(--color-bg-body, #F7F7F7);
+  /* Subtle separator matching Mendix QA — 1px bottom border */
+  border-bottom: 1px solid var(--color-input-border, #D0D0D0);
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  position: relative;
+  z-index: 100;
+}
+
+/* Left region — logo */
+.chromeLogo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* Middle region — Switch Buyer Code link + code chip */
+.chromeMid {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* Centered between logo and avatar */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* "Switch Buyer Code" teal text link */
+.switchLink {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-brand-teal, #407874);
+  font-size: 14px;
+  font-weight: 500;
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.switchLink:hover {
+  text-decoration: underline;
+}
+
+.switchLink:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid, #00969F);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Right region — avatar wrapper */
+.chromeRight {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+/* ── BuyerCodeChip ──────────────────────────────────────────────── */
+
+/*
+ * Shared chip shell — both variants share this base.
+ * Framed: transparent bg, 1px border, used in the top-bar.
+ * Filled: dark-teal bg, white text, right-arrow, used in the picker.
+ */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  padding: 5px 10px 5px 6px;
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  text-decoration: none;
+  cursor: default;
+  white-space: nowrap;
+}
+
+/* Framed variant — chrome top-bar chip */
+.chipFramed {
+  background-color: transparent;
+  border: 1px solid var(--color-input-border, #D0D0D0);
+  color: var(--color-text-body, #3C3C3C);
+}
+
+/* Filled variant — picker pill */
+.chipFilled {
+  background-color: var(--color-brand-teal-dark, #112d32);
+  border: 1px solid var(--color-brand-teal-dark, #112d32);
+  color: var(--color-text-inverse, #FFFFFF);
+  cursor: pointer;
+  transition: background-color 0.18s ease, transform 0.1s ease;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.chipFilled:hover {
+  background-color: #1a4a52;
+  transform: translateY(-1px);
+}
+
+.chipFilled:active {
+  transform: translateY(0);
+}
+
+.chipFilled:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid, #00969F);
+  outline-offset: 2px;
+}
+
+/* Green circular avatar container with briefcase icon */
+.chipAvatar {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: var(--color-brand-green, #14AC36);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Code + company stacked vertically */
+.chipInfo {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.chipCode {
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chipCompany {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: 0.85;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right-arrow — filled variant only */
+.chipArrow {
+  flex-shrink: 0;
+  font-size: 15px;
+  margin-left: 4px;
+  opacity: 0.8;
+}
+
+/* ── UserAvatarPopover ──────────────────────────────────────────── */
+
+.avatarWrapper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+/* User's full name — plain text, right-aligned before the avatar */
+.avatarFullName {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--color-text-body, #3C3C3C);
+  white-space: nowrap;
+}
+
+/* Circular avatar button — initials in teal on a light surface */
+.avatarButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #E8F4F4;       /* light teal wash — matches QA screenshot */
+  border: 1.5px solid var(--color-brand-teal, #407874);
+  color: var(--color-brand-teal, #407874);
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.03em;
+  transition: background-color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.avatarButton:hover {
+  background-color: #d4ecec;
+}
+
+.avatarButton:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid, #00969F);
+  outline-offset: 2px;
+}
+
+/* Floating popover card — absolute, right-aligned below the avatar */
+.avatarPopover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background-color: var(--color-bg-body, #F7F7F7);
+  border: 1px solid var(--color-input-border, #D0D0D0);
+  border-radius: 8px;
+  box-shadow: var(--shadow-card, 0 4px 15px rgba(0, 0, 0, 0.2));
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 180px;
+  z-index: 200;
+}
+
+/* Dark-teal pill button inside the popover */
+.popoverItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 9px 16px;
+  background-color: var(--color-brand-teal-dark, #112d32);
+  border: 1px solid var(--color-brand-teal-dark, #112d32);
+  border-radius: var(--radius-pill, 44px);
+  color: var(--color-text-inverse, #FFFFFF);
+  font-size: 14px;
+  font-weight: 400;
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.popoverItem:hover {
+  opacity: 0.88;
+}
+
+.popoverItem:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid, #00969F);
+  outline-offset: 2px;
+}
+
+/* Danger variant — reserved for future use; same shape, different color */
+.popoverItemDanger {
+  background-color: var(--color-warning-red, #C21E1E);
+  border-color: var(--color-warning-red, #C21E1E);
+}
+
+/* ── SidebarToggle ──────────────────────────────────────────────── */
+
+/*
+ * Minimal icon-only button that sits at the top of the sidebar.
+ * Height ~28px to match qa-07-sidebar-collapsed.png.
+ * Background inherits the sidebar gradient; icon is white.
+ */
+.sidebarToggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: background-color 0.15s ease;
+}
+
+.sidebarToggle:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.sidebarToggle:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
+/* The chevron SVG — no additional transform needed; shape is explicit in JSX */
+.chevronRight,
+.chevronLeft {
+  display: block;
+}
