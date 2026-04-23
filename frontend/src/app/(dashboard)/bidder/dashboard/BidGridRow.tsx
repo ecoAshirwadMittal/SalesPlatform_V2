@@ -1,25 +1,29 @@
 'use client';
-import { useState } from 'react';
 import type { BidDataRow } from '@/lib/bidder';
 import { useAutoSaveBid } from '@/hooks/useAutoSaveBid';
+import { PriceCell } from './PriceCell';
+import { QtyCapCell } from './QtyCapCell';
 
 interface BidGridRowProps {
   row: BidDataRow;
   striped: boolean;
+  disabled?: boolean;
   onSaved: (row: BidDataRow) => void;
+  onError?: (err: unknown) => void;
 }
 
-export function BidGridRow({ row, striped, onSaved }: BidGridRowProps) {
-  const [qty, setQty] = useState<string>(row.bidQuantity?.toString() ?? '');
-  const [amount, setAmount] = useState<string>(row.bidAmount.toString());
-  const { save } = useAutoSaveBid(row.id, onSaved);
+export function BidGridRow({ row, striped, disabled = false, onSaved, onError }: BidGridRowProps) {
+  // WHY: useAutoSaveBid already implements 500ms debouncing via setTimeout.
+  // The cell components call `save` on every user edit; the hook coalesces
+  // rapid edits into a single PUT before hitting the network.
+  const { save } = useAutoSaveBid(row.id, onSaved, onError);
 
-  const emit = (nextQty: string, nextAmount: string): void => {
-    const payload = {
-      bidQuantity: nextQty === '' ? null : parseInt(nextQty, 10),
-      bidAmount: parseFloat(nextAmount || '0'),
-    };
-    save(payload);
+  const handlePriceSave = (_rowId: number, value: number): void => {
+    save({ bidQuantity: row.bidQuantity, bidAmount: value });
+  };
+
+  const handleQtySave = (_rowId: number, value: number | null): void => {
+    save({ bidQuantity: value, bidAmount: row.bidAmount });
   };
 
   return (
@@ -29,30 +33,19 @@ export function BidGridRow({ row, striped, onSaved }: BidGridRowProps) {
       <td className="px-3 py-2 text-right">${row.targetPrice.toFixed(2)}</td>
       <td className="px-3 py-2 text-right">{row.maximumQuantity ?? '—'}</td>
       <td className="px-3 py-2 text-right">
-        <input
-          aria-label={`Quantity for ${row.ecoid}`}
-          type="number"
-          min="0"
-          value={qty}
-          onChange={(e) => {
-            setQty(e.target.value);
-            emit(e.target.value, amount);
-          }}
-          className="w-20 border px-2 py-1 text-right"
+        <QtyCapCell
+          rowId={row.id}
+          initialValue={row.bidQuantity}
+          onSave={handleQtySave}
+          disabled={disabled}
         />
       </td>
       <td className="px-3 py-2 text-right">
-        <input
-          aria-label={`Amount for ${row.ecoid}`}
-          type="number"
-          min="0"
-          step="0.01"
-          value={amount}
-          onChange={(e) => {
-            setAmount(e.target.value);
-            emit(qty, e.target.value);
-          }}
-          className="w-24 border px-2 py-1 text-right"
+        <PriceCell
+          rowId={row.id}
+          initialValue={row.bidAmount}
+          onSave={handlePriceSave}
+          disabled={disabled}
         />
       </td>
       <td className="px-3 py-2 text-right">${(row.payout ?? 0).toFixed(2)}</td>

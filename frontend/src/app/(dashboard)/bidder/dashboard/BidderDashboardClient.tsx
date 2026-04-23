@@ -15,6 +15,7 @@ import type {
   SchedulingAuctionSummary,
 } from '@/lib/bidder';
 import { BidGrid } from './BidGrid';
+import { BidToast } from './BidToasts';
 import { DashboardHeader } from './DashboardHeader';
 import { EndOfBiddingPanel } from './EndOfBiddingPanel';
 
@@ -68,6 +69,15 @@ export function BidderDashboardClient({
   );
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [gridDisabled, setGridDisabled] = useState<boolean>(false);
+  // Toast state for auto-save errors. Auto-clears after 5s.
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const id = setTimeout(() => setToast(null), 5000);
+    return () => clearTimeout(id);
+  }, [toast]);
   // Latest buyerCodeId snapshot so callbacks stay stable without
   // re-registering on every render.
   const buyerCodeRef = useRef<number>(buyerCodeId);
@@ -112,6 +122,35 @@ export function BidderDashboardClient({
     });
   }, []);
 
+  // WHY: Auto-save errors from individual bid cells (RateLimitedError,
+  // RoundClosedError, VersionConflictError) surface here as toasts so the
+  // bidder doesn't lose context of which row they were editing. RoundClosed
+  // also disables the grid and triggers a refetch so the state is consistent.
+  const handleRowError = useCallback(async (err: unknown): Promise<void> => {
+    if (err instanceof RateLimitedError) {
+      setToast('Saving paused — please slow down.');
+    } else if (err instanceof RoundClosedError) {
+      setToast('This round has closed.');
+      setGridDisabled(true);
+      try {
+        const fresh = await loadDashboard(buyerCodeRef.current);
+        applyResponse(fresh);
+      } catch (refetchErr: unknown) {
+        console.error('refetch after ROUND_CLOSED (cell save) failed', refetchErr);
+      }
+    } else if (err instanceof VersionConflictError) {
+      setToast('Another save collided with yours.');
+      try {
+        const fresh = await loadDashboard(buyerCodeRef.current);
+        applyResponse(fresh);
+      } catch (refetchErr: unknown) {
+        console.error('refetch after VERSION_CONFLICT (cell save) failed', refetchErr);
+      }
+    } else {
+      console.error('cell auto-save failed', err);
+    }
+  }, [applyResponse]);
+
   const handleSubmit = useCallback(async (): Promise<void> => {
     if (submitInFlight.current || !grid) return;
     submitInFlight.current = true;
@@ -132,6 +171,7 @@ export function BidderDashboardClient({
         setErrorMessage('Too many requests — please slow down and try again.');
       } else if (err instanceof RoundClosedError) {
         setErrorMessage('This round has closed. Refreshing the view…');
+        setGridDisabled(true);
         try {
           const fresh = await loadDashboard(buyerCodeRef.current);
           applyResponse(fresh);
@@ -229,7 +269,14 @@ export function BidderDashboardClient({
         onExport={handleExport}
         onImport={handleImport}
       />
-      <BidGrid rows={rows} onRowSaved={handleRowSaved} totalRowCount={rows.length} />
+      <BidToast message={toast} />
+      <BidGrid
+        rows={rows}
+        onRowSaved={handleRowSaved}
+        onRowError={handleRowError}
+        disabled={gridDisabled}
+        totalRowCount={rows.length}
+      />
     </div>
   );
 }

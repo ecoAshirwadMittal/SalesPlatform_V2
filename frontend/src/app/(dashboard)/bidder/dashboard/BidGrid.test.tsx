@@ -91,7 +91,7 @@ describe('BidGrid', () => {
   it('blank quantity input maps to null payload', async () => {
     const onSaved = vi.fn();
     render(<BidGrid rows={[mockRow]} onRowSaved={onSaved} />);
-    const qtyInput = screen.getByLabelText(/Quantity for AAA1/i);
+    const qtyInput = screen.getByLabelText(/Qty Cap for row 1/i);
     fireEvent.change(qtyInput, { target: { value: '' } });
     // 500ms debounce elapses
     await waitFor(() => expect(onSaved).toHaveBeenCalled(), { timeout: 1000 });

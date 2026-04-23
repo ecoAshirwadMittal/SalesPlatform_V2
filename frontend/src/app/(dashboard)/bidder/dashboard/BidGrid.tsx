@@ -37,6 +37,9 @@ interface FilterState {
 export interface BidGridProps {
   rows: BidDataRow[];
   onRowSaved: (row: BidDataRow) => void;
+  onRowError?: (err: unknown) => void;
+  /** Disables all bid cell inputs — set when the round has closed. */
+  disabled?: boolean;
   /** Total row count before client-side filtering, for the footer. */
   totalRowCount?: number;
 }
@@ -139,7 +142,7 @@ function applySort(rows: BidDataRow[], sort: SortState): BidDataRow[] {
 // Component
 // ---------------------------------------------------------------------------
 
-export function BidGrid({ rows, onRowSaved, totalRowCount }: BidGridProps) {
+export function BidGrid({ rows, onRowSaved, onRowError, disabled = false, totalRowCount }: BidGridProps) {
   const [sort, setSort] = useState<SortState>({ column: null, direction: null });
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
@@ -287,7 +290,9 @@ export function BidGrid({ rows, onRowSaved, totalRowCount }: BidGridProps) {
                 key={row.id}
                 row={row}
                 striped={i % 2 === 1}
+                disabled={disabled}
                 onSaved={onRowSaved}
+                onError={onRowError}
               />
             ))}
           </tbody>
