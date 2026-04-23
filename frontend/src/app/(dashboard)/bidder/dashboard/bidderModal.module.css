@@ -1,0 +1,60 @@
+/* BidderModal — shared overlay + card primitive for Phase 8/9/10 modals */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--color-modal-overlay, rgba(0, 0, 0, 0.4));
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* soft fade-in; modal content is above so click-through is blocked */
+}
+
+.card {
+  position: relative;
+  background: var(--color-surface-cream);
+  box-shadow: var(--shadow-card);
+  border-radius: 8px;
+  padding: 32px 36px 28px;
+  min-width: 340px;
+  max-width: 520px;
+  width: 90vw;
+}
+
+.closeBtn {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-body);
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeBtn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.closeBtn:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid);
+  outline-offset: 2px;
+}
+
+.footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.footerClose {
+  /* inherits .btn-primary-green sizing; override padding for modal CTA */
+  padding: 10px 40px;
+}

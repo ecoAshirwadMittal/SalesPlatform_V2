@@ -18,6 +18,8 @@ import { BidGrid } from './BidGrid';
 import { BidToast } from './BidToasts';
 import { DashboardHeader } from './DashboardHeader';
 import { EndOfBiddingPanel } from './EndOfBiddingPanel';
+import { SubmitBidsEmptyStateModal } from './SubmitBidsEmptyStateModal';
+import { BidsSubmittedModal } from './BidsSubmittedModal';
 
 interface BidderDashboardClientProps {
   // `initial` is optional so the component can also own its first fetch
@@ -70,6 +72,11 @@ export function BidderDashboardClient({
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [gridDisabled, setGridDisabled] = useState<boolean>(false);
+  // 'none' — no modal open
+  // 'no-bids' — empty-state guard (no non-zero bids; no POST made)
+  // 'success' — post-submit confirmation (first submit and resubmit)
+  const [submitModal, setSubmitModal] = useState<'none' | 'no-bids' | 'success'>('none');
+  const [lastSubmitWasResubmit, setLastSubmitWasResubmit] = useState<boolean>(false);
   // Toast state for auto-save errors. Auto-clears after 5s.
   const [toast, setToast] = useState<string | null>(null);
 
@@ -153,19 +160,27 @@ export function BidderDashboardClient({
 
   const handleSubmit = useCallback(async (): Promise<void> => {
     if (submitInFlight.current || !grid) return;
+
+    // WHY: Client-side no-bids guard mirrors Mendix behaviour — if no row
+    // has a bidAmount > 0, show the informational modal and do NOT POST.
+    const hasBids = Array.from(grid.rowsById.values()).some((r) => r.bidAmount > 0);
+    if (!hasBids) {
+      setSubmitModal('no-bids');
+      return;
+    }
+
     submitInFlight.current = true;
     const roundId = grid.bidRound.id;
     setSubmitting(true);
     setErrorMessage(null);
     try {
-      await submitBidRound(roundId, buyerCodeRef.current);
-      // submitBidRound returns a submission summary, not a full dashboard.
+      const result = await submitBidRound(roundId, buyerCodeRef.current);
       // Refetch to pick up flipped `submitted` flags + updated totals.
       const fresh = await loadDashboard(buyerCodeRef.current);
       applyResponse(fresh);
-      // Phase 8 will replace this with the "Your Bids have been Submitted!"
-      // modal + BidsSubmittedModal component. For now the header flashes no
-      // confirmation — the refetch is the visible state change.
+      // Show success modal; track resubmit flag for the prop.
+      setLastSubmitWasResubmit(result.resubmit);
+      setSubmitModal('success');
     } catch (err: unknown) {
       if (err instanceof RateLimitedError) {
         setErrorMessage('Too many requests — please slow down and try again.');
@@ -277,6 +292,16 @@ export function BidderDashboardClient({
         disabled={gridDisabled}
         totalRowCount={rows.length}
       />
+
+      {submitModal === 'no-bids' && (
+        <SubmitBidsEmptyStateModal onClose={() => setSubmitModal('none')} />
+      )}
+      {submitModal === 'success' && (
+        <BidsSubmittedModal
+          onClose={() => setSubmitModal('none')}
+          resubmit={lastSubmitWasResubmit}
+        />
+      )}
     </div>
   );
 }
