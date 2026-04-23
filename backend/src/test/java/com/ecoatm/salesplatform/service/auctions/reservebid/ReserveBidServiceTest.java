@@ -242,6 +242,43 @@ class ReserveBidServiceTest {
         assertThat(status.state()).isEqualTo(ReserveBidSyncStatus.NEVER_SYNCED);
     }
 
+    @Test
+    void runScheduledSync_skipsWhenSourceNotNewer() {
+        ReserveBidSync sync = new ReserveBidSync();
+        sync.setLastSyncDatetime(Instant.parse("2026-04-10T00:00:00Z"));
+        when(syncRepo.findFirstByOrderByIdAsc()).thenReturn(Optional.of(sync));
+
+        ReserveBidSnowflakeReader reader = mock(ReserveBidSnowflakeReader.class);
+        when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-10T00:00:00Z")));
+
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        int n = svc.runScheduledSync();
+
+        assertThat(n).isZero();
+        verify(repo, never()).deleteAllNative();
+        verify(repo, never()).saveAll(any());
+        verifyNoInteractions(publisher);
+    }
+
+    @Test
+    void runScheduledSync_replacesAllWhenSourceNewer() {
+        ReserveBidSync sync = new ReserveBidSync();
+        sync.setLastSyncDatetime(Instant.parse("2026-04-01T00:00:00Z"));
+        when(syncRepo.findFirstByOrderByIdAsc()).thenReturn(Optional.of(sync));
+
+        ReserveBidSnowflakeReader reader = mock(ReserveBidSnowflakeReader.class);
+        when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-15T00:00:00Z")));
+        when(reader.fetchAll()).thenReturn(java.util.List.of(existing("1", "G", "1"), existing("2", "G", "2")));
+
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        int n = svc.runScheduledSync();
+
+        assertThat(n).isEqualTo(2);
+        verify(repo).deleteAllNative();
+        verify(repo).saveAll(any());
+        verifyNoInteractions(publisher);
+    }
+
     private static ReserveBid existing(String pid, String grade, String bid) {
         ReserveBid r = new ReserveBid();
         r.setId(Long.parseLong(pid));

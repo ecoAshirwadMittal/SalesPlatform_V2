@@ -275,4 +275,27 @@ public class ReserveBidService {
             throw new ReserveBidException("DOWNLOAD_FAILED", "Excel write: " + ex.getMessage());
         }
     }
+
+    @Transactional(timeout = 600)
+    public int runScheduledSync() {
+        if (snowflakeReader == null) {
+            throw new ReserveBidException("READER_UNAVAILABLE", "snowflakeReader not wired");
+        }
+        var sync = syncRepo.findFirstByOrderByIdAsc().orElseThrow(() ->
+                new ReserveBidException("SYNC_NOT_INITIALIZED", "reserve_bid_sync singleton missing"));
+        Instant local = sync.getLastSyncDatetime();
+        Instant source = snowflakeReader.fetchMaxUploadTime().orElse(null);
+
+        if (source == null) return 0;
+        if (local != null && !source.isAfter(local)) return 0;
+
+        List<ReserveBid> rows = snowflakeReader.fetchAll();
+        repo.deleteAllNative();
+        repo.saveAll(rows);
+        sync.setLastSyncDatetime(source);
+        sync.setChangedDate(Instant.now());
+        syncRepo.save(sync);
+        // NO ReserveBidChangedEvent — echo prevention
+        return rows.size();
+    }
 }
