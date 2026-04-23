@@ -190,13 +190,55 @@ class AuthControllerTest {
     void buyerCodes_withValidToken_returnsData() throws Exception {
         String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
         when(buyerCodeService.getBuyerCodesForUser(42L)).thenReturn(List.of(
-                new BuyerCodeResponse(1L, "BC001", "Test Buyer", "ACME Corp")
+                new BuyerCodeResponse(1L, "BC001", "Test Buyer", "Wholesale")
         ));
 
         mockMvc.perform(get("/api/v1/auth/buyer-codes")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].code").value("BC001"));
+                .andExpect(jsonPath("$[0].code").value("BC001"))
+                .andExpect(jsonPath("$[0].codeType").value("AUCTION"));
+    }
+
+    @Test
+    void buyerCodes_premiumWholesaleCode_returnsPwsCodeType() throws Exception {
+        String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
+        when(buyerCodeService.getBuyerCodesForUser(42L)).thenReturn(List.of(
+                new BuyerCodeResponse(2L, "NB_PWS", "PWS Buyer", "Premium_Wholesale")
+        ));
+
+        mockMvc.perform(get("/api/v1/auth/buyer-codes")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codeType").value("PWS"));
+    }
+
+    @Test
+    void buyerCodes_wholesaleCode_returnsAuctionCodeType() throws Exception {
+        String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
+        when(buyerCodeService.getBuyerCodesForUser(42L)).thenReturn(List.of(
+                new BuyerCodeResponse(3L, "DDWS", "CHS Technology", "Wholesale")
+        ));
+
+        mockMvc.perform(get("/api/v1/auth/buyer-codes")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codeType").value("AUCTION"));
+    }
+
+    @Test
+    void buyerCodes_mixedCodes_returnsBothCodeTypes() throws Exception {
+        String token = jwtService.generateToken(42L, "test@test.com", List.of("Bidder"), false);
+        when(buyerCodeService.getBuyerCodesForUser(42L)).thenReturn(List.of(
+                new BuyerCodeResponse(1L, "DDWS", "CHS Technology", "Wholesale"),
+                new BuyerCodeResponse(2L, "NB_PWS", "PWS Buyer", "Premium_Wholesale")
+        ));
+
+        mockMvc.perform(get("/api/v1/auth/buyer-codes")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].codeType").value("AUCTION"))
+                .andExpect(jsonPath("$[1].codeType").value("PWS"));
     }
 
     @Test
