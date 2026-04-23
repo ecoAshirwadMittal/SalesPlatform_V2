@@ -1,10 +1,13 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.BuyerCodeResponse;
+import com.ecoatm.salesplatform.dto.ForgotPasswordRequest;
 import com.ecoatm.salesplatform.dto.LoginRequest;
 import com.ecoatm.salesplatform.dto.LoginResponse;
+import com.ecoatm.salesplatform.dto.ResetPasswordRequest;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
+import com.ecoatm.salesplatform.service.PasswordResetService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +31,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final BuyerCodeService buyerCodeService;
+    private final PasswordResetService passwordResetService;
 
     @Value("${auth.cookie.secure:true}")
     private boolean cookieSecure;
@@ -78,6 +82,35 @@ public class AuthController {
             @org.springframework.security.core.annotation.AuthenticationPrincipal Long userId) {
         List<BuyerCodeResponse> codes = buyerCodeService.getBuyerCodesForUser(userId);
         return ResponseEntity.ok(codes);
+    }
+
+    /**
+     * Enumeration-resistant password-reset request.
+     *
+     * <p>Always returns {@code 200 OK} regardless of whether the email maps to
+     * an existing account. The caller should show the same generic message in
+     * both cases: "If an account exists with that email, a reset link has been sent."
+     *
+     * <p>Email delivery is logged only in this phase.
+     * TODO(email-infra): see PasswordResetService for the delivery deferral note.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        passwordResetService.requestReset(request.getEmail());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Validate a reset token and update the user's password.
+     *
+     * <p>Returns {@code 200 OK} on success; {@code 400 Bad Request} with a
+     * generic "Invalid or expired token" message on any failure — never reveals
+     * whether the token, user, or expiry was the cause.
+     */
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        passwordResetService.confirmReset(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/sso")

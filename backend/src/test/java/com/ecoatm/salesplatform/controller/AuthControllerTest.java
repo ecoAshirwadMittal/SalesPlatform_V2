@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
+import com.ecoatm.salesplatform.service.PasswordResetService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -21,6 +22,9 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,6 +45,7 @@ class AuthControllerTest {
 
     @MockBean private AuthService authService;
     @MockBean private BuyerCodeService buyerCodeService;
+    @MockBean private PasswordResetService passwordResetService;
 
     @Test
     void login_withValidCredentials_setsHttpOnlyCookieAndOmitsTokenFromBody() throws Exception {
@@ -257,5 +262,100 @@ class AuthControllerTest {
         mockMvc.perform(get("/api/v1/auth/me")
                         .header("Authorization", "Bearer dummy-jwt-token-42"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    // --- forgot-password ---
+
+    @Test
+    void forgotPassword_withValidEmail_returns200_noTokenLeaked() throws Exception {
+        // Service completes silently — nothing to verify in the response body
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"buyer@example.com\"}"))
+                .andExpect(status().isOk());
+
+        verify(passwordResetService).requestReset("buyer@example.com");
+    }
+
+    @Test
+    void forgotPassword_withUnknownEmail_stillReturns200_enumerationResistant() throws Exception {
+        // Service swallows unknown email — endpoint must still return 200
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"nobody@nowhere.com\"}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void forgotPassword_withBlankEmail_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void forgotPassword_withMissingEmail_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void forgotPassword_doesNotRequireAuth() throws Exception {
+        // No cookie, no Authorization header — must reach the endpoint
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"buyer@example.com\"}"))
+                .andExpect(status().isOk());
+    }
+
+    // --- reset-password ---
+
+    @Test
+    void resetPassword_withValidPayload_returns200() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"somerawtoken\",\"newPassword\":\"NewPass1!\"}"))
+                .andExpect(status().isOk());
+
+        verify(passwordResetService).confirmReset("somerawtoken", "NewPass1!");
+    }
+
+    @Test
+    void resetPassword_withInvalidToken_returns400() throws Exception {
+        doThrow(new IllegalArgumentException("Invalid or expired token"))
+                .when(passwordResetService).confirmReset(anyString(), anyString());
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"bogus\",\"newPassword\":\"NewPass1!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid or expired token"));
+    }
+
+    @Test
+    void resetPassword_withShortPassword_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"sometoken\",\"newPassword\":\"short\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resetPassword_withMissingFields_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resetPassword_doesNotRequireAuth() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"tok\",\"newPassword\":\"Password1!\"}"))
+                .andExpect(status().isOk());
     }
 }

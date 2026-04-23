@@ -921,3 +921,69 @@ Authenticate with email/password. Returns JWT token.
 ### GET /auth/buyer-codes?userId={id}
 
 List buyer codes for a user.
+
+---
+
+## Password Reset
+
+### POST /api/v1/auth/forgot-password
+
+Enqueue a password-reset email for the given address.
+
+**Auth**: `permitAll` — no JWT required.
+
+**Request body**:
+```json
+{ "email": "buyer@example.com" }
+```
+
+**Response**: `200 OK` (empty body) — always, regardless of whether the email maps to
+an existing account. This is intentional: the endpoint is enumeration-resistant.
+
+The caller should display a generic message:
+> "If an account exists with that email, a reset link has been sent."
+
+**Email delivery status (Phase 14)**: The reset token is logged at INFO level only
+(`DEV: password reset email would be sent to=…`). Real SMTP delivery is deferred to
+a follow-up phase. See `PasswordResetService.java` for the `TODO(email-infra)` note.
+
+**Errors**:
+
+| Status | Cause |
+|---|---|
+| `400` | `email` blank or not a valid address (Bean Validation) |
+
+---
+
+### POST /api/v1/auth/reset-password
+
+Validate a reset token and update the user's BCrypt password.
+
+**Auth**: `permitAll` — no JWT required.
+
+**Request body**:
+```json
+{ "token": "raw-token-from-reset-link", "newPassword": "NewPassword1!" }
+```
+
+| Field | Constraint |
+|---|---|
+| `token` | Required, non-blank |
+| `newPassword` | Required, minimum 8 characters |
+
+**Response**: `200 OK` (empty body) on success.
+
+**Errors**:
+
+| Status | Cause |
+|---|---|
+| `400` | Token is invalid, expired, or already consumed — generic message `"Invalid or expired token"` |
+| `400` | `token` or `newPassword` missing/blank — Bean Validation error |
+
+**Token semantics**:
+- Tokens are short-lived (30-minute TTL).
+- Each token is one-time-use: the `consumed_at` timestamp is set on first use; subsequent
+  calls with the same token return `400`.
+- Requesting a new reset for the same email purges all previously active tokens for that user.
+
+**Schema**: `identity.password_reset_tokens` (V75).

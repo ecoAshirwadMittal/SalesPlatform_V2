@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.security;
 import com.ecoatm.salesplatform.controller.AuthController;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
+import com.ecoatm.salesplatform.service.PasswordResetService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -39,6 +40,7 @@ class SecurityConfigTest {
 
     @MockBean private AuthService authService;
     @MockBean private BuyerCodeService buyerCodeService;
+    @MockBean private PasswordResetService passwordResetService;
 
     // --- Public endpoints ---
 

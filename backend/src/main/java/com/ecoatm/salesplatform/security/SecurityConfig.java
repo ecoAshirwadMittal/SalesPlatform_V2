@@ -45,7 +45,13 @@ public class SecurityConfig {
                     res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Authentication required"))
             )
             .authorizeHttpRequests(authz -> authz
-                .requestMatchers("/api/v1/auth/login", "/api/v1/auth/logout", "/api/v1/auth/sso").permitAll()
+                .requestMatchers(
+                        "/api/v1/auth/login",
+                        "/api/v1/auth/logout",
+                        "/api/v1/auth/sso",
+                        "/api/v1/auth/forgot-password",
+                        "/api/v1/auth/reset-password"
+                ).permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .requestMatchers("/api/v1/admin/inventory/**").hasAnyRole("Administrator", "SalesOps")
