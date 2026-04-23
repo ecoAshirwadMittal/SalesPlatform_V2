@@ -7,6 +7,8 @@ import argparse
 import os
 import subprocess
 import sys
+from datetime import datetime, timezone
+from decimal import Decimal
 from pathlib import Path
 
 import psycopg2
@@ -19,19 +21,25 @@ DB_HOSTS = {
 OUT_PATH = Path(__file__).parent.parent / "backend/src/main/resources/db/migration/V75__data_auctions_reserve_bid.sql"
 
 
+GENERATION_TIMESTAMP = datetime.now(timezone.utc).isoformat()
+
+
 def connect(db_name: str):
+    password = os.environ.get("PGPASSWORD")
+    if not password:
+        sys.exit("ERROR: PGPASSWORD environment variable must be set")
     return psycopg2.connect(
         host=DB_HOSTS[db_name],
         dbname=db_name,
         user="postgres",
-        password=os.environ["PGPASSWORD"],
+        password=password,
     )
 
 
 def sql_literal(v):
     if v is None:
         return "NULL"
-    if isinstance(v, (int, float)):
+    if isinstance(v, (int, float, Decimal)):
         return str(v)
     # Encode to ASCII replacing non-ASCII chars to avoid encoding issues in SQL files
     s = str(v).replace("'", "''")
@@ -78,9 +86,9 @@ def extract_sync(conn):
 
 
 def sql_coalesce_ts(v):
-    """Return a TIMESTAMPTZ literal, falling back to NOW() for NULL values."""
+    """Return a TIMESTAMPTZ literal, falling back to the generation-time timestamp for NULL values."""
     if v is None:
-        return "NOW()"
+        return f"'{GENERATION_TIMESTAMP}'::timestamptz"
     return sql_literal(v)
 
 
@@ -118,8 +126,8 @@ def emit_sql(reserve_bids, audit, sync):
             aid, op, np, cd, chd, legacy_rb_id = a
             if legacy_rb_id is None:
                 continue  # skip orphaned audit rows with no FK
-            cd_val = f"'{cd}'" if cd is not None else "NOW()"
-            chd_val = f"'{chd}'" if chd is not None else "NOW()"
+            cd_val = f"'{cd}'" if cd is not None else f"'{GENERATION_TIMESTAMP}'::timestamptz"
+            chd_val = f"'{chd}'" if chd is not None else f"'{GENERATION_TIMESTAMP}'::timestamptz"
             if first:
                 # First row: explicit casts so Postgres knows the column types
                 audit_vals.append(

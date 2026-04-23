@@ -67,7 +67,7 @@ class V74MigrationTest {
         Integer rb = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid", Integer.class);
         assertThat(rb).isGreaterThan(14000);  // 14,657 actual from qa-0327 (deduped)
         Integer audit = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid_audit", Integer.class);
-        assertThat(audit).isGreaterThanOrEqualTo(4);
+        assertThat(audit).isGreaterThan(20000);  // 22,504 actual from qa-0327
         // sync singleton still 1 row after replacement
         Integer sync = jdbc.queryForObject("SELECT COUNT(*) FROM auctions.reserve_bid_sync", Integer.class);
         assertThat(sync).isEqualTo(1);
