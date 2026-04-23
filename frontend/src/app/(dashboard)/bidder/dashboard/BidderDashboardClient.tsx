@@ -275,6 +275,13 @@ export function BidderDashboardClient({
   }
 
   if (mode === 'DOWNLOAD') {
+    // TODO(Phase 11 follow-up): add `GET /bidder/download-round-1?buyerCodeId=X`
+    // backend endpoint that finds the closed Round 1 for the active week and
+    // streams the xlsx. The existing `/bid-rounds/{id}/export` endpoint needs
+    // a round id, which the DOWNLOAD response does not provide. Until that
+    // endpoint exists the button no-ops. Copy is deferred to a live QA
+    // walkthrough when the state is reachable — see wholesale-buyer-parity
+    // plan §Phase 11 and Q4.
     return (
       <EndOfBiddingPanel
         subtitle="Your bids from round 1 can be found below."
