@@ -117,6 +117,13 @@ export const BidSubmissionResultSchema = z.object({
 });
 export type BidSubmissionResult = z.infer<typeof BidSubmissionResultSchema>;
 
+export const CarryoverResultSchema = z.object({
+  copied: z.number(),
+  notFound: z.number(),
+  prevWeek: z.string().nullable(),
+});
+export type CarryoverResult = z.infer<typeof CarryoverResultSchema>;
+
 // ---------------------------------------------------------------------------
 // Typed error classes
 // ---------------------------------------------------------------------------
@@ -256,4 +263,38 @@ export async function submitBidRound(
   }
 
   return BidSubmissionResultSchema.parse(await res.json());
+}
+
+/**
+ * POST /api/v1/bidder/bid-rounds/{id}/carryover?buyerCodeId={buyerCodeId}
+ *
+ * Copies the previous week's submitted bid values into the current round
+ * for the given buyer code. Idempotent — calling it twice produces the
+ * same state.
+ *
+ * Returns `{ copied, notFound, prevWeek }`. When `copied === 0` the UI
+ * shows the empty-state modal ("You don't have bids from last week to
+ * carry over."); when `copied > 0` it shows the success copy with the
+ * week label.
+ */
+export async function carryoverBidRound(
+  id: number,
+  buyerCodeId: number,
+): Promise<CarryoverResult> {
+  const res = await apiFetch(
+    `/api/v1/bidder/bid-rounds/${id}/carryover?buyerCodeId=${buyerCodeId}`,
+    { method: 'POST' },
+  );
+
+  if (res.status === 409) {
+    const { code, message } = await readErrorEnvelope(res);
+    if (code === 'ROUND_CLOSED') throw new RoundClosedError(message);
+    throw new Error(`HTTP ${res.status}: ${message}`);
+  }
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  return CarryoverResultSchema.parse(await res.json());
 }

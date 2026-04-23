@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   loadDashboard,
   submitBidRound,
+  carryoverBidRound,
   RateLimitedError,
   RoundClosedError,
   VersionConflictError,
@@ -11,6 +12,7 @@ import type {
   BidderDashboardResponse,
   BidDataRow,
   BidRoundSummary,
+  CarryoverResult,
   RoundTimerState,
   SchedulingAuctionSummary,
 } from '@/lib/bidder';
@@ -20,6 +22,7 @@ import { DashboardHeader } from './DashboardHeader';
 import { EndOfBiddingPanel } from './EndOfBiddingPanel';
 import { SubmitBidsEmptyStateModal } from './SubmitBidsEmptyStateModal';
 import { BidsSubmittedModal } from './BidsSubmittedModal';
+import { CarryoverResultModal } from './CarryoverResultModal';
 
 interface BidderDashboardClientProps {
   // `initial` is optional so the component can also own its first fetch
@@ -77,6 +80,8 @@ export function BidderDashboardClient({
   // 'success' — post-submit confirmation (first submit and resubmit)
   const [submitModal, setSubmitModal] = useState<'none' | 'no-bids' | 'success'>('none');
   const [lastSubmitWasResubmit, setLastSubmitWasResubmit] = useState<boolean>(false);
+  // Carryover result: null = modal closed, non-null = show CarryoverResultModal
+  const [carryoverResult, setCarryoverResult] = useState<CarryoverResult | null>(null);
   // Toast state for auto-save errors. Auto-clears after 5s.
   const [toast, setToast] = useState<string | null>(null);
 
@@ -157,6 +162,38 @@ export function BidderDashboardClient({
       console.error('cell auto-save failed', err);
     }
   }, [applyResponse]);
+
+  const handleCarryover = useCallback(async (): Promise<void> => {
+    if (!grid) return;
+    const roundId = grid.bidRound.id;
+    try {
+      const result = await carryoverBidRound(roundId, buyerCodeRef.current);
+      // Refetch so bid_* values updated by carryover are reflected in the grid.
+      if (result.copied > 0) {
+        try {
+          const fresh = await loadDashboard(buyerCodeRef.current);
+          applyResponse(fresh);
+        } catch (refetchErr: unknown) {
+          console.error('refetch after carryover failed', refetchErr);
+        }
+      }
+      setCarryoverResult(result);
+    } catch (err: unknown) {
+      if (err instanceof RoundClosedError) {
+        setErrorMessage('This round has closed. Refreshing the view…');
+        setGridDisabled(true);
+        try {
+          const fresh = await loadDashboard(buyerCodeRef.current);
+          applyResponse(fresh);
+        } catch (refetchErr: unknown) {
+          console.error('refetch after ROUND_CLOSED (carryover) failed', refetchErr);
+        }
+      } else {
+        console.error('carryover failed', err);
+        setErrorMessage('Carryover failed. Please try again.');
+      }
+    }
+  }, [grid, applyResponse]);
 
   const handleSubmit = useCallback(async (): Promise<void> => {
     if (submitInFlight.current || !grid) return;
@@ -259,10 +296,6 @@ export function BidderDashboardClient({
     grid.bidRound.roundStatus === 'Started' &&
     (grid.timer === null || grid.timer.active);
 
-  // Phase 9/10 will replace these stubs with modal openers.
-  const handleCarryover = (): void => {
-    // TODO(Phase 9): open CarryoverModal and POST /bidder/bid-rounds/{id}/carryover
-  };
   const handleExport = (): void => {
     // TODO(Phase 10): GET /bidder/bid-rounds/{id}/export as .xlsx download
   };
@@ -300,6 +333,12 @@ export function BidderDashboardClient({
         <BidsSubmittedModal
           onClose={() => setSubmitModal('none')}
           resubmit={lastSubmitWasResubmit}
+        />
+      )}
+      {carryoverResult !== null && (
+        <CarryoverResultModal
+          result={carryoverResult}
+          onClose={() => setCarryoverResult(null)}
         />
       )}
     </div>

@@ -3,7 +3,9 @@ package com.ecoatm.salesplatform.controller;
 import com.ecoatm.salesplatform.dto.BidDataRow;
 import com.ecoatm.salesplatform.dto.BidSubmissionResult;
 import com.ecoatm.salesplatform.dto.BidderDashboardResponse;
+import com.ecoatm.salesplatform.dto.CarryoverResult;
 import com.ecoatm.salesplatform.dto.SaveBidRequest;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidCarryoverService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataCreationService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidRateLimiter;
@@ -64,15 +66,18 @@ public class BidderDashboardController {
     private final BidderDashboardService dashboardService;
     private final BidDataCreationService creationService;
     private final BidDataSubmissionService submissionService;
+    private final BidCarryoverService carryoverService;
     private final BidRateLimiter rateLimiter;
 
     public BidderDashboardController(BidderDashboardService dashboardService,
                                       BidDataCreationService creationService,
                                       BidDataSubmissionService submissionService,
+                                      BidCarryoverService carryoverService,
                                       BidRateLimiter rateLimiter) {
         this.dashboardService = dashboardService;
         this.creationService = creationService;
         this.submissionService = submissionService;
+        this.carryoverService = carryoverService;
         this.rateLimiter = rateLimiter;
     }
 
@@ -124,5 +129,28 @@ public class BidderDashboardController {
         long userId = (Long) auth.getPrincipal();
         String username = (String) auth.getCredentials();
         return ResponseEntity.ok(submissionService.submit(userId, username, id, buyerCodeId));
+    }
+
+    /**
+     * Carryover endpoint — copies the previous week's submitted bid values into
+     * the current round for the given buyer code. Idempotent; calling it twice
+     * produces identical state.
+     *
+     * <p>{@code buyerCodeId} is required for the same ownership-scoping reason
+     * as the submit endpoint: a bid round spans all qualified buyer codes, so
+     * an unscoped write would touch every buyer's rows.
+     *
+     * <p>Rate limiting is NOT applied here (Phase 9 scope) because carryover is
+     * a coarse bulk operation — at most one call per page load makes sense, and
+     * the advisory lock inside the service already serialises concurrent calls.
+     * TODO(Phase 9 follow-up): evaluate whether a per-(user, round) rate limit
+     * is warranted once real-world usage is observed.
+     */
+    @PostMapping("/bid-rounds/{id}/carryover")
+    public ResponseEntity<CarryoverResult> carryover(@PathVariable long id,
+                                                      @RequestParam long buyerCodeId,
+                                                      Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
+        return ResponseEntity.ok(carryoverService.carryover(userId, id, buyerCodeId));
     }
 }
