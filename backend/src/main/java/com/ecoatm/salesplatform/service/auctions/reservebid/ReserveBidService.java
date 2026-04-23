@@ -26,19 +26,22 @@ public class ReserveBidService {
     private final ApplicationEventPublisher publisher;
     private final Object snowflakeReader;   // placeholder — replaced in Task 9
     private final ReserveBidExcelParser excelParser;
+    private final ReserveBidExcelWriter excelWriter;
 
     public ReserveBidService(ReserveBidRepository repo,
                              ReserveBidAuditRepository auditRepo,
                              ReserveBidSyncRepository syncRepo,
                              ApplicationEventPublisher publisher,
                              Object snowflakeReader,
-                             ReserveBidExcelParser excelParser) {
+                             ReserveBidExcelParser excelParser,
+                             ReserveBidExcelWriter excelWriter) {
         this.repo = repo;
         this.auditRepo = auditRepo;
         this.syncRepo = syncRepo;
         this.publisher = publisher;
         this.snowflakeReader = snowflakeReader;
         this.excelParser = excelParser;
+        this.excelWriter = excelWriter;
     }
 
     @Transactional
@@ -223,5 +226,15 @@ public class ReserveBidService {
                     changedIds, ReserveBidChangedEvent.Action.UPSERT));
         }
         return new com.ecoatm.salesplatform.dto.ReserveBidUploadResult(created, updated, unchanged, auditsGenerated, errors);
+    }
+
+    @Transactional(readOnly = true)
+    public void downloadAll(java.io.OutputStream out) {
+        if (excelWriter == null) throw new ReserveBidException("WRITER_UNAVAILABLE", "excelWriter not wired");
+        try {
+            excelWriter.writeAll(repo.findAll(), out);
+        } catch (java.io.IOException ex) {
+            throw new ReserveBidException("DOWNLOAD_FAILED", "Excel write: " + ex.getMessage());
+        }
     }
 }

@@ -37,7 +37,7 @@ class ReserveBidServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new ReserveBidService(repo, auditRepo, syncRepo, publisher, null, null);
+        service = new ReserveBidService(repo, auditRepo, syncRepo, publisher, null, null, null);
     }
 
     @Test
@@ -143,7 +143,7 @@ class ReserveBidServiceTest {
         });
 
         ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
-                null, new ReserveBidExcelParser());
+                null, new ReserveBidExcelParser(), null);
 
         byte[] bytes = java.nio.file.Files.readAllBytes(
                 java.nio.file.Path.of("src/test/resources/fixtures/reserve-bid-sample.xlsx"));
@@ -167,7 +167,7 @@ class ReserveBidServiceTest {
         });
 
         ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
-                null, new ReserveBidExcelParser());
+                null, new ReserveBidExcelParser(), null);
 
         byte[] bytes = java.nio.file.Files.readAllBytes(
                 java.nio.file.Path.of("src/test/resources/fixtures/reserve-bid-with-errors.xlsx"));
@@ -180,6 +180,25 @@ class ReserveBidServiceTest {
         assertThat(result.errors()).anyMatch(e -> "DUPLICATE_IN_SHEET".equals(e.reason()));
         assertThat(result.errors()).anyMatch(e -> "MISSING_GRADE".equals(e.reason()));
         assertThat(result.errors()).anyMatch(e -> "NEGATIVE_PRICE".equals(e.reason()));
+    }
+
+    @Test
+    void download_streamsCurrentRowsAsXlsx() throws Exception {
+        when(repo.findAll()).thenReturn(java.util.List.of(
+                existing("11001", "A_YYY", "10"),
+                existing("11002", "B_NYY", "20")));
+
+        ReserveBidExcelWriter writer = new ReserveBidExcelWriter();
+
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        writer.writeAll(repo.findAll(), out);
+
+        try (org.apache.poi.ss.usermodel.Workbook wb =
+                     new org.apache.poi.xssf.usermodel.XSSFWorkbook(new java.io.ByteArrayInputStream(out.toByteArray()))) {
+            org.apache.poi.ss.usermodel.Sheet s = wb.getSheetAt(0);
+            assertThat(s.getPhysicalNumberOfRows()).isEqualTo(3);
+            assertThat(s.getRow(1).getCell(0).getStringCellValue()).isEqualTo("11001");
+        }
     }
 
     private static ReserveBid existing(String pid, String grade, String bid) {
