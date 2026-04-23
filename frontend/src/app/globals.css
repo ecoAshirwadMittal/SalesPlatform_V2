@@ -73,8 +73,7 @@
   --color-carryover-tint-hover: rgba(0, 150, 159, 0.26); /* Carryover hover state */
   --color-text-inverse: #FFFFFF;        /* White for text on brand-colored pill buttons */
   --color-input-border: #D0D0D0;        /* Default input/outline border */
-  /* TODO(Phase 1): eyedropper-confirm against qa-03 */
-  --color-warning-red: #C21E1E;         /* "Minimum starting bid" label — provisional hex, needs eyedropper confirm */
+  --color-warning-red: #C21E1E;         /* "Minimum starting bid" warning label — confirmed 2026-04-22 */
 
   /* Typography */
   --font-family-primary: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
