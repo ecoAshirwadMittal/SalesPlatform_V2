@@ -30,8 +30,6 @@ tokens; no hardcoded hexes.
 | `--color-text-on-dark-pill` | `#F0EBE3` | Login / Contact Us pill text — Mendix QA uses cream-off-white, not pure white. Phase 1 addition. |
 | `--color-divider` | `#D1CDC6` | Horizontal rule between Employee Login and the footer section. Phase 1 addition. |
 | `--color-input-border-dark` | `#898787` | Login input border — stronger contrast than `--color-input-border`. Phase 1 addition. |
-| `--color-input-text` | `#333333` | Login input text — one step darker than `--color-text-body`. Phase 1 addition. |
-| `--color-surface-white` | `#FFFFFF` | Pure-white surface background — login-card left panel behind hero photo. Phase 1 addition. |
 
 ### Shadows
 

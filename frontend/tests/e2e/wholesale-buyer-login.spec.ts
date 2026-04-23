@@ -21,11 +21,15 @@ test.describe('Wholesale buyer login', () => {
 
     await page.getByPlaceholder('Email').fill('bidder@buyerco.com');
     await page.getByPlaceholder('Password').fill('Bidder123!');
+
+    // Wait on the real network signal rather than an arbitrary timer.
+    const loginResponse = page.waitForResponse((r) => r.url().includes('/api/v1/auth/login'));
     await page.getByRole('button', { name: 'Login', exact: true }).click();
+    await loginResponse;
 
     // Phase 1: Bidder role routes to /buyer-select (the code picker).
     // Single-code deep-linking is Phase 2's job.
-    await expect(page).toHaveURL(/\/buyer-select/, { timeout: 15_000 });
+    await expect(page).toHaveURL(/\/buyer-select/, { timeout: 8_000 });
   });
 
   test('password eye-toggle is keyboard accessible', async ({ page }) => {
@@ -58,7 +62,7 @@ test.describe('Wholesale buyer login', () => {
     expect(href).toBeTruthy();
   });
 
-  test('login page renders with correct visual tokens (smoke)', async ({ page }) => {
+  test('login page renders required buttons', async ({ page }) => {
     await page.goto('/login');
 
     // Verify the login card is present and the primary CTA button is visible.

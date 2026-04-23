@@ -1,6 +1,6 @@
 /* src/app/(auth)/login/login.module.css
-   All colour values reference design tokens from globals.css.
-   No hardcoded hexes — see docs/frontend/ui-primitives.md for token reference.
+   Colour values reference design tokens from globals.css unless noted.
+   See docs/frontend/ui-primitives.md for token reference.
 */
 
 .container {
@@ -30,7 +30,8 @@
   flex: 1;
   width: 50%;
   position: relative;
-  background-color: var(--color-surface-white);
+  /* Plain white fallback behind hero photo — not a brand color, no token needed */
+  background-color: #fff;
 }
 
 .leftImage {
@@ -46,6 +47,13 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  align-items: center;
+}
+
+.formBody {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
   align-items: center;
 }
 
@@ -84,7 +92,7 @@
   padding: 8px 12px;
   font-size: 16px;
   font-family: var(--font-family-primary);
-  color: var(--color-input-text);
+  color: var(--color-text-body);
   background-color: var(--color-bg-body);
   border: 1px solid var(--color-input-border-dark);
   border-radius: 3px;
@@ -104,9 +112,11 @@
 .passwordToggle {
   position: absolute;
   right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
   background: none;
   border: none;
-  color: var(--color-input-border-dark);
+  color: var(--color-text-muted);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -185,6 +195,10 @@
 
 .loginbutton:hover {
   opacity: 0.9;
+}
+
+.loginbuttonNoMargin {
+  margin-bottom: 0;
 }
 
 .loginbuttonemployee {

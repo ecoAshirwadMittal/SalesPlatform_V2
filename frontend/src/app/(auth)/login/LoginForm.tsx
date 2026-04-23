@@ -143,7 +143,7 @@ export default function LoginForm() {
           Premium Wholesale &<br />Weekly Auctions
         </h1>
 
-        <form onSubmit={handleSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <form onSubmit={handleSubmit} className={styles.formBody}>
           <div className={styles.formGroup}>
             <div className={styles.inputWrapper}>
               <input
@@ -222,12 +222,10 @@ export default function LoginForm() {
           {/* Footer Contacts Section */}
           <div className={styles.divider}></div>
           <span className={styles.subHeaderText}>Interested but don&apos;t have an account?</span>
-          {/* Contact URL TBD — no-op on click, matching QA behaviour */}
+          {/* Contact URL TBD */}
           <button
             type="button"
-            className={styles.loginbutton}
-            style={{ marginBottom: 0 }}
-            onClick={(e) => e.preventDefault()}
+            className={`${styles.loginbutton} ${styles.loginbuttonNoMargin}`}
           >
             Contact Us
           </button>
