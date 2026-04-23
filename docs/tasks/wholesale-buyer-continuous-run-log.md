@@ -124,7 +124,21 @@ Phases completed + notes. Anything in **NEEDS REVIEW** should be surfaced to the
 - **NEEDS REVIEW:**
   - **Email delivery NOT wired** — `PasswordResetService.requestReset` only logs the token at INFO with `DEV:` prefix. Real SMTP integration deferred (follow the 2026-04-13 PWS email-delivery ADR pattern). Until then, dev/QA flow is: click "Forgot password?", grab the token from the backend log, navigate to `/reset-password?token=<rawToken>`.
 
-## Phase 15 — ADR + docs closeout (in progress)
+## Phase 15 — ADR + docs closeout ✅
+- Commit: `cda6ed2`
+- Closeout ADR added to `docs/architecture/decisions.md` summarizing two-shell routing, chrome primitives, backend surface, copy decisions, deferred follow-ups.
+- Handoff doc created at `docs/tasks/phase-13-e2e-handoff.md` for the deferred Phase 13 work.
+- This run log is the narrative complement; the ADR is the durable record.
+
+---
+
+## End-of-run summary
+
+**Completed:** Phases 0–12, 14, 15 (+ interim tasks for QA reference persistence and plan updates).
+**Deferred:** Phase 6B (backend DTO expansion), Phase 13 (E2E + pixel QA), PWS shell parity, email SMTP wiring, DOWNLOAD endpoint wiring.
+
+Full list of NEEDS REVIEW items lives inline above under each phase. ADR at `docs/architecture/decisions.md` (2026-04-23 closeout entry) is the canonical reference.
+
 
 
 
