@@ -921,3 +921,39 @@ Authenticate with email/password. Returns JWT token.
 ### GET /auth/buyer-codes?userId={id}
 
 List buyer codes for a user.
+
+---
+
+## Reserve Bids (EB)
+
+All endpoints: `/api/v1/admin/reserve-bids/**` — role `Administrator`.
+
+### GET /api/v1/admin/reserve-bids
+Paginated list with filters (productId, grade, minBid, maxBid, updatedSince, page, size).
+
+### GET /api/v1/admin/reserve-bids/{id}
+Single row.
+
+### POST /api/v1/admin/reserve-bids
+Create (no audit — new row).
+
+### PUT /api/v1/admin/reserve-bids/{id}
+Full update; audit row auto-written on price change.
+
+### DELETE /api/v1/admin/reserve-bids/{id}
+Delete; audit trail cascade-dropped.
+
+### POST /api/v1/admin/reserve-bids/upload
+Bulk Excel upload (multipart `file`). Returns `ReserveBidUploadResult { created, updated, unchanged, auditsGenerated, errors[] }`.
+
+### GET /api/v1/admin/reserve-bids/download
+Streaming Excel export (`application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`).
+
+### GET /api/v1/admin/reserve-bids/{id}/audit
+Per-row audit trail (paginated).
+
+### GET /api/v1/admin/reserve-bids/sync
+Current Snowflake sync watermark + drift state (IN_SYNC | BEHIND_SOURCE | NEVER_SYNCED).
+
+### POST /api/v1/admin/reserve-bids/sync
+Manual pull trigger; wraps the same service method as the 30-min cron. Returns `202 Accepted`.

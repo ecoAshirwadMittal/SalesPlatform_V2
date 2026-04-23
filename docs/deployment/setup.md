@@ -132,3 +132,8 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
 - Run `npm install` in `frontend/` first
 - Check port 3000 is free
 - Ignore the turbopack lockfile warning (cosmetic only)
+
+## EB sync config
+- `eb.sync.enabled` — default `true`; disables both push + pull
+- `eb.sync.fixed-delay-ms` — default 30 min; pull cadence
+- `eb.sync.writer` / `eb.sync.reader` — `logging` (default) or `jdbc` (prod)
