@@ -54,6 +54,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
+                .requestMatchers("/api/v1/admin/reserve-bids/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")
