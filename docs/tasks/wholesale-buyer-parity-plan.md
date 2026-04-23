@@ -416,7 +416,32 @@ Per Q6: the PDF is configured by admins via the existing **Auction Control Cente
 
 ---
 
-### Phase 14 — ADR + docs closeout
+### Phase 14 — `/forgot-password` route implementation
+
+Surfaced as a known gap during Phase 1: the login form's `<Link href="/forgot-password">` targets a route that does not yet exist. QA behaviour is a no-op (`href="#"`), but our Next.js `<Link>` idiom requires a real destination. Ship a minimal password-reset flow.
+
+**Backend (likely already partially wired — verify first):**
+- [ ] Check `backend/src/main/java/.../controller/AuthController.java` for an existing `/api/v1/auth/forgot-password` endpoint. If absent, add: `POST /api/v1/auth/forgot-password { email }` — enqueues a reset email, returns `200` regardless of whether the email exists (enumeration-resistant).
+- [ ] Add `POST /api/v1/auth/reset-password { token, newPassword }` that validates the token, updates the user's BCrypt hash, expires the token.
+- [ ] Token storage: table `identity.password_reset_tokens (id, user_id, token_hash, expires_at, consumed_at)`. Short-lived (30 min); one-time-use.
+- [ ] Email template reuse: leverage the PWS email-delivery event pattern from the 2026-04-13 ADR (post-commit event + async executor) so it matches existing infra.
+- [ ] Unit + MockMvc coverage for both endpoints.
+
+**Frontend:**
+- [ ] `app/(auth)/forgot-password/page.tsx` — form with email field + "Send reset link" button. On submit: POST to `/api/v1/auth/forgot-password`, always show a generic success toast "If an account exists with that email, a reset link has been sent." regardless of response.
+- [ ] `app/(auth)/reset-password/page.tsx` — reads `?token=...` from URL, renders a form with new password + confirm password + "Reset" button. POSTs to `/api/v1/auth/reset-password`.
+- [ ] Reuse Phase 1 login styling (same cream card + token primitives). Share the `LoginCard` layout if worth a small extraction.
+- [ ] Playwright e2e: `/forgot-password` renders and submits to a mocked endpoint; `/reset-password?token=test` renders and validates password-match.
+
+**Docs:**
+- [ ] Update `docs/api/rest-endpoints.md` with both endpoints.
+- [ ] Update `docs/business-logic/user-auth.md` (create if missing) with the password-reset flow.
+
+**Success:** Login page's "Forgot Password?" link navigates cleanly (no 404), the full request→email→reset round-trip works end-to-end.
+
+---
+
+### Phase 15 — ADR + docs closeout
 
 - [ ] Write ADR **"2026-04-NN — Two-shell buyer portal routing"** in `docs/architecture/decisions.md`. Capture: shell split decision, per-selected-code gating, Brandon Grotesque outcome (Q1), Import xlsx contract, Carryover endpoint shape, rate-limiter reuse.
 - [ ] Update `docs/api/rest-endpoints.md` with the four new endpoints (Carryover, Export, Import, Buyer Guide).

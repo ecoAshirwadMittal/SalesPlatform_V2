@@ -107,6 +107,11 @@ test-results/
 **/test-results/
 /coverage
 /.nyc_output
+# Stray Playwright snapshot YAML dumps at repo root
+/qa-*.yaml
+/qa-*.yml
+/snap-*.yml
+/snap-*.yaml
 
 # ─────────────────────────────────────
 # Debug screenshots at project root.
