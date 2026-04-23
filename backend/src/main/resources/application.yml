@@ -235,3 +235,14 @@ server:
   error:
     include-message: never
     include-exception: false
+
+# ─────────────────────────────────────
+# Sub-project 4A: ExchangeBid (EB) sync config
+# ─────────────────────────────────────
+eb:
+  sync:
+    enabled: true
+    fixed-delay-ms: 1800000         # 30 min default pull cadence
+    snowflake-timeout-seconds: 60
+    writer: logging                  # switch to 'jdbc' for prod
+    reader: logging                  # switch to 'jdbc' for prod
