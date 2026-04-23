@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.migration;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -59,5 +60,11 @@ class V74MigrationTest {
                 "SELECT COUNT(*) FROM auctions.reserve_bid_audit WHERE reserve_bid_id = ?",
                 Integer.class, rbId);
         assertThat(orphans).isZero();
+    }
+
+    @AfterEach
+    void cleanup() {
+        jdbc.update("DELETE FROM auctions.reserve_bid_audit");
+        jdbc.update("DELETE FROM auctions.reserve_bid");
     }
 }
