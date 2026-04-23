@@ -223,6 +223,50 @@ Context provider that holds the sidebar `collapsed` boolean and a `toggle` funct
 
 ---
 
+## Bidder Shell (Phase 4)
+
+Files under `frontend/src/components/bidder/` and `frontend/src/app/(dashboard)/bidder/`.
+
+### `<BidderSidebar>`
+
+Gradient collapsible sidebar for the auction buyer shell. Reads collapsed state from `useSidebar()`.
+
+- Background: `var(--sidebar-gradient)` applied to the container, not per-item.
+- Width: 220px expanded / 54px collapsed. Transition: `0.22s ease`.
+- Contains two nav items: **Auction** (gavel icon, `/bidder/dashboard`) and **Buyer User Guide** (book icon, `target="_blank"`, `/api/v1/bidder/docs/buyer-guide`).
+- `SidebarToggle` at the top-right corner of the sidebar.
+- `data-testid="bidder-sidebar"` for Playwright selectors.
+- QA references: `qa-03-bidder-dashboard-ad.png` (expanded), `qa-07-sidebar-collapsed.png` (collapsed).
+
+### `<BidderSidebarItem>`
+
+Single nav item. Renders as a `<Link>` for internal routes or `<a target="_blank" rel="noopener noreferrer">` for external links. Label is hidden (max-width:0 / opacity:0) when collapsed but stays in the accessibility tree for screen readers. `data-testid="sidebar-item-{kebab-label}"`.
+
+### `<GavelIcon>` / `<BookIcon>` (in `BidderSidebarIcons.tsx`)
+
+Inline 20×20 SVG icons for Auction and Buyer User Guide items. `aria-hidden` by default.
+
+### `BidderLayout` (in `layout.tsx`)
+
+Route layout that wraps all `/bidder/**` pages. Uses Option B (visual overlay) — `position: fixed; inset: 0; z-index: 500` — to cover the inherited `(dashboard)/layout.tsx` admin chrome. See the comment at the top of `layout.tsx` for the reasoning behind Option B vs Option A route-group restructuring.
+
+Layout structure:
+```
+BidderLayout
+  └─ SidebarProvider (storageKey: 'bidder.sidebarCollapsed')
+       └─ BidderShellInner ('use client')
+            ├─ BidderSidebar (220px / 54px)
+            └─ shellMain (flex column)
+                 ├─ BuyerPortalChrome (56px top-bar)
+                 └─ <main> (page content)
+```
+
+`handleLogout` calls `POST /api/v1/auth/logout`, clears `activeBuyerCode` + `auth_user`, then redirects to `/login`.
+
+Token added: `--color-sidebar-hover: rgba(255, 255, 255, 0.08)` — subtle white overlay on sidebar item hover.
+
+---
+
 ## Active Buyer Code helpers (Phase 3)
 
 `frontend/src/lib/activeBuyerCode.ts` is the single source of truth for reading, writing, and clearing the buyer code that is currently selected:

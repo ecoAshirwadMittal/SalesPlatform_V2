@@ -1,0 +1,129 @@
+/* =================================================================
+   Bidder sidebar — gradient sidebar for the auction buyer shell.
+
+   DO NOT MODERNIZE: tokens must match the Mendix QA reference.
+   Colors via CSS custom properties defined in globals.css.
+
+   QA references:
+     qa-03-bidder-dashboard-ad.png  → expanded sidebar (~220px)
+     qa-07-sidebar-collapsed.png    → collapsed sidebar (~54px)
+   ================================================================= */
+
+/* ── Sidebar container ─────────────────────────────────────────── */
+
+.sidebar {
+  /* Collapsed/expanded width is toggled via data-collapsed attribute
+     on the container. JS sets it; CSS reads it. */
+  width: 220px;
+  min-width: 220px;
+  height: 100vh;
+  background: var(--sidebar-gradient);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+  transition: width 0.22s ease, min-width 0.22s ease;
+  position: relative;
+  z-index: 50;
+}
+
+.sidebarCollapsed {
+  width: 54px;
+  min-width: 54px;
+}
+
+/* ── Toggle row ────────────────────────────────────────────────── */
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px 4px;
+  flex-shrink: 0;
+}
+
+/* ── Navigation list ───────────────────────────────────────────── */
+
+.navList {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 8px 0;
+  list-style: none;
+  margin: 0;
+  overflow: hidden;
+}
+
+/* ── Nav item — shared base ────────────────────────────────────── */
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 16px;
+  color: var(--color-text-inverse, #FFFFFF);
+  text-decoration: none;
+  font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
+  font-size: 14px;
+  font-weight: 400;
+  cursor: pointer;
+  white-space: nowrap;
+  border: none;
+  background: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: background-color 0.15s ease;
+  border-radius: 0;
+  overflow: hidden;
+}
+
+.navItem:hover {
+  background-color: var(--color-sidebar-hover, rgba(255, 255, 255, 0.08));
+}
+
+.navItem:focus-visible {
+  outline: 2px solid var(--color-text-inverse, #FFFFFF);
+  outline-offset: -2px;
+}
+
+.navItemActive {
+  background-color: var(--color-sidebar-hover, rgba(255, 255, 255, 0.08));
+  font-weight: 500;
+}
+
+/* ── Icon ──────────────────────────────────────────────────────── */
+
+.navIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--color-text-inverse, #FFFFFF);
+}
+
+/* ── Label — visible when expanded, hidden when collapsed ──────── */
+
+.navLabel {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 1;
+  max-width: 200px;
+  transition: opacity 0.18s ease, max-width 0.18s ease;
+}
+
+/* Collapsed: hide the label text but keep it accessible to screen readers.
+   We use overflow:hidden + max-width:0 + opacity:0 rather than display:none
+   so the focus target retains its full 48px hit area. */
+.navLabelHidden {
+  flex: 1;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  pointer-events: none;
+  /* Retain in accessibility tree */
+  white-space: nowrap;
+}

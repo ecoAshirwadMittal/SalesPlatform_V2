@@ -1,0 +1,52 @@
+/* =================================================================
+   BidderShell — full-viewport layout for the auction buyer portal.
+
+   Option B overlay strategy: position:fixed; inset:0 so this shell
+   sits on top of the inherited (dashboard)/layout.tsx admin chrome.
+   The admin chrome DOM is present but fully covered.
+
+   DO NOT MODERNIZE: tokens must match the Mendix QA reference.
+   QA reference: qa-03-bidder-dashboard-ad.png
+   ================================================================= */
+
+/* ── Shell root — covers the full viewport ─────────────────────── */
+
+.shellRoot {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: row;
+  z-index: 500;
+  background: var(--color-bg-body, #F7F7F7);
+  overflow: hidden;
+}
+
+/* ── Loading placeholder ───────────────────────────────────────── */
+
+.shellLoading {
+  flex: 1;
+  /* Minimal visible state during auth validation — no spinner per QA */
+  background: var(--color-bg-body, #F7F7F7);
+}
+
+/* ── Main column (right of sidebar) ────────────────────────────── */
+
+.shellMain {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Page content area (below chrome top-bar) ───────────────────── */
+
+.shellContent {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Match QA padding — the dashboard header and grid have their own
+     internal padding (24px), so we keep this at 0 to avoid double padding. */
+  padding: 0;
+  background: var(--color-bg-body, #F7F7F7);
+}

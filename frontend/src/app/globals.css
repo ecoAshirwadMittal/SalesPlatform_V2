@@ -101,6 +101,7 @@
 
   /* Sidebar */
   --sidebar-gradient: linear-gradient(155.66deg, var(--color-brand-green) -12.99%, var(--color-brand-teal-mid) 83.48%);
+  --color-sidebar-hover: rgba(255, 255, 255, 0.08);  /* Subtle white overlay on sidebar item hover */
 }
 
 @theme inline {

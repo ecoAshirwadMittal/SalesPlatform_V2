@@ -60,8 +60,6 @@ function toGridState(response: BidderDashboardResponse): GridState | null {
   };
 }
 
-const FONT_STACK = "'Trebuchet MS', sans-serif";
-
 // Pull the first non-null `submittedDatetime` off the initial payload so a
 // fresh page load shows "Submitted at <stamp>" when the user already
 // submitted earlier in this round. Mendix shows the same stamp on revisit.
@@ -184,7 +182,7 @@ export function BidderDashboardClient({
 
   if (mode === 'LOADING') {
     return (
-      <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
+      <div className="p-6 text-[#112d32]">
         Loading dashboard…
       </div>
     );
@@ -215,7 +213,7 @@ export function BidderDashboardClient({
     // GRID mode with missing auction/bidRound payload — treat as an
     // empty state rather than throwing.
     return (
-      <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
+      <div className="p-6 text-[#112d32]">
         No bid data available.
       </div>
     );
@@ -231,7 +229,7 @@ export function BidderDashboardClient({
     (grid.timer === null || grid.timer.active);
 
   return (
-    <div style={{ fontFamily: FONT_STACK }} className="p-6 text-[#112d32]">
+    <div className="p-6 text-[#112d32]">
       <DashboardHeader
         auction={grid.auction}
         bidRound={grid.bidRound}
