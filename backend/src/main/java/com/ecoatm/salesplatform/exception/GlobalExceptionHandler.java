@@ -95,6 +95,12 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), details));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, Object>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(BidDataValidationException.class)
     public ResponseEntity<Map<String, String>> handleBidDataValidation(BidDataValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

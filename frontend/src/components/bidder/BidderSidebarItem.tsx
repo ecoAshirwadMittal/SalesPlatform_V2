@@ -26,6 +26,13 @@ export interface BidderSidebarItemProps {
   collapsed: boolean;
   /** Whether this item represents the current page */
   isActive?: boolean;
+  /**
+   * When true, the link is rendered as a non-interactive span so the user
+   * cannot click through. Use `tooltip` to explain why the item is disabled.
+   */
+  disabled?: boolean;
+  /** Optional tooltip text shown via title attribute when disabled */
+  tooltip?: string;
 }
 
 export default function BidderSidebarItem({
@@ -35,10 +42,13 @@ export default function BidderSidebarItem({
   external = false,
   collapsed,
   isActive = false,
+  disabled = false,
+  tooltip,
 }: BidderSidebarItemProps) {
   const itemClass = [
     styles.navItem,
     isActive ? styles.navItemActive : '',
+    disabled ? styles.navItemDisabled : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -55,6 +65,22 @@ export default function BidderSidebarItem({
       </span>
     </>
   );
+
+  if (disabled) {
+    // Render as a non-interactive span so assistive technology still finds the
+    // item but it cannot be activated. The title provides the reason.
+    return (
+      <span
+        className={itemClass}
+        title={tooltip}
+        aria-disabled="true"
+        aria-label={collapsed ? label : undefined}
+        data-testid={`sidebar-item-${label.toLowerCase().replace(/\s+/g, '-')}`}
+      >
+        {content}
+      </span>
+    );
+  }
 
   if (external) {
     return (

@@ -109,6 +109,7 @@ const navItems: NavItem[] = [
     ),
     children: [
       { label: 'Application Control Center', href: '/admin/app-control-center' },
+      { label: 'Auction Control Center', href: '/admin/auction-control-center' },
       { label: 'Auctions Data Center', href: '/admin/auctions-data-center' },
       { label: 'PWS Data Center', href: '/admin/pws-data-center' },
     ],

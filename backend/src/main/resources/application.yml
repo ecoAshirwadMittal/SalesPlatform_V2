@@ -75,7 +75,7 @@ spring:
     locations: classpath:db/migration
     validate-on-migrate: true
     out-of-order: true
-    schemas: identity,user_mgmt,buyer_mgmt,sso,pws,mdm,integration,email
+    schemas: identity,user_mgmt,buyer_mgmt,sso,pws,mdm,integration,email,admin
     default-schema: identity  # flyway_schema_history lives in identity (matches pom.xml)
 
 # ─────────────────────────────────────
@@ -164,6 +164,13 @@ snowflake:
 # driven by direct service.tick() calls (used in tests). Polls every poll-ms
 # milliseconds when enabled. Mirrors Mendix scheduled-event interval (60s).
 # ─────────────────────────────────────
+# ─────────────────────────────────────
+# Buyer User Guide upload (Phase 12)
+# Local disk storage; S3 is a follow-up.
+# ─────────────────────────────────────
+buyer-guide:
+  upload-dir: ${BUYER_GUIDE_UPLOAD_DIR:uploads/buyer-user-guide}
+
 auctions:
   lifecycle:
     enabled: ${AUCTIONS_LIFECYCLE_ENABLED:true}

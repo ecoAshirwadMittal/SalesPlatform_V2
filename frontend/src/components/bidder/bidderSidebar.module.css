@@ -92,6 +92,17 @@
   font-weight: 500;
 }
 
+/* Disabled item: not interactive, visually dimmed */
+.navItemDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.navItemDisabled:hover {
+  background-color: transparent;
+}
+
 /* ── Icon ──────────────────────────────────────────────────────── */
 
 .navIcon {
