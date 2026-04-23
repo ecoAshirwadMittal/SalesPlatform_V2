@@ -66,12 +66,15 @@
   --color-text-body: #3C3C3C;
   --color-text-muted: #666766;          /* grid column headers */
   --color-brand-teal-dark: #112d32;     /* login primary button, top-bar chip bg, dark pills */
+  --color-brand-teal-dark-hover: #1a4a52; /* Hover state for dark teal pills + chip */
   --color-brand-teal: #407874;          /* secondary teal: Forgot Password link, Employee Login */
   --color-brand-teal-mid: #00969F;      /* sidebar gradient endpoint (bottom) */
   --color-brand-green: #14AC36;         /* primary CTA: Submit Bids, Import; sidebar gradient start */
   --color-carryover-tint: rgba(0, 150, 159, 0.18);  /* Carryover button bg — tint of teal, not green */
   --color-carryover-tint-hover: rgba(0, 150, 159, 0.26); /* Carryover hover state */
   --color-text-inverse: #FFFFFF;        /* White for text on brand-colored pill buttons */
+  --color-avatar-bg: #E8F4F4;           /* User avatar circle background (soft teal) */
+  --color-avatar-bg-hover: #d4ecec;     /* User avatar circle hover */
   --color-input-border: #D0D0D0;        /* Default input/outline border */
   --color-warning-red: #C21E1E;         /* "Minimum starting bid" warning label — confirmed 2026-04-22 */
 

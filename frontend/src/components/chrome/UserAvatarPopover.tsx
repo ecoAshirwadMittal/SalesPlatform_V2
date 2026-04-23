@@ -1,18 +1,15 @@
 'use client';
 
 /**
- * UserAvatarPopover — user name + circular avatar button with a floating popover.
- *
- * The popover shows a list of action items as stacked dark-teal pill buttons.
- * QA reference: qa-06-avatar-popover.png — two items: "Submit Feedback", "Logout".
- * The auction shell passes exactly those two via the `items` prop; the PWS shell
- * can inject more items in Phase 4+.
+ * Floating popover triggered by the avatar button.
  *
  * Accessibility:
- *   - Avatar is a <button> with aria-haspopup="true" and aria-expanded.
- *   - Popover traps focus (Tab cycles items, Shift+Tab exits back to the avatar).
- *   - Escape closes the popover and returns focus to the avatar button.
- *   - Click outside closes the popover.
+ * - Opens on click; closes on Escape or click-outside.
+ * - Initial focus moves to the first menu item on open.
+ * - Focus returns to the avatar button on close.
+ * - Tab navigation uses native DOM order; items are focusable siblings.
+ *   Once focus leaves the popover via Tab, the popover stays open — users
+ *   can close it explicitly via Escape or the avatar button.
  */
 
 import {

@@ -20,7 +20,6 @@
   height: 56px;
   padding: 0 20px;
   background-color: var(--color-bg-body, #F7F7F7);
-  /* Subtle separator matching Mendix QA — 1px bottom border */
   border-bottom: 1px solid var(--color-input-border, #D0D0D0);
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
   position: relative;
@@ -39,7 +38,6 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  /* Centered between logo and avatar */
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
@@ -78,11 +76,7 @@
 
 /* ── BuyerCodeChip ──────────────────────────────────────────────── */
 
-/*
- * Shared chip shell — both variants share this base.
- * Framed: transparent bg, 1px border, used in the top-bar.
- * Filled: dark-teal bg, white text, right-arrow, used in the picker.
- */
+/* Shared chip shell — Framed: transparent bg (top-bar); Filled: dark-teal bg (picker) */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -114,7 +108,7 @@
 }
 
 .chipFilled:hover {
-  background-color: #1a4a52;
+  background-color: var(--color-brand-teal-dark-hover, #1a4a52);
   transform: translateY(-1px);
 }
 
@@ -196,7 +190,7 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background-color: #E8F4F4;       /* light teal wash — matches QA screenshot */
+  background-color: var(--color-avatar-bg, #E8F4F4);
   border: 1.5px solid var(--color-brand-teal, #407874);
   color: var(--color-brand-teal, #407874);
   font-size: 12px;
@@ -212,7 +206,7 @@
 }
 
 .avatarButton:hover {
-  background-color: #d4ecec;
+  background-color: var(--color-avatar-bg-hover, #d4ecec);
 }
 
 .avatarButton:focus-visible {
@@ -273,11 +267,7 @@
 
 /* ── SidebarToggle ──────────────────────────────────────────────── */
 
-/*
- * Minimal icon-only button that sits at the top of the sidebar.
- * Height ~28px to match qa-07-sidebar-collapsed.png.
- * Background inherits the sidebar gradient; icon is white.
- */
+/* Minimal icon-only button at top of sidebar; ~28px height per qa-07. Icon inherits gradient bg. */
 .sidebarToggle {
   display: flex;
   align-items: center;
@@ -287,7 +277,7 @@
   background: none;
   border: none;
   border-radius: 4px;
-  color: #ffffff;
+  color: var(--color-text-inverse, #FFFFFF);
   cursor: pointer;
   padding: 0;
   transition: background-color 0.15s ease;
@@ -298,12 +288,9 @@
 }
 
 .sidebarToggle:focus-visible {
-  outline: 2px solid #ffffff;
+  outline: 2px solid var(--color-text-inverse, #FFFFFF);
   outline-offset: 2px;
 }
 
-/* The chevron SVG — no additional transform needed; shape is explicit in JSX */
-.chevronRight,
-.chevronLeft {
-  display: block;
-}
+/* Chevron SVG — shape is explicit in JSX */
+.chevronRight, .chevronLeft { display: block; }

@@ -18,12 +18,15 @@ tokens; no hardcoded hexes.
 | `--color-text-body` | `#3C3C3C` | Default text |
 | `--color-text-muted` | `#666766` | Grid column headers, secondary labels |
 | `--color-brand-teal-dark` | `#112d32` | Login primary, top-bar chip bg, dark pills |
+| `--color-brand-teal-dark-hover` | `#1a4a52` | Hover state for dark teal pills + chip. Phase 3 addition. |
 | `--color-brand-teal` | `#407874` | Secondary teal: Forgot Password link, Employee Login |
 | `--color-brand-teal-mid` | `#00969F` | Sidebar gradient endpoint, focus rings |
 | `--color-brand-green` | `#14AC36` | Primary CTAs: Submit Bids, Import, sidebar gradient start |
 | `--color-carryover-tint` | `rgba(0, 150, 159, 0.18)` | Carryover button background (teal tint, not green) |
 | `--color-carryover-tint-hover` | `rgba(0, 150, 159, 0.26)` | Carryover button hover state |
-| `--color-text-inverse` | `#FFFFFF` | Text on brand-colored pill buttons (green, teal) |
+| `--color-text-inverse` | `#FFFFFF` | Text on brand-colored pill buttons (green, teal); also sidebar toggle icon/outline |
+| `--color-avatar-bg` | `#E8F4F4` | User avatar circle background (soft teal). Phase 3 addition. |
+| `--color-avatar-bg-hover` | `#d4ecec` | User avatar circle hover. Phase 3 addition. |
 | `--color-input-border` | `#D0D0D0` | Default input / outline-button border |
 | `--color-warning-red` | `#C21E1E` | "Minimum starting bid" label (provisional — TODO eyedropper) |
 | `--color-surface-cream` | `#EFEBE4` | Login card background — warm cream, distinct from `--color-bg-body` (`#F7F7F7`). Phase 1 addition. |
