@@ -24,7 +24,7 @@ public class ReserveBidService {
     private final ReserveBidAuditRepository auditRepo;
     private final ReserveBidSyncRepository syncRepo;
     private final ApplicationEventPublisher publisher;
-    private final Object snowflakeReader;   // placeholder — replaced in Task 9
+    private final com.ecoatm.salesplatform.service.auctions.snowflake.ReserveBidSnowflakeReader snowflakeReader;
     private final ReserveBidExcelParser excelParser;
     private final ReserveBidExcelWriter excelWriter;
 
@@ -32,7 +32,7 @@ public class ReserveBidService {
                              ReserveBidAuditRepository auditRepo,
                              ReserveBidSyncRepository syncRepo,
                              ApplicationEventPublisher publisher,
-                             Object snowflakeReader,
+                             com.ecoatm.salesplatform.service.auctions.snowflake.ReserveBidSnowflakeReader snowflakeReader,
                              ReserveBidExcelParser excelParser,
                              ReserveBidExcelWriter excelWriter) {
         this.repo = repo;
@@ -226,6 +226,44 @@ public class ReserveBidService {
                     changedIds, ReserveBidChangedEvent.Action.UPSERT));
         }
         return new com.ecoatm.salesplatform.dto.ReserveBidUploadResult(created, updated, unchanged, auditsGenerated, errors);
+    }
+
+    @Transactional(readOnly = true)
+    public com.ecoatm.salesplatform.dto.ReserveBidAuditResponse findAudit(long reserveBidId, int page, int size) {
+        repo.findById(reserveBidId).orElseThrow(() ->
+                new ReserveBidException("RESERVE_BID_NOT_FOUND", "reserve_bid not found: " + reserveBidId));
+
+        org.springframework.data.domain.Page<ReserveBidAudit> p =
+                auditRepo.findByReserveBidIdOrderByCreatedDateDesc(reserveBidId,
+                        org.springframework.data.domain.PageRequest.of(page, size));
+
+        ReserveBid rb = repo.findById(reserveBidId).get();
+        var rows = p.getContent().stream().map(a -> new com.ecoatm.salesplatform.dto.ReserveBidAuditRow(
+                a.getId(), a.getReserveBidId(), rb.getProductId(), rb.getGrade(),
+                a.getOldPrice(), a.getNewPrice(), a.getCreatedDate(), null)).toList();
+        return new com.ecoatm.salesplatform.dto.ReserveBidAuditResponse(rows, p.getTotalElements(), page, size);
+    }
+
+    @Transactional(readOnly = true)
+    public com.ecoatm.salesplatform.dto.ReserveBidSyncStatus syncStatus() {
+        var sync = syncRepo.findFirstByOrderByIdAsc().orElseThrow(() ->
+                new ReserveBidException("SYNC_NOT_INITIALIZED", "reserve_bid_sync singleton missing"));
+        java.time.Instant local = sync.getLastSyncDatetime();
+        java.time.Instant source = snowflakeReader != null ? snowflakeReader.fetchMaxUploadTime().orElse(null) : null;
+
+        String state;
+        java.time.Duration drift;
+        if (local == null) {
+            state = com.ecoatm.salesplatform.dto.ReserveBidSyncStatus.NEVER_SYNCED;
+            drift = source != null ? java.time.Duration.between(java.time.Instant.EPOCH, source) : java.time.Duration.ZERO;
+        } else if (source == null || !source.isAfter(local)) {
+            state = com.ecoatm.salesplatform.dto.ReserveBidSyncStatus.IN_SYNC;
+            drift = java.time.Duration.ZERO;
+        } else {
+            state = com.ecoatm.salesplatform.dto.ReserveBidSyncStatus.BEHIND_SOURCE;
+            drift = java.time.Duration.between(local, source);
+        }
+        return new com.ecoatm.salesplatform.dto.ReserveBidSyncStatus(local, source, drift, state);
     }
 
     @Transactional(readOnly = true)

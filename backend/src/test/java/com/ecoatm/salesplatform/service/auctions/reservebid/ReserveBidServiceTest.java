@@ -23,7 +23,15 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import com.ecoatm.salesplatform.model.auctions.ReserveBidSync;
+import com.ecoatm.salesplatform.model.auctions.ReserveBidAudit;
+import com.ecoatm.salesplatform.dto.ReserveBidSyncStatus;
+import com.ecoatm.salesplatform.service.auctions.snowflake.ReserveBidSnowflakeReader;
+import java.time.Instant;
 
 @ExtendWith(MockitoExtension.class)
 class ReserveBidServiceTest {
@@ -199,6 +207,39 @@ class ReserveBidServiceTest {
             assertThat(s.getPhysicalNumberOfRows()).isEqualTo(3);
             assertThat(s.getRow(1).getCell(0).getStringCellValue()).isEqualTo("11001");
         }
+    }
+
+    @Test
+    void findAudit_returnsPagedTrail() {
+        ReserveBid rb = existing("55001", "A_YYY", "10");
+        when(repo.findById(55001L)).thenReturn(Optional.of(rb));
+
+        ReserveBidAudit a = new ReserveBidAudit();
+        a.setId(1L);
+        a.setReserveBidId(55001L);
+        a.setOldPrice(new BigDecimal("10"));
+        a.setNewPrice(new BigDecimal("12"));
+        a.setCreatedDate(Instant.now());
+        when(auditRepo.findByReserveBidIdOrderByCreatedDateDesc(eq(55001L), any()))
+                .thenReturn(new PageImpl<>(java.util.List.of(a), PageRequest.of(0, 20), 1));
+
+        var resp = service.findAudit(55001L, 0, 20);
+        assertThat(resp.rows()).hasSize(1);
+        assertThat(resp.rows().get(0).newPrice()).isEqualByComparingTo("12");
+    }
+
+    @Test
+    void syncStatus_reportsNeverSyncedWhenNullWatermark() {
+        ReserveBidSync sync = new ReserveBidSync();
+        sync.setLastSyncDatetime(null);
+        when(syncRepo.findFirstByOrderByIdAsc()).thenReturn(Optional.of(sync));
+
+        ReserveBidSnowflakeReader reader = mock(ReserveBidSnowflakeReader.class);
+        when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-01T00:00:00Z")));
+
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        var status = svc.syncStatus();
+        assertThat(status.state()).isEqualTo(ReserveBidSyncStatus.NEVER_SYNCED);
     }
 
     private static ReserveBid existing(String pid, String grade, String bid) {
