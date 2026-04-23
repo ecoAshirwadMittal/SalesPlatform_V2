@@ -75,6 +75,13 @@
   --color-input-border: #D0D0D0;        /* Default input/outline border */
   --color-warning-red: #C21E1E;         /* "Minimum starting bid" warning label — confirmed 2026-04-22 */
 
+  /* ── Phase 1 additions — login pixel parity ── */
+  --color-surface-cream: #EFEBE4;       /* Login card background (warm cream, distinct from --color-bg-body #F7F7F7) */
+  --color-text-on-dark-pill: #F0EBE3;   /* Login/Contact Us pill text — Mendix uses cream-off-white, not pure white */
+  --color-divider: #D1CDC6;             /* Horizontal rule between Employee Login and footer section */
+  --color-input-border-dark: #898787;   /* Login input border (stronger contrast than --color-input-border) */
+  --color-input-text: #333333;          /* Login input text (one step darker than --color-text-body) */
+
   /* Typography */
   --font-family-primary: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
   --font-size-body: 16px;

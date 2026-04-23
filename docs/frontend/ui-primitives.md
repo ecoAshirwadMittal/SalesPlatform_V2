@@ -26,6 +26,11 @@ tokens; no hardcoded hexes.
 | `--color-text-inverse` | `#FFFFFF` | Text on brand-colored pill buttons (green, teal) |
 | `--color-input-border` | `#D0D0D0` | Default input / outline-button border |
 | `--color-warning-red` | `#C21E1E` | "Minimum starting bid" label (provisional — TODO eyedropper) |
+| `--color-surface-cream` | `#EFEBE4` | Login card background — warm cream, distinct from `--color-bg-body` (`#F7F7F7`). Phase 1 addition. |
+| `--color-text-on-dark-pill` | `#F0EBE3` | Login / Contact Us pill text — Mendix QA uses cream-off-white, not pure white. Phase 1 addition. |
+| `--color-divider` | `#D1CDC6` | Horizontal rule between Employee Login and the footer section. Phase 1 addition. |
+| `--color-input-border-dark` | `#898787` | Login input border — stronger contrast than `--color-input-border`. Phase 1 addition. |
+| `--color-input-text` | `#333333` | Login input text — one step darker than `--color-text-body`. Phase 1 addition. |
 
 ### Typography
 

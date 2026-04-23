@@ -1,23 +1,29 @@
-/* src/app/(auth)/login/login.module.css */
+/* src/app/(auth)/login/login.module.css
+   All colour values reference design tokens from globals.css.
+   No hardcoded hexes — see docs/frontend/ui-primitives.md for token reference.
+*/
 
 .container {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  /* Dark teal gradient extracted from QA */
-  background: linear-gradient(rgb(65, 121, 116) 0%, rgb(16, 46, 51) 100%);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Dark teal gradient — approximates QA using existing brand tokens.
+     QA shows rgb(65,121,116) → rgb(16,46,51); closest tokens are
+     --color-brand-teal (#407874) → --color-brand-teal-dark (#112d32).
+     Visual difference at this size is imperceptible. */
+  background: linear-gradient(var(--color-brand-teal) 0%, var(--color-brand-teal-dark) 100%);
+  font-family: var(--font-family-primary);
 }
 
 .loginCard {
-  background-color: #EFEBE4;
+  background-color: var(--color-surface-cream);
   border-radius: 22px;
   width: 900px;
   min-height: 609px;
   display: flex;
   overflow: hidden;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
 }
 
 .leftSide {
@@ -53,7 +59,9 @@
   text-align: center;
   font-size: 24px;
   font-weight: 500;
-  color: #102E33; /* Dark Primary Text */
+  /* #102E33 is visually identical to --color-brand-teal-dark (#112d32) at
+     this size. Aligning to the token keeps the set minimal. */
+  color: var(--color-brand-teal-dark);
   margin-bottom: 30px;
   line-height: 1.2;
 }
@@ -75,27 +83,53 @@
   height: 44px;
   padding: 8px 12px;
   font-size: 16px;
-  color: #333333;
-  background-color: #F7F7F7;
-  border: 1px solid #898787;
+  font-family: var(--font-family-primary);
+  color: var(--color-input-text);
+  background-color: var(--color-bg-body);
+  border: 1px solid var(--color-input-border-dark);
   border-radius: 3px;
   transition: border-color 0.15s;
 }
 
 .input:focus {
   outline: none;
-  border-color: #407874;
+  border-color: var(--color-brand-teal);
+}
+
+/* Password field needs right-side padding to avoid text underlapping the toggle */
+.inputWithToggle {
+  padding-right: 44px;
 }
 
 .passwordToggle {
   position: absolute;
-  right: 12px;
+  right: 10px;
   background: none;
   border: none;
-  color: #898787;
+  color: var(--color-input-border-dark);
   cursor: pointer;
-  padding: 0;
-  font-size: 14px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Keyboard-accessible — tabIndex default (0), removed the old tabIndex={-1} */
+  border-radius: 4px;
+  transition: color 0.15s;
+}
+
+.passwordToggle:hover {
+  color: var(--color-brand-teal-dark);
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid);
+  outline-offset: 2px;
+}
+
+.toggleIcon {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 .actions {
@@ -119,12 +153,12 @@
 
 .checkboxLabel {
   font-size: 14px;
-  color: #102E33;
+  color: var(--color-brand-teal-dark);
 }
 
 .forgotPassword {
   font-size: 14px;
-  color: #407874;
+  color: var(--color-brand-teal);
   text-decoration: none;
   font-weight: 500;
 }
@@ -136,11 +170,13 @@
 .loginbutton {
   width: 250px;
   padding: 12px 16px;
-  font-size: 18px;
-  font-weight: 500;
-  border-radius: 33px;
-  color: #F0EBE3;
-  background-color: #102E33;
+  font-size: var(--font-size-button-lg);
+  font-family: var(--font-family-primary);
+  font-weight: var(--font-weight-body);
+  border-radius: var(--radius-pill);
+  /* QA button text is cream-off-white (#F0EBE3), not pure white. */
+  color: var(--color-text-on-dark-pill);
+  background-color: var(--color-brand-teal-dark);
   border: none;
   cursor: pointer;
   margin-bottom: 15px;
@@ -155,8 +191,9 @@
   width: 250px;
   padding: 10px 16px;
   font-size: 16px;
+  font-family: var(--font-family-primary);
   font-weight: 500;
-  color: #407874;
+  color: var(--color-brand-teal);
   background: transparent;
   border: none;
   cursor: pointer;
@@ -170,13 +207,13 @@
 .divider {
   width: 100%;
   height: 1px;
-  background-color: #d1cdc6;
+  background-color: var(--color-divider);
   margin-bottom: 25px;
 }
 
 .subHeaderText {
   font-size: 16px;
-  color: #102E33;
+  color: var(--color-brand-teal-dark);
   font-weight: 500;
   margin-bottom: 15px;
 }
@@ -197,7 +234,7 @@
 }
 
 .neutral {
-  background-color: #EFEBE4;
-  border: 1px solid #d1cdc6;
-  color: #407874;
+  background-color: var(--color-surface-cream);
+  border: 1px solid var(--color-divider);
+  color: var(--color-brand-teal);
 }

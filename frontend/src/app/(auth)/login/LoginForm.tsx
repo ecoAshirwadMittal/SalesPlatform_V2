@@ -8,6 +8,50 @@ import styles from './login.module.css';
 import { apiFetch } from '@/lib/apiFetch';
 import { API_BASE } from '@/lib/apiRoutes';
 
+/** Eye icon — "show password" state (eye open) */
+function EyeOpenIcon() {
+  return (
+    <svg
+      className={styles.toggleIcon}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M10 4C5.5 4 1.7 6.9 0 11c1.7 4.1 5.5 7 10 7s8.3-2.9 10-7c-1.7-4.1-5.5-7-10-7z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="11" r="3" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/** Eye-off icon — "hide password" state (eye with slash) */
+function EyeOffIcon() {
+  return (
+    <svg
+      className={styles.toggleIcon}
+      viewBox="0 0 20 20"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path
+        d="M2 2l16 16M8.5 5.2A9.8 9.8 0 0110 5c4.5 0 8.3 2.9 10 7a10.1 10.1 0 01-2.5 3.6M13.7 13.8A4 4 0 016.2 8.2M10 5c-4.5 0-8.3 2.9-10 7a10.1 10.1 0 003.3 4.4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export default function LoginForm() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -92,7 +136,7 @@ export default function LoginForm() {
           priority
           className={styles.loginLogoImage}
         />
-        
+
         <h1 className={styles.mainHeaderText}>
           Premium Wholesale &<br />Weekly Auctions
         </h1>
@@ -119,18 +163,21 @@ export default function LoginForm() {
                   id="password"
                   type={showPassword ? 'text' : 'password'}
                   required={!isInternalUser}
-                  className={styles.input}
+                  className={`${styles.input} ${styles.inputWithToggle}`}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
                 />
+                {/* Keyboard-accessible eye toggle — tabIndex default (0) so Tab reaches it.
+                    Uses aria-pressed to communicate toggled state to screen readers. */}
                 <button
                   type="button"
                   className={styles.passwordToggle}
                   onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? 'Hide' : 'Show'}
+                  {showPassword ? <EyeOffIcon /> : <EyeOpenIcon />}
                 </button>
               </div>
             </div>
@@ -161,8 +208,8 @@ export default function LoginForm() {
           </button>
 
           {!isInternalUser && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={handleEmployeeLogin}
               className={styles.loginbuttonemployee}
             >
@@ -173,7 +220,13 @@ export default function LoginForm() {
           {/* Footer Contacts Section */}
           <div className={styles.divider}></div>
           <span className={styles.subHeaderText}>Interested but don&apos;t have an account?</span>
-          <button type="button" className={styles.loginbutton} style={{ marginBottom: 0 }}>
+          {/* Contact URL TBD — no-op on click, matching QA behaviour */}
+          <button
+            type="button"
+            className={styles.loginbutton}
+            style={{ marginBottom: 0 }}
+            onClick={(e) => e.preventDefault()}
+          >
             Contact Us
           </button>
 
