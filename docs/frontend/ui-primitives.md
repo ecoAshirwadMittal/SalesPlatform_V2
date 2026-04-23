@@ -189,3 +189,46 @@ Additional weights (700 bold, 200 light, etc.) are available in
 `migration_context/styling/` and can be promoted to `brandon-grotesque/`
 when a Phase 1+ surface actually needs them. See the commented-out block
 in `globals.css`.
+
+---
+
+## Chrome Primitives (Phase 3)
+
+All five primitives live under `frontend/src/components/chrome/` and consume tokens from `globals.css`.
+
+### `<BuyerPortalChrome>`
+
+Shared top-bar for all buyer portal shells. Three horizontal flex regions: logo (left), Switch Buyer Code link + `<BuyerCodeChip>` (middle — hidden when `activeBuyerCode` is `null`), user name + avatar (right). Accepts `avatarPopoverItems` so each shell injects its own popover actions. QA reference: `qa-03-bidder-dashboard-ad.png`.
+
+### `<BuyerCodeChip>`
+
+Displays the active buyer code as a pill. Two variants controlled by the `variant` prop:
+- `'framed'` (default) — transparent background, `1px solid var(--color-input-border)`, green circle + briefcase left, bold code on top, company below. Used in the chrome top-bar.
+- `'filled'` — `var(--color-brand-teal-dark)` background, white text, right-anchored arrow. Used in the buyer-code picker. Renders as a `<button>` only when `onClick` is provided.
+
+### `<UserAvatarPopover>`
+
+User full name (plain text) + circular avatar button that opens a floating card with stacked dark-teal pill items. Closes on click-outside, Escape, and item click. Focus moves to the first item on open. The `items` prop is the full item list — no hard-coded entries. Auction shell passes `[Submit Feedback, Logout]`; PWS shell can add more in Phase 4+. QA reference: `qa-06-avatar-popover.png`.
+
+### `<SidebarToggle>`
+
+Minimal icon-only `<button>` with a right-pointing chevron when collapsed and a left-pointing chevron when expanded. Height ~28px. Sits at the top of the gradient sidebar. `aria-expanded` and `aria-label` are set correctly for screen readers. QA reference: `qa-07-sidebar-collapsed.png`.
+
+### `<SidebarProvider>` / `useSidebar()`
+
+Context provider that holds the sidebar `collapsed` boolean and a `toggle` function. State is persisted to `localStorage` under the `storageKey` prop (`'bidder.sidebarCollapsed'` by default). Uses a lazy `useState` initialiser — no `useEffect` / setState-in-effect cascade. Phase 4 wraps the shell layouts in `<SidebarProvider>` and wires `<SidebarToggle>`.
+
+---
+
+## Active Buyer Code helpers (Phase 3)
+
+`frontend/src/lib/activeBuyerCode.ts` is the single source of truth for reading, writing, and clearing the buyer code that is currently selected:
+
+| Export | Purpose |
+|---|---|
+| `setActiveBuyerCode(code)` | Writes to `localStorage['activeBuyerCode']` + compat `sessionStorage['selectedBuyerCode']` |
+| `getActiveBuyerCode()` | Reads from `localStorage['activeBuyerCode']` |
+| `clearActiveBuyerCode()` | Removes both storage keys (call on logout) |
+| `resolveShellRoute(code)` | Returns `/bidder/dashboard?buyerCodeId=…` for AUCTION codes, `/pws/order?…` for PWS |
+
+`frontend/src/hooks/useActiveBuyerCode.ts` validates the active code on mount against `GET /auth/buyer-codes` and redirects to `/buyer-select` if the code is absent or invalid. URL param `?buyerCodeId=<id>` takes precedence over localStorage (deep-link wins).
