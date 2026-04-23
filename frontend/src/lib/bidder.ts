@@ -298,3 +298,74 @@ export async function carryoverBidRound(
 
   return CarryoverResultSchema.parse(await res.json());
 }
+
+// ---------------------------------------------------------------------------
+// Import / Export  (Phase 10)
+// ---------------------------------------------------------------------------
+
+export const BidImportRowErrorSchema = z.object({
+  row: z.number().int(),
+  message: z.string(),
+});
+export type BidImportRowError = z.infer<typeof BidImportRowErrorSchema>;
+
+export const BidImportResultSchema = z.object({
+  updated: z.number().int(),
+  errors: z.array(BidImportRowErrorSchema),
+});
+export type BidImportResult = z.infer<typeof BidImportResultSchema>;
+
+/**
+ * GET /api/v1/bidder/bid-rounds/{id}/export?buyerCodeId={buyerCodeId}
+ *
+ * Triggers a browser file download of the bid slice as an xlsx file.
+ * Opens a hidden anchor element with the `download` attribute so the
+ * browser streams the file directly — no Blob allocation in the tab.
+ * The anchor is removed from the DOM immediately after the click.
+ */
+export function exportBidRound(id: number, buyerCodeId: number): void {
+  const url = `/api/v1/bidder/bid-rounds/${id}/export?buyerCodeId=${buyerCodeId}`;
+
+  // WHY a programmatic anchor: fetch() with blob() would buffer the entire
+  // file in JS memory. Using an anchor + download attribute lets the browser
+  // handle the stream natively. The relative URL is resolved against the
+  // Next.js rewrites so cookies are forwarded automatically.
+  const a = document.createElement('a');
+  a.href = url;
+  a.setAttribute('download', '');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/**
+ * POST /api/v1/bidder/bid-rounds/{id}/import?buyerCodeId={buyerCodeId}
+ *
+ * Uploads an xlsx file and returns the import result. On validation
+ * failure the server returns 200 with a non-empty `errors` array. On
+ * rate-limit the server returns 429 which this function translates to
+ * {@link RateLimitedError}.
+ */
+export async function importBidRound(
+  id: number,
+  buyerCodeId: number,
+  file: File,
+): Promise<BidImportResult> {
+  const form = new FormData();
+  form.append('file', file);
+
+  const res = await apiFetch(
+    `/api/v1/bidder/bid-rounds/${id}/import?buyerCodeId=${buyerCodeId}`,
+    { method: 'POST', body: form },
+  );
+
+  if (res.status === 429) {
+    throw new RateLimitedError();
+  }
+
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`);
+  }
+
+  return BidImportResultSchema.parse(await res.json());
+}

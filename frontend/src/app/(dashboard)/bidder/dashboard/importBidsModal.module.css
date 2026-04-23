@@ -1,0 +1,148 @@
+/* ImportBidsModal — styles for the 4-step import flow */
+/* Extends bidderModal.module.css which owns the overlay / card / closeBtn chrome */
+
+.title {
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-body);
+  margin: 0 0 16px;
+  text-align: center;
+}
+
+.bodyHeading {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-body);
+  margin: 0 0 8px;
+}
+
+.steps {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+  margin: 0 0 16px;
+  padding-left: 20px;
+  line-height: 1.8;
+  /* Reset list-style so the numbered list items are rendered as plain items,
+     matching the Mendix layout where step 3 supplies its own number ("3.Upload"). */
+  list-style: none;
+}
+
+.steps li {
+  padding: 2px 0;
+}
+
+.fileInputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.fileInput {
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  color: var(--color-text-body);
+}
+
+.fileInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.helperText {
+  font-family: var(--font-family-primary);
+  font-size: 12px;
+  color: var(--color-text-muted, #6b7280);
+}
+
+.errorText {
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  color: var(--color-error, #dc2626);
+  margin: 0 0 12px;
+}
+
+.footer {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+}
+
+.importBtn {
+  padding: 10px 40px;
+}
+
+.uploading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--color-brand-teal-mid, #407874);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Result state */
+.resultBody {
+  margin-top: 4px;
+}
+
+.successText {
+  font-family: var(--font-family-primary);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-brand-green, #407874);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.partialText {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+  margin: 0 0 8px;
+}
+
+.errorList {
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 4px;
+}
+
+.errorItem {
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  padding: 6px 10px;
+  color: var(--color-text-body);
+  border-bottom: 1px solid var(--color-border, #e5e7eb);
+}
+
+.errorItem:last-child {
+  border-bottom: none;
+}
+
+.errorRow {
+  font-weight: 600;
+  color: var(--color-error, #dc2626);
+}

@@ -4,6 +4,8 @@ import {
   loadDashboard,
   submitBidRound,
   carryoverBidRound,
+  exportBidRound,
+  importBidRound,
   RateLimitedError,
   RoundClosedError,
   VersionConflictError,
@@ -11,6 +13,7 @@ import {
 import type {
   BidderDashboardResponse,
   BidDataRow,
+  BidImportResult,
   BidRoundSummary,
   CarryoverResult,
   RoundTimerState,
@@ -23,6 +26,7 @@ import { EndOfBiddingPanel } from './EndOfBiddingPanel';
 import { SubmitBidsEmptyStateModal } from './SubmitBidsEmptyStateModal';
 import { BidsSubmittedModal } from './BidsSubmittedModal';
 import { CarryoverResultModal } from './CarryoverResultModal';
+import { ImportBidsModal } from './ImportBidsModal';
 
 interface BidderDashboardClientProps {
   // `initial` is optional so the component can also own its first fetch
@@ -82,6 +86,8 @@ export function BidderDashboardClient({
   const [lastSubmitWasResubmit, setLastSubmitWasResubmit] = useState<boolean>(false);
   // Carryover result: null = modal closed, non-null = show CarryoverResultModal
   const [carryoverResult, setCarryoverResult] = useState<CarryoverResult | null>(null);
+  // Import modal: false = closed, true = open
+  const [importModalOpen, setImportModalOpen] = useState<boolean>(false);
   // Toast state for auto-save errors. Auto-clears after 5s.
   const [toast, setToast] = useState<string | null>(null);
 
@@ -297,10 +303,25 @@ export function BidderDashboardClient({
     (grid.timer === null || grid.timer.active);
 
   const handleExport = (): void => {
-    // TODO(Phase 10): GET /bidder/bid-rounds/{id}/export as .xlsx download
+    exportBidRound(grid.bidRound.id, buyerCodeRef.current);
   };
+
   const handleImport = (): void => {
-    // TODO(Phase 10): open ImportBidsModal
+    setImportModalOpen(true);
+  };
+
+  const handleImportSubmit = async (file: File): Promise<BidImportResult> => {
+    return importBidRound(grid.bidRound.id, buyerCodeRef.current, file);
+  };
+
+  const handleImportComplete = async (): Promise<void> => {
+    // Refetch the grid so any updated bid values are reflected immediately.
+    try {
+      const fresh = await loadDashboard(buyerCodeRef.current);
+      applyResponse(fresh);
+    } catch (err: unknown) {
+      console.error('refetch after import failed', err);
+    }
   };
 
   return (
@@ -341,6 +362,12 @@ export function BidderDashboardClient({
           onClose={() => setCarryoverResult(null)}
         />
       )}
+      <ImportBidsModal
+        isOpen={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSubmit={handleImportSubmit}
+        onComplete={handleImportComplete}
+      />
     </div>
   );
 }

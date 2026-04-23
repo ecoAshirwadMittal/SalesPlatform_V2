@@ -1,17 +1,28 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.BidDataRow;
+import com.ecoatm.salesplatform.dto.BidImportResult;
 import com.ecoatm.salesplatform.dto.BidSubmissionResult;
 import com.ecoatm.salesplatform.dto.BidderDashboardResponse;
 import com.ecoatm.salesplatform.dto.CarryoverResult;
 import com.ecoatm.salesplatform.dto.SaveBidRequest;
+import com.ecoatm.salesplatform.model.auctions.Auction;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
+import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
+import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
+import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidCarryoverService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataCreationService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionService;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidExportService;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidImportService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidderDashboardLandingResult;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidderDashboardService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -23,7 +34,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -67,18 +82,33 @@ public class BidderDashboardController {
     private final BidDataCreationService creationService;
     private final BidDataSubmissionService submissionService;
     private final BidCarryoverService carryoverService;
+    private final BidExportService exportService;
+    private final BidImportService importService;
     private final BidRateLimiter rateLimiter;
+    private final BidRoundRepository bidRoundRepo;
+    private final SchedulingAuctionRepository saRepo;
+    private final AuctionRepository auctionRepo;
 
     public BidderDashboardController(BidderDashboardService dashboardService,
                                       BidDataCreationService creationService,
                                       BidDataSubmissionService submissionService,
                                       BidCarryoverService carryoverService,
-                                      BidRateLimiter rateLimiter) {
+                                      BidExportService exportService,
+                                      BidImportService importService,
+                                      BidRateLimiter rateLimiter,
+                                      BidRoundRepository bidRoundRepo,
+                                      SchedulingAuctionRepository saRepo,
+                                      AuctionRepository auctionRepo) {
         this.dashboardService = dashboardService;
         this.creationService = creationService;
         this.submissionService = submissionService;
         this.carryoverService = carryoverService;
+        this.exportService = exportService;
+        this.importService = importService;
         this.rateLimiter = rateLimiter;
+        this.bidRoundRepo = bidRoundRepo;
+        this.saRepo = saRepo;
+        this.auctionRepo = auctionRepo;
     }
 
     @GetMapping("/dashboard")
@@ -152,5 +182,108 @@ public class BidderDashboardController {
                                                       Authentication auth) {
         long userId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(carryoverService.carryover(userId, id, buyerCodeId));
+    }
+
+    /**
+     * Export the current bid slice as an xlsx file.
+     *
+     * <p>{@code GET /api/v1/bidder/bid-rounds/{id}/export?buyerCodeId=…}
+     *
+     * <p>Streams a {@code Content-Disposition: attachment} xlsx whose filename
+     * follows the pattern
+     * {@code Bids_{auctionTitle}_R{round}_{buyerCode}.xlsx}.
+     * Column order is identical to the grid (Product Id / Brand / Model /
+     * Model Name / Grade / Carrier / Added / Avail. Qty / Target Price /
+     * Price / Qty. Cap / Id).
+     *
+     * <p>Uses {@link BidExportService} which internally uses
+     * {@code SXSSFWorkbook} (streaming writer) so even a 500-row export stays
+     * well under 5 MB.
+     */
+    @GetMapping("/bid-rounds/{id}/export")
+    public void export(@PathVariable long id,
+                       @RequestParam long buyerCodeId,
+                       Authentication auth,
+                       HttpServletResponse response) throws IOException {
+        long userId = (Long) auth.getPrincipal();
+
+        // Build a human-readable filename: Bids_{title}_R{round}_{buyerCode}.xlsx
+        String filename = resolveExportFilename(id, buyerCodeId);
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename
+                + "\"; filename*=UTF-8''" + encoded);
+
+        exportService.export(id, buyerCodeId, response.getOutputStream());
+    }
+
+    /**
+     * Import a bid xlsx file uploaded by the bidder.
+     *
+     * <p>{@code POST /api/v1/bidder/bid-rounds/{id}/import?buyerCodeId=…}
+     *
+     * <p>Accepts {@code multipart/form-data} with a single {@code file} part.
+     * Validates the file, then applies all updates in one transaction. Returns
+     * {@code 200} with a {@link BidImportResult} on success; returns
+     * {@code 200} with a non-empty {@code errors} array if validation fails
+     * (no rows are written on validation failure).
+     *
+     * <p>One import consumes one token from the per-{@code (user, round)}
+     * rate-limiter bucket (same 60/min cap as individual cell saves).
+     */
+    @PostMapping(value = "/bid-rounds/{id}/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<BidImportResult> importBids(
+            @PathVariable long id,
+            @RequestParam long buyerCodeId,
+            @RequestParam MultipartFile file,
+            Authentication auth) throws IOException {
+
+        long userId = (Long) auth.getPrincipal();
+
+        // Rate-limit import using the same (user, round) bucket as saves.
+        if (!rateLimiter.tryAcquire(userId, id)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+
+        BidImportResult result = importService.importBids(userId, id, buyerCodeId, file);
+        return ResponseEntity.ok(result);
+    }
+
+    // ---------------------------------------------------------------------------
+    // Private helpers
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Resolves the export filename by loading the bid round → scheduling auction
+     * → auction + buyer code. Gracefully falls back to a generic name if any
+     * lookup fails so the export is never blocked by a missing FK.
+     */
+    private String resolveExportFilename(long bidRoundId, long buyerCodeId) {
+        try {
+            BidRound br = bidRoundRepo.findById(bidRoundId).orElse(null);
+            if (br == null) return "Bids.xlsx";
+
+            SchedulingAuction sa = saRepo.findById(br.getSchedulingAuctionId()).orElse(null);
+            if (sa == null) return "Bids.xlsx";
+
+            Auction auction = auctionRepo.findById(sa.getAuctionId()).orElse(null);
+            String title = auction != null ? sanitizeFilename(auction.getAuctionTitle()) : "Auction";
+            int round = sa.getRound();
+
+            // Buyer code text — fall back to the id if lookup fails
+            String buyerCode = "BC" + buyerCodeId;
+
+            return "Bids_" + title + "_R" + round + "_" + buyerCode + ".xlsx";
+        } catch (Exception e) {
+            return "Bids.xlsx";
+        }
+    }
+
+    /** Strip characters that are illegal in most filesystems. */
+    private static String sanitizeFilename(String raw) {
+        if (raw == null) return "Auction";
+        return raw.replaceAll("[/\\\\:*?\"<>|]", "_").trim();
     }
 }
