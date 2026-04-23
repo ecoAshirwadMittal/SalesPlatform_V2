@@ -25,14 +25,14 @@ public class ReserveBidService {
     private final ReserveBidSyncRepository syncRepo;
     private final ApplicationEventPublisher publisher;
     private final Object snowflakeReader;   // placeholder — replaced in Task 9
-    private final Object excelParser;        // placeholder — replaced in Task 7
+    private final ReserveBidExcelParser excelParser;
 
     public ReserveBidService(ReserveBidRepository repo,
                              ReserveBidAuditRepository auditRepo,
                              ReserveBidSyncRepository syncRepo,
                              ApplicationEventPublisher publisher,
                              Object snowflakeReader,
-                             Object excelParser) {
+                             ReserveBidExcelParser excelParser) {
         this.repo = repo;
         this.auditRepo = auditRepo;
         this.syncRepo = syncRepo;
@@ -133,5 +133,95 @@ public class ReserveBidService {
                 rb.getLastUpdateDatetime(), rb.getLastAwardedMinPrice(),
                 rb.getLastAwardedWeek(), rb.getBidValidWeekDate(),
                 rb.getChangedDate());
+    }
+
+    @Transactional
+    public com.ecoatm.salesplatform.dto.ReserveBidUploadResult upload(long userId,
+            org.springframework.web.multipart.MultipartFile file) {
+        if (excelParser == null) {
+            throw new ReserveBidException("PARSER_UNAVAILABLE", "excelParser not wired");
+        }
+        List<ReserveBidExcelParser.ParsedRow> parsed;
+        try {
+            parsed = excelParser.parse(file.getInputStream());
+        } catch (java.io.IOException ex) {
+            throw new ReserveBidValidationException("UPLOAD_PARSE_ERROR",
+                    "Cannot read upload: " + ex.getMessage());
+        }
+
+        List<com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError> errors = new java.util.ArrayList<>();
+        int created = 0, updated = 0, unchanged = 0, auditsGenerated = 0;
+        List<Long> changedIds = new java.util.ArrayList<>();
+        java.util.Set<String> seenKeys = new java.util.HashSet<>();
+
+        for (var row : parsed) {
+            String key = row.productId() + "|" + row.grade();
+            if (row.grade() == null || row.grade().isBlank()) {
+                errors.add(new com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError(
+                        row.rowNumber(), row.productId(), row.grade(), "MISSING_GRADE"));
+                continue;
+            }
+            if (row.productId() == null || row.productId().isBlank()) {
+                errors.add(new com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError(
+                        row.rowNumber(), row.productId(), row.grade(), "MISSING_PRODUCT_ID"));
+                continue;
+            }
+            if (row.price() == null || row.price().signum() < 0) {
+                errors.add(new com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError(
+                        row.rowNumber(), row.productId(), row.grade(), "NEGATIVE_PRICE"));
+                continue;
+            }
+            if (!seenKeys.add(key)) {
+                errors.add(new com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError(
+                        row.rowNumber(), row.productId(), row.grade(), "DUPLICATE_IN_SHEET"));
+                continue;
+            }
+
+            java.util.Optional<ReserveBid> existing = repo.findByProductIdAndGrade(row.productId(), row.grade());
+            ReserveBid rb;
+            if (existing.isPresent()) {
+                rb = existing.get();
+                BigDecimal oldPrice = rb.getBid();
+                if (oldPrice != null && oldPrice.compareTo(row.price()) == 0) {
+                    unchanged++;
+                    continue;
+                }
+                if (oldPrice != null) {
+                    ReserveBidAudit a = new ReserveBidAudit();
+                    a.setReserveBidId(rb.getId());
+                    a.setOldPrice(oldPrice);
+                    a.setNewPrice(row.price());
+                    a.setOwnerId(userId);
+                    a.setChangedById(userId);
+                    auditRepo.save(a);
+                    auditsGenerated++;
+                }
+                rb.setBid(row.price());
+                rb.setModel(row.modelName() != null ? row.modelName() : rb.getModel());
+                rb.setLastUpdateDatetime(Instant.now());
+                rb.setChangedById(userId);
+                rb.setChangedDate(Instant.now());
+                repo.save(rb);
+                updated++;
+            } else {
+                rb = new ReserveBid();
+                rb.setProductId(row.productId());
+                rb.setGrade(row.grade());
+                rb.setModel(row.modelName());
+                rb.setBid(row.price());
+                rb.setLastUpdateDatetime(Instant.now());
+                rb.setOwnerId(userId);
+                rb.setChangedById(userId);
+                repo.save(rb);
+                created++;
+            }
+            changedIds.add(rb.getId());
+        }
+
+        if (!changedIds.isEmpty()) {
+            publisher.publishEvent(new ReserveBidChangedEvent(
+                    changedIds, ReserveBidChangedEvent.Action.UPSERT));
+        }
+        return new com.ecoatm.salesplatform.dto.ReserveBidUploadResult(created, updated, unchanged, auditsGenerated, errors);
     }
 }

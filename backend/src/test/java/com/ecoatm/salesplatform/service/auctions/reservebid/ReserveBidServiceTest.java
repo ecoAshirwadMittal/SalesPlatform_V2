@@ -2,6 +2,7 @@ package com.ecoatm.salesplatform.service.auctions.reservebid;
 
 import com.ecoatm.salesplatform.dto.ReserveBidRequest;
 import com.ecoatm.salesplatform.dto.ReserveBidRow;
+import com.ecoatm.salesplatform.dto.ReserveBidUploadResult;
 import com.ecoatm.salesplatform.event.ReserveBidChangedEvent;
 import com.ecoatm.salesplatform.model.auctions.ReserveBid;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidAuditRepository;
@@ -14,12 +15,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -126,5 +129,65 @@ class ReserveBidServiceTest {
         assertThatThrownBy(() -> service.delete(999L))
                 .isInstanceOf(ReserveBidException.class)
                 .hasFieldOrPropertyWithValue("code", "RESERVE_BID_NOT_FOUND");
+    }
+
+    @Test
+    void upload_createsNewRowsAndAuditsPriceChanges() throws Exception {
+        when(repo.findByProductIdAndGrade("10001", "A_YYY")).thenReturn(Optional.of(existing("10001", "A_YYY", "40")));
+        when(repo.findByProductIdAndGrade("10002", "A_YYY")).thenReturn(Optional.empty());
+        when(repo.findByProductIdAndGrade("10003", "B_NYY")).thenReturn(Optional.empty());
+        when(repo.save(any(ReserveBid.class))).thenAnswer(inv -> {
+            ReserveBid r = inv.getArgument(0);
+            if (r.getId() == null) r.setId(100L);
+            return r;
+        });
+
+        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
+                null, new ReserveBidExcelParser());
+
+        byte[] bytes = java.nio.file.Files.readAllBytes(
+                java.nio.file.Path.of("src/test/resources/fixtures/reserve-bid-sample.xlsx"));
+        ReserveBidUploadResult result = real.upload(99L,
+                new MockMultipartFile("file", "sample.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes));
+
+        assertThat(result.created()).isEqualTo(2);
+        assertThat(result.updated()).isEqualTo(1);
+        assertThat(result.auditsGenerated()).isEqualTo(1);
+        assertThat(result.errors()).isEmpty();
+    }
+
+    @Test
+    void upload_reportsErrorsWithoutAborting() throws Exception {
+        when(repo.findByProductIdAndGrade(anyString(), anyString())).thenReturn(Optional.empty());
+        when(repo.save(any(ReserveBid.class))).thenAnswer(inv -> {
+            ReserveBid r = inv.getArgument(0);
+            if (r.getId() == null) r.setId(200L);
+            return r;
+        });
+
+        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
+                null, new ReserveBidExcelParser());
+
+        byte[] bytes = java.nio.file.Files.readAllBytes(
+                java.nio.file.Path.of("src/test/resources/fixtures/reserve-bid-with-errors.xlsx"));
+        ReserveBidUploadResult result = real.upload(99L,
+                new MockMultipartFile("file", "errors.xlsx",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", bytes));
+
+        assertThat(result.created()).isEqualTo(1);
+        assertThat(result.errors()).hasSize(3);
+        assertThat(result.errors()).anyMatch(e -> "DUPLICATE_IN_SHEET".equals(e.reason()));
+        assertThat(result.errors()).anyMatch(e -> "MISSING_GRADE".equals(e.reason()));
+        assertThat(result.errors()).anyMatch(e -> "NEGATIVE_PRICE".equals(e.reason()));
+    }
+
+    private static ReserveBid existing(String pid, String grade, String bid) {
+        ReserveBid r = new ReserveBid();
+        r.setId(Long.parseLong(pid));
+        r.setProductId(pid);
+        r.setGrade(grade);
+        r.setBid(new java.math.BigDecimal(bid));
+        return r;
     }
 }
