@@ -1,75 +1,91 @@
 'use client';
-import { useEffect, useState } from 'react';
 import type {
   SchedulingAuctionSummary,
   BidRoundSummary,
   RoundTimerState,
 } from '@/lib/bidder';
+import { BidderTimer } from './BidderTimer';
+import { MinimumStartingBidLabel } from './MinimumStartingBidLabel';
+import { CarryoverButton } from './CarryoverButton';
+import { ExportBidsButton } from './ExportBidsButton';
+import { ImportBidsButton } from './ImportBidsButton';
+import styles from './dashboardHeader.module.css';
 
 interface DashboardHeaderProps {
   auction: SchedulingAuctionSummary;
   bidRound: BidRoundSummary;
   timer: RoundTimerState | null;
+  canSubmit: boolean;
+  submitting: boolean;
+  errorMessage: string | null;
+  onSubmit: () => void;
+  onCarryover: () => void;
+  onExport: () => void;
+  onImport: () => void;
 }
 
-function formatCountdown(msRemaining: number): string {
-  if (msRemaining <= 0) return '00:00:00';
-  const totalSeconds = Math.floor(msRemaining / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (n: number): string => n.toString().padStart(2, '0');
-  return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-}
+/**
+ * Bidder dashboard header — Mendix parity per
+ * `docs/qa-reference/qa-03-bidder-dashboard-ad.png`:
+ *
+ * Row 1: title (Auction YYYY / WkNN + Round N) | Export / Import | timer | Submit Bids
+ * Row 2: "Minimum starting bid - $2.50" (red) | Carryover
+ *
+ * Per the 2026-04-22 QA capture + decisions table, Round 3's label is
+ * `Round 3` (not "Upsell Round" — the backend's name field is ignored in
+ * favor of the numeric `round` value).
+ */
+export function DashboardHeader({
+  auction,
+  bidRound,
+  timer,
+  canSubmit,
+  submitting,
+  errorMessage,
+  onSubmit,
+  onCarryover,
+  onExport,
+  onImport,
+}: DashboardHeaderProps) {
+  const disabled = !canSubmit || submitting;
+  const roundLabel = `Round ${bidRound.round}`;
 
-function Countdown({ endsAt }: { endsAt: string }) {
-  const [now, setNow] = useState<number>(() => Date.now());
-
-  useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const msRemaining = new Date(endsAt).getTime() - now;
   return (
-    <span className="font-mono text-base tabular-nums">
-      {formatCountdown(msRemaining)}
-    </span>
-  );
-}
+    <header className={styles.header}>
+      <div className={styles.titleRow}>
+        <div className={styles.titleGroup}>
+          <h2 className={styles.auctionTitle}>{auction.auctionTitle}</h2>
+          <h2 className={styles.roundTitle}>{roundLabel}</h2>
+        </div>
+        <div className={styles.headerActions}>
+          <ExportBidsButton onClick={onExport} />
+          <ImportBidsButton onClick={onImport} />
+        </div>
+        <div className={styles.headerRight}>
+          <span className={styles.timer}>
+            <BidderTimer timer={timer} />
+          </span>
+          <button
+            type="button"
+            className={`btn-primary-green ${styles.submitButton}`}
+            onClick={onSubmit}
+            disabled={disabled}
+          >
+            {submitting ? 'Submitting…' : 'Submit Bids'}
+          </button>
+        </div>
+      </div>
 
-export function DashboardHeader({ auction, bidRound, timer }: DashboardHeaderProps) {
-  const statusIsStarted = bidRound.roundStatus === 'Started';
-  const badgeBg = statusIsStarted ? '#407874' : '#9ca3af';
-  // Narrow timer + active + endsAt into a single non-null value so TS
-  // control flow carries the guarantee into the JSX branch without a
-  // second explicit check or non-null assertion.
-  const endsAt = timer !== null && timer.active ? timer.endsAt : null;
+      <div className={styles.subHeaderRow}>
+        <MinimumStartingBidLabel />
+        <CarryoverButton onClick={onCarryover} />
+      </div>
 
-  return (
-    <header className="mb-4 border-b border-[#407874]/30 pb-3">
-      <h1 className="text-2xl font-bold" style={{ color: '#407874' }}>
-        {auction.auctionTitle}
-      </h1>
-      <h2 className="mt-2 flex items-center gap-3 text-lg">
-        <span className="text-[#112d32]">{auction.roundName}</span>
-        <span
-          className="rounded-full px-3 py-0.5 text-xs font-semibold uppercase text-white"
-          style={{ backgroundColor: badgeBg }}
-        >
-          {bidRound.roundStatus}
-        </span>
-        <span className="ml-auto text-sm text-[#112d32]">
-          {endsAt !== null ? (
-            <>
-              <span className="mr-2">Ends in</span>
-              <Countdown endsAt={endsAt} />
-            </>
-          ) : (
-            <span className="italic text-gray-500">Round closed</span>
-          )}
-        </span>
-      </h2>
+      {errorMessage ? (
+        <div role="alert" className={styles.errorBanner}>
+          {errorMessage}
+        </div>
+      ) : null}
     </header>
   );
 }

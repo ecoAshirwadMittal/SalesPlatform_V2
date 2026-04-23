@@ -10,7 +10,6 @@ import {
 import type {
   BidderDashboardResponse,
   BidDataRow,
-  BidDataTotals,
   BidRoundSummary,
   RoundTimerState,
   SchedulingAuctionSummary,
@@ -18,7 +17,6 @@ import type {
 import { BidGrid } from './BidGrid';
 import { DashboardHeader } from './DashboardHeader';
 import { EndOfBiddingPanel } from './EndOfBiddingPanel';
-import { SubmitBar } from './SubmitBar';
 
 interface BidderDashboardClientProps {
   // `initial` is optional so the component can also own its first fetch
@@ -34,7 +32,6 @@ interface GridState {
   bidRound: BidRoundSummary;
   rowsById: Map<number, BidDataRow>;
   order: number[];
-  totals: BidDataTotals | null;
   timer: RoundTimerState | null;
 }
 
@@ -55,21 +52,8 @@ function toGridState(response: BidderDashboardResponse): GridState | null {
     bidRound: response.bidRound,
     rowsById,
     order,
-    totals: response.totals,
     timer: response.timer,
   };
-}
-
-// Pull the first non-null `submittedDatetime` off the initial payload so a
-// fresh page load shows "Submitted at <stamp>" when the user already
-// submitted earlier in this round. Mendix shows the same stamp on revisit.
-function initialSubmittedAt(response: BidderDashboardResponse): Date | null {
-  for (const row of response.rows) {
-    if (row.submittedDatetime) {
-      return new Date(row.submittedDatetime);
-    }
-  }
-  return null;
 }
 
 export function BidderDashboardClient({
@@ -84,9 +68,6 @@ export function BidderDashboardClient({
   );
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [lastSubmittedAt, setLastSubmittedAt] = useState<Date | null>(() =>
-    initial ? initialSubmittedAt(initial) : null,
-  );
   // Latest buyerCodeId snapshot so callbacks stay stable without
   // re-registering on every render.
   const buyerCodeRef = useRef<number>(buyerCodeId);
@@ -99,9 +80,6 @@ export function BidderDashboardClient({
   const applyResponse = useCallback((response: BidderDashboardResponse): void => {
     setMode(response.mode);
     setGrid(toGridState(response));
-    // Keep the post-submit stamp in sync with server state on refetch,
-    // so revisiting a submitted round shows the persisted timestamp.
-    setLastSubmittedAt(initialSubmittedAt(response));
   }, []);
 
   // First-load fetch when the parent didn't pre-hydrate. Runs once per
@@ -146,11 +124,9 @@ export function BidderDashboardClient({
       // Refetch to pick up flipped `submitted` flags + updated totals.
       const fresh = await loadDashboard(buyerCodeRef.current);
       applyResponse(fresh);
-      // Stamp the post-submit confirmation line. We use `new Date()` rather
-      // than the server's `submittedDatetime` so the user sees an immediate
-      // local-clock confirmation; the resubmit path overwrites it on the
-      // next click.
-      setLastSubmittedAt(new Date());
+      // Phase 8 will replace this with the "Your Bids have been Submitted!"
+      // modal + BidsSubmittedModal component. For now the header flashes no
+      // confirmation — the refetch is the visible state change.
     } catch (err: unknown) {
       if (err instanceof RateLimitedError) {
         setErrorMessage('Too many requests — please slow down and try again.');
@@ -228,22 +204,32 @@ export function BidderDashboardClient({
     grid.bidRound.roundStatus === 'Started' &&
     (grid.timer === null || grid.timer.active);
 
+  // Phase 9/10 will replace these stubs with modal openers.
+  const handleCarryover = (): void => {
+    // TODO(Phase 9): open CarryoverModal and POST /bidder/bid-rounds/{id}/carryover
+  };
+  const handleExport = (): void => {
+    // TODO(Phase 10): GET /bidder/bid-rounds/{id}/export as .xlsx download
+  };
+  const handleImport = (): void => {
+    // TODO(Phase 10): open ImportBidsModal
+  };
+
   return (
-    <div className="p-6 text-[#112d32]">
+    <div className="p-6">
       <DashboardHeader
         auction={grid.auction}
         bidRound={grid.bidRound}
         timer={grid.timer}
-      />
-      <BidGrid rows={rows} onRowSaved={handleRowSaved} />
-      <SubmitBar
-        totals={grid.totals}
         canSubmit={canSubmit}
-        onSubmit={handleSubmit}
         submitting={submitting}
         errorMessage={errorMessage}
-        lastSubmittedAt={lastSubmittedAt}
+        onSubmit={handleSubmit}
+        onCarryover={handleCarryover}
+        onExport={handleExport}
+        onImport={handleImport}
       />
+      <BidGrid rows={rows} onRowSaved={handleRowSaved} />
     </div>
   );
 }
