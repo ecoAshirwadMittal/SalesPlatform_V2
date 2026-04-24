@@ -182,6 +182,32 @@ Phases completed + notes. Anything in **NEEDS REVIEW** should be surfaced to the
 
 ---
 
+## CI failing-test cleanup ✅
+- Commit: `5181104`
+- New helper `frontend/tests/e2e/_helpers/backend.ts` — `isBackendAvailable()` probes `/actuator/health` with 1.5s timeout, caches per-worker.
+- 15 tests guarded (`beforeAll` skip pattern) across 5 spec files: `bidder-dashboard`, `reserveBid`, `wholesale-buyer-login` (live happy-path), `wholesale-buyer-picker` (mixed-user test — converted from `test.skip(true, …)`), `pws/inventory-cart`.
+- Pure-mock tests unguarded — run in CI normally.
+- Cached-state not leaking between spec files (each Playwright worker is its own Node process).
+
+## Pixel-parity sprint ⚠️ 0/8 flipped; structural blocker surfaced
+- Commit: `8893eae`
+- Structural improvements shipped (drop qa-02 diff ~45% → ~10%):
+  - `next.config.ts` — `devIndicators: false` kills the Next.js dev badge that shows in local but not QA captures.
+  - `buyerSelect.module.css` — `.pageWrapper` now uses `position: fixed; inset: 0; z-index: 500` to cover the inherited admin sidebar.
+  - `playwright.config.ts` — `snapshotPathTemplate` corrected to `{arg}{ext}` so reference PNGs resolve from `docs/qa-reference/`.
+  - Fixtures updated in picker + shell specs to mock realistic buyer-code/auction state (AD + DDWS for akshay+4).
+- **All 8 compares still `test.fixme()`.** Root cause is structural, not lazy:
+  - QA reference PNGs were captured from live Mendix **production** with real DB data (actual ECO IDs, target prices, row counts). `page.route()` mocks can't reproduce row-level exactness.
+  - Environmental rendering deltas: macOS P3 color space (QA capture) vs Windows sRGB (local dev); font-display: swap timing; GPU gradient rendering differences.
+- **NEEDS REVIEW — pixel-compare strategy needs revisiting:**
+  - **Option A (recommended):** drop QA PNGs as automated fixtures; keep them as design references only. Use Playwright's default "first run becomes baseline" pattern with snapshots under `frontend/tests/e2e/__screenshots__/` — detects styling drift from a local baseline, not Mendix parity.
+  - **Option B:** seed local dev DB with a snapshot matching the original QA capture state, plus capture on an macOS runner. Heavy lift; probably not worth it.
+  - **Option C:** keep `test.fixme()` as-is — the infrastructure catches future regressions when anyone (or CI) captures a new baseline and the next run diffs against it.
+  - **Option D:** replace pixel-compare with role-based / component-based assertions (e.g. "login form has 2 inputs, primary button with text 'Login', forgot-password link"). More maintainable, less brittle.
+- Recommend discussing Option A or D with design/product before spending more time on flipping fixmes.
+
+---
+
 ## End-of-run summary
 
 **Completed:** Phases 0–12, 14, 15 (+ interim tasks for QA reference persistence and plan updates).
