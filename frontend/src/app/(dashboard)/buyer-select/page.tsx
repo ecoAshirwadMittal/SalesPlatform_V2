@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './buyerSelect.module.css';
-import BriefcaseIcon from './BriefcaseIcon';
+import BriefcaseIcon from '@/components/icons/BriefcaseIcon';
 import { apiFetch } from '@/lib/apiFetch';
 import { API_BASE } from '@/lib/apiRoutes';
 import {

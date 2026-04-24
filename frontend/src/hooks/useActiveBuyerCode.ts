@@ -1,4 +1,3 @@
-// @vitest-environment jsdom
 /**
  * useActiveBuyerCode — validates the active buyer code on mount.
  *

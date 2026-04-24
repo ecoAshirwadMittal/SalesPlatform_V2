@@ -17,7 +17,7 @@
  * QA reference: qa-02-buyer-code-picker.png (filled), qa-03-bidder-dashboard-ad.png (framed).
  */
 
-import BriefcaseIcon from '@/app/(dashboard)/buyer-select/BriefcaseIcon';
+import BriefcaseIcon from '@/components/icons/BriefcaseIcon';
 import styles from './chrome.module.css';
 
 interface BuyerCodeChipProps {
