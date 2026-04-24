@@ -3,14 +3,13 @@ package com.ecoatm.salesplatform.service.auctions.biddata;
 import com.ecoatm.salesplatform.dto.BidderDashboardResponse;
 import com.ecoatm.salesplatform.model.auctions.Auction;
 import com.ecoatm.salesplatform.model.auctions.AuctionStatus;
-import com.ecoatm.salesplatform.model.auctions.BidData;
 import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuctionStatus;
+import com.ecoatm.salesplatform.dto.BidDataRow;
 import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
-import com.ecoatm.salesplatform.repository.auctions.BidDataRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +29,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import org.mockito.ArgumentMatchers;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -53,7 +53,6 @@ class BidderDashboardServiceTest {
     @Mock private AuctionRepository auctionRepo;
     @Mock private BidRoundRepository bidRoundRepo;
     @Mock private QualifiedBuyerCodeRepository qbcRepo;
-    @Mock private BidDataRepository bidDataRepo;
     @Mock private JdbcTemplate jdbc;
 
     private BidderDashboardService service;
@@ -61,7 +60,9 @@ class BidderDashboardServiceTest {
     @BeforeEach
     void setUp() {
         Clock clock = Clock.fixed(FIXED_NOW, ZoneOffset.UTC);
-        service = new BidderDashboardService(saRepo, auctionRepo, bidRoundRepo, qbcRepo, bidDataRepo, jdbc, clock);
+        // Phase 6B: BidDataRepository dropped from the ctor — loadGrid() now
+        // uses a native JDBC join for the grid payload.
+        service = new BidderDashboardService(saRepo, auctionRepo, bidRoundRepo, qbcRepo, jdbc, clock);
         // Default ownership pass for landingRoute() — individual tests can override
         // (loadGrid does not call assertOwnership, so lenient() avoids unused-stub errors).
         lenient().when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
@@ -228,25 +229,28 @@ class BidderDashboardServiceTest {
         when(saRepo.findById(R1_SA_ID)).thenReturn(Optional.of(r1));
         when(auctionRepo.findById(AUCTION_ID)).thenReturn(Optional.of(auction));
 
-        BidData row1 = new BidData();
-        row1.setId(1L);
-        row1.setBidRoundId(BID_ROUND_ID);
-        row1.setBuyerCodeId(BUYER_CODE_ID);
-        row1.setEcoid("ECO-1");
-        row1.setMergedGrade("A");
-        row1.setBidQuantity(5);
-        row1.setBidAmount(new BigDecimal("100.00"));
-        row1.setPayout(new BigDecimal("500.00"));
-        BidData row2 = new BidData();
-        row2.setId(2L);
-        row2.setBidRoundId(BID_ROUND_ID);
-        row2.setBuyerCodeId(BUYER_CODE_ID);
-        row2.setEcoid("ECO-2");
-        row2.setMergedGrade("B");
-        row2.setBidQuantity(3);
-        row2.setBidAmount(new BigDecimal("50.00"));
-        row2.setPayout(new BigDecimal("150.00"));
-        when(bidDataRepo.findByBidRoundIdAndBuyerCodeIdOrderByEcoidAscMergedGradeAsc(BID_ROUND_ID, BUYER_CODE_ID))
+        // Phase 6B: loadGrid uses native jdbc.query (GRID_SQL) instead of the
+        // BidDataRepository JPA finder. Mock the jdbc path directly — return
+        // BidDataRow DTOs with MDM display fields populated by the join.
+        BidDataRow row1 = new BidDataRow(
+                1L, BID_ROUND_ID, "ECO-1",
+                "Apple", "iPhone 5s", "iPhone 5s 16GB", "Verizon", FIXED_NOW.minusSeconds(86400),
+                "A", "Wholesale",
+                5, new BigDecimal("100.00"), new BigDecimal("10.00"), 10,
+                new BigDecimal("500.00"),
+                null, null, null, null, null, FIXED_NOW);
+        BidDataRow row2 = new BidDataRow(
+                2L, BID_ROUND_ID, "ECO-2",
+                "Samsung", "Galaxy S22", "Galaxy S22 128GB", "Unlocked", FIXED_NOW.minusSeconds(86400),
+                "B", "Wholesale",
+                3, new BigDecimal("50.00"), new BigDecimal("15.00"), 20,
+                new BigDecimal("150.00"),
+                null, null, null, null, null, FIXED_NOW);
+        when(jdbc.query(
+                anyString(),
+                ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<BidDataRow>>any(),
+                eq(BID_ROUND_ID),
+                eq(BUYER_CODE_ID)))
                 .thenReturn(List.of(row1, row2));
 
         BidderDashboardResponse response = service.loadGrid(BID_ROUND_ID, BUYER_CODE_ID);

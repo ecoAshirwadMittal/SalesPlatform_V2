@@ -10,9 +10,12 @@ import com.ecoatm.salesplatform.dto.SchedulingAuctionSummary;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidCarryoverService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataCreationResult;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataCreationService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionService;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidExportService;
+import com.ecoatm.salesplatform.service.auctions.biddata.BidImportService;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidderDashboardLandingResult;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidderDashboardService;
@@ -75,7 +78,13 @@ class BidderDashboardControllerTest {
     @MockBean private BidderDashboardService dashboardService;
     @MockBean private BidDataCreationService creationService;
     @MockBean private BidDataSubmissionService submissionService;
+    @MockBean private BidCarryoverService carryoverService;
+    @MockBean private BidExportService exportService;
+    @MockBean private BidImportService importService;
     @MockBean private BidRateLimiter rateLimiter;
+    @MockBean private com.ecoatm.salesplatform.repository.auctions.BidRoundRepository bidRoundRepository;
+    @MockBean private com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository schedulingAuctionRepository;
+    @MockBean private com.ecoatm.salesplatform.repository.auctions.AuctionRepository auctionRepository;
 
     /** Auth shape that matches what {@link JwtAuthenticationFilter} installs. */
     private static RequestPostProcessor jwtBidder() {
@@ -155,7 +164,9 @@ class BidderDashboardControllerTest {
         when(rateLimiter.tryAcquire(eq(USER_ID), eq(BID_ROUND_ID))).thenReturn(true);
         when(submissionService.save(eq(USER_ID), eq(BID_DATA_ID), any()))
                 .thenReturn(new BidDataRow(
-                        BID_DATA_ID, BID_ROUND_ID, "ECO-1", "ABC", "Wholesale",
+                        BID_DATA_ID, BID_ROUND_ID, "ECO-1",
+                        null, null, null, null, null,   // Phase 6B: MDM fields null on save path
+                        "ABC", "Wholesale",
                         5, new BigDecimal("10.00"), null, 10, null,
                         null, null, null, null, null, null));
 

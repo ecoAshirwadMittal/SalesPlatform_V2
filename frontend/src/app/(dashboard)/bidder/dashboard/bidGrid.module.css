@@ -87,3 +87,10 @@
   border-top: 1px solid var(--border-color, #D0D0D0);
   background: #fafafa;
 }
+
+/* ── Phase 6B: hide Model Name column on narrow viewports per analysis §4.4 ── */
+@media (max-width: 1100px) {
+  .colModelName {
+    display: none;
+  }
+}

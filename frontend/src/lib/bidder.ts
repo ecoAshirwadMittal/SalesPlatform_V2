@@ -38,6 +38,14 @@ export const BidDataRowSchema = z.object({
   id: z.number(),
   bidRoundId: z.number(),
   ecoid: z.string(),
+  // Phase 6B MDM display fields — populated on grid-load via the backend
+  // join; null on save-response (the save path doesn't re-fetch MDM data,
+  // the frontend retains the last grid-load values when a save arrives).
+  brand: z.string().nullable(),
+  model: z.string().nullable(),
+  modelName: z.string().nullable(),
+  carrier: z.string().nullable(),
+  added: z.string().nullable(),   // ISO-8601 timestamp; grid renders as date
   mergedGrade: z.string(),
   buyerCodeType: z.string(),
   bidQuantity: z.number().nullable(),

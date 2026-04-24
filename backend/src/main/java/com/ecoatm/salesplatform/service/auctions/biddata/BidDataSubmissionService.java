@@ -229,10 +229,14 @@ public class BidDataSubmissionService {
     }
 
     private static BidDataRow toDto(BidData r) {
+        // Phase 6B: save-path response omits MDM display fields. The frontend
+        // retains the last grid-load brand/model/modelName/carrier/added when
+        // a save response arrives.
         return new BidDataRow(
                 r.getId(),
                 r.getBidRoundId(),
                 r.getEcoid(),
+                null, null, null, null, null,   // brand, model, modelName, carrier, added
                 r.getMergedGrade(),
                 r.getBuyerCodeType(),
                 r.getBidQuantity(),

@@ -5,17 +5,21 @@ import { BidGridRow } from './BidGridRow';
 import styles from './bidGrid.module.css';
 
 // ---------------------------------------------------------------------------
-// Types
+// Types — Phase 6B: 11 QA-parity columns (was 7 in Phase 6A)
 // ---------------------------------------------------------------------------
 
 type SortColumn =
   | 'ecoid'
+  | 'brand'
+  | 'model'
+  | 'modelName'
   | 'mergedGrade'
+  | 'carrier'
+  | 'added'
   | 'targetPrice'
   | 'maximumQuantity'
   | 'bidQuantity'
-  | 'bidAmount'
-  | 'payout';
+  | 'bidAmount';
 
 type SortDirection = 'asc' | 'desc';
 
@@ -26,12 +30,16 @@ interface SortState {
 
 interface FilterState {
   ecoid: string;
+  brand: string;
+  model: string;
+  modelName: string;
   mergedGrade: string;
-  targetPrice: string;
+  carrier: string;
+  added: string;
   maximumQuantity: string;
-  bidQuantity: string;
+  targetPrice: string;
   bidAmount: string;
-  payout: string;
+  bidQuantity: string;
 }
 
 export interface BidGridProps {
@@ -45,69 +53,90 @@ export interface BidGridProps {
 }
 
 // ---------------------------------------------------------------------------
-// Helpers (module-level — stable references, no re-render issues)
+// Helpers
 // ---------------------------------------------------------------------------
 
 const EMPTY_FILTERS: FilterState = {
   ecoid: '',
+  brand: '',
+  model: '',
+  modelName: '',
   mergedGrade: '',
-  targetPrice: '',
+  carrier: '',
+  added: '',
   maximumQuantity: '',
-  bidQuantity: '',
+  targetPrice: '',
   bidAmount: '',
-  payout: '',
+  bidQuantity: '',
 };
 
-/** Advance sort state: asc → desc → clear. */
 function nextSort(current: SortState, column: SortColumn): SortState {
   if (current.column !== column) return { column, direction: 'asc' };
   if (current.direction === 'asc') return { column, direction: 'desc' };
   return { column: null, direction: null };
 }
 
-/** Arrow glyph for the column header button. */
 function sortGlyph(sort: SortState, column: SortColumn): string {
   if (sort.column !== column) return '↕';
   return sort.direction === 'asc' ? '↑' : '↓';
 }
 
-/** aria-sort value for <th>. */
 function ariaSort(sort: SortState, column: SortColumn): 'ascending' | 'descending' | 'none' {
   if (sort.column !== column) return 'none';
   return sort.direction === 'asc' ? 'ascending' : 'descending';
 }
 
-/** Numeric value helper — null / undefined treated as -Infinity for sorting. */
 function numVal(v: number | null | undefined): number {
   return v ?? -Infinity;
 }
 
+function strVal(v: string | null | undefined): string {
+  return v ?? '';
+}
+
+function includesLC(haystack: string | null | undefined, needle: string): boolean {
+  if (!needle) return true;
+  if (!haystack) return false;
+  return haystack.toLowerCase().includes(needle.toLowerCase());
+}
+
+function numberMatchesExact(field: number | null | undefined, filter: string): boolean {
+  if (filter === '') return true;
+  const f = parseFloat(filter);
+  if (isNaN(f)) return true;
+  return numVal(field) === f;
+}
+
+/**
+ * Renders an ISO-8601 timestamp as `M/D/YYYY` — matches QA's short date
+ * format (e.g. `10/10/2013`, `9/12/2019`). Null returns empty string.
+ */
+function formatAdded(iso: string | null | undefined): string {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+}
+
 function applyFilters(rows: BidDataRow[], filters: FilterState): BidDataRow[] {
   return rows.filter((row) => {
-    if (filters.ecoid && !row.ecoid.toLowerCase().includes(filters.ecoid.toLowerCase())) return false;
-    if (filters.mergedGrade && !row.mergedGrade.toLowerCase().includes(filters.mergedGrade.toLowerCase())) return false;
-
-    if (filters.targetPrice !== '') {
-      const f = parseFloat(filters.targetPrice);
-      if (!isNaN(f) && row.targetPrice !== f) return false;
+    if (!includesLC(row.ecoid, filters.ecoid)) return false;
+    if (!includesLC(row.brand, filters.brand)) return false;
+    if (!includesLC(row.model, filters.model)) return false;
+    if (!includesLC(row.modelName, filters.modelName)) return false;
+    if (!includesLC(row.mergedGrade, filters.mergedGrade)) return false;
+    if (!includesLC(row.carrier, filters.carrier)) return false;
+    // Date filter: substring match on formatted date OR raw ISO — keeps the
+    // implementation trivial; upgrade to a picker if QA needs one later.
+    if (filters.added !== '') {
+      const formatted = formatAdded(row.added);
+      const iso = row.added ?? '';
+      if (!formatted.includes(filters.added) && !iso.includes(filters.added)) return false;
     }
-    if (filters.maximumQuantity !== '') {
-      const f = parseFloat(filters.maximumQuantity);
-      if (!isNaN(f) && numVal(row.maximumQuantity) !== f) return false;
-    }
-    if (filters.bidQuantity !== '') {
-      const f = parseFloat(filters.bidQuantity);
-      if (!isNaN(f) && numVal(row.bidQuantity) !== f) return false;
-    }
-    if (filters.bidAmount !== '') {
-      const f = parseFloat(filters.bidAmount);
-      if (!isNaN(f) && row.bidAmount !== f) return false;
-    }
-    if (filters.payout !== '') {
-      const f = parseFloat(filters.payout);
-      if (!isNaN(f) && numVal(row.payout) !== f) return false;
-    }
-
+    if (!numberMatchesExact(row.targetPrice, filters.targetPrice)) return false;
+    if (!numberMatchesExact(row.maximumQuantity, filters.maximumQuantity)) return false;
+    if (!numberMatchesExact(row.bidQuantity, filters.bidQuantity)) return false;
+    if (!numberMatchesExact(row.bidAmount, filters.bidAmount)) return false;
     return true;
   });
 }
@@ -119,23 +148,46 @@ function applySort(rows: BidDataRow[], sort: SortState): BidDataRow[] {
 
   return [...rows].sort((a, b) => {
     let cmp = 0;
-    if (col === 'ecoid') {
-      cmp = a.ecoid.localeCompare(b.ecoid);
-    } else if (col === 'mergedGrade') {
-      cmp = a.mergedGrade.localeCompare(b.mergedGrade);
-    } else if (col === 'targetPrice') {
-      cmp = a.targetPrice - b.targetPrice;
-    } else if (col === 'maximumQuantity') {
-      cmp = numVal(a.maximumQuantity) - numVal(b.maximumQuantity);
-    } else if (col === 'bidQuantity') {
-      cmp = numVal(a.bidQuantity) - numVal(b.bidQuantity);
-    } else if (col === 'bidAmount') {
-      cmp = a.bidAmount - b.bidAmount;
-    } else if (col === 'payout') {
-      cmp = numVal(a.payout) - numVal(b.payout);
+    switch (col) {
+      case 'ecoid': cmp = a.ecoid.localeCompare(b.ecoid); break;
+      case 'brand': cmp = strVal(a.brand).localeCompare(strVal(b.brand)); break;
+      case 'model': cmp = strVal(a.model).localeCompare(strVal(b.model)); break;
+      case 'modelName': cmp = strVal(a.modelName).localeCompare(strVal(b.modelName)); break;
+      case 'mergedGrade': cmp = a.mergedGrade.localeCompare(b.mergedGrade); break;
+      case 'carrier': cmp = strVal(a.carrier).localeCompare(strVal(b.carrier)); break;
+      case 'added': cmp = strVal(a.added).localeCompare(strVal(b.added)); break;
+      case 'targetPrice': cmp = a.targetPrice - b.targetPrice; break;
+      case 'maximumQuantity': cmp = numVal(a.maximumQuantity) - numVal(b.maximumQuantity); break;
+      case 'bidQuantity': cmp = numVal(a.bidQuantity) - numVal(b.bidQuantity); break;
+      case 'bidAmount': cmp = a.bidAmount - b.bidAmount; break;
     }
     return cmp * dir;
   });
+}
+
+// ---------------------------------------------------------------------------
+// Column header cell
+// ---------------------------------------------------------------------------
+
+interface HeaderCellProps {
+  column: SortColumn;
+  label: string;
+  align?: 'left' | 'right';
+  hideOnNarrow?: boolean;
+  sort: SortState;
+  onSort: (c: SortColumn) => void;
+}
+
+function HeaderCell({ column, label, align = 'left', hideOnNarrow, sort, onSort }: HeaderCellProps) {
+  const thClass = hideOnNarrow ? styles.colModelName : undefined;
+  return (
+    <th aria-sort={ariaSort(sort, column)} style={{ textAlign: align }} className={thClass}>
+      <span>{label}</span>
+      <button type="button" aria-label={`Sort by ${label}`} onClick={() => onSort(column)} className={styles.sortBtn}>
+        {sortGlyph(sort, column)}
+      </button>
+    </th>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -156,132 +208,51 @@ export function BidGrid({ rows, onRowSaved, onRowError, disabled = false, totalR
   const total = totalRowCount ?? rows.length;
   const matchCount = filtered.length;
 
-  const handleSort = (column: SortColumn): void => {
-    setSort((prev) => nextSort(prev, column));
-  };
+  const handleSort = (column: SortColumn): void => setSort((prev) => nextSort(prev, column));
 
   return (
     <div>
       <div className={styles.wrapper}>
         <table className={styles.table}>
           <thead className={styles.thead}>
-            {/* Row 1: column labels + sort arrows */}
             <tr className={styles.thLabelRow}>
-              <th aria-sort={ariaSort(sort, 'ecoid')} style={{ textAlign: 'left' }} className="px-2">
-                <span>Device</span>
-                <button type="button" aria-label="Sort by Device" onClick={() => handleSort('ecoid')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'ecoid')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'mergedGrade')} style={{ textAlign: 'left' }} className="px-2">
-                <span>Grade</span>
-                <button type="button" aria-label="Sort by Grade" onClick={() => handleSort('mergedGrade')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'mergedGrade')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'targetPrice')} style={{ textAlign: 'right' }} className="px-2">
-                <span>Target Price</span>
-                <button type="button" aria-label="Sort by Target Price" onClick={() => handleSort('targetPrice')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'targetPrice')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'maximumQuantity')} style={{ textAlign: 'right' }} className="px-2">
-                <span>Max Qty</span>
-                <button type="button" aria-label="Sort by Max Qty" onClick={() => handleSort('maximumQuantity')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'maximumQuantity')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'bidQuantity')} style={{ textAlign: 'right' }} className="px-2">
-                <span>Bid Qty</span>
-                <button type="button" aria-label="Sort by Bid Qty" onClick={() => handleSort('bidQuantity')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'bidQuantity')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'bidAmount')} style={{ textAlign: 'right' }} className="px-2">
-                <span>Bid Amount</span>
-                <button type="button" aria-label="Sort by Bid Amount" onClick={() => handleSort('bidAmount')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'bidAmount')}
-                </button>
-              </th>
-              <th aria-sort={ariaSort(sort, 'payout')} style={{ textAlign: 'right' }} className="px-2">
-                <span>Payout</span>
-                <button type="button" aria-label="Sort by Payout" onClick={() => handleSort('payout')} className={styles.sortBtn}>
-                  {sortGlyph(sort, 'payout')}
-                </button>
-              </th>
+              <HeaderCell column="ecoid" label="Product Id" sort={sort} onSort={handleSort} />
+              <HeaderCell column="brand" label="Brand" sort={sort} onSort={handleSort} />
+              <HeaderCell column="model" label="Model" sort={sort} onSort={handleSort} />
+              <HeaderCell column="modelName" label="Model Name" hideOnNarrow sort={sort} onSort={handleSort} />
+              <HeaderCell column="mergedGrade" label="Grade" sort={sort} onSort={handleSort} />
+              <HeaderCell column="carrier" label="Carrier" sort={sort} onSort={handleSort} />
+              <HeaderCell column="added" label="Added" sort={sort} onSort={handleSort} />
+              <HeaderCell column="maximumQuantity" label="Avail. Qty" align="right" sort={sort} onSort={handleSort} />
+              <HeaderCell column="targetPrice" label="Target Price" align="right" sort={sort} onSort={handleSort} />
+              <HeaderCell column="bidAmount" label="Price" align="right" sort={sort} onSort={handleSort} />
+              <HeaderCell column="bidQuantity" label="Qty. Cap" align="right" sort={sort} onSort={handleSort} />
             </tr>
-            {/* Row 2: filter inputs */}
             <tr className={styles.thFilterRow}>
-              <th>
-                <input
-                  type="text"
-                  aria-label="Filter by Device"
-                  placeholder="Filter…"
-                  value={filters.ecoid}
-                  onChange={(e) => setFilter('ecoid', e.target.value)}
-                  className={styles.filterInput}
-                />
-              </th>
-              <th>
-                <input
-                  type="text"
-                  aria-label="Filter by Grade"
-                  placeholder="Filter…"
-                  value={filters.mergedGrade}
-                  onChange={(e) => setFilter('mergedGrade', e.target.value)}
-                  className={styles.filterInput}
-                />
-              </th>
-              <th>
-                <input
-                  type="number"
-                  aria-label="Filter by Target Price"
-                  placeholder="="
-                  value={filters.targetPrice}
-                  onChange={(e) => setFilter('targetPrice', e.target.value)}
-                  className={`${styles.filterInput} ${styles.filterInputRight}`}
-                />
-              </th>
-              <th>
-                <input
-                  type="number"
-                  aria-label="Filter by Max Qty"
-                  placeholder="="
-                  value={filters.maximumQuantity}
-                  onChange={(e) => setFilter('maximumQuantity', e.target.value)}
-                  className={`${styles.filterInput} ${styles.filterInputRight}`}
-                />
-              </th>
-              <th>
-                <input
-                  type="number"
-                  aria-label="Filter by Bid Qty"
-                  placeholder="="
-                  value={filters.bidQuantity}
-                  onChange={(e) => setFilter('bidQuantity', e.target.value)}
-                  className={`${styles.filterInput} ${styles.filterInputRight}`}
-                />
-              </th>
-              <th>
-                <input
-                  type="number"
-                  aria-label="Filter by Bid Amount"
-                  placeholder="="
-                  value={filters.bidAmount}
-                  onChange={(e) => setFilter('bidAmount', e.target.value)}
-                  className={`${styles.filterInput} ${styles.filterInputRight}`}
-                />
-              </th>
-              <th>
-                <input
-                  type="number"
-                  aria-label="Filter by Payout"
-                  placeholder="="
-                  value={filters.payout}
-                  onChange={(e) => setFilter('payout', e.target.value)}
-                  className={`${styles.filterInput} ${styles.filterInputRight}`}
-                />
-              </th>
+              {([
+                ['ecoid', 'text'],
+                ['brand', 'text'],
+                ['model', 'text'],
+                ['modelName', 'text', styles.colModelName],
+                ['mergedGrade', 'text'],
+                ['carrier', 'text'],
+                ['added', 'text'],
+                ['maximumQuantity', 'number'],
+                ['targetPrice', 'number'],
+                ['bidAmount', 'number'],
+                ['bidQuantity', 'number'],
+              ] as const).map(([key, type, colCls]) => (
+                <th key={key} className={colCls}>
+                  <input
+                    type={type === 'number' ? 'number' : 'text'}
+                    aria-label={`Filter by ${key}`}
+                    placeholder={type === 'number' ? '=' : 'Filter…'}
+                    value={filters[key as keyof FilterState]}
+                    onChange={(e) => setFilter(key as keyof FilterState, e.target.value)}
+                    className={`${styles.filterInput} ${type === 'number' ? styles.filterInputRight : ''}`}
+                  />
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>

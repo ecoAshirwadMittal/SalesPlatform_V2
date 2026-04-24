@@ -7,14 +7,12 @@ import com.ecoatm.salesplatform.dto.BidderDashboardResponse;
 import com.ecoatm.salesplatform.dto.RoundTimerState;
 import com.ecoatm.salesplatform.dto.SchedulingAuctionSummary;
 import com.ecoatm.salesplatform.model.auctions.Auction;
-import com.ecoatm.salesplatform.model.auctions.BidData;
 import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuctionStatus;
 import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
-import com.ecoatm.salesplatform.repository.auctions.BidDataRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -24,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -47,11 +47,56 @@ public class BidderDashboardService {
             WHERE ub.user_id = ? AND bcb.buyer_code_id = ?
             """;
 
+    /**
+     * Phase 6B grid-load query. Joins bid_data → aggregated_inventory →
+     * mdm.brand / mdm.model / mdm.carrier to populate the five MDM display
+     * columns (brand, model, modelName, carrier, added). Uses the same
+     * COALESCE pattern as {@code BidExportService.EXPORT_SQL} so that
+     * denormalized text columns on aggregated_inventory take priority over
+     * the MDM FK lookups (Snowflake-sync rows carry the text directly).
+     *
+     * <p>Also fetches all submission/history columns needed to build the
+     * full {@link BidDataRow} DTO in one pass.
+     *
+     * <p>Order: ecoid ASC, merged_grade ASC — matches the legacy Mendix
+     * grid sort and the JPA query it replaces.
+     */
+    private static final String GRID_SQL = """
+            SELECT
+                bd.id,
+                bd.bid_round_id,
+                bd.ecoid,
+                COALESCE(ai.brand,   mb.brand_name)    AS brand,
+                COALESCE(ai.model,   mm.model_name)    AS model,
+                ai.name                                AS model_name,
+                bd.merged_grade,
+                COALESCE(ai.carrier, mc.carrier_name)  AS carrier,
+                ai.created_date                        AS added,
+                bd.buyer_code_type,
+                bd.bid_quantity,
+                bd.bid_amount,
+                bd.target_price,
+                bd.maximum_quantity,
+                bd.payout,
+                bd.submitted_bid_quantity,
+                bd.submitted_bid_amount,
+                bd.last_valid_bid_quantity,
+                bd.last_valid_bid_amount,
+                bd.submitted_datetime,
+                bd.changed_date
+            FROM auctions.bid_data bd
+            LEFT JOIN auctions.aggregated_inventory ai ON ai.id = bd.aggregated_inventory_id
+            LEFT JOIN mdm.brand   mb ON mb.id = ai.brand_id
+            LEFT JOIN mdm.model   mm ON mm.id = ai.model_id
+            LEFT JOIN mdm.carrier mc ON mc.id = ai.carrier_id
+            WHERE bd.bid_round_id = ? AND bd.buyer_code_id = ?
+            ORDER BY bd.ecoid ASC, bd.merged_grade ASC
+            """;
+
     private final SchedulingAuctionRepository saRepo;
     private final AuctionRepository auctionRepo;
     private final BidRoundRepository bidRoundRepo;
     private final QualifiedBuyerCodeRepository qbcRepo;
-    private final BidDataRepository bidDataRepo;
     private final JdbcTemplate jdbc;
     private final Clock clock;
 
@@ -59,14 +104,12 @@ public class BidderDashboardService {
                                   AuctionRepository auctionRepo,
                                   BidRoundRepository bidRoundRepo,
                                   QualifiedBuyerCodeRepository qbcRepo,
-                                  BidDataRepository bidDataRepo,
                                   JdbcTemplate jdbc,
                                   Clock clock) {
         this.saRepo = saRepo;
         this.auctionRepo = auctionRepo;
         this.bidRoundRepo = bidRoundRepo;
         this.qbcRepo = qbcRepo;
-        this.bidDataRepo = bidDataRepo;
         this.jdbc = jdbc;
         this.clock = clock;
     }
@@ -126,12 +169,8 @@ public class BidderDashboardService {
                 .orElseThrow(() -> new IllegalStateException(
                         "Auction missing for schedulingAuctionId=" + sa.getId()));
 
-        List<BidData> rows = bidDataRepo
-                .findByBidRoundIdAndBuyerCodeIdOrderByEcoidAscMergedGradeAsc(bidRoundId, buyerCodeId);
-        List<BidDataRow> rowDtos = new ArrayList<>(rows.size());
-        for (BidData r : rows) {
-            rowDtos.add(toRow(r));
-        }
+        // Phase 6B: native SQL join populates MDM display fields (brand/model/modelName/carrier/added).
+        List<BidDataRow> rowDtos = jdbc.query(GRID_SQL, this::mapGridRow, bidRoundId, buyerCodeId);
 
         SchedulingAuctionSummary auctionSummary = new SchedulingAuctionSummary(
                 sa.getId(),
@@ -156,7 +195,7 @@ public class BidderDashboardService {
                 auctionSummary,
                 bidRoundSummary,
                 rowDtos,
-                computeTotals(rows),
+                computeTotals(rowDtos),
                 buildTimer(bidRound));
     }
 
@@ -208,14 +247,14 @@ public class BidderDashboardService {
         return null;
     }
 
-    private BidDataTotals computeTotals(List<BidData> rows) {
+    private BidDataTotals computeTotals(List<BidDataRow> rows) {
         BigDecimal totalBidAmount = BigDecimal.ZERO;
         BigDecimal totalPayout = BigDecimal.ZERO;
         int totalBidQty = 0;
-        for (BidData r : rows) {
-            if (r.getBidAmount() != null) totalBidAmount = totalBidAmount.add(r.getBidAmount());
-            if (r.getPayout() != null) totalPayout = totalPayout.add(r.getPayout());
-            if (r.getBidQuantity() != null) totalBidQty += r.getBidQuantity();
+        for (BidDataRow r : rows) {
+            if (r.bidAmount() != null) totalBidAmount = totalBidAmount.add(r.bidAmount());
+            if (r.payout() != null) totalPayout = totalPayout.add(r.payout());
+            if (r.bidQuantity() != null) totalBidQty += r.bidQuantity();
         }
         return new BidDataTotals(rows.size(), totalBidAmount, totalPayout, totalBidQty);
     }
@@ -254,23 +293,45 @@ public class BidderDashboardService {
         return false;
     }
 
-    private static BidDataRow toRow(BidData b) {
+    /**
+     * Phase 6B grid-load row mapper. Reads all 21 columns emitted by
+     * {@link #GRID_SQL} into a {@link BidDataRow}.
+     */
+    private BidDataRow mapGridRow(ResultSet rs, int rowNum) throws SQLException {
+        java.sql.Timestamp submittedTs = rs.getTimestamp("submitted_datetime");
+        java.sql.Timestamp changedTs = rs.getTimestamp("changed_date");
+        java.sql.Timestamp addedTs = rs.getTimestamp("added");
+
+        BigDecimal submittedBidAmount = rs.getBigDecimal("submitted_bid_amount");
+        BigDecimal lastValidBidAmount = rs.getBigDecimal("last_valid_bid_amount");
+        BigDecimal payout = rs.getBigDecimal("payout");
+
+        Integer submittedBidQuantity = (Integer) rs.getObject("submitted_bid_quantity");
+        Integer lastValidBidQuantity = (Integer) rs.getObject("last_valid_bid_quantity");
+        Integer bidQuantity = (Integer) rs.getObject("bid_quantity");
+        Integer maximumQuantity = (Integer) rs.getObject("maximum_quantity");
+
         return new BidDataRow(
-                b.getId(),
-                b.getBidRoundId(),
-                b.getEcoid(),
-                b.getMergedGrade(),
-                b.getBuyerCodeType(),
-                b.getBidQuantity(),
-                b.getBidAmount(),
-                b.getTargetPrice(),
-                b.getMaximumQuantity(),
-                b.getPayout(),
-                b.getSubmittedBidQuantity(),
-                b.getSubmittedBidAmount(),
-                b.getLastValidBidQuantity(),
-                b.getLastValidBidAmount(),
-                b.getSubmittedDatetime(),
-                b.getChangedDate());
+                rs.getLong("id"),
+                rs.getLong("bid_round_id"),
+                rs.getString("ecoid"),
+                rs.getString("brand"),
+                rs.getString("model"),
+                rs.getString("model_name"),
+                rs.getString("carrier"),
+                addedTs == null ? null : addedTs.toInstant(),
+                rs.getString("merged_grade"),
+                rs.getString("buyer_code_type"),
+                bidQuantity,
+                rs.getBigDecimal("bid_amount"),
+                rs.getBigDecimal("target_price"),
+                maximumQuantity,
+                payout,
+                submittedBidQuantity,
+                submittedBidAmount,
+                lastValidBidQuantity,
+                lastValidBidAmount,
+                submittedTs == null ? null : submittedTs.toInstant(),
+                changedTs == null ? null : changedTs.toInstant());
     }
 }
