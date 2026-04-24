@@ -1,0 +1,87 @@
+# Playwright E2E test suite — wholesale buyer flows.
+#
+# Design decisions:
+#   - No backend or database is started.  Every spec mocks API calls via
+#     page.route(), so the suite is fully self-contained.
+#   - The frontend dev server is started by Playwright's webServer block
+#     (playwright.config.ts); the CI=true env var disables reuseExistingServer
+#     so a fresh server is always used in CI.
+#   - `npm run build` runs before the tests to catch TypeScript / compilation
+#     errors early.  Build output is not served — tests still hit the dev server
+#     (matches local iteration pattern; avoids a second server start).
+#   - Only Chromium headless is installed to keep install time minimal.
+#   - The Playwright HTML report is uploaded as an artifact on failure so the
+#     diff images and traces are available for inspection without re-running.
+
+name: E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  playwright:
+    name: Playwright (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20']
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Node + dependency cache ─────────────────────────────────────────
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # ── 3. Playwright browsers ─────────────────────────────────────────────
+      # Only Chromium is installed — the playwright.config.ts projects list
+      # only the 'chromium' project.  --with-deps installs OS-level libs
+      # (shared objects, fonts) that Chromium requires on Ubuntu.
+      - name: Install Playwright Chromium + system deps
+        run: npx playwright install --with-deps chromium
+
+      # ── 4. Compile check ───────────────────────────────────────────────────
+      # Catches TypeScript errors and import mismatches before running tests.
+      # The build artifact is NOT served; tests still use `npm run dev` via
+      # Playwright's webServer block.
+      - name: Build (compile check)
+        run: npm run build
+
+      # ── 5. Run Playwright tests ────────────────────────────────────────────
+      # CI=true in the environment causes playwright.config.ts to set
+      # reuseExistingServer: false, so a fresh dev server is started by the
+      # webServer block for each job run.
+      - name: Run Playwright tests
+        run: npx playwright test
+        env:
+          CI: true
+
+      # ── 6. Upload report artifact on failure ───────────────────────────────
+      # The HTML report includes screenshots, diff images, and traces.
+      # Only uploaded when the test step fails to avoid wasting artifact storage
+      # on green runs.
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-node${{ matrix.node-version }}
+          path: frontend/playwright-report/
+          retention-days: 14

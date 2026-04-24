@@ -348,6 +348,71 @@ test('shows success modal again on resubmit', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------
+// Phase 13 Part 2 — pixel-compare against QA reference
+// ---------------------------------------------------------------------------
+
+// TODO(phase-13-pixel): Submit success modal vs qa-08-submit-success-modal.png.
+// The QA reference was captured with real bid data (row count, formatted
+// amounts) and the production Mendix modal chrome.  The local mock uses a
+// single-row fixture which will produce different totals text.  Additionally,
+// the modal overlay backdrop transparency and button sizing may differ.
+// Tracking issue: Phase 13 follow-up — submit success modal pixel parity.
+test.fixme('submit success modal pixel-compare vs QA reference (qa-08)', async ({ page }) => {
+  await setupRoutes(page, {
+    initialBidAmount: 40.00,
+    initialSubmitted: false,
+    afterSubmitBidAmount: 40.00,
+  });
+
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
+
+  await page.getByRole('button', { name: 'Submit Bids' }).click();
+  await expect(page.getByRole('dialog', { name: 'Bids submitted' })).toBeVisible();
+
+  await expect(page).toHaveScreenshot('qa-08-submit-success-modal.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+// TODO(phase-13-pixel): No-bids modal vs qa-10-submit-no-bids-modal.png.
+// The QA reference shows the "No Bids to Submit" warning modal.  Icon, text
+// layout, and button width differences between the Mendix original and the
+// local React port are expected to produce a meaningful diff.
+// Tracking issue: Phase 13 follow-up — no-bids modal pixel parity.
+test.fixme('no-bids modal pixel-compare vs QA reference (qa-10)', async ({ page }) => {
+  await seedAuthForPage(page);
+
+  await page.route('**/api/v1/auth/buyer-codes**', (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: BUYER_CODE_ID, code: 'TEST_CODE', name: 'Test Company', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
+      ]),
+    });
+  });
+
+  await page.route(`**/api/v1/bidder/dashboard*`, (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(makeDashboardResponse(0, false)),
+    });
+  });
+
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
+
+  await page.getByRole('button', { name: 'Submit Bids' }).click();
+  await expect(page.getByRole('dialog', { name: 'No Bids to Submit' })).toBeVisible();
+
+  await expect(page).toHaveScreenshot('qa-10-submit-no-bids-modal.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Scenario 4 — edit row then submit carries new amount
 // ---------------------------------------------------------------------------
 

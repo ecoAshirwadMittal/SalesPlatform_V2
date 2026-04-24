@@ -83,4 +83,23 @@ test.describe('Wholesale buyer login', () => {
     // disable here until a design-pass can address it holistically.
     await checkA11y(page, { disable: ['color-contrast'] });
   });
+
+  // ---------------------------------------------------------------------------
+  // Phase 13 Part 2 — pixel-compare against QA reference
+  // ---------------------------------------------------------------------------
+
+  // TODO(phase-13-pixel): Login page pixel compare vs qa-01-login.png.
+  // The QA reference was captured from the live Mendix QA environment at
+  // 1280×720.  Local rendering differences (font hinting, button sizing,
+  // background-image loading) are expected to produce a large diff until the
+  // login page styling passes a dedicated pixel-match pass.
+  // Tracking issue: Phase 13 follow-up — login page pixel parity.
+  test.fixme('login page pixel-compare vs QA reference', async ({ page }) => {
+    await page.goto('/login');
+    // Wait for the primary CTA to confirm the page has fully rendered.
+    await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot('qa-01-login.png', {
+      maxDiffPixelRatio: 0.02,
+    });
+  });
 });

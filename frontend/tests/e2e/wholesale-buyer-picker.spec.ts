@@ -151,6 +151,34 @@ test('PWS-only user sees only the Premium Wholesale Devices section', async ({ p
 // This test logs in for real so the JWT cookie is available when the page
 // fetches /api/v1/auth/buyer-codes.
 
+// ---------------------------------------------------------------------------
+// Phase 13 Part 2 — pixel-compare against QA reference
+// ---------------------------------------------------------------------------
+
+// TODO(phase-13-pixel): Buyer-code picker pixel compare vs qa-02-buyer-code-picker.png.
+// The QA reference shows both "Weekly Wholesale Auction" and "Premium Wholesale
+// Devices" sections with real buyer-code pills populated from the QA database.
+// Local rendering differences (pill colours, section header sizing, card shadow)
+// are expected to produce a large diff until the picker styling passes a
+// dedicated pixel-match pass.
+// Tracking issue: Phase 13 follow-up — buyer-code picker pixel parity.
+test.fixme('buyer-code picker pixel-compare vs QA reference', async ({ page }) => {
+  await setAuthUser(page);
+  await mockBuyerCodesApi(page, [
+    { id: 101, code: 'DDWS',   buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale',         codeType: 'AUCTION' },
+    { id: 201, code: 'NB_PWS', buyerName: 'Nationwide Buyers',        buyerCodeType: 'Premium_Wholesale', codeType: 'PWS'     },
+  ]);
+
+  await page.goto('/buyer-select');
+
+  await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toBeVisible();
+
+  await expect(page).toHaveScreenshot('qa-02-buyer-code-picker.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
 test('mixed-code picker (mocked) passes axe WCAG 2.x AA check', async ({ page }) => {
   await setAuthUser(page);
   await mockBuyerCodesApi(page, [

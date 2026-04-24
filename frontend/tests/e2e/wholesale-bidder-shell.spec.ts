@@ -344,6 +344,63 @@ test('Switch Buyer Code link navigates to /buyer-select', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------
+// Phase 13 Part 2 — pixel-compare against QA reference
+// ---------------------------------------------------------------------------
+
+// TODO(phase-13-pixel): Bidder shell expanded sidebar vs qa-03-bidder-dashboard-ad.png.
+// The QA reference shows the full dashboard with sidebar expanded and the "AD"
+// buyer code active (live auction data, real row counts).  Local rendering
+// uses a mocked 404/no-auction state which produces a materially different
+// content area.  Both the content-area delta and subtle sidebar colour
+// differences (gradient rendering across OS/GPU) are expected to cause a
+// large diff.  Fix: stub an auction-like dashboard response and pixel-align
+// the sidebar gradient before re-enabling.
+// Tracking issue: Phase 13 follow-up — bidder shell (expanded) pixel parity.
+test.fixme('bidder shell expanded sidebar pixel-compare vs QA reference (qa-03)', async ({ page }) => {
+  await seedAuth(page);
+  await mockBuyerCodes(page);
+  await mockDashboard(page);
+
+  await page.addInitScript(() => {
+    localStorage.removeItem('bidder.sidebarCollapsed');
+  });
+
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+  await expect(page.getByTestId('bidder-sidebar')).toBeVisible();
+
+  await expect(page).toHaveScreenshot('qa-03-bidder-dashboard-ad.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+// TODO(phase-13-pixel): Bidder shell collapsed sidebar vs qa-07-sidebar-collapsed.png.
+// The QA reference shows the sidebar in its narrow (~54px) collapsed state.
+// Collapse animation timing and icon positioning between the Mendix original and
+// the local React implementation are expected to differ.
+// Tracking issue: Phase 13 follow-up — bidder shell (collapsed) pixel parity.
+test.fixme('bidder shell collapsed sidebar pixel-compare vs QA reference (qa-07)', async ({ page }) => {
+  await seedAuth(page);
+  await mockBuyerCodes(page);
+  await mockDashboard(page);
+
+  await page.addInitScript(() => {
+    localStorage.setItem('bidder.sidebarCollapsed', 'true');
+  });
+
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+
+  // Wait for sidebar to be present in collapsed state
+  const sidebar = page.getByTestId('bidder-sidebar');
+  await expect(sidebar).toBeVisible();
+  const box = await sidebar.boundingBox();
+  expect(box?.width).toBeLessThanOrEqual(60);
+
+  await expect(page).toHaveScreenshot('qa-07-sidebar-collapsed.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+// ---------------------------------------------------------------------------
 // 6. Collapsed sidebar — icons still accessible, labels hidden
 // ---------------------------------------------------------------------------
 

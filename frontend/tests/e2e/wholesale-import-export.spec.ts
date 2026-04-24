@@ -243,6 +243,31 @@ test('Import modal opens with title "Import Your Bids" and 4-step instructions',
 });
 
 // ---------------------------------------------------------------------------
+// Phase 13 Part 2 — pixel-compare against QA reference
+// ---------------------------------------------------------------------------
+
+// TODO(phase-13-pixel): Import bids modal vs qa-05-import-bids-modal.png.
+// The QA reference shows the "Import Your Bids" modal with all 4 steps
+// and the file-upload drop zone.  Modal chrome, step numbering alignment,
+// and drop-zone border styling differences from the Mendix original are
+// expected to produce a meaningful diff until a dedicated pixel-match pass
+// aligns the modal styling.
+// Tracking issue: Phase 13 follow-up — import bids modal pixel parity.
+test.fixme('import bids modal pixel-compare vs QA reference (qa-05)', async ({ page }) => {
+  await seedAuth(page);
+  await setupCommonRoutes(page);
+  await gotoGrid(page);
+
+  await page.getByRole('button', { name: /Import/i }).click();
+  await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('heading', { name: 'Import Your Bids' })).toBeVisible();
+
+  await expect(page).toHaveScreenshot('qa-05-import-bids-modal.png', {
+    maxDiffPixelRatio: 0.02,
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Scenario 3 — File selection enables the Import CTA
 // ---------------------------------------------------------------------------
 
