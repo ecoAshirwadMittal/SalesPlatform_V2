@@ -132,6 +132,21 @@ Phases completed + notes. Anything in **NEEDS REVIEW** should be surfaced to the
 
 ---
 
+## Phase 6B — backend DTO expansion + 11-column grid ✅
+- Commit: `3f3dfa2`
+- Executed manually (subagent hit rate limit mid-pass).
+- Backend: `BidDataRow` gained 5 fields (brand, model, modelName, carrier, added:Instant). `BidderDashboardService.loadGrid` rewritten to use native JDBC `GRID_SQL` joining `aggregated_inventory` + `mdm.brand/model/carrier`; `COALESCE` between denormalized + FK-lookup text matches the Phase 10 export pattern.
+- Fixed export-service bug the subagent had propagated: `added` column sourced from `ai.created_date` (not `ai.total_quantity`).
+- `BidDataRepository` ctor param dropped from service; dead `toRow(BidData)` helper removed.
+- `BidDataSubmissionService.toDto` emits `null` for MDM fields on save-response — frontend retains last grid-load values.
+- Frontend: `BidGrid.tsx` rewritten for 11 columns in QA order; sort + filter on all 11; Model Name hides at `<1100px` via media query. Row uses Mendix-style `auction-*` CSS classes for grep parity. Added date formatted as `M/D/YYYY`.
+- Tests: 19 BidGrid + 9 bidder.ts + 7 BidderDashboardService + 5 BidderDashboardController + 10 BidDataSubmissionService — all pass.
+- **NEEDS REVIEW:**
+  - Pre-existing `apiFetch-guard` failure unchanged (`lib/*.ts` files use relative `./apiFetch` instead of alias `@/lib/apiFetch`). Unrelated to Phase 6B.
+  - Phase 10 export SQL still uses the buggy `total_quantity AS added` — export xlsx shows a quantity in the Added column instead of a date. Follow-up: apply the same `ai.created_date AS added` fix to `BidExportService.EXPORT_SQL`.
+
+---
+
 ## End-of-run summary
 
 **Completed:** Phases 0–12, 14, 15 (+ interim tasks for QA reference persistence and plan updates).

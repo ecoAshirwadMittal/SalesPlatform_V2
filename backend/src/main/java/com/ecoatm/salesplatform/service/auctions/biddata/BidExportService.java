@@ -70,7 +70,7 @@ public class BidExportService {
                 ai.name                          AS model_name,
                 bd.merged_grade,
                 COALESCE(ai.carrier, mc.carrier_name) AS carrier,
-                COALESCE(ai.total_quantity, 0)   AS added,
+                ai.created_date                  AS added,
                 bd.maximum_quantity,
                 bd.target_price,
                 bd.bid_amount,
@@ -137,8 +137,8 @@ public class BidExportService {
                 setCellString(row, 4, (String) data[5]);
                 // carrier
                 setCellString(row, 5, (String) data[6]);
-                // added
-                setCellInt(row, 6, toInt(data[7]));
+                // added — ai.created_date (Timestamp) formatted M/D/YYYY
+                setCellString(row, 6, formatAdded((java.sql.Timestamp) data[7]));
                 // avail. qty
                 setCellInt(row, 7, toInt(data[8]));
                 // target price
@@ -173,7 +173,7 @@ public class BidExportService {
                 rs.getString("model_name"),  // 4
                 rs.getString("merged_grade"),// 5
                 rs.getString("carrier"),     // 6
-                rs.getInt("added"),          // 7  int (boxed automatically)
+                rs.getTimestamp("added"),    // 7  Timestamp (nullable — formatted in sheet writer)
                 rs.getObject("maximum_quantity", Integer.class), // 8 nullable
                 rs.getObject("target_price", BigDecimal.class),  // 9 nullable
                 rs.getObject("bid_amount", BigDecimal.class),    // 10 nullable
@@ -187,6 +187,16 @@ public class BidExportService {
 
     private static void setCellString(Row row, int col, String value) {
         row.createCell(col).setCellValue(value != null ? value : "");
+    }
+
+    /**
+     * Formats a {@code Timestamp} as {@code M/D/YYYY} — QA parity for the
+     * Added column. Returns empty string for null.
+     */
+    private static String formatAdded(java.sql.Timestamp ts) {
+        if (ts == null) return "";
+        java.time.LocalDate d = ts.toLocalDateTime().toLocalDate();
+        return d.getMonthValue() + "/" + d.getDayOfMonth() + "/" + d.getYear();
     }
 
     private static void setCellInt(Row row, int col, int value) {

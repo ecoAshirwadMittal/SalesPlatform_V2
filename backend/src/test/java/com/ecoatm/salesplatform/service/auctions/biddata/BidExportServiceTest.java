@@ -64,7 +64,7 @@ class BidExportServiceTest {
                 "iPhone 14 Pro",         // 4  model_name
                 "Good",                  // 5  merged_grade
                 "AT&T",                  // 6  carrier
-                500,                     // 7  added
+                java.sql.Timestamp.valueOf("2013-10-10 00:00:00"), // 7  added (Phase 6B: Timestamp)
                 120,                     // 8  maximum_quantity
                 new BigDecimal("42.17"), // 9  target_price
                 new BigDecimal("40.00"), // 10 bid_amount
@@ -110,7 +110,7 @@ class BidExportServiceTest {
                 "Galaxy S24 Ultra",
                 "Fair",
                 "Unlocked",
-                200,
+                java.sql.Timestamp.valueOf("2019-09-12 00:00:00"),
                 50,
                 new BigDecimal("30.00"),
                 new BigDecimal("28.00"),
