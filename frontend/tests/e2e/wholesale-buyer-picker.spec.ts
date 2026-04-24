@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { checkA11y } from './_helpers/a11y';
+import { isBackendAvailable } from './_helpers/backend';
 
 /**
  * Phase 2 — Buyer-code picker conditional categories E2E suite.
@@ -199,36 +200,33 @@ test('mixed-code picker (mocked) passes axe WCAG 2.x AA check', async ({ page })
   await checkA11y(page, { disable: ['color-contrast'] });
 });
 
-test('mixed-code user (bidder@buyerco.com) sees both sections', async ({ page }) => {
-  // Log in to obtain a valid JWT cookie
-  const loginRes = await page.request.post('http://localhost:8080/api/v1/auth/login', {
-    data: { email: 'bidder@buyerco.com', password: 'Bidder123!', rememberMe: false },
+test.describe('mixed-code user — live backend', () => {
+  test.beforeAll(async () => {
+    test.skip(!(await isBackendAvailable()), 'requires Spring Boot backend on :8080');
   });
 
-  if (!loginRes.ok()) {
-    test.skip(true, 'Backend not running or bidder account unavailable — skip live test');
-    return;
-  }
+  test('mixed-code user (bidder@buyerco.com) sees both sections', async ({ page }) => {
+    // Log in to obtain a valid JWT cookie
+    const loginRes = await page.request.post('http://localhost:8080/api/v1/auth/login', {
+      data: { email: 'bidder@buyerco.com', password: 'Bidder123!', rememberMe: false },
+    });
 
-  // Seed the auth_user in localStorage so the page doesn't redirect to /login
-  // (the cookie-based auth will handle the API call)
-  const body = await loginRes.json() as { user?: { userId: number; firstName: string; lastName: string } };
-  const user = body.user;
-  if (!user) {
-    test.skip(true, 'Login response missing user field — skip live test');
-    return;
-  }
+    // Seed the auth_user in localStorage so the page doesn't redirect to /login
+    // (the cookie-based auth will handle the API call)
+    const body = await loginRes.json() as { user?: { userId: number; firstName: string; lastName: string } };
+    const user = body.user!;
 
-  await page.addInitScript((authUser: object) => {
-    localStorage.setItem('auth_user', JSON.stringify(authUser));
-  }, user);
+    await page.addInitScript((authUser: object) => {
+      localStorage.setItem('auth_user', JSON.stringify(authUser));
+    }, user);
 
-  await page.goto('/buyer-select');
+    await page.goto('/buyer-select');
 
-  // Both sections must be visible
-  await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toBeVisible({ timeout: 15_000 });
-  await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 15_000 });
-});
+    // Both sections must be visible
+    await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 15_000 });
+  });
+}); // end describe 'mixed-code user — live backend'
 
 // ── Routing: click AUCTION pill → /bidder/dashboard ─────────────────────────
 

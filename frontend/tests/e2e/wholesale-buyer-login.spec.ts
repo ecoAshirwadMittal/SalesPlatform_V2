@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { checkA11y } from './_helpers/a11y';
+import { isBackendAvailable } from './_helpers/backend';
 
 /**
  * Phase 1 — Wholesale buyer login E2E suite.
@@ -13,7 +14,15 @@ import { checkA11y } from './_helpers/a11y';
  * to ensure the multi-code path is exercised.
  */
 
-test.describe('Wholesale buyer login', () => {
+// ---------------------------------------------------------------------------
+// Live-backend tests — require Spring Boot on :8080
+// ---------------------------------------------------------------------------
+
+test.describe('Wholesale buyer login (live backend)', () => {
+  test.beforeAll(async () => {
+    test.skip(!(await isBackendAvailable()), 'requires Spring Boot backend on :8080');
+  });
+
   test('bidder can log in and lands on /buyer-select', async ({ page }) => {
     await page.goto('/login');
 
@@ -32,7 +41,13 @@ test.describe('Wholesale buyer login', () => {
     // Single-code deep-linking is Phase 2's job.
     await expect(page).toHaveURL(/\/buyer-select/, { timeout: 8_000 });
   });
+}); // end describe 'Wholesale buyer login (live backend)'
 
+// ---------------------------------------------------------------------------
+// Pure-frontend tests — run in CI without a backend
+// ---------------------------------------------------------------------------
+
+test.describe('Wholesale buyer login', () => {
   test('password eye-toggle is keyboard accessible', async ({ page }) => {
     await page.goto('/login');
 

@@ -1,6 +1,11 @@
 import { test, expect } from "@playwright/test";
+import { isBackendAvailable } from "./_helpers/backend";
 
 test.describe("Reserve Bids admin", () => {
+  test.beforeAll(async () => {
+    test.skip(!(await isBackendAvailable()), "requires Spring Boot backend on :8080");
+  });
+
   test.beforeEach(async ({ page }) => {
     await page.goto("/login");
     await page.fill('[name="email"]', "admin@test.com");

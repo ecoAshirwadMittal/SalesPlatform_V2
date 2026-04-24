@@ -1,5 +1,6 @@
 import { test, expect, Page } from '@playwright/test';
 import { LoginPage, NavPage, ShopPage, CartPage } from '../pages';
+import { isBackendAvailable } from '../e2e/_helpers/backend';
 
 /**
  * Inventory & Cart Functional Tests — ported from Mendix InventoryAndCartFunctionalTests.spec.ts
@@ -35,6 +36,9 @@ test.afterAll(async () => {
 // Inventory Page Functional Tests
 // ────────────────────────────────────────────────────────────
 test.describe('Inventory Page Functional Tests @regression @pws', () => {
+  test.beforeAll(async () => {
+    test.skip(!(await isBackendAvailable()), 'requires Spring Boot backend on :8080');
+  });
   test.describe.configure({ mode: 'serial' });
 
   test('SPKB-1082: Buyer can create offer and total is calculated correctly', async () => {
@@ -101,6 +105,9 @@ test.describe('Inventory Page Functional Tests @regression @pws', () => {
 // Cart Page Functional Tests
 // ────────────────────────────────────────────────────────────
 test.describe('Cart Page Functional Tests @regression @pws', () => {
+  test.beforeAll(async () => {
+    test.skip(!(await isBackendAvailable()), 'requires Spring Boot backend on :8080');
+  });
   test.describe.configure({ mode: 'serial' });
 
   test('SPKB-1296: Buyer cannot submit offer above available qty', async () => {
