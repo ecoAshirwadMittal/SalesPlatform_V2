@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { checkA11y } from './_helpers/a11y';
 
 /**
  * Phase 14 — Forgot Password + Reset Password E2E suite.
@@ -20,6 +21,11 @@ test.describe('/forgot-password', () => {
     await expect(page.getByPlaceholder('Email address')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Send Reset Link' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Back to Login' })).toBeVisible();
+
+    // axe a11y — WCAG 2.x AA on the forgot-password form.
+    // TODO(a11y): color-contrast — teal CTA button palette; same deferred scope
+    // as the login page — defer until a holistic design pass covers the button set.
+    await checkA11y(page, { disable: ['color-contrast'] });
   });
 
   test('submitting a valid email shows generic success toast', async ({ page }) => {

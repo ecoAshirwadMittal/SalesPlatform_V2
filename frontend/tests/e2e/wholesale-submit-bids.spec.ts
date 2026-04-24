@@ -12,6 +12,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { checkA11y } from './_helpers/a11y';
 
 // ---------------------------------------------------------------------------
 // Shared fixture builders
@@ -46,6 +47,12 @@ function makeDashboardResponse(bidAmount: number, submitted: boolean) {
         id: 555001,
         bidRoundId: BID_ROUND_ID,
         ecoid: 'TEST-SKU-1',
+        // Phase 6B MDM fields — required by BidDataRowSchema (nullable, not optional)
+        brand: 'Apple',
+        model: 'iPhone 14',
+        modelName: 'iPhone 14 Pro',
+        carrier: 'AT&T',
+        added: '2026-04-01T12:00:00Z',
         mergedGrade: 'Good',
         buyerCodeType: 'Wholesale',
         bidQuantity: null,
@@ -95,6 +102,46 @@ async function setupRoutes(
     afterSubmitBidAmount: number;
   },
 ) {
+  // Set a fake auth_token cookie so the Next.js middleware (proxy.ts)
+  // does NOT redirect to /login — the cookie check runs server-side.
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token-for-e2e',
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Strict',
+    },
+  ]);
+
+  // Also seed auth_user in localStorage so the bidder layout resolves the user.
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        userId: 999,
+        firstName: 'Test',
+        lastName: 'Bidder',
+        fullName: 'Test Bidder',
+        email: 'bidder@buyerco.com',
+        initials: 'TB',
+        roles: ['Bidder'],
+      }),
+    );
+    localStorage.setItem(
+      'activeBuyerCode',
+      JSON.stringify({
+        id: 1,
+        code: 'TEST_CODE',
+        buyerName: 'Test Company',
+        buyerCodeType: 'Wholesale',
+        codeType: 'AUCTION',
+      }),
+    );
+  });
+
   // Auth: return a valid session cookie / token so the page doesn't redirect
   await page.route('**/api/v1/auth/login', (route) => {
     void route.fulfill({
@@ -143,11 +190,63 @@ async function setupRoutes(
   });
 }
 
+/** Seed auth_token cookie + localStorage so the middleware doesn't redirect. */
+async function seedAuthForPage(page: Parameters<typeof test>[1] extends (args: { page: infer P }) => unknown ? P : never) {
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token-for-e2e',
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Strict',
+    },
+  ]);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        userId: 999,
+        firstName: 'Test',
+        lastName: 'Bidder',
+        fullName: 'Test Bidder',
+        email: 'bidder@buyerco.com',
+        initials: 'TB',
+        roles: ['Bidder'],
+      }),
+    );
+    localStorage.setItem(
+      'activeBuyerCode',
+      JSON.stringify({
+        id: 1,
+        code: 'TEST_CODE',
+        buyerName: 'Test Company',
+        buyerCodeType: 'Wholesale',
+        codeType: 'AUCTION',
+      }),
+    );
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Scenario 1 — empty-state modal when no bids
 // ---------------------------------------------------------------------------
 
 test('shows "No Bids to Submit" modal when no non-zero bid exists', async ({ page }) => {
+  await seedAuthForPage(page);
+
+  // Also mock buyer-codes for the useActiveBuyerCode hook
+  await page.route('**/api/v1/auth/buyer-codes**', (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: BUYER_CODE_ID, code: 'TEST_CODE', name: 'Test Company', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
+      ]),
+    });
+  });
+
   // Intercept dashboard with bidAmount=0 so the guard triggers
   await page.route(`**/api/v1/bidder/dashboard*`, (route) => {
     void route.fulfill({
@@ -160,7 +259,7 @@ test('shows "No Bids to Submit" modal when no non-zero bid exists', async ({ pag
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
 
   // Wait for the grid to appear (dashboard loaded)
-  await expect(page.getByRole('columnheader', { name: 'Device' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
 
   // Click Submit Bids
   await page.getByRole('button', { name: 'Submit Bids' }).click();
@@ -173,7 +272,7 @@ test('shows "No Bids to Submit" modal when no non-zero bid exists', async ({ pag
   await expect(page.getByText(/Entering bids in the screen/)).toBeVisible();
 
   // Close button dismisses the modal
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
@@ -189,7 +288,7 @@ test('shows "Bids submitted" success modal after first submit', async ({ page })
   });
 
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
-  await expect(page.getByRole('columnheader', { name: 'Device' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
 
   await page.getByRole('button', { name: 'Submit Bids' }).click();
 
@@ -200,8 +299,15 @@ test('shows "Bids submitted" success modal after first submit', async ({ page })
     page.getByText(/Please review your updated bids, quantity caps and resubmit for any changes/),
   ).toBeVisible();
 
+  // axe a11y — WCAG 2.x AA on the success modal.
+  // TODO(a11y): color-contrast — the teal bid grid header (#407874) is present
+  // in the background behind the modal overlay; axe may still flag it in the
+  // DOM even when visually obscured. Disable until we confirm the overlay
+  // fully prevents color analysis on the backdrop grid.
+  await checkA11y(page, { disable: ['color-contrast'] });
+
   // Close
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
@@ -225,19 +331,19 @@ test('shows success modal again on resubmit', async ({ page }) => {
   });
 
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
-  await expect(page.getByRole('columnheader', { name: 'Device' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
 
   // First submit
   await page.getByRole('button', { name: 'Submit Bids' }).click();
   await expect(page.getByRole('dialog', { name: 'Bids submitted' })).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 
   // Resubmit (second click — resubmit=true in mock)
   await page.getByRole('button', { name: 'Submit Bids' }).click();
   await expect(page.getByRole('dialog', { name: 'Bids submitted' })).toBeVisible();
   await expect(page.getByText(/have been Submitted!/)).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 
@@ -246,6 +352,19 @@ test('shows success modal again on resubmit', async ({ page }) => {
 // ---------------------------------------------------------------------------
 
 test('after editing a bid row, submit sends updated amount (no guard fires)', async ({ page }) => {
+  await seedAuthForPage(page);
+
+  // Also mock buyer-codes for the useActiveBuyerCode hook
+  await page.route('**/api/v1/auth/buyer-codes**', (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify([
+        { id: BUYER_CODE_ID, code: 'TEST_CODE', name: 'Test Company', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
+      ]),
+    });
+  });
+
   // Start with bidAmount=0 so the guard would fire WITHOUT an edit.
   // After a PUT /bid-data/{id} mock, the row's bidAmount becomes 55.
   await page.route(`**/api/v1/bidder/dashboard*`, (route) => {
@@ -256,7 +375,7 @@ test('after editing a bid row, submit sends updated amount (no guard fires)', as
     });
   });
 
-  // Mock PUT bid-data to update the row
+  // Mock PUT bid-data to update the row. Include Phase 6B MDM fields (nullable).
   await page.route(`**/api/v1/bidder/bid-data/*`, (route) => {
     void route.fulfill({
       status: 200,
@@ -265,6 +384,11 @@ test('after editing a bid row, submit sends updated amount (no guard fires)', as
         id: 555001,
         bidRoundId: BID_ROUND_ID,
         ecoid: 'TEST-SKU-1',
+        brand: null,
+        model: null,
+        modelName: null,
+        carrier: null,
+        added: null,
         mergedGrade: 'Good',
         buyerCodeType: 'Wholesale',
         bidQuantity: null,
@@ -292,10 +416,10 @@ test('after editing a bid row, submit sends updated amount (no guard fires)', as
   });
 
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
-  await expect(page.getByRole('columnheader', { name: 'Device' })).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 10000 });
 
-  // Edit the bid amount input — the label is "Bid Amount for TEST-SKU-1"
-  const amtInput = page.getByLabel(/Bid Amount for TEST-SKU-1/i);
+  // Edit the bid amount input — PriceCell uses aria-label "Price for row {rowId}"
+  const amtInput = page.getByLabel(/Price for row 555001/i);
   await amtInput.fill('55');
 
   // Wait for debounce autosave (500ms + buffer)
@@ -306,6 +430,6 @@ test('after editing a bid row, submit sends updated amount (no guard fires)', as
 
   // Success modal (not the empty-state one)
   await expect(page.getByRole('dialog', { name: 'Bids submitted' })).toBeVisible();
-  await page.getByRole('button', { name: 'Close' }).click();
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });

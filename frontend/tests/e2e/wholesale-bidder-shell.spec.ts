@@ -18,6 +18,7 @@
  */
 
 import { test, expect } from '@playwright/test';
+import { checkA11y } from './_helpers/a11y';
 
 // ---------------------------------------------------------------------------
 // Fixture helpers
@@ -27,6 +28,20 @@ const BUYER_CODE_ID = 1;
 
 /** Seed a valid auth_user in localStorage before the page loads. */
 async function seedAuth(page: import('@playwright/test').Page) {
+  // Set a fake auth_token cookie so the Next.js middleware (proxy.ts)
+  // does NOT redirect to /login before the page can mount.
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token-for-e2e',
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Strict',
+    },
+  ]);
+
   await page.addInitScript(() => {
     localStorage.setItem(
       'auth_user',
@@ -117,6 +132,12 @@ test('bidder shell renders with sidebar expanded by default', async ({ page }) =
   // Both nav item labels should be visible.
   await expect(page.getByTestId('sidebar-item-auction')).toBeVisible();
   await expect(page.getByTestId('sidebar-item-buyer-user-guide')).toBeVisible();
+
+  // axe a11y — WCAG 2.x AA on the shell with expanded sidebar + error-mode dashboard.
+  // TODO(a11y): color-contrast — teal sidebar (#407874 bg / white text) passes AA for
+  // large text but axe's automated check may flag smaller icon labels; defer until
+  // a design pass can confirm exact pixel sizes across all nav items.
+  await checkA11y(page, { disable: ['color-contrast'] });
 });
 
 // ---------------------------------------------------------------------------

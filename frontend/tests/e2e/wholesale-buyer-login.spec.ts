@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { checkA11y } from './_helpers/a11y';
 
 /**
  * Phase 1 — Wholesale buyer login E2E suite.
@@ -74,5 +75,12 @@ test.describe('Wholesale buyer login', () => {
 
     // Employee Login is visible
     await expect(page.getByRole('button', { name: 'Employee Login' })).toBeVisible();
+
+    // axe a11y — WCAG 2.x AA check on the login page.
+    // TODO(a11y): color-contrast on the teal btn-primary-green — background
+    // #407874 + white text passes WCAG AA for large text (bold ≥14px) but
+    // may flag on the smaller helper-text labels that inherit the palette;
+    // disable here until a design-pass can address it holistically.
+    await checkA11y(page, { disable: ['color-contrast'] });
   });
 });

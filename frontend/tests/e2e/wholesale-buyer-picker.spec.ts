@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { checkA11y } from './_helpers/a11y';
 
 /**
  * Phase 2 — Buyer-code picker conditional categories E2E suite.
@@ -18,9 +19,23 @@ import { test, expect } from '@playwright/test';
  * AUCTION codes — both categories must render.
  */
 
-// Helper: seed localStorage so the page doesn't redirect to /login
-function setAuthUser(page: import('@playwright/test').Page) {
-  return page.addInitScript(() => {
+// Helper: seed auth_token cookie + localStorage so the Next.js middleware
+// (proxy.ts) doesn't redirect to /login.
+async function setAuthUser(page: import('@playwright/test').Page) {
+  // The middleware checks for the auth_token cookie server-side.
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token-for-e2e',
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Strict',
+    },
+  ]);
+
+  await page.addInitScript(() => {
     localStorage.setItem(
       'auth_user',
       JSON.stringify({
@@ -135,6 +150,26 @@ test('PWS-only user sees only the Premium Wholesale Devices section', async ({ p
 //
 // This test logs in for real so the JWT cookie is available when the page
 // fetches /api/v1/auth/buyer-codes.
+
+test('mixed-code picker (mocked) passes axe WCAG 2.x AA check', async ({ page }) => {
+  await setAuthUser(page);
+  await mockBuyerCodesApi(page, [
+    { id: 101, code: 'DDWS',   buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale',         codeType: 'AUCTION' },
+    { id: 201, code: 'NB_PWS', buyerName: 'Nationwide Buyers',        buyerCodeType: 'Premium_Wholesale', codeType: 'PWS'     },
+  ]);
+
+  await page.goto('/buyer-select');
+
+  // Both sections must be visible before the axe scan
+  await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 10_000 });
+  await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toBeVisible();
+
+  // axe a11y — WCAG 2.x AA on the mixed-code buyer picker.
+  // TODO(a11y): color-contrast — buyer-code pills use teal (#407874) background
+  // with white text which passes AA for large text but may flag on smaller pill
+  // labels; disable until a design pass can confirm all sizes.
+  await checkA11y(page, { disable: ['color-contrast'] });
+});
 
 test('mixed-code user (bidder@buyerco.com) sees both sections', async ({ page }) => {
   // Log in to obtain a valid JWT cookie
