@@ -354,6 +354,33 @@ Porting this verbatim surfaced four decisions worth recording.
 
 ---
 
+## 2026-04-22 — Sub-project 4A: EB module port
+
+**Decision:** Ported the Mendix `ecoatm_eb` module into `auctions.reserve_bid`
++ `reserve_bid_audit` + `reserve_bid_sync` with full bidirectional
+Snowflake sync (push on write + 30-min pull cron).
+
+**Rationale:** Sub-project 4C's target-price CTE joins against reserve
+bids; that table must exist and be kept in sync with the external
+pricing engine's authoritative Snowflake data.
+
+**Key choices:**
+- Schema lives in `auctions` (not a new `exchange_bid` namespace) — EB
+  is consumed solely by auctions
+- `product_id` as `VARCHAR(100)` to match `bid_data.ecoid` join key
+- Dropped Delete-All bulk button (operational risk > parity value)
+- Pull path uses delete-all + re-insert (matches Mendix); explicitly
+  does NOT publish `ReserveBidChangedEvent` to prevent echo loops
+- Feature guard via `eb.sync.enabled` Spring property (modern lacks a
+  generic feature-flag service)
+
+**Consequences:**
+- Admin UI at `/admin/auctions-data-center/reserve-bids/**`
+- New Flyway V74 (schema) + V75 (data load, 14,657 rows)
+- Sub-project 4C unblocked on the EB dimension
+
+---
+
 ## 2026-04-22 — Auction R1 init: listener + admin endpoint + QBC schema flattening
 
 **Status:** Accepted (sub-project 2 of `docs/tasks/auction-lifecycle-cron-design.md`).
