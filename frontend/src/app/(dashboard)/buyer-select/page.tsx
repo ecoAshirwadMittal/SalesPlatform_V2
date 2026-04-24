@@ -253,6 +253,7 @@ export default function BuyerSelectPage() {
                 height={200}
                 className={styles.heroImage}
                 priority={auctionImagePriority}
+                unoptimized
               />
               <div className={styles.sectionBody}>
                 <h2 className={styles.sectionTitle}>Weekly Wholesale Auction</h2>

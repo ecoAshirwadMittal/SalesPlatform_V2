@@ -28,8 +28,12 @@ export default defineConfig({
   // snapshotPathTemplate points at docs/qa-reference/ so toHaveScreenshot()
   // compares against the committed QA reference files rather than generating
   // its own snapshot store inside the test tree.
-  // {arg} is the filename passed to toHaveScreenshot() — e.g. 'qa-01-login.png'.
-  snapshotPathTemplate: '../docs/qa-reference/{arg}',
+  // {arg} is the stem of the filename passed to toHaveScreenshot() — e.g.
+  // 'qa-01-login' from 'qa-01-login.png'.  {ext} appends the extension back
+  // so the resolved path is 'docs/qa-reference/qa-01-login.png'.
+  // NOTE: In Playwright 1.50+ {arg} strips the extension; {ext} must be
+  // appended explicitly or the ".png must have extension" guard fires.
+  snapshotPathTemplate: '../docs/qa-reference/{arg}{ext}',
 
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',

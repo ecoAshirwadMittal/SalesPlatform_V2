@@ -164,16 +164,43 @@ test('PWS-only user sees only the Premium Wholesale Devices section', async ({ p
 // dedicated pixel-match pass.
 // Tracking issue: Phase 13 follow-up — buyer-code picker pixel parity.
 test.fixme('buyer-code picker pixel-compare vs QA reference', async ({ page }) => {
-  await setAuthUser(page);
+  // QA reference shows user "Akshay Singhal" with only the Weekly Wholesale
+  // Auction section (DDWS + AD codes) — no PWS section.
+  await page.context().addCookies([
+    {
+      name: 'auth_token',
+      value: 'test-jwt-token-for-e2e',
+      domain: 'localhost',
+      path: '/',
+      httpOnly: false,
+      secure: false,
+      sameSite: 'Strict',
+    },
+  ]);
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'auth_user',
+      JSON.stringify({
+        userId: 42,
+        firstName: 'Akshay',
+        lastName: 'Singhal',
+        fullName: 'Akshay Singhal',
+        email: 'akshay@chs.com',
+        initials: 'AS',
+        roles: ['Bidder'],
+      })
+    );
+  });
+
   await mockBuyerCodesApi(page, [
-    { id: 101, code: 'DDWS',   buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale',         codeType: 'AUCTION' },
-    { id: 201, code: 'NB_PWS', buyerName: 'Nationwide Buyers',        buyerCodeType: 'Premium_Wholesale', codeType: 'PWS'     },
+    { id: 101, code: 'DDWS', buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
+    { id: 102, code: 'AD',   buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
   ]);
 
   await page.goto('/buyer-select');
 
+  // Only the Auction section should render (no PWS section in QA reference).
   await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 10_000 });
-  await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toBeVisible();
 
   await expect(page).toHaveScreenshot('qa-02-buyer-code-picker.png', {
     maxDiffPixelRatio: 0.02,

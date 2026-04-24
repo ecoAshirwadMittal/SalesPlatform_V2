@@ -6,7 +6,13 @@
    ================================================================= */
 
 .pageWrapper {
-  min-height: 100vh;
+  /* Cover the admin dashboard layout (sidebar + top-bar) that wraps all
+     (dashboard)/** routes. Same strategy as BidderShell — position fixed +
+     inset:0 so the green admin chrome is invisible behind this page. */
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  overflow-y: auto;
   background-color: var(--color-bg-body, #F7F7F7);
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
 }
