@@ -158,6 +158,23 @@ public class BidderDashboardService {
         return new BidderDashboardLandingResult.Grid(bidRound.getId(), active.getId(), active.getRound());
     }
 
+    /**
+     * DOWNLOAD-mode support: resolves the Round 1 bid_round id for the most
+     * recently closed R1 that this buyer participated in. Returns empty when
+     * no closed R1 exists, or when the buyer has no bid_round for that R1
+     * (unusual — typically means they were not included in the round's QBC
+     * set). Authorization guard ({@link #assertOwnership}) runs first.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Long> findDownloadableRound1BidRoundId(long userId, long buyerCodeId) {
+        assertOwnership(userId, buyerCodeId);
+        Optional<SchedulingAuction> r1 = saRepo.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(
+                1, SchedulingAuctionStatus.Closed);
+        if (r1.isEmpty()) return Optional.empty();
+        return bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(r1.get().getId(), buyerCodeId)
+                .map(BidRound::getId);
+    }
+
     @Transactional(readOnly = true)
     public BidderDashboardResponse loadGrid(long bidRoundId, long buyerCodeId) {
         BidRound bidRound = bidRoundRepo.findById(bidRoundId)

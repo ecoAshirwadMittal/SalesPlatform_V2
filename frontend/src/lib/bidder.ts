@@ -347,6 +347,25 @@ export function exportBidRound(id: number, buyerCodeId: number): void {
 }
 
 /**
+ * GET /api/v1/bidder/download-round-1?buyerCodeId={buyerCodeId}
+ *
+ * DOWNLOAD-mode helper: triggers a browser file download of the most
+ * recently closed Round 1 bid slice for this buyer. Used only from the
+ * `EndOfBiddingPanel` when the dashboard landing resolves to `DOWNLOAD`
+ * mode. Returns 404 if no closed R1 bid_round exists for this buyer —
+ * the browser will surface that to the user as a failed download.
+ */
+export function downloadRound1Bids(buyerCodeId: number): void {
+  const url = `/api/v1/bidder/download-round-1?buyerCodeId=${buyerCodeId}`;
+  const a = document.createElement('a');
+  a.href = url;
+  a.setAttribute('download', '');
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+/**
  * POST /api/v1/bidder/bid-rounds/{id}/import?buyerCodeId={buyerCodeId}
  *
  * Uploads an xlsx file and returns the import result. On validation

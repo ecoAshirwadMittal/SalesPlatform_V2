@@ -90,4 +90,13 @@ public interface SchedulingAuctionRepository extends JpaRepository<SchedulingAuc
      */
     Optional<SchedulingAuction> findFirstByRoundStatusOrderByStartDatetimeDesc(
             SchedulingAuctionStatus status);
+
+    /**
+     * DOWNLOAD-mode support: the most recently closed Round 1 across all
+     * auctions. The bidder can download their Round 1 bids while R2 is
+     * scheduled-but-not-yet-started, and this is the SA whose bid_data
+     * slice to export.
+     */
+    Optional<SchedulingAuction> findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(
+            int round, SchedulingAuctionStatus status);
 }

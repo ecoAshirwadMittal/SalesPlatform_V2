@@ -40,6 +40,7 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Bidder-facing REST surface ported from Mendix
@@ -217,6 +218,39 @@ public class BidderDashboardController {
                 + "\"; filename*=UTF-8''" + encoded);
 
         exportService.export(id, buyerCodeId, response.getOutputStream());
+    }
+
+    /**
+     * DOWNLOAD-mode helper: stream the xlsx for the most recently closed
+     * Round 1 this buyer participated in. Used by the bidder dashboard's
+     * {@code DOWNLOAD} mode, where the response lacks an explicit
+     * {@code bidRoundId} (auction/bidRound slots are null). Returns
+     * {@code 404 Not Found} when no closed R1 bid_round exists for this
+     * buyer.
+     *
+     * <p>{@code GET /api/v1/bidder/download-round-1?buyerCodeId=…}
+     */
+    @GetMapping("/download-round-1")
+    public void downloadRound1(@RequestParam long buyerCodeId,
+                               Authentication auth,
+                               HttpServletResponse response) throws IOException {
+        long userId = (Long) auth.getPrincipal();
+        Optional<Long> bidRoundIdOpt = dashboardService.findDownloadableRound1BidRoundId(userId, buyerCodeId);
+        if (bidRoundIdOpt.isEmpty()) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND,
+                    "No closed Round 1 available for download");
+            return;
+        }
+        long bidRoundId = bidRoundIdOpt.get();
+
+        String filename = resolveExportFilename(bidRoundId, buyerCodeId);
+        String encoded = URLEncoder.encode(filename, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename
+                + "\"; filename*=UTF-8''" + encoded);
+
+        exportService.export(bidRoundId, buyerCodeId, response.getOutputStream());
     }
 
     /**

@@ -45,6 +45,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -180,6 +181,76 @@ class BidderDashboardControllerTest {
                 .andExpect(jsonPath("$.bidQuantity").value(5));
 
         verify(submissionService).save(eq(USER_ID), eq(BID_DATA_ID), any());
+    }
+
+    // ---------------------------------------------------------------------
+    // GET /download-round-1 — DOWNLOAD-mode support (Option B)
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /download-round-1 — 200 + xlsx when closed R1 bid_round exists")
+    void get_downloadRound1_200() throws Exception {
+        when(dashboardService.findDownloadableRound1BidRoundId(USER_ID, BUYER_CODE_ID))
+                .thenReturn(java.util.Optional.of(BID_ROUND_ID));
+        // Stub the export service's filename-resolve path the controller calls
+        // before writing the xlsx (the controller reads bidRound + sa + auction
+        // to build the filename). Minimal fixture — real bytes not asserted here.
+        when(bidRoundRepository.findById(BID_ROUND_ID))
+                .thenReturn(java.util.Optional.of(makeBidRound()));
+        when(schedulingAuctionRepository.findById(anyLong()))
+                .thenReturn(java.util.Optional.of(makeSchedulingAuction()));
+        when(auctionRepository.findById(anyLong()))
+                .thenReturn(java.util.Optional.of(makeAuction()));
+
+        mvc.perform(get("/api/v1/bidder/download-round-1")
+                        .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
+                        .with(jwtBidder()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type",
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .andExpect(header().string("Content-Disposition",
+                        org.hamcrest.Matchers.containsString("attachment")));
+
+        verify(exportService).export(eq(BID_ROUND_ID), eq(BUYER_CODE_ID), any());
+    }
+
+    @Test
+    @DisplayName("GET /download-round-1 — 404 when no closed R1 bid_round exists")
+    void get_downloadRound1_404() throws Exception {
+        when(dashboardService.findDownloadableRound1BidRoundId(USER_ID, BUYER_CODE_ID))
+                .thenReturn(java.util.Optional.empty());
+
+        mvc.perform(get("/api/v1/bidder/download-round-1")
+                        .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
+                        .with(jwtBidder()))
+                .andExpect(status().isNotFound());
+
+        verify(exportService, org.mockito.Mockito.never()).export(anyLong(), anyLong(), any());
+    }
+
+    private static com.ecoatm.salesplatform.model.auctions.BidRound makeBidRound() {
+        com.ecoatm.salesplatform.model.auctions.BidRound br =
+                new com.ecoatm.salesplatform.model.auctions.BidRound();
+        org.springframework.test.util.ReflectionTestUtils.setField(br, "id", BID_ROUND_ID);
+        br.setSchedulingAuctionId(301L);
+        return br;
+    }
+
+    private static com.ecoatm.salesplatform.model.auctions.SchedulingAuction makeSchedulingAuction() {
+        com.ecoatm.salesplatform.model.auctions.SchedulingAuction sa =
+                new com.ecoatm.salesplatform.model.auctions.SchedulingAuction();
+        sa.setId(301L);
+        sa.setAuctionId(101L);
+        sa.setRound(1);
+        return sa;
+    }
+
+    private static com.ecoatm.salesplatform.model.auctions.Auction makeAuction() {
+        com.ecoatm.salesplatform.model.auctions.Auction a =
+                new com.ecoatm.salesplatform.model.auctions.Auction();
+        a.setId(101L);
+        a.setAuctionTitle("Auction 2026 / Wk17");
+        return a;
     }
 
     @Test

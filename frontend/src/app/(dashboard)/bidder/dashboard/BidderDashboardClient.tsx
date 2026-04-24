@@ -6,6 +6,7 @@ import {
   carryoverBidRound,
   exportBidRound,
   importBidRound,
+  downloadRound1Bids,
   RateLimitedError,
   RoundClosedError,
   VersionConflictError,
@@ -275,17 +276,17 @@ export function BidderDashboardClient({
   }
 
   if (mode === 'DOWNLOAD') {
-    // TODO(Phase 11 follow-up): add `GET /bidder/download-round-1?buyerCodeId=X`
-    // backend endpoint that finds the closed Round 1 for the active week and
-    // streams the xlsx. The existing `/bid-rounds/{id}/export` endpoint needs
-    // a round id, which the DOWNLOAD response does not provide. Until that
-    // endpoint exists the button no-ops. Copy is deferred to a live QA
-    // walkthrough when the state is reachable — see wholesale-buyer-parity
-    // plan §Phase 11 and Q4.
+    // Wired to GET /bidder/download-round-1 (Option B — streams the xlsx for
+    // the most recently closed R1 bid_round this buyer participated in).
+    // Copy is still provisional per Q4 — update on the next QA walkthrough
+    // that captures the DOWNLOAD state live.
     return (
       <EndOfBiddingPanel
         subtitle="Your bids from round 1 can be found below."
-        action={{ label: 'Download your Round 1 Bids', onClick: () => {} }}
+        action={{
+          label: 'Download your Round 1 Bids',
+          onClick: () => downloadRound1Bids(buyerCodeId),
+        }}
       />
     );
   }
