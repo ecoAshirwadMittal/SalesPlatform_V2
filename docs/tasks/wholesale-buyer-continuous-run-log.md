@@ -147,6 +147,22 @@ Phases completed + notes. Anything in **NEEDS REVIEW** should be surfaced to the
 
 ---
 
+## Option B — DOWNLOAD-mode endpoint ✅
+- Commit: `7bbeff5`
+- New `GET /api/v1/bidder/download-round-1?buyerCodeId=X` backend endpoint + `SchedulingAuctionRepository.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc` finder + `BidderDashboardService.findDownloadableRound1BidRoundId` (IDOR-guarded).
+- Frontend: `downloadRound1Bids(buyerCodeId)` helper + `BidderDashboardClient` DOWNLOAD-mode onClick wired.
+- 2 new controller tests (200 + 404); 7 `BidderDashboardControllerTest` total.
+- **NEEDS REVIEW:** subtitle + button copy remain provisional (Q4 deferral) — update on the next live QA walkthrough.
+
+## Option D — Batch cleanup ✅
+- Commit: `820ff37`
+- Promoted `BriefcaseIcon` from `app/(dashboard)/buyer-select/` to `components/icons/`; updated both consumers; `git mv` preserves history.
+- Removed stale `// @vitest-environment jsdom` directive from `useActiveBuyerCode.ts` source file.
+- Added `useActiveBuyerCode.test.tsx` — 7 tests (unauthenticated redirect, missing candidate, happy path, URL-param precedence, stale code redirect, fetch error, loading flip).
+- Total frontend tests: 216 (was 209).
+
+---
+
 ## End-of-run summary
 
 **Completed:** Phases 0–12, 14, 15 (+ interim tasks for QA reference persistence and plan updates).
