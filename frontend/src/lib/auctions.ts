@@ -472,3 +472,50 @@ export async function updateRoundFilter(
   }
   return BidRoundSelectionFilterResponseSchema.parse(await res.json());
 }
+
+// ---------------------------------------------------------------------------
+// Admin round transition endpoints — manual start/close for scheduling rounds.
+// POST /api/v1/admin/scheduling-auctions/{id}/start|close
+// ---------------------------------------------------------------------------
+
+export const RoundTransitionResponseSchema = z.object({
+  id: z.number(),
+  round: z.number().int(),
+  roundStatus: z.string(),
+  changedDate: z.string(),
+});
+export type RoundTransitionResponse = z.infer<typeof RoundTransitionResponseSchema>;
+
+export class RoundAlreadyTransitionedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RoundAlreadyTransitionedError';
+  }
+}
+
+async function postRoundTransition(
+  id: number,
+  action: 'start' | 'close',
+): Promise<RoundTransitionResponse> {
+  const res = await apiFetch(`/api/v1/admin/scheduling-auctions/${id}/${action}`, {
+    method: 'POST',
+  });
+  if (res.status === 409) {
+    const { message } = await readErrorEnvelope(res);
+    throw new RoundAlreadyTransitionedError(message);
+  }
+  if (res.status === 400 || res.status === 404) {
+    const { message } = await readErrorEnvelope(res);
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return RoundTransitionResponseSchema.parse(await res.json());
+}
+
+export function startRound(id: number): Promise<RoundTransitionResponse> {
+  return postRoundTransition(id, 'start');
+}
+
+export function closeRound(id: number): Promise<RoundTransitionResponse> {
+  return postRoundTransition(id, 'close');
+}
