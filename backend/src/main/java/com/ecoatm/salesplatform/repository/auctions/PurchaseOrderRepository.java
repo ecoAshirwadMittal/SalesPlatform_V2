@@ -30,4 +30,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Lo
             @Param("yearFrom") Integer yearFrom,
             @Param("yearTo") Integer yearTo,
             Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"weekFrom", "weekTo", "details", "details.buyerCode"})
+    @org.springframework.data.jpa.repository.Query("SELECT po FROM PurchaseOrder po WHERE po.id = :id")
+    java.util.Optional<com.ecoatm.salesplatform.model.auctions.PurchaseOrder> findByIdWithDetails(@org.springframework.data.repository.query.Param("id") Long id);
 }
