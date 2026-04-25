@@ -89,6 +89,16 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+  health:
+    # Spring Boot auto-registers a JavaMail health indicator that probes the
+    # SMTP host on every /actuator/health hit. With no SMTP server running
+    # locally (or in CI) the rollup flips to DOWN even though the app is fully
+    # functional — and the E2E test gate (`isBackendAvailable`) skips every
+    # live test as a result. Mail is non-essential to the auction surface;
+    # exclude the indicator from the rollup. Status is still queryable
+    # individually via `/actuator/health/mail` if needed.
+    mail:
+      enabled: false
 
 # ─────────────────────────────────────
 # Server
