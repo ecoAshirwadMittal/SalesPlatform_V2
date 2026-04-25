@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import styles from './buyerSelect.module.css';
-import BriefcaseIcon from '@/components/icons/BriefcaseIcon';
 import { apiFetch } from '@/lib/apiFetch';
 import { API_BASE } from '@/lib/apiRoutes';
 import {
@@ -227,9 +226,6 @@ export default function BuyerSelectPage() {
                         onClick={() => handleCodeSelect(bc)}
                         type="button"
                       >
-                        <span className={styles.codeAvatar} aria-hidden="true">
-                          <BriefcaseIcon />
-                        </span>
                         <span className={styles.codeInfo}>
                           <span className={styles.codeLabel}>{bc.code}</span>
                           <span className={styles.companyName}>{bc.buyerName}</span>
@@ -266,9 +262,6 @@ export default function BuyerSelectPage() {
                         onClick={() => handleCodeSelect(bc)}
                         type="button"
                       >
-                        <span className={styles.codeAvatar} aria-hidden="true">
-                          <BriefcaseIcon />
-                        </span>
                         <span className={styles.codeInfo}>
                           <span className={styles.codeLabel}>{bc.code}</span>
                           <span className={styles.companyName}>{bc.buyerName}</span>

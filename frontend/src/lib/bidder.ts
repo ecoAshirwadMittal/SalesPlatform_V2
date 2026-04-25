@@ -169,6 +169,19 @@ export class VersionConflictError extends Error {
   }
 }
 
+/**
+ * Thrown when a save attempts to lower (price) or narrow (qty cap) a bid
+ * that the buyer has already submitted in a prior round of the same week.
+ * Backend returns `409` with `{ code: "BID_LOWERED", message }` per
+ * BidDataSubmissionService.validateNotLoweringSubmittedBid.
+ */
+export class BidLoweredError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BidLoweredError';
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -229,6 +242,13 @@ export async function saveBid(id: number, payload: SaveBidPayload): Promise<BidD
 
   if (res.status === 429) {
     throw new RateLimitedError();
+  }
+
+  if (res.status === 409) {
+    const { code, message } = await readErrorEnvelope(res);
+    if (code === 'BID_LOWERED') throw new BidLoweredError(message);
+    if (code === 'ROUND_CLOSED') throw new RoundClosedError(message);
+    throw new Error(`HTTP ${res.status}: ${message}`);
   }
 
   if (!res.ok) {

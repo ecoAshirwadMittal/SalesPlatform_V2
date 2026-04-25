@@ -7,6 +7,7 @@ import {
   exportBidRound,
   importBidRound,
   downloadRound1Bids,
+  BidLoweredError,
   RateLimitedError,
   RoundClosedError,
   VersionConflictError,
@@ -142,9 +143,12 @@ export function BidderDashboardClient({
   }, []);
 
   // WHY: Auto-save errors from individual bid cells (RateLimitedError,
-  // RoundClosedError, VersionConflictError) surface here as toasts so the
-  // bidder doesn't lose context of which row they were editing. RoundClosed
-  // also disables the grid and triggers a refetch so the state is consistent.
+  // RoundClosedError, VersionConflictError, BidLoweredError) surface here
+  // as toasts so the bidder doesn't lose context of which row they were
+  // editing. RoundClosed also disables the grid and triggers a refetch.
+  // BidLowered triggers a refetch so the cell input snaps back to the
+  // previously submitted value (the local PriceCell display still shows
+  // the typed-but-rejected lower number until the row payload is re-applied).
   const handleRowError = useCallback(async (err: unknown): Promise<void> => {
     if (err instanceof RateLimitedError) {
       setToast('Saving paused — please slow down.');
@@ -164,6 +168,14 @@ export function BidderDashboardClient({
         applyResponse(fresh);
       } catch (refetchErr: unknown) {
         console.error('refetch after VERSION_CONFLICT (cell save) failed', refetchErr);
+      }
+    } else if (err instanceof BidLoweredError) {
+      setToast('You cannot lower a previously submitted bid.');
+      try {
+        const fresh = await loadDashboard(buyerCodeRef.current);
+        applyResponse(fresh);
+      } catch (refetchErr: unknown) {
+        console.error('refetch after BID_LOWERED (cell save) failed', refetchErr);
       }
     } else {
       console.error('cell auto-save failed', err);

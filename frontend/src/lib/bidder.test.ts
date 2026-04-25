@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   loadDashboard,
+  BidLoweredError,
   saveBid,
   submitBidRound,
   RateLimitedError,
@@ -192,6 +193,34 @@ describe('saveBid', () => {
     fetchMock.mockResolvedValueOnce(emptyResponse(500));
 
     await expect(saveBid(501, { bidQuantity: 5, bidAmount: 120.5 })).rejects.toThrow('HTTP 500');
+  });
+
+  it('throws BidLoweredError on 409 with code BID_LOWERED', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(409, { code: 'BID_LOWERED', message: 'Cannot lower bidAmount below 1000' }),
+    );
+
+    await expect(saveBid(501, { bidQuantity: 5, bidAmount: 50 })).rejects.toBeInstanceOf(
+      BidLoweredError,
+    );
+  });
+
+  it('throws RoundClosedError on 409 with code ROUND_CLOSED', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(409, { code: 'ROUND_CLOSED', message: 'Round is closed' }),
+    );
+
+    await expect(saveBid(501, { bidQuantity: 5, bidAmount: 50 })).rejects.toBeInstanceOf(
+      RoundClosedError,
+    );
+  });
+
+  it('throws a generic Error on 409 with an unknown code', async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(409, { code: 'SOMETHING_ELSE', message: 'Unknown' }),
+    );
+
+    await expect(saveBid(501, { bidQuantity: 5, bidAmount: 50 })).rejects.toThrow(/HTTP 409/);
   });
 });
 

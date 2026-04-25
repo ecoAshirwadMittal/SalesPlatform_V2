@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import styles from '../../../settings/pws-control-center/controlCenter.module.css';
+import styles from '../../settings/pws-control-center/controlCenter.module.css';
 
 /**
  * Auction Control Center — admin hub for cross-cutting auction tools.

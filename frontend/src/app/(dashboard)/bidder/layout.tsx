@@ -33,7 +33,7 @@
  *     localStorage under 'bidder.sidebarCollapsed'.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SidebarProvider } from '@/components/chrome/SidebarContext';
 import BuyerPortalChrome from '@/components/chrome/BuyerPortalChrome';
@@ -143,9 +143,14 @@ function BidderShellInner({ children }: { children: React.ReactNode }) {
 export default function BidderLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider storageKey="bidder.sidebarCollapsed" defaultCollapsed={false}>
-      <BidderShellInner>
-        {children}
-      </BidderShellInner>
+      {/* Suspense must sit above BidderShellInner because useActiveBuyerCode
+          calls useSearchParams(); without this boundary Next 16 bails out of
+          static prerender for every /bidder/** page. */}
+      <Suspense fallback={<div />}>
+        <BidderShellInner>
+          {children}
+        </BidderShellInner>
+      </Suspense>
     </SidebarProvider>
   );
 }
