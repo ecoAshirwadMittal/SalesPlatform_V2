@@ -1,0 +1,125 @@
+.page {
+  padding: 1.25rem 1.5rem;
+  background: #F7F7F7;
+  color: #112d32;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #112d32;
+  margin: 0;
+  margin-right: auto;
+}
+
+.button {
+  background: #407874;
+  color: #fff;
+  border: 0;
+  padding: 0 .9rem;
+  height: 34px;
+  border-radius: 4px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.button:hover { background: #356562; }
+
+.buttonGhost {
+  background: #fff;
+  color: #407874;
+  border: 1px solid #407874;
+}
+
+.error {
+  font-size: .8rem;
+  color: #b3261e;
+}
+
+.filterRow {
+  display: flex;
+  gap: .75rem;
+  align-items: flex-end;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+}
+
+.label {
+  font-size: .8rem;
+  font-weight: 600;
+  color: #555;
+}
+
+.filterInput {
+  height: 34px;
+  padding: 0 .6rem;
+  border: 1px solid #cfcfcf;
+  border-radius: 3px;
+  font: inherit;
+  color: #112d32;
+  background: #fff;
+  width: 160px;
+}
+
+.gridWrap {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 4px;
+  overflow: auto;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+}
+
+.grid th {
+  text-align: left;
+  background: #F7F7F7;
+  padding: .55rem .5rem;
+  border-bottom: 1px solid #ddd;
+  font-weight: 600;
+  color: #112d32;
+  position: sticky; top: 0;
+  white-space: nowrap;
+}
+
+.grid td {
+  padding: .45rem .5rem;
+  border-bottom: 1px solid #ddd;
+  vertical-align: top;
+}
+
+.empty {
+  text-align: center;
+  padding: 2rem 0;
+  color: #6b6b6b;
+  font-size: .9rem;
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .75rem 1rem;
+  border-top: 1px solid #e5e5e5;
+  background: #fafafa;
+  color: #555;
+  font-size: .85rem;
+}
