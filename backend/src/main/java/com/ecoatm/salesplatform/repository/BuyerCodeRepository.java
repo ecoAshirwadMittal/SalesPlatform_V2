@@ -43,4 +43,7 @@ public interface BuyerCodeRepository extends JpaRepository<BuyerCode, Long> {
 
     @Query("SELECT b.code FROM BuyerCode b WHERE b.code IN :codes")
     List<String> findCodesIn(@Param("codes") List<String> codes);
+
+    @Query("SELECT b FROM BuyerCode b WHERE b.code IN :codes")
+    List<BuyerCode> findByCodeIn(@Param("codes") List<String> codes);
 }
