@@ -53,4 +53,5 @@ public class Week {
     // and via direct repository persistence with constructor-built objects.
     public void setWeekStartDateTime(Instant v) { this.weekStartDateTime = v; }
     public void setWeekEndDateTime(Instant v) { this.weekEndDateTime = v; }
+    public void setWeekId(long v) { this.weekId = v; }
 }
