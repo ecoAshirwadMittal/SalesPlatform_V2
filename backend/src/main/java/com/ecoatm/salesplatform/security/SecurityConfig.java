@@ -54,6 +54,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
+                // P8 admin surfaces (Lane 3A + 3B) — both Administrator and
+                // SalesOps allowed; method-level @PreAuthorize echoes the same.
+                .requestMatchers("/api/v1/admin/bid-data/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/admin/qualified-buyer-codes/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")

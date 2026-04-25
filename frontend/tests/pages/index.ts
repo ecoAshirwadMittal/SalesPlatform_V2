@@ -8,3 +8,5 @@ export { CounterOfferPage } from './CounterOfferPage';
 export { RmaPage } from './RmaPage';
 export { OrderPage } from './OrderPage';
 export { OrderDetailPage } from './OrderDetailPage';
+export { BidDataAdminPage } from './BidDataAdminPage';
+export { QualifiedBuyerCodesPage } from './QualifiedBuyerCodesPage';
