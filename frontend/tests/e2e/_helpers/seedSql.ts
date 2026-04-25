@@ -54,3 +54,43 @@ export function applyFixture(name: string): void {
     throw err;
   }
 }
+
+/**
+ * Run a single SQL query and return the first column of the first row as
+ * a string. Used by cascade tests to look up dynamic IDs (scheduling
+ * auction id of an active round, bid_data id of a known row, etc.) that
+ * the fixture seeded but didn't expose to the test.
+ *
+ * Throws when the query returns no rows or psql is missing.
+ */
+export function queryScalar(sql: string): string {
+  const host = process.env.E2E_PG_HOST ?? 'localhost';
+  const user = process.env.E2E_PG_USER ?? 'salesplatform';
+  const pass = process.env.E2E_PG_PASSWORD ?? 'salesplatform';
+  const db = process.env.E2E_PG_DB ?? 'salesplatform_dev';
+
+  try {
+    const out = execFileSync(
+      'psql',
+      ['-h', host, '-U', user, '-d', db, '-tAc', sql],
+      {
+        env: { ...process.env, PGPASSWORD: pass },
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 5 * 1024 * 1024,
+      },
+    );
+    const value = out.toString().trim();
+    if (value === '') {
+      throw new Error(`queryScalar returned no rows for: ${sql}`);
+    }
+    return value;
+  } catch (err: unknown) {
+    if ((err as NodeJS.ErrnoException)?.code === 'ENOENT') {
+      throw new Error(
+        `psql not found on PATH. Install PostgreSQL client tools or set ` +
+          `E2E_PG_HOST/USER/PASSWORD/DB to point at a reachable instance.`,
+      );
+    }
+    throw err;
+  }
+}

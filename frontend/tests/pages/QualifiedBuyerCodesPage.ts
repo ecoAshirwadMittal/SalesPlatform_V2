@@ -72,4 +72,36 @@ export class QualifiedBuyerCodesPage {
     await this.includedCheckbox(id).click();
     return patchPromise;
   }
+
+  /**
+   * Row lookup by buyer code text — useful when the cascade test doesn't
+   * know the QBC primary key ahead of time. Filters the <tr> rows by the
+   * `data-testid="buyer-code"` cell content.
+   */
+  rowByBuyerCode(code: string): Locator {
+    return this.page
+      .getByRole('table')
+      .locator('tbody tr')
+      .filter({
+        has: this.page
+          .getByTestId('buyer-code')
+          .filter({ hasText: new RegExp(`^${code}$`) }),
+      });
+  }
+
+  /**
+   * Toggle the included checkbox of the row identified by its buyer code,
+   * waiting for the resulting PATCH to land.
+   */
+  async toggleIncludedByBuyerCodeAndWait(code: string) {
+    const patchPromise = this.page.waitForResponse(
+      (r) =>
+        r.url().includes('/api/v1/admin/qualified-buyer-codes/') &&
+        r.request().method() === 'PATCH',
+    );
+    await this.rowByBuyerCode(code)
+      .getByRole('checkbox', { name: 'Included' })
+      .click();
+    return patchPromise;
+  }
 }
