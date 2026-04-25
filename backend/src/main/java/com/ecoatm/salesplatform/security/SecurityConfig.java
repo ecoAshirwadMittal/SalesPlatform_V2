@@ -67,6 +67,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/round3-reports/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/bid-data/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/qualified-buyer-codes/**").hasAnyRole("Administrator", "SalesOps")
+                // Sub-project 4B PO admin surface
+                .requestMatchers("/api/v1/admin/purchase-orders/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")

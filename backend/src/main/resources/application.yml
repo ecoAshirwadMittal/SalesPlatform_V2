@@ -263,3 +263,15 @@ eb:
     snowflake-timeout-seconds: 60
     writer: logging                  # switch to 'jdbc' for prod
     reader: logging                  # switch to 'jdbc' for prod
+
+# ─────────────────────────────────────
+# Sub-project 4B: PurchaseOrder (PO) sync config
+# enabled=false → PurchaseOrderSnowflakePushListener short-circuits before
+# any payload construction; events are published but no writer is invoked.
+# Flip enabled=true (default) so PO state changes push to Snowflake.
+# ─────────────────────────────────────
+po:
+  sync:
+    enabled: true
+    writer: logging                  # logging (default) | jdbc
+    snowflake-timeout-seconds: 60

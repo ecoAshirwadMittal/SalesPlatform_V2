@@ -47,4 +47,14 @@ public class Week {
     public String getWeekDisplay() { return weekDisplay; }
     public String getWeekDisplayShort() { return weekDisplayShort; }
     public boolean isAuctionDataPurged() { return auctionDataPurged; }
+
+    // Setters added for test fixtures (PO module, sub-project 4B).
+    // Production code never mutates Week — rows are loaded by Flyway seed
+    // and via direct repository persistence with constructor-built objects.
+    public void setWeekStartDateTime(Instant v) { this.weekStartDateTime = v; }
+    public void setWeekEndDateTime(Instant v) { this.weekEndDateTime = v; }
+    public void setWeekId(long v) { this.weekId = v; }
+    public void setWeekDisplay(String v) { this.weekDisplay = v; }
+    public void setYear(int v) { this.year = v; }
+    public void setWeekNumber(int v) { this.weekNumber = v; }
 }

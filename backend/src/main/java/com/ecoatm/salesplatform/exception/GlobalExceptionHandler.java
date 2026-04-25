@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +42,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
                 .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
+    }
+
+    /**
+     * Surface unsupported media types as the standard HTTP 415 instead of the
+     * generic 500 path the catch-all Exception handler would otherwise apply.
+     * The PO upload endpoint (and any future multipart endpoint) relies on
+     * this to give clients an actionable response when they post the wrong
+     * Content-Type.
+     */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<Map<String, Object>> handleUnsupportedMediaType(HttpMediaTypeNotSupportedException ex) {
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(errorBody(HttpStatus.UNSUPPORTED_MEDIA_TYPE, ex.getMessage(), null));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

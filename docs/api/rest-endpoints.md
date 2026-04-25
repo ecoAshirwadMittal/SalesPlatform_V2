@@ -1023,3 +1023,34 @@ Current Snowflake sync watermark + drift state (IN_SYNC | BEHIND_SOURCE | NEVER_
 
 ### POST /api/v1/admin/reserve-bids/sync
 Manual pull trigger; wraps the same service method as the 30-min cron. Returns `202 Accepted`.
+
+## Purchase Orders (PO)
+
+Base URL: `/api/v1/admin/purchase-orders`
+Role: `Administrator` or `SalesOps` (full read+write).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | Paginated list (filters: `yearFrom`, `yearTo`, `weekFromId`, `weekToId`, `page`, `size`, `sort`) |
+| GET | `/{id}` | Single PO header + lifecycle state |
+| POST | `/` | Create PO header |
+| PUT | `/{id}` | Update week range / metadata |
+| DELETE | `/{id}` | Delete PO (cascades details) |
+| GET | `/{id}/details` | Paginated detail grid |
+| POST | `/{id}/details/upload` | Bulk Excel wipe-and-replace upload |
+| GET | `/{id}/details/download` | Excel export of detail grid |
+
+**Lifecycle state** is derived (`DRAFT`/`ACTIVE`/`CLOSED`) from `today` vs.
+`week_from.startDate` / `week_to.endDate` — never stored.
+
+**Upload semantics** are wipe-and-replace: any row error or unknown
+buyer_code rejects the entire upload. Successful uploads delete every
+existing detail row for the PO and re-insert from the Excel.
+
+**Snowflake sync** is push-only via `AUCTIONS.UPSERT_PURCHASE_ORDER`. No
+pull cron, no manual sync trigger. Recovery from push failure = admin
+re-uploads.
+
+Error codes: `INVALID_REQUEST`, `INVALID_WEEK_RANGE`, `UPLOAD_PARSE_ERROR`,
+`UPLOAD_ROW_ERRORS`, `MISSING_BUYER_CODE`, `PURCHASE_ORDER_NOT_FOUND`,
+`DUPLICATE_PO_DETAIL`, `UNSUPPORTED_MEDIA_TYPE`.

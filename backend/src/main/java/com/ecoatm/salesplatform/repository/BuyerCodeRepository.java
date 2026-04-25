@@ -40,4 +40,10 @@ public interface BuyerCodeRepository extends JpaRepository<BuyerCode, Long> {
           AND b.status = 'Active'
     """)
     List<BuyerCode> findActiveWholesaleOrDataWipe();
+
+    @Query("SELECT b.code FROM BuyerCode b WHERE b.code IN :codes")
+    List<String> findCodesIn(@Param("codes") List<String> codes);
+
+    @Query("SELECT b FROM BuyerCode b WHERE b.code IN :codes")
+    List<BuyerCode> findByCodeIn(@Param("codes") List<String> codes);
 }
