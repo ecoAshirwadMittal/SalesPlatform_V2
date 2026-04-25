@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.migration;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -13,6 +14,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class V78MigrationTest {
 
     @Autowired JdbcTemplate jdbc;
+
+    @AfterEach
+    void cleanupTestRows() {
+        jdbc.update("DELETE FROM auctions.purchase_order "
+                  + "WHERE week_range_label IN ('TEST', 'CASCADE-TEST', 'BAD-FK')");
+    }
 
     @Test
     void purchaseOrderTableExists() {

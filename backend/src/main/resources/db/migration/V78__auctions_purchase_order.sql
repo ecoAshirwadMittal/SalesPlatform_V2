@@ -55,3 +55,21 @@ CREATE TABLE auctions.po_detail (
 CREATE INDEX idx_pod_po             ON auctions.po_detail(purchase_order_id);
 CREATE INDEX idx_pod_buyer_code     ON auctions.po_detail(buyer_code_id);
 CREATE INDEX idx_pod_product_grade  ON auctions.po_detail(product_id, grade);
+
+COMMENT ON TABLE auctions.purchase_order
+    IS 'PurchaseOrder header — week range + Snowflake push watermark. Source: ecoatm_po$purchaseorder. See docs/tasks/auction-po-module-design.md.';
+COMMENT ON COLUMN auctions.purchase_order.week_range_label
+    IS 'Denormalized "YYYY / WkNN - YYYY / WkNN" label rebuilt on every header upsert (matches Mendix weekrange).';
+COMMENT ON COLUMN auctions.purchase_order.po_refresh_timestamp
+    IS 'Last successful AUCTIONS.UPSERT_PURCHASE_ORDER push timestamp; per-PO Snowflake sync watermark.';
+COMMENT ON COLUMN auctions.purchase_order.valid_year_week
+    IS 'Mendix-carry-over flag indicating week-range was validated at upload time. Always TRUE in the modern flow because validation rejects bad ranges before insert.';
+
+COMMENT ON TABLE auctions.po_detail
+    IS 'PurchaseOrder line items — per (product_id, grade, buyer_code) target price + qty cap. Source: ecoatm_po$podetail.';
+COMMENT ON COLUMN auctions.po_detail.product_id
+    IS 'Stored as VARCHAR(100) to match bid_data.ecoid type so 4C target-price CTE joins as plain string equality. Mendix stored INTEGER.';
+COMMENT ON COLUMN auctions.po_detail.price
+    IS 'Target price per unit. Joined into 4C target-price CTE GREATEST(...) term so target prices never fall below committed PO price.';
+COMMENT ON COLUMN auctions.po_detail.temp_buyer_code
+    IS 'Snowflake-payload-parity scratch column carrying buyer_code text alongside the FK. Drop in a follow-up V8x once QA confirms AUCTIONS.UPSERT_PURCHASE_ORDER does not read it.';
