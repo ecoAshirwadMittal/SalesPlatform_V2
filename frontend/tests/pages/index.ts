@@ -12,3 +12,5 @@ export { RmaPage } from './RmaPage';
 export { OrderPage } from './OrderPage';
 export { OrderDetailPage } from './OrderDetailPage';
 export { R2CriteriaPage } from './R2CriteriaPage';
+export { BidDataAdminPage } from './BidDataAdminPage';
+export { QualifiedBuyerCodesPage } from './QualifiedBuyerCodesPage';

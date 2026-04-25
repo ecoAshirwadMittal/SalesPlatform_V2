@@ -65,6 +65,8 @@ public class SecurityConfig {
                 // matchers must precede the catch-all admin rule.
                 .requestMatchers("/api/v1/admin/round-criteria/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/round3-reports/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/admin/bid-data/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/admin/qualified-buyer-codes/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")

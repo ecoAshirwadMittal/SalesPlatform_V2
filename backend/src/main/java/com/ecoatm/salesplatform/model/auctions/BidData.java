@@ -64,6 +64,15 @@ public class BidData {
     @Column(name = "changed_by_id")
     private Long changedById;
 
+    /**
+     * Soft-delete flag — admin "Remove" actions flip this to TRUE rather than
+     * dropping the row, preserving audit / replay (P8 Lane 3A). The schema
+     * column is declared NOT NULL DEFAULT false in V61 so older entity-side
+     * inserts (which never set this column) still succeed.
+     */
+    @Column(name = "is_deprecated", nullable = false)
+    private boolean deprecated = false;
+
     // Getters and setters
 
     public Long getId() {
@@ -208,6 +217,14 @@ public class BidData {
 
     public void setChangedById(Long changedById) {
         this.changedById = changedById;
+    }
+
+    public boolean isDeprecated() {
+        return deprecated;
+    }
+
+    public void setDeprecated(boolean deprecated) {
+        this.deprecated = deprecated;
     }
 
     @Override
