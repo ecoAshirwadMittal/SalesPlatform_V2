@@ -54,4 +54,7 @@ public class Week {
     public void setWeekStartDateTime(Instant v) { this.weekStartDateTime = v; }
     public void setWeekEndDateTime(Instant v) { this.weekEndDateTime = v; }
     public void setWeekId(long v) { this.weekId = v; }
+    public void setWeekDisplay(String v) { this.weekDisplay = v; }
+    public void setYear(int v) { this.year = v; }
+    public void setWeekNumber(int v) { this.weekNumber = v; }
 }
