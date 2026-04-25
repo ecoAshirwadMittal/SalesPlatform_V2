@@ -3,7 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  closeRound,
   listSchedulingAuctions,
+  RoundAlreadyTransitionedError,
+  startRound,
   type SchedulingAuctionListPageResponse,
   type SchedulingAuctionListRow,
 } from '@/lib/auctions';
@@ -34,6 +37,8 @@ export default function SchedulingAuctionListPage() {
   const [page, setPage] = useState(0);
   const [data, setData] = useState<SchedulingAuctionListPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [transitionError, setTransitionError] = useState<string | null>(null);
+  const [transitioning, setTransitioning] = useState<number | null>(null);
 
   const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
@@ -72,6 +77,29 @@ export default function SchedulingAuctionListPage() {
     };
   }, [refresh]);
 
+  const handleTransition = async (id: number, action: 'start' | 'close') => {
+    setTransitionError(null);
+    setTransitioning(id);
+    try {
+      if (action === 'start') {
+        await startRound(id);
+      } else {
+        await closeRound(id);
+      }
+      await refresh();
+    } catch (err) {
+      const msg =
+        err instanceof RoundAlreadyTransitionedError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Round transition failed';
+      setTransitionError(msg);
+    } finally {
+      setTransitioning(null);
+    }
+  };
+
   const updateFilter = <K extends keyof Filters>(k: K, v: string) =>
     setInput((prev) => ({ ...prev, [k]: v }));
 
@@ -94,6 +122,11 @@ export default function SchedulingAuctionListPage() {
           Refresh
         </button>
         {error && <span className={styles.error}>{error}</span>}
+        {transitionError && (
+          <span className={styles.error} role="alert">
+            {transitionError}
+          </span>
+        )}
       </header>
 
       <div className={styles.gridWrap}>
@@ -149,11 +182,14 @@ export default function SchedulingAuctionListPage() {
               <SchedulingRow
                 key={r.id}
                 row={r}
+                isTransitioning={transitioning === r.id}
                 onEdit={() => {
                   if (r.auctionId) {
                     router.push(`/admin/auctions-data-center/auctions/${r.auctionId}/schedule`);
                   }
                 }}
+                onStart={() => void handleTransition(r.id, 'start')}
+                onClose={() => void handleTransition(r.id, 'close')}
               />
             ))}
             {data && data.content.length === 0 && (
@@ -202,10 +238,16 @@ export default function SchedulingAuctionListPage() {
 
 function SchedulingRow({
   row,
+  isTransitioning,
   onEdit,
+  onStart,
+  onClose,
 }: {
   row: SchedulingAuctionListRow;
+  isTransitioning: boolean;
   onEdit: () => void;
+  onStart: () => void;
+  onClose: () => void;
 }) {
   return (
     <tr>
@@ -222,18 +264,40 @@ function SchedulingRow({
         </span>
       </td>
       <td>
-        {row.auctionId ? (
-          <button
-            type="button"
-            className={styles.editLink}
-            aria-label={`View auction ${row.auctionId}`}
-            onClick={onEdit}
-          >
-            View
-          </button>
-        ) : (
-          '—'
-        )}
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {row.auctionId && (
+            <button
+              type="button"
+              className={styles.editLink}
+              aria-label={`View auction ${row.auctionId}`}
+              onClick={onEdit}
+            >
+              View
+            </button>
+          )}
+          {row.roundStatus === 'Scheduled' && (
+            <button
+              type="button"
+              className={styles.editLink}
+              aria-label={`Start round ${row.id}`}
+              disabled={isTransitioning}
+              onClick={onStart}
+            >
+              {isTransitioning ? '…' : 'Start'}
+            </button>
+          )}
+          {row.roundStatus === 'Started' && (
+            <button
+              type="button"
+              className={styles.editLink}
+              aria-label={`Close round ${row.id}`}
+              disabled={isTransitioning}
+              onClick={onClose}
+            >
+              {isTransitioning ? '…' : 'Close'}
+            </button>
+          )}
+        </div>
       </td>
     </tr>
   );

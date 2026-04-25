@@ -2,6 +2,7 @@ package com.ecoatm.salesplatform.exception;
 
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionException;
 import com.ecoatm.salesplatform.service.auctions.biddata.BidDataValidationException;
+import com.ecoatm.salesplatform.service.auctions.lifecycle.RoundAlreadyTransitionedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -93,6 +94,13 @@ public class GlobalExceptionHandler {
                 .toList();
         return ResponseEntity.badRequest()
                 .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), details));
+    }
+
+    @ExceptionHandler(RoundAlreadyTransitionedException.class)
+    public ResponseEntity<Map<String, Object>> handleRoundAlreadyTransitioned(
+            RoundAlreadyTransitionedException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
     }
 
     @ExceptionHandler(BidDataValidationException.class)
