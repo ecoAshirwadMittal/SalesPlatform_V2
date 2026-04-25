@@ -757,3 +757,29 @@ Archived entries:
 - 2026-04-17 — Aggregated Inventory: compute totals at read time + keep quantity override flag
 - 2026-04-13 — Auth token moved from localStorage to HttpOnly cookie
 - 2026-04-13 — PWS email delivery: post-commit event + async + feature flag
+
+## 2026-04-25 — Sub-project 4B: PO module port
+
+**Status:** Accepted.
+
+**Context:** Mendix `ecoatm_po` ships PurchaseOrder + PODetail authored
+via Excel upload, with push-only Snowflake sync (no pull cron,
+porefreshtimestamp watermark). Sub-project 4C's target-price CTE joins
+`po_detail.price` into its `GREATEST(...)` term, so 4B must port the
+schema + admin surface before 4C can compute.
+
+**Decision:** Port `purchase_order` + `po_detail` only (drop `weekly_po`,
+`week_period`, `purchase_order_doc`, `pohelper`). Push-only Snowflake
+sync. Lifecycle state derived from week range. Wipe-and-replace upload
+with strict-rejection error posture. `Administrator` + `SalesOps` role
+gate.
+
+**Consequences:** 4C unblocks. Snowflake recovery = admin re-upload (same
+as Mendix). No fulfillment-tracker port — if `weekly_po` becomes an ops
+ask later, it's a follow-up. `temp_buyer_code` column carried forward
+for Snowflake payload parity; can be dropped after QA confirms the proc
+doesn't read it.
+
+**Spec / Plan:**
+- `docs/tasks/auction-po-module-design.md`
+- `docs/tasks/auction-po-module-plan.md`

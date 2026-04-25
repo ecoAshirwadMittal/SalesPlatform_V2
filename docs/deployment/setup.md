@@ -137,3 +137,8 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
 - `eb.sync.enabled` — default `true`; disables both push + pull
 - `eb.sync.fixed-delay-ms` — default 30 min; pull cadence
 - `eb.sync.writer` / `eb.sync.reader` — `logging` (default) or `jdbc` (prod)
+
+## PO sync config
+- `po.sync.enabled` — default `true`; disables push when false
+- `po.sync.writer` — `logging` (default) or `jdbc` (prod)
+- `po.sync.snowflake-timeout-seconds` — default 60
