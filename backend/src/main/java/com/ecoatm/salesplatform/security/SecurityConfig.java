@@ -61,9 +61,10 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
                 .requestMatchers("/api/v1/admin/reserve-bids/**").hasRole("Administrator")
-                // Lane 4 (P8 admin surfaces): R2 selection criteria. SalesOps + Administrator
-                // per the master plan; matcher must precede the catch-all admin rule.
+                // P8 admin surfaces: SalesOps + Administrator per master plan;
+                // matchers must precede the catch-all admin rule.
                 .requestMatchers("/api/v1/admin/round-criteria/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/admin/round3-reports/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")

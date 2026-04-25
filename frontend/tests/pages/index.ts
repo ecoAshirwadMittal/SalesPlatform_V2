@@ -1,6 +1,8 @@
 export { LoginPage } from './LoginPage';
 export { NavPage } from './NavPage';
 export { BidderDashboardPage } from './BidderDashboardPage';
+export { BidAsBidderPage } from './BidAsBidderPage';
+export { Round3ReportPage } from './Round3ReportPage';
 export { ShopPage } from './ShopPage';
 export { CartPage } from './CartPage';
 export { OfferReviewPage } from './OfferReviewPage';

@@ -43,6 +43,8 @@ const tiles: Tile[] = [
   { label: 'Sales Rep Management', href: '/admin/auctions-data-center/sales-rep-management' },
   { label: 'Company Holiday', href: '/admin/auctions-data-center/company-holiday' },
   { label: 'Cohort Mapping', href: '/admin/auctions-data-center/cohort-mapping' },
+  // Row 6 — P8 ports
+  { label: 'Round Three Bid Report by Buyer', href: '/admin/auctions-data-center/round3-bid-report' },
 ];
 
 export default function AuctionsDataCenterPage() {
