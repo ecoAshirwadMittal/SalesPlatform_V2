@@ -1,5 +1,6 @@
 export { LoginPage } from './LoginPage';
 export { NavPage } from './NavPage';
+export { BidderDashboardPage } from './BidderDashboardPage';
 export { ShopPage } from './ShopPage';
 export { CartPage } from './CartPage';
 export { OfferReviewPage } from './OfferReviewPage';
