@@ -121,6 +121,7 @@ public class BidDataSubmissionService {
         assertOwnership(userId, row.getBuyerCodeId());
         assertRoundOpen(row.getBidRoundId());
         validateAmountAndQuantity(req, row.getMaximumQuantity());
+        validateNotLoweringSubmittedBid(req, row);
 
         row.setBidQuantity(req.bidQuantity());
         row.setBidAmount(req.bidAmount());
@@ -208,6 +209,59 @@ public class BidDataSubmissionService {
         String status = jdbc.queryForObject(ROUND_STATUS_SQL, String.class, bidRoundId);
         if ("Closed".equals(status)) {
             throw new BidDataSubmissionException("ROUND_CLOSED", "Round is closed");
+        }
+    }
+
+    /**
+     * Reject downward moves on previously submitted rows. Mirrors the
+     * Mendix R2/R3 protection: once a buyer has submitted a bid in a prior
+     * round, subsequent saves cannot lower the price or tighten the qty cap
+     * — only widen.
+     *
+     * <p>Cross-round semantics:
+     * <ul>
+     *   <li>{@code submittedDatetime != null} marks "previously submitted at
+     *       least once." We use that as the gate rather than relying on
+     *       {@code submittedBidAmount > 0} (which conflates "0 was the
+     *       submitted value" with "never submitted").</li>
+     *   <li>For qty cap, {@code null} on either side is the "no cap"
+     *       sentinel. Going from "no cap" → a specific number narrows the
+     *       commitment (rejected); going from a number → "no cap" widens it
+     *       (allowed).</li>
+     * </ul>
+     *
+     * <p>Throws {@link BidDataSubmissionException} with code
+     * {@code BID_LOWERED}; mapped to HTTP 409 by the global handler.
+     */
+    private static void validateNotLoweringSubmittedBid(SaveBidRequest req, BidData row) {
+        if (row.getSubmittedDatetime() == null) {
+            // Never submitted yet — first-touch state. No lowering check.
+            return;
+        }
+
+        var prevAmount = row.getSubmittedBidAmount();
+        if (prevAmount != null
+                && req.bidAmount() != null
+                && req.bidAmount().compareTo(prevAmount) < 0) {
+            throw new BidDataSubmissionException("BID_LOWERED",
+                    "Cannot lower bidAmount below previously submitted value " + prevAmount);
+        }
+
+        Integer prevQty = row.getSubmittedBidQuantity();
+        Integer newQty = req.bidQuantity();
+        boolean qtyLowered;
+        if (prevQty == null) {
+            // Was "no cap" — going to a specific number narrows commitment.
+            qtyLowered = newQty != null;
+        } else if (newQty == null) {
+            // Going from a cap to "no cap" widens; allowed.
+            qtyLowered = false;
+        } else {
+            qtyLowered = newQty < prevQty;
+        }
+        if (qtyLowered) {
+            throw new BidDataSubmissionException("BID_LOWERED",
+                    "Cannot lower bidQuantity below previously submitted value " + prevQty);
         }
     }
 

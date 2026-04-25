@@ -168,6 +168,132 @@ class BidDataSubmissionServiceTest {
     }
 
     // -----------------------------------------------------------------------
+    // save() — downward-bid rejection (parity with QA R2 "cannot lower")
+    // -----------------------------------------------------------------------
+
+    @Test
+    void save_rejectsLoweringBidAmountBelowSubmittedValue() {
+        BidData row = bidDataRow(10);
+        // Previously submitted with 1000 / qty 2.
+        row.setSubmittedDatetime(java.time.Instant.parse("2026-04-20T00:00:00Z"));
+        row.setSubmittedBidAmount(new BigDecimal("1000.00"));
+        row.setSubmittedBidQuantity(2);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+
+        assertThatThrownBy(() ->
+                service.save(USER_ID, BID_DATA_ID,
+                        new SaveBidRequest(2, new BigDecimal("999.00"))))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("BID_LOWERED");
+
+        verify(bidDataRepo, never()).save(any());
+    }
+
+    @Test
+    void save_rejectsLoweringBidQuantityBelowSubmittedValue() {
+        BidData row = bidDataRow(10);
+        row.setSubmittedDatetime(java.time.Instant.parse("2026-04-20T00:00:00Z"));
+        row.setSubmittedBidAmount(new BigDecimal("1000.00"));
+        row.setSubmittedBidQuantity(2);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+
+        assertThatThrownBy(() ->
+                service.save(USER_ID, BID_DATA_ID,
+                        new SaveBidRequest(1, new BigDecimal("1000.00"))))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("BID_LOWERED");
+
+        verify(bidDataRepo, never()).save(any());
+    }
+
+    @Test
+    void save_allowsRaisingBidAmountAboveSubmittedValue() {
+        BidData row = bidDataRow(10);
+        row.setSubmittedDatetime(java.time.Instant.parse("2026-04-20T00:00:00Z"));
+        row.setSubmittedBidAmount(new BigDecimal("1000.00"));
+        row.setSubmittedBidQuantity(2);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+        when(bidDataRepo.save(any(BidData.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BidDataRow result = service.save(USER_ID, BID_DATA_ID,
+                new SaveBidRequest(5, new BigDecimal("1500.00")));
+
+        assertThat(result.bidAmount()).isEqualByComparingTo("1500.00");
+        assertThat(result.bidQuantity()).isEqualTo(5);
+    }
+
+    @Test
+    void save_allowsLoweringBeforeFirstSubmit() {
+        // submittedDatetime == null → never submitted; lowering should be allowed.
+        BidData row = bidDataRow(10);
+        row.setSubmittedBidAmount(null);
+        row.setSubmittedBidQuantity(null);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+        when(bidDataRepo.save(any(BidData.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BidDataRow result = service.save(USER_ID, BID_DATA_ID,
+                new SaveBidRequest(1, new BigDecimal("1.00")));
+
+        assertThat(result.bidAmount()).isEqualByComparingTo("1.00");
+    }
+
+    @Test
+    void save_rejectsNarrowingNoCapToSpecificQuantity() {
+        // Submitted with no cap (qty=null); attempting to set a specific qty narrows the commitment.
+        BidData row = bidDataRow(10);
+        row.setSubmittedDatetime(java.time.Instant.parse("2026-04-20T00:00:00Z"));
+        row.setSubmittedBidAmount(new BigDecimal("1000.00"));
+        row.setSubmittedBidQuantity(null);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+
+        assertThatThrownBy(() ->
+                service.save(USER_ID, BID_DATA_ID,
+                        new SaveBidRequest(1, new BigDecimal("1000.00"))))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("BID_LOWERED");
+    }
+
+    @Test
+    void save_allowsWideningSpecificQuantityToNoCap() {
+        // Submitted with qty=2; switching to no-cap (null) widens the commitment.
+        BidData row = bidDataRow(10);
+        row.setSubmittedDatetime(java.time.Instant.parse("2026-04-20T00:00:00Z"));
+        row.setSubmittedBidAmount(new BigDecimal("1000.00"));
+        row.setSubmittedBidQuantity(2);
+        when(bidDataRepo.findById(BID_DATA_ID)).thenReturn(Optional.of(row));
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(1L);
+        when(jdbc.queryForObject(anyString(), eq(String.class), eq(BID_ROUND_ID)))
+                .thenReturn("Started");
+        when(bidDataRepo.save(any(BidData.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        BidDataRow result = service.save(USER_ID, BID_DATA_ID,
+                new SaveBidRequest(null, new BigDecimal("1000.00")));
+
+        assertThat(result.bidQuantity()).isNull();
+    }
+
+    // -----------------------------------------------------------------------
     // submit() scenarios
     // -----------------------------------------------------------------------
 

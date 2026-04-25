@@ -112,7 +112,7 @@ public class GlobalExceptionHandler {
         HttpStatus status = switch (ex.code()) {
             case "BID_DATA_NOT_FOUND", "BID_ROUND_NOT_FOUND" -> HttpStatus.NOT_FOUND;
             case "NOT_YOUR_BID_DATA", "NOT_YOUR_BID_ROUND"   -> HttpStatus.FORBIDDEN;
-            case "ROUND_CLOSED"                              -> HttpStatus.CONFLICT;
+            case "ROUND_CLOSED", "BID_LOWERED"               -> HttpStatus.CONFLICT;
             default                                          -> HttpStatus.INTERNAL_SERVER_ERROR;
         };
         return ResponseEntity.status(status)
