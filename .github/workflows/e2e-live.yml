@@ -1,0 +1,169 @@
+# Playwright E2E test suite — LIVE backend variant.
+#
+# Distinct from `e2e.yml` (which runs mocked specs only — fast, no infra).
+# This workflow brings up Postgres + Spring Boot + Next.js dev server and
+# runs the wholesale + admin specs that require real DB state and a real
+# JWT auth path. Slow (~5-7 min); run on a schedule (nightly) and on
+# manual dispatch — NOT on every PR (too expensive for the value).
+#
+# Design decisions
+#   - Postgres 15 service container (matches local dev). bootstrap.sql
+#     creates the salesplatform role + salesplatform_dev DB.
+#   - Spring Boot started in the background; Flyway runs all migrations
+#     automatically on startup.
+#   - Test data: the existing wholesale-r{1,2,3}-active.sql fixtures are
+#     applied per-test by the spec's beforeEach via tests/_helpers/seedSql.ts.
+#     CI also re-uses bidder@buyerco.com seeded by V15 — the test relies
+#     on the user_buyers associations seeded by our migration history.
+#   - Live specs gate on isBackendAvailable() — once the backend's actuator
+#     reports UP, the gate opens. We poll until UP before running tests.
+#   - Playwright HTML report uploaded as artifact on failure for triage.
+
+name: E2E Live (wholesale + admin)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *' # 08:00 UTC daily
+
+jobs:
+  e2e-live:
+    name: Playwright LIVE (wholesale + admin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      # ── 1. Source ──────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Bootstrap dev DB role + database ────────────────────────────────
+      # Mirrors local `psql -U postgres -f bootstrap.sql` step from
+      # docs/deployment/setup.md. Creates the salesplatform role + DB.
+      - name: Install psql client + bootstrap salesplatform_dev
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+          PGPASSWORD=postgres psql -h localhost -U postgres -d postgres -f bootstrap.sql
+
+      # ── 3. JDK 21 for Spring Boot ──────────────────────────────────────────
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      # ── 4. Build + start Spring Boot in the background ─────────────────────
+      # Flyway runs all migrations automatically; the app prints "Started
+      # SalesPlatformApplication" once ready. We poll /actuator/health until
+      # it returns 200 before kicking off the tests.
+      - name: Build backend
+        working-directory: backend
+        run: mvn -B -DskipTests package
+
+      - name: Start Spring Boot
+        working-directory: backend
+        run: |
+          nohup mvn -B spring-boot:run \
+            -Dspring-boot.run.profiles=local \
+            > backend.log 2>&1 &
+          echo "Started Spring Boot — PID $!"
+
+      - name: Wait for backend to be UP
+        run: |
+          for i in {1..60}; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health || echo 000)
+            if [[ "$status" == "200" ]]; then
+              echo "Backend UP after ${i} attempts"
+              exit 0
+            fi
+            echo "Attempt $i: status=$status — waiting 5s..."
+            sleep 5
+          done
+          echo "Backend never reached UP — dumping last 100 lines of backend.log"
+          tail -n 100 backend/backend.log
+          exit 1
+
+      # ── 5. Frontend setup ──────────────────────────────────────────────────
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install npm dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright Chromium + system deps
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      # ── 6. Pre-flight: associate buyer codes for bidder@buyerco.com ────────
+      # The wholesale specs assume bidder@buyerco.com (V15 seed) has the
+      # HN, AAWHSL, DS2WHSL wholesale buyer codes attached. In CI's fresh
+      # DB this association doesn't exist by default; replicate the
+      # session 1 user_buyers inserts here.
+      - name: Associate wholesale buyer codes to bidder@buyerco.com
+        run: |
+          PGPASSWORD=salesplatform psql -h localhost -U salesplatform -d salesplatform_dev <<'SQL'
+          -- bidder@buyerco.com is user_id 9005 per V15 seed; associate
+          -- buyers 73 (Nadia Boonnayanont, holds HN), 74 (Andrei Aliasiuk,
+          -- holds AAWHSL), 84 (DS2User, holds DS2WHSL).
+          INSERT INTO user_mgmt.user_buyers (user_id, buyer_id) VALUES
+            (9005, 73), (9005, 74), (9005, 84)
+          ON CONFLICT (user_id, buyer_id) DO NOTHING;
+          SQL
+
+      # ── 7. Run live specs (wholesale + admin) ──────────────────────────────
+      - name: Run Playwright LIVE specs
+        working-directory: frontend
+        run: |
+          npx playwright test \
+            tests/e2e/wholesale-r1-access.spec.ts \
+            tests/e2e/wholesale-r2-access.spec.ts \
+            tests/e2e/wholesale-r3-access.spec.ts \
+            tests/e2e/admin-bid-as-bidder.spec.ts \
+            tests/e2e/admin-bid-data.spec.ts \
+            tests/e2e/admin-qualified-buyer-codes.spec.ts \
+            tests/e2e/admin-r2-criteria.spec.ts \
+            tests/e2e/admin-round3-report.spec.ts \
+            tests/e2e/admin-auction-scheduling.spec.ts \
+            tests/e2e/admin-r3-access.spec.ts \
+            tests/e2e/admin-cascade.spec.ts
+        env:
+          CI: true
+
+      # ── 8. Artifacts on failure ────────────────────────────────────────────
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-live
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload backend log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-log
+          path: backend/backend.log
+          retention-days: 7

@@ -2,6 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { isBackendAvailable } from './_helpers/backend';
 import { applyFixture, queryScalar } from './_helpers/seedSql';
 import {
+  BidAsBidderPage,
   BidDataAdminPage,
   BidderDashboardPage,
   LoginPage,
@@ -222,5 +223,129 @@ test.describe.serial('Wholesale cascades — admin action drives buyer behavior 
       // Row was excluded from the grid response — also a valid removal.
       expect(count).toBe(0);
     }
+  });
+
+  test('R2 qualify cascade: admin checks an excluded buyer → that buyer gains GRID access', async ({
+    page,
+  }) => {
+    // Setup: R2 active. Fixture default DS2WHSL.included=false (correct for
+    // this test — admin re-includes it below).
+    applyFixture('wholesale-r2-active.sql');
+    const r2SaId = queryScalar(
+      "SELECT id FROM auctions.scheduling_auctions WHERE round = 2 ORDER BY auction_id DESC LIMIT 1",
+    );
+    const ds2WhslBcId = queryScalar(
+      "SELECT id FROM buyer_mgmt.buyer_codes WHERE code = 'DS2WHSL'",
+    );
+    const ds2WhslQbcId = queryScalar(
+      `SELECT id FROM buyer_mgmt.qualified_buyer_codes
+        WHERE scheduling_auction_id = ${r2SaId}
+          AND buyer_code_id = ${ds2WhslBcId}`,
+    );
+
+    // Sanity: bidder hits DOWNLOAD before admin acts.
+    await new LoginPage(page).loginAs('BIDDER');
+    let dash = new BidderDashboardPage(page);
+    await dash.pickAuctionCode('DS2WHSL');
+    await expect(
+      page.getByRole('heading', { name: /Bidding.*has ended\./ }),
+    ).toBeVisible();
+
+    // Admin: open QBC page, check DS2WHSL.
+    await relogin(page, 'ADMIN');
+    const qbc = new QualifiedBuyerCodesPage(page);
+    await qbc.goto();
+    await qbc.schedulingAuctionFilter.fill(r2SaId);
+    await qbc.applyAndWait();
+
+    await expect(qbc.includedCheckbox(Number(ds2WhslQbcId))).not.toBeChecked();
+    const patchResponse = await qbc.toggleIncludedAndWait(Number(ds2WhslQbcId));
+    expect(patchResponse.status()).toBe(200);
+    await expect(qbc.qualificationTypeCell(Number(ds2WhslQbcId))).toHaveText(
+      /Manual/,
+    );
+
+    // Admin must also create a bid_round for the now-qualified DS2WHSL —
+    // landingRoute returns ERROR_BIDROUND_MISSING otherwise. The QBC
+    // PATCH alone doesn't create the bid_round (Mendix had a separate
+    // job; we simulate it here via direct insert).
+    const r2WeekId = queryScalar(
+      `SELECT a.week_id::text FROM auctions.auctions a
+        JOIN auctions.scheduling_auctions sa ON sa.auction_id = a.id
+        WHERE sa.id = ${r2SaId}`,
+    );
+    queryScalar(
+      `WITH ins AS (
+         INSERT INTO auctions.bid_rounds (scheduling_auction_id, buyer_code_id, week_id, submitted)
+         SELECT ${r2SaId}, ${ds2WhslBcId}, ${r2WeekId}, false
+         WHERE NOT EXISTS (
+           SELECT 1 FROM auctions.bid_rounds
+            WHERE scheduling_auction_id = ${r2SaId}
+              AND buyer_code_id = ${ds2WhslBcId}
+         )
+         RETURNING id
+       )
+       SELECT COALESCE((SELECT id::text FROM ins),
+                       (SELECT id::text FROM auctions.bid_rounds
+                         WHERE scheduling_auction_id = ${r2SaId}
+                           AND buyer_code_id = ${ds2WhslBcId}
+                         LIMIT 1))`,
+    );
+
+    // Bidder reload — DS2WHSL now lands on GRID, not DOWNLOAD.
+    await relogin(page, 'BIDDER');
+    dash = new BidderDashboardPage(page);
+    await dash.pickAuctionCode('DS2WHSL');
+    await expect(dash.buyerCodeChip).toContainText('DS2WHSL');
+    expect(await dash.isGridVisible()).toBe(true);
+  });
+
+  test('BidAsBidder cascade: admin submits on behalf → real buyer sees the submitted value', async ({
+    page,
+    request,
+  }) => {
+    applyFixture('wholesale-r1-active.sql');
+
+    // Admin: BidAsBidder → impersonate HN → place + submit $750 via UI.
+    await new LoginPage(page).loginAs('ADMIN');
+    const picker = new BidAsBidderPage(page);
+    await picker.goto();
+    await picker.chooseBuyerCode('HN');
+
+    const dash = new BidderDashboardPage(page);
+    await dash.isGridVisible();
+
+    const priceInput = dash.priceInput(dash.firstGridRow);
+    const ariaLabel = await priceInput.getAttribute('aria-label');
+    const rowId = Number(ariaLabel!.match(/\d+/)![0]);
+
+    const savePromise = page.waitForResponse(
+      (r) =>
+        r.url().includes(`/api/v1/bidder/bid-data/${rowId}`) &&
+        r.request().method() === 'PUT' &&
+        r.ok(),
+    );
+    await priceInput.click();
+    await priceInput.press('ControlOrMeta+a');
+    await priceInput.press('Delete');
+    await priceInput.pressSequentially('750');
+    await priceInput.press('Tab');
+    await savePromise;
+
+    const submitPromise = page.waitForResponse(
+      (r) => r.url().includes('/submit') && r.request().method() === 'POST' && r.ok(),
+    );
+    await dash.submitBidsButton.click();
+    await submitPromise;
+    await expect(dash.bidsSubmittedModal).toBeVisible();
+
+    // Real buyer logs in fresh, picks HN, sees the admin-submitted bid.
+    await relogin(page, 'BIDDER');
+    const buyerDash = new BidderDashboardPage(page);
+    await buyerDash.pickAuctionCode('HN');
+    await buyerDash.isGridVisible();
+
+    const reloadedPrice = page.locator(`input[aria-label="Price for row ${rowId}"]`);
+    await expect(reloadedPrice).toHaveValue('$ 750.00');
   });
 });

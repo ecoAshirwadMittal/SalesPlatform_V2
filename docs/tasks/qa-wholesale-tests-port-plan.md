@@ -478,5 +478,53 @@ E2E test updated to also assert the toast text appears after the 409.
 - ~~P7 — hand-on-table re-scope~~ — **dropped per user direction; insights captured above.**
 - ~~P8 — admin surfaces~~ — **shipped 2026-04-25** (4 parallel agents + 1 cloud-routine fallback). Detailed plan in `docs/tasks/p8-admin-surfaces-plan.md`. Lane branches `origin/p8-lane-{1a,2,3a,4}` merged into `origin/p8-integrate` ready for review. Approximate counts: ~30 backend service tests + ~14 admin E2E specs across all lanes. Only conflict during integration was the V74 Flyway collision (Lane 3a's `V74__admin_action_audit.sql` clashed with existing `V74__admin_buyer_user_guide.sql` — renumbered to V78).
 - ~~Quick check — minimum-bid-price floor~~ — **decision (2026-04-24): not enforced.** The label is informational only; buyers may enter any positive bid value. Sub-floor bids are flagged downstream (qualification logic), not at save time. Backend has no floor; do not add one.
-- **CI integration** — decide whether live tests run in CI (Q1 from §7). Recommend a separate workflow gated on `FORCE_LIVE_TESTS=1` + a containerised Postgres + Spring Boot.
+- ~~CI integration~~ — **shipped 2026-04-25.** New workflow `.github/workflows/e2e-live.yml` runs the full live wholesale + admin + cascade + R3 admin spec set against a containerised Postgres + Spring Boot. Cadence: nightly cron (08:00 UTC) + manual `workflow_dispatch`. Not on every PR (~5-7 min runtime). The mocked `e2e.yml` workflow continues to run on every PR for fast component-level coverage. Bidder buyer-code associations seeded inline in the workflow (`user_buyers` rows for buyers 73, 74, 84).
 - ~~Actuator health investigation~~ — **shipped 2026-04-24.** Probed with auth and confirmed the failing sub-component was the JavaMail health indicator (Spring Boot auto-registers it; it tries to connect to `localhost:25` SMTP every poll, which times out in dev/CI). Excluded via `management.health.mail.enabled: false` in `application.yml`. After the next backend restart, `/actuator/health` returns `UP`, `isBackendAvailable()` no longer needs the `FORCE_LIVE_TESTS=1` workaround, and live tests run normally. Mail health is still individually queryable at `/actuator/health/mail` if needed.
+
+---
+
+## §10 — Session close-out (2026-04-25)
+
+Cumulative test surface on `main`:
+
+| Area | Tests |
+|---|---:|
+| Backend unit (P8 + 4B + bidder + auctions + admin) | **104** |
+| Wholesale R1/R2/R3 buyer E2E | 18 |
+| Admin E2E (P8 lanes — BidAsBidder, R3 Report, Auction Scheduling, Bid Data, QBC, R2 Criteria) | ~14 |
+| Admin cascade E2E | 4 (R2 unqualify, bid removal, R2 qualify, BidAsBidder cascade) |
+| R3 admin (deferred-from-P5) E2E | 3 |
+| 4B PO admin E2E | (in `admin-purchase-orders.spec.ts`) |
+| **Live E2E surface total** | **~40** |
+
+Phase status:
+
+| Phase | Status |
+|---|---|
+| P0–P5 wholesale buyer ports | ✓ shipped |
+| BID_LOWERED feature + frontend polish | ✓ shipped |
+| Actuator health fix | ✓ shipped |
+| P8 admin surfaces (4 lanes) | ✓ shipped + merged |
+| Cascade tests (4) | ✓ shipped |
+| R3 admin port (BidAsBidder unblocked deferred QA tests) | ✓ shipped |
+| 4B PO module | ✓ merged from `feat/sub4b-po-module` |
+| CI integration (nightly live + per-PR mocked) | ✓ shipped |
+
+Remaining truly-blocked items:
+
+| Item | Blocker |
+|---|---|
+| **P6 — R2/R3 eligibility/TGP combinatoric ports** (~520 tests) | Sub-project 4C TGP recalc engine. Until that ships, this slice can't be meaningfully ported. |
+| **R2 criteria cascade test** | The `bid_round_selection_filters` table is read but never enforced in `landingRoute` — needs criteria-driven QBC sync logic. Separate sub-project. |
+| **Live validation of the ~40-test suite** | User must restart Spring Boot on their machine to pick up all merged backend changes. Once restarted, `npx playwright test tests/e2e/wholesale-*.spec.ts tests/e2e/admin-*.spec.ts` runs the full suite. |
+
+What this session shipped (autonomous run, ~6 hours total):
+
+- 5 prior-session commits on `main` (BID_LOWERED, mdm fix, mail health, Suspense+BidLoweredError+pixel-parity, R1/R2/R3 wholesale specs, planning docs)
+- 4 P8 admin lanes via parallel-agents + cloud-routine fallback, merged via `p8-integrate` branch
+- 4B PO module merge (initiated externally; conflict resolved + completed)
+- 4 cascade tests + 3 R3 admin tests
+- New `e2e-live.yml` CI workflow
+- Plan close-out (this section)
+
+Total commits on `main` since session start: ~15. All branches deleted from origin (work consolidated to main). No outstanding merges; integration branches removed. CI runs on next push.
