@@ -100,21 +100,32 @@ test.describe('Wholesale buyer login', () => {
   });
 
   // ---------------------------------------------------------------------------
-  // Phase 13 Part 2 — pixel-compare against QA reference
+  // Visual + semantic regression coverage (per the 2026-04-25 ADR)
   // ---------------------------------------------------------------------------
 
-  // TODO(phase-13-pixel): Login page pixel compare vs qa-01-login.png.
-  // The QA reference was captured from the live Mendix QA environment at
-  // 1280×720.  Local rendering differences (font hinting, button sizing,
-  // background-image loading) are expected to produce a large diff until the
-  // login page styling passes a dedicated pixel-match pass.
-  // Tracking issue: Phase 13 follow-up — login page pixel parity.
-  test.fixme('login page pixel-compare vs QA reference', async ({ page }) => {
+  test('login page — semantic structure', async ({ page }) => {
     await page.goto('/login');
-    // Wait for the primary CTA to confirm the page has fully rendered.
+
+    // Headline + auth controls + primary/secondary CTAs all present + accessible.
+    await expect(page.locator('h1')).toContainText('Premium Wholesale');
+    await expect(page.getByPlaceholder('Email')).toBeVisible();
+    await expect(page.getByPlaceholder('Password')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
-    await expect(page).toHaveScreenshot('qa-01-login.png', {
-      maxDiffPixelRatio: 0.02,
-    });
+    await expect(page.getByRole('button', { name: 'Employee Login' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Forgot Password?' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Contact Us' })).toBeVisible();
+    // Password show/hide eye toggle.
+    await expect(page.getByRole('button', { name: /Show password|Hide password/ })).toBeVisible();
+  });
+
+  // Pixel compare against a Linux chromium baseline under
+  // frontend/tests/e2e/__screenshots__/. Stays as fixme until the
+  // baseline PNG is captured via the e2e.yml workflow with
+  // --update-snapshots and committed. See
+  // docs/TODO/pixel-compare-strategy-plan.md Phase 2 for the capture flow.
+  test.fixme('login page — pixel compare against local baseline', async ({ page }) => {
+    await page.goto('/login');
+    await expect(page.getByRole('button', { name: 'Login', exact: true })).toBeVisible();
+    await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.02 });
   });
 });

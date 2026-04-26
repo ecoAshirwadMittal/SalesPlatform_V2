@@ -153,19 +153,13 @@ test('PWS-only user sees only the Premium Wholesale Devices section', async ({ p
 // fetches /api/v1/auth/buyer-codes.
 
 // ---------------------------------------------------------------------------
-// Phase 13 Part 2 — pixel-compare against QA reference
+// Visual + semantic regression coverage (per the 2026-04-25 ADR)
 // ---------------------------------------------------------------------------
 
-// TODO(phase-13-pixel): Buyer-code picker pixel compare vs qa-02-buyer-code-picker.png.
-// The QA reference shows both "Weekly Wholesale Auction" and "Premium Wholesale
-// Devices" sections with real buyer-code pills populated from the QA database.
-// Local rendering differences (pill colours, section header sizing, card shadow)
-// are expected to produce a large diff until the picker styling passes a
-// dedicated pixel-match pass.
-// Tracking issue: Phase 13 follow-up — buyer-code picker pixel parity.
-test.fixme('buyer-code picker pixel-compare vs QA reference', async ({ page }) => {
-  // QA reference shows user "Akshay Singhal" with only the Weekly Wholesale
-  // Auction section (DDWS + AD codes) — no PWS section.
+// Auction-only picker scenario shared by both the semantic test and the
+// (deferred) pixel-compare test. Mirrors the user "Akshay Singhal" with
+// 2 Wholesale codes from CHS Technology and no PWS section.
+async function setupAuctionOnlyPicker(page: import('@playwright/test').Page) {
   await page.context().addCookies([
     {
       name: 'auth_token',
@@ -196,15 +190,31 @@ test.fixme('buyer-code picker pixel-compare vs QA reference', async ({ page }) =
     { id: 101, code: 'DDWS', buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
     { id: 102, code: 'AD',   buyerName: 'CHS Technology (HK) Ltd', buyerCodeType: 'Wholesale', codeType: 'AUCTION' },
   ]);
-
   await page.goto('/buyer-select');
+}
 
-  // Only the Auction section should render (no PWS section in QA reference).
+test('auction-only picker — semantic structure', async ({ page }) => {
+  await setupAuctionOnlyPicker(page);
+
+  // Welcome heading + sub-text.
+  await expect(page.getByRole('heading', { name: /Welcome .+!/ })).toBeVisible();
+  await expect(page.getByText('Choose a buyer code to get started:')).toBeVisible();
+
+  // Only the auction section renders — PWS section absent.
+  await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Premium Wholesale Devices' })).toHaveCount(0);
+
+  // Both pills present, both list CHS Technology as the buyer name.
+  const pills = page.getByRole('button', { name: /CHS Technology/ });
+  await expect(pills).toHaveCount(2);
+});
+
+// Pixel compare against a Linux chromium baseline; stays fixme until
+// the baseline PNG is captured via CI workflow with --update-snapshots.
+test.fixme('auction-only picker — pixel compare against local baseline', async ({ page }) => {
+  await setupAuctionOnlyPicker(page);
   await expect(page.getByRole('region', { name: 'Weekly Wholesale Auction' })).toBeVisible({ timeout: 10_000 });
-
-  await expect(page).toHaveScreenshot('qa-02-buyer-code-picker.png', {
-    maxDiffPixelRatio: 0.02,
-  });
+  await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.02 });
 });
 
 test('mixed-code picker (mocked) passes axe WCAG 2.x AA check', async ({ page }) => {

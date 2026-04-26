@@ -25,15 +25,18 @@ export default defineConfig({
     },
   },
 
-  // snapshotPathTemplate points at docs/qa-reference/ so toHaveScreenshot()
-  // compares against the committed QA reference files rather than generating
-  // its own snapshot store inside the test tree.
-  // {arg} is the stem of the filename passed to toHaveScreenshot() — e.g.
-  // 'qa-01-login' from 'qa-01-login.png'.  {ext} appends the extension back
-  // so the resolved path is 'docs/qa-reference/qa-01-login.png'.
-  // NOTE: In Playwright 1.50+ {arg} strips the extension; {ext} must be
-  // appended explicitly or the ".png must have extension" guard fires.
-  snapshotPathTemplate: '../docs/qa-reference/{arg}{ext}',
+  // Snapshot baselines live under Playwright's default location:
+  // frontend/tests/e2e/__screenshots__/{spec}-{name}-chromium-linux.png.
+  // Captured on a Linux chromium runner (CI or Docker) for reproducibility
+  // across OS — committed to git, regenerated when intentional style
+  // changes land. See ADR "Pixel-compare strategy: local baselines +
+  // semantic assertions" (2026-04-25) and
+  // docs/TODO/pixel-compare-strategy-plan.md.
+  //
+  // The QA PNGs in docs/qa-reference/ are now manual design references
+  // only — not automated test fixtures. This avoids the "live Mendix
+  // production data" reproducibility problem that made the prior
+  // strategy hit 0/8 on the pixel-compare flip attempt.
 
   use: {
     baseURL: process.env.BASE_URL || 'http://localhost:3000',

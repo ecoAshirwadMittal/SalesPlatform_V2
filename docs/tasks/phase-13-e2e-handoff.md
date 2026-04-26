@@ -1,6 +1,20 @@
 # Phase 13 — E2E + Pixel QA Handoff
 
-**Status:** Deferred from continuous-execution run. Requires live dev + backend stack to execute.
+**Status (2026-04-25 update):** Pixel-compare strategy switched — see ADR
+"Pixel-compare strategy: local baselines + semantic assertions" in
+`docs/architecture/decisions.md`. Each of the 8 prior pixel-compare
+fixmes now has a passing **semantic-structure** test alongside it that
+catches regressions today; the pixel compares stay fixme until Linux
+chromium baselines are captured via `--update-snapshots` in CI and
+committed under `frontend/tests/e2e/__screenshots__/`. Implementation
+plan: `docs/TODO/pixel-compare-strategy-plan.md` (Phase 2 — baseline
+capture — is the only remaining step).
+
+E2E live infrastructure: shipped — `.github/workflows/e2e-live.yml`
+runs the wholesale + admin + cascade specs against containerized
+Postgres + Spring Boot on a nightly cron + manual dispatch.
+
+**Original deferred status (preserved for context):** Required live dev + backend stack to execute.
 
 ## What's Already Done
 

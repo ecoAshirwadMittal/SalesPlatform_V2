@@ -198,16 +198,12 @@ test('carryover with 0 copied shows empty-state modal', async ({ page }) => {
 // Phase 13 Part 2 — pixel-compare against QA reference
 // ---------------------------------------------------------------------------
 
-// TODO(phase-13-pixel): Carryover empty-state modal vs qa-04-carryover-empty-modal.png.
-// The QA reference shows the "no previous bids" empty state with the Mendix
-// modal chrome.  Local rendering differences in the modal overlay, icon,
-// and copy layout are expected to produce a meaningful diff until a dedicated
-// pixel-match pass aligns the modal styling.
-// Tracking issue: Phase 13 follow-up — carryover empty-state modal pixel parity.
-test.fixme('carryover empty-state modal pixel-compare vs QA reference (qa-04)', async ({ page }) => {
+// Visual + semantic regression coverage (per the 2026-04-25 ADR)
+// ---------------------------------------------------------------------------
+
+test('carryover empty-state modal — semantic structure', async ({ page }) => {
   await seedAuth(page);
   await setupCommonRoutes(page);
-
   await page.route('**/api/v1/bidder/bid-rounds/*/carryover**', (route) => {
     void route.fulfill({
       status: 200,
@@ -215,15 +211,31 @@ test.fixme('carryover empty-state modal pixel-compare vs QA reference (qa-04)', 
       body: JSON.stringify({ copied: 0, notFound: 0, prevWeek: null }),
     });
   });
-
   await gotoGrid(page);
+  await page.getByRole('button', { name: /Carryover/i }).click();
 
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toBeVisible({ timeout: 10_000 });
+  // Empty-state copy must mention "last week" — the verbatim Mendix string
+  // is "You don't have bids from last week to carry over."
+  await expect(dialog).toContainText(/last week/i);
+  await expect(dialog.getByRole('button', { name: /close/i })).toBeVisible();
+});
+
+test.fixme('carryover empty-state modal — pixel compare against local baseline', async ({ page }) => {
+  await seedAuth(page);
+  await setupCommonRoutes(page);
+  await page.route('**/api/v1/bidder/bid-rounds/*/carryover**', (route) => {
+    void route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ copied: 0, notFound: 0, prevWeek: null }),
+    });
+  });
+  await gotoGrid(page);
   await page.getByRole('button', { name: /Carryover/i }).click();
   await expect(page.getByRole('dialog')).toBeVisible({ timeout: 10_000 });
-
-  await expect(page).toHaveScreenshot('qa-04-carryover-empty-modal.png', {
-    maxDiffPixelRatio: 0.02,
-  });
+  await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.02 });
 });
 
 // ---------------------------------------------------------------------------

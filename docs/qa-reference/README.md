@@ -1,5 +1,24 @@
 # QA Reference Screenshots
 
+> **Purpose: design references, not automated test fixtures.**
+>
+> These PNGs are the **manual visual reference** for anyone porting a
+> wholesale-buyer surface — they show what the Mendix original looked
+> like at capture time. They are NOT consumed by Playwright's
+> `toHaveScreenshot()` anymore. Pixel-compare now runs against local
+> Linux baselines under `frontend/tests/e2e/__screenshots__/`. See ADR
+> "2026-04-25 — Pixel-compare strategy: local baselines + semantic
+> assertions" in `docs/architecture/decisions.md` and the implementation
+> plan in `docs/TODO/pixel-compare-strategy-plan.md`.
+>
+> Use these references when:
+> - Porting a new surface and you need to see what the QA original looked like
+> - Reviewing a styling change to confirm visual intent matches the QA reference
+> - Capturing additional surfaces from QA that aren't represented yet
+>
+> Do NOT use these as Playwright snapshot baselines — the data + OS render
+> deltas make that strategy unreliable.
+
 Ground-truth reference captures from the Mendix QA environment
 (`https://buy-qa.ecoatmdirect.com`), used as the pixel-parity target for the
 wholesale buyer portal port.

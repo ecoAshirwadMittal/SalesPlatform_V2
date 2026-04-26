@@ -443,61 +443,78 @@ test('Switch Buyer Code link navigates to /buyer-select', async ({ page }) => {
 // Phase 13 Part 2 — pixel-compare against QA reference
 // ---------------------------------------------------------------------------
 
-// TODO(phase-13-pixel): Bidder shell expanded sidebar vs qa-03-bidder-dashboard-ad.png.
-// The QA reference shows the full dashboard with sidebar expanded and the "AD"
-// buyer code active (live auction data, real row counts).  Local rendering
-// uses a mocked 404/no-auction state which produces a materially different
-// content area.  Both the content-area delta and subtle sidebar colour
-// differences (gradient rendering across OS/GPU) are expected to cause a
-// large diff.  Fix: stub an auction-like dashboard response and pixel-align
-// the sidebar gradient before re-enabling.
-// Tracking issue: Phase 13 follow-up — bidder shell (expanded) pixel parity.
-test.fixme('bidder shell expanded sidebar pixel-compare vs QA reference (qa-03)', async ({ page }) => {
+// Visual + semantic regression coverage (per the 2026-04-25 ADR)
+// ---------------------------------------------------------------------------
+
+test('bidder shell expanded — semantic structure', async ({ page }) => {
   await seedAuth(page);
   await mockBuyerCodes(page);
   await mockDashboard(page);
-
   await page.addInitScript(() => {
     localStorage.removeItem('bidder.sidebarCollapsed');
   });
-
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
-  await expect(page.getByTestId('bidder-sidebar')).toBeVisible();
-  // Wait for the bid grid to render before capturing the screenshot.
-  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
 
-  await expect(page).toHaveScreenshot('qa-03-bidder-dashboard-ad.png', {
-    maxDiffPixelRatio: 0.02,
-  });
+  // Sidebar visible at expanded width (~210-220px), both nav items + their
+  // labels accessible.
+  const sidebar = page.getByTestId('bidder-sidebar');
+  await expect(sidebar).toBeVisible();
+  const box = await sidebar.boundingBox();
+  expect(box?.width).toBeGreaterThan(180);
+  expect(box?.width).toBeLessThan(260);
+
+  // Top-bar chrome — Switch Buyer Code link, buyer code + company chip,
+  // user avatar.
+  await expect(page.getByRole('button', { name: 'Switch Buyer Code' })).toBeVisible();
+
+  // Grid rendered with the QA-parity column headers.
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
 });
 
-// TODO(phase-13-pixel): Bidder shell collapsed sidebar vs qa-07-sidebar-collapsed.png.
-// The QA reference shows the sidebar in its narrow (~54px) collapsed state.
-// Collapse animation timing and icon positioning between the Mendix original and
-// the local React implementation are expected to differ.
-// Tracking issue: Phase 13 follow-up — bidder shell (collapsed) pixel parity.
-test.fixme('bidder shell collapsed sidebar pixel-compare vs QA reference (qa-07)', async ({ page }) => {
+test('bidder shell collapsed — semantic structure', async ({ page }) => {
   await seedAuth(page);
   await mockBuyerCodes(page);
   await mockDashboard(page);
-
   await page.addInitScript(() => {
     localStorage.setItem('bidder.sidebarCollapsed', 'true');
   });
-
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
 
-  // Wait for sidebar to be present in collapsed state
+  // Sidebar collapsed to ~54px; nav items still present (just icon-only).
   const sidebar = page.getByTestId('bidder-sidebar');
   await expect(sidebar).toBeVisible();
   const box = await sidebar.boundingBox();
   expect(box?.width).toBeLessThanOrEqual(60);
-  // Wait for the bid grid to render before capturing the screenshot.
-  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
 
-  await expect(page).toHaveScreenshot('qa-07-sidebar-collapsed.png', {
-    maxDiffPixelRatio: 0.02,
+  // Grid still rendered.
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
+});
+
+// Pixel compares — fixme until baselines land.
+test.fixme('bidder shell expanded — pixel compare against local baseline', async ({ page }) => {
+  await seedAuth(page);
+  await mockBuyerCodes(page);
+  await mockDashboard(page);
+  await page.addInitScript(() => {
+    localStorage.removeItem('bidder.sidebarCollapsed');
   });
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+  await expect(page.getByTestId('bidder-sidebar')).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.02 });
+});
+
+test.fixme('bidder shell collapsed — pixel compare against local baseline', async ({ page }) => {
+  await seedAuth(page);
+  await mockBuyerCodes(page);
+  await mockDashboard(page);
+  await page.addInitScript(() => {
+    localStorage.setItem('bidder.sidebarCollapsed', 'true');
+  });
+  await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
+  await expect(page.getByTestId('bidder-sidebar')).toBeVisible();
+  await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });
+  await expect(page).toHaveScreenshot({ maxDiffPixelRatio: 0.02 });
 });
 
 // ---------------------------------------------------------------------------

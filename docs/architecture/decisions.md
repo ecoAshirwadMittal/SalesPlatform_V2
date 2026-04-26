@@ -5,6 +5,86 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-25 — Pixel-compare strategy: local baselines + semantic assertions
+
+**Status:** Accepted. Supersedes the Phase-13 `compare-against-QA-reference`
+strategy documented in the 2026-04-23 wholesale-buyer-portal ADR (visual
+parity section is amended; the surrounding shell/routing decisions stand).
+
+### Context
+
+Phase 13 wired `toHaveScreenshot()` to compare Playwright screenshots
+against QA reference PNGs committed under `docs/qa-reference/`. The
+follow-up pixel-parity sprint tried to flip 8 `test.fixme()` compares to
+passing `test()` calls and got **0/8** — a structural blocker:
+
+1. The QA PNGs were captured from **live Mendix production** with real DB
+   data (actual ECO IDs, target prices, row counts visible in the grid).
+   `page.route()` mocks cannot reproduce row-level exactness.
+2. Persistent environmental rendering deltas — macOS P3 vs Windows/Linux
+   sRGB, GPU gradient differences, `font-display: swap` flicker, browser
+   minor version skew.
+3. Tightening tolerance to force passes hides real regressions; loosening
+   beyond 2% makes the compares uninformative.
+
+The original goal is **catching styling regressions we introduce** — not
+enforcing byte-for-byte parity with a 6-month-old production snapshot.
+The strategy needs to match that goal.
+
+### Decision
+
+- **Pixel-compare runs against local Playwright baselines** under
+  `frontend/tests/e2e/__screenshots__/`, captured on a Linux chromium
+  runner (CI or Docker) for OS-reproducibility.
+  - `playwright.config.ts` no longer overrides `snapshotPathTemplate`.
+  - `toHaveScreenshot()` uses Playwright's auto-naming (no filename arg).
+  - Baselines committed to git; intentional style changes regenerate them
+    in the same PR via `--update-snapshots`.
+- **Each of the 8 prior compare scenarios gains a semantic-assertion test**
+  (role, text, visible state) alongside the pixel compare. Catches
+  regressions that pixel-compare misses — aria attribute drift, copy
+  changes, element re-ordering that still renders pixel-identical.
+- **QA PNGs in `docs/qa-reference/` stay as manual design references only**,
+  not automated fixtures. README updated to reflect the change.
+
+### Consequences
+
+- Pixel-compare catches *our* styling drift, not Mendix parity — the test
+  signal matches the test intent.
+- Semantic assertions improve diagnostic clarity:
+  `Expected text "Login" but found "Log In"` is far better than
+  `0.3% of pixels differ`.
+- Intentional style changes require a `--update-snapshots` pass in the
+  same PR. That's a feature, not a bug.
+- QA parity work still happens — via manual comparison against
+  `docs/qa-reference/` during implementation — but isn't gated by CI.
+- The `test.fixme('… pixel compare …')` blocks stay until the first
+  baseline capture lands; they flip to `test()` in the same PR that
+  commits the baseline PNGs.
+
+### Implementation status (this commit)
+
+- Phase 1: `playwright.config.ts` `snapshotPathTemplate` override
+  removed. Done.
+- Phase 3: 8 new semantic-structure tests added across the 6 wholesale
+  spec files (`login`, `picker`, `bidder-shell` × 2, `submit-bids` × 2,
+  `carryover`, `import-export`). Done.
+- Phase 4: README + this ADR. Done.
+- Phase 2 (Linux baseline capture): **deferred** — needs a CI run with
+  `--update-snapshots` and the resulting PNGs committed back. Tracked in
+  `docs/TODO/pixel-compare-strategy-plan.md`. The 8 `test.fixme()` pixel
+  compares stay fixme until then.
+
+### References
+
+- `docs/TODO/pixel-compare-strategy-plan.md` — implementation plan
+- Continuous run log: `docs/tasks/wholesale-buyer-continuous-run-log.md`
+  sections on the pixel-parity sprint + CI cleanup
+- Related ADR: 2026-04-23 wholesale-buyer portal (visual-parity section,
+  now amended)
+
+---
+
 ## 2026-04-23 — Wholesale buyer portal: two-shell routing + parity baselines
 
 **Status:** Accepted (wholesale-buyer parity closeout, Phases 0-14 except 13).

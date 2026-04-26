@@ -20,6 +20,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: 'Run with --update-snapshots (regenerate Playwright baselines under __screenshots__/)'
+        type: boolean
+        default: false
 
 jobs:
   playwright:
@@ -70,7 +76,7 @@ jobs:
       # reuseExistingServer: false, so a fresh dev server is started by the
       # webServer block for each job run.
       - name: Run Playwright tests
-        run: npx playwright test
+        run: npx playwright test ${{ github.event.inputs.update_snapshots == 'true' && '--update-snapshots' || '' }}
         env:
           CI: true
 
@@ -85,3 +91,15 @@ jobs:
           name: playwright-report-node${{ matrix.node-version }}
           path: frontend/playwright-report/
           retention-days: 14
+
+      # ── 7. Upload regenerated snapshots when requested ─────────────────────
+      # When the workflow is dispatched with `update_snapshots: true`, the
+      # PNG baselines under tests/e2e/__screenshots__/ are regenerated. Upload
+      # them as an artifact so the operator can download + commit them.
+      - name: Upload regenerated snapshots
+        if: success() && github.event.inputs.update_snapshots == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-snapshots
+          path: frontend/tests/e2e/__screenshots__/
+          retention-days: 7
