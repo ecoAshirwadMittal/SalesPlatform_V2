@@ -1024,11 +1024,12 @@ public class R2BuyerAssignmentService {
             Set<Long> qualified = qualRepo.qualifiedBuyerCodes(schedulingAuctionId);
             Set<Long> special   = specialRepo.specialTreatmentBuyerCodes(schedulingAuctionId);
 
-            // Phase 5: clear + bulk insert
+            // Phase 5: clear + bulk insert.
+            // V72 flattened the M:M junctions; bulkInsertForR2 writes the
+            // direct FK columns. No bulkInsertJunctions call needed.
             qbcRepo.deleteBySchedulingAuctionId(schedulingAuctionId);
             int totalRows = qbcRepo.bulkInsertForR2(schedulingAuctionId,
                 qualified.toArray(new Long[0]), special.toArray(new Long[0]));
-            qbcRepo.bulkInsertJunctions(schedulingAuctionId);
 
             int qualifiedCount = qualified.size() + special.size();  // both branches Qualified
             int specialCount   = special.size();

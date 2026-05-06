@@ -476,22 +476,35 @@ SELECT cs.buyer_code_id
 The result is the set of `buyer_code_id` values to insert as
 `is_special_treatment = TRUE` in Phase 5.
 
-### 7.3 Phase 5 — three-set QBC INSERT
+### 7.3 Phase 5 — two-set QBC INSERT (V72-flattened)
 
-Application code drives this in three steps inside the same tx (same
+**Note (V72):** This design originally specified a three-step write
+that populated junction tables `buyer_mgmt.qbc_buyer_codes` and
+`buyer_mgmt.qbc_scheduling_auctions`. Migration **V72**
+(`buyer_mgmt_qbc_flatten`, see
+`backend/src/main/resources/db/migration/V72__buyer_mgmt_qbc_flatten.sql`)
+DROPPED both junction tables and added direct FK columns
+`scheduling_auction_id` + `buyer_code_id` on
+`buyer_mgmt.qualified_buyer_codes`. The single bulk INSERT below
+populates those flattened columns directly, so no junction step is
+needed. `QualifiedBuyerCodeRepositoryCustom.bulkInsertJunctions(saId)`
+is retained as a documented no-op for spec parity but **must not** be
+called from `R2BuyerAssignmentService` — the work already happened in
+step 2.
+
+Application code drives this in two steps inside the same tx (same
 listener thread, REQUIRES_NEW):
 
 ```java
-// 1. clear
+// 1. clear: DELETE all QBC rows for the SA (SUB_ClearQualifiedBuyerList parity)
 qbcRepo.deleteBySchedulingAuctionId(saId);
 
-// 2. unioned bulk insert
-//    (qualified ∪ special-treatment) ∪ (active_dwwh - qualified - special)
-//    each row gets its qualification_type, included, is_special_treatment flags
-qbcRepo.bulkInsertForR2(saId, qualifiedCodeIds, specialTreatmentCodeIds);
-
-// 3. junction rows
-qbcRepo.bulkInsertJunctions(saId);  // populates qbc_buyer_codes + qbc_scheduling_auctions
+// 2. bulk insert one row per active DW/WH code with derived columns:
+//    qualification_type ∈ {'Qualified', 'Not_Qualified'}
+//    included           ∈ {TRUE, FALSE}
+//    is_special_treatment ∈ {TRUE, FALSE}
+qbcRepo.bulkInsertForR2(saId, qualifiedCodeIds.toArray(new Long[0]),
+                              specialTreatmentCodeIds.toArray(new Long[0]));
 ```
 
 A single SQL statement implements (2):
@@ -524,8 +537,9 @@ SELECT :sa_id,
  GROUP BY bc.id;
 ```
 
-`GROUP BY bc.id` collapses the M:M join to one row per code. Junction
-inserts read the new QBC ids by SA and write the two link tables.
+`GROUP BY bc.id` collapses the M:M join to one row per code. The
+flattened `scheduling_auction_id` + `buyer_code_id` columns are
+populated directly — V72 removed the need for a junction-write step.
 
 ### 7.4 Phase 6 — special-buyer bid_data bulk INSERT
 
