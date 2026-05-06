@@ -66,6 +66,7 @@ class TargetPriceRecalcServiceTest {
     @Test
     void rejects_when_already_running() {
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "TARGET_PRICE")).thenReturn(false);
 
         assertThatThrownBy(() -> service.run(9001L))
@@ -76,6 +77,7 @@ class TargetPriceRecalcServiceTest {
     @Test
     void marks_failed_and_rethrows() {
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "TARGET_PRICE")).thenReturn(true);
         RuntimeException boom = new RuntimeException("kaboom");
         when(repo.recalcClosedRound(9001L, 1)).thenThrow(boom);
@@ -103,6 +105,7 @@ class TargetPriceRecalcServiceTest {
         // the exception class name. The 4000-char cap is exercised by
         // RecalcStatusUpdater tests / repository ITs.
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "TARGET_PRICE")).thenReturn(true);
         String huge = "y".repeat(5000);
         when(repo.recalcClosedRound(9001L, 1)).thenThrow(new RuntimeException(huge));

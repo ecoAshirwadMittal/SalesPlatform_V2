@@ -72,6 +72,7 @@ class BidRankingServiceTest {
     @Test
     void rejects_when_status_already_running() {
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "RANKING")).thenReturn(false);
 
         assertThatThrownBy(() -> service.run(9001L))
@@ -84,6 +85,7 @@ class BidRankingServiceTest {
     @Test
     void marks_failed_and_rethrows_when_repo_throws() {
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "RANKING")).thenReturn(true);
         RuntimeException boom = new RuntimeException("DB exploded");
         when(repo.rankClosedRound(9001L, 1)).thenThrow(boom);
@@ -115,6 +117,7 @@ class BidRankingServiceTest {
         // exception class name. The 4000-char cap is exercised by RecalcStatusUpdater
         // tests / repository ITs.
         when(saRepo.findById(9001L)).thenReturn(Optional.of(sa));
+        when(saRepo.findWeekIdById(9001L)).thenReturn(9001L);
         when(statusUpdater.tryFlipToRunning(9001L, "RANKING")).thenReturn(true);
         String huge = "x".repeat(5000);
         when(repo.rankClosedRound(9001L, 1)).thenThrow(new RuntimeException(huge));

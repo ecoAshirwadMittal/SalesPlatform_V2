@@ -1,12 +1,11 @@
 package com.ecoatm.salesplatform.controller.admin;
 
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
-import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
-import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.service.auctions.recalc.BidRankingService;
+import com.ecoatm.salesplatform.service.auctions.recalc.RecalcResult;
 import com.ecoatm.salesplatform.service.auctions.recalc.TargetPriceRecalcService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.Test;
@@ -17,8 +16,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Optional;
 
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
@@ -53,21 +50,18 @@ class RecalcAdminControllerIT {
 
     @MockBean BidRankingService rankingService;
     @MockBean TargetPriceRecalcService targetPriceService;
-    @MockBean SchedulingAuctionRepository saRepo;
 
     @Test
     @WithMockUser(roles = "Administrator")
     void re_rank_admin_returns_200_with_success_body() throws Exception {
-        SchedulingAuction sa = new SchedulingAuction();
-        sa.setId(999001L);
-        sa.setRound(1);
-        when(saRepo.findById(999001L)).thenReturn(Optional.of(sa));
+        when(rankingService.recalculate(999001L)).thenReturn(new RecalcResult(1, 11));
 
         mvc.perform(post("/api/v1/admin/auctions/scheduling-auctions/999001/re-rank"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.schedulingAuctionId").value(999001))
             .andExpect(jsonPath("$.closedRound").value(1))
             .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.rowsAffected").value(11))
             .andExpect(jsonPath("$.startedAt").exists())
             .andExpect(jsonPath("$.finishedAt").exists());
     }
@@ -75,10 +69,7 @@ class RecalcAdminControllerIT {
     @Test
     @WithMockUser(roles = "SalesOps")
     void re_rank_salesops_returns_200() throws Exception {
-        SchedulingAuction sa = new SchedulingAuction();
-        sa.setId(999001L);
-        sa.setRound(1);
-        when(saRepo.findById(999001L)).thenReturn(Optional.of(sa));
+        when(rankingService.recalculate(999001L)).thenReturn(new RecalcResult(1, 11));
 
         mvc.perform(post("/api/v1/admin/auctions/scheduling-auctions/999001/re-rank"))
             .andExpect(status().isOk());
@@ -134,15 +125,13 @@ class RecalcAdminControllerIT {
     @Test
     @WithMockUser(roles = "Administrator")
     void recalculate_target_price_admin_returns_200() throws Exception {
-        SchedulingAuction sa = new SchedulingAuction();
-        sa.setId(999001L);
-        sa.setRound(1);
-        when(saRepo.findById(999001L)).thenReturn(Optional.of(sa));
+        when(targetPriceService.recalculate(999001L)).thenReturn(new RecalcResult(1, 6));
 
         mvc.perform(post(
                 "/api/v1/admin/auctions/scheduling-auctions/999001/recalculate-target-price"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("SUCCESS"));
+            .andExpect(jsonPath("$.status").value("SUCCESS"))
+            .andExpect(jsonPath("$.rowsAffected").value(6));
     }
 
     @Test

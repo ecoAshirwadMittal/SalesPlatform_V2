@@ -34,8 +34,13 @@ public class TargetPriceRecalcService {
         this.events = events;
     }
 
+    /**
+     * Runs TARGET_PRICE for a closed round. Pre-check ordering mirrors
+     * {@link BidRankingService#run}: load SA → round-validate → resolve weekId
+     * before flipping status, so any pre-check failure leaves status untouched.
+     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void run(long schedulingAuctionId) {
+    public RecalcResult run(long schedulingAuctionId) {
         SchedulingAuction sa = saRepo.findById(schedulingAuctionId)
             .orElseThrow(() -> new EntityNotFoundException(
                 "scheduling_auction not found: id=" + schedulingAuctionId));
@@ -43,6 +48,12 @@ public class TargetPriceRecalcService {
         if (sa.getRound() != 1 && sa.getRound() != 2) {
             throw new IllegalArgumentException(
                 "TARGET_PRICE only valid for closed round 1 or 2; was " + sa.getRound());
+        }
+
+        Long weekId = saRepo.findWeekIdById(schedulingAuctionId);
+        if (weekId == null) {
+            throw new IllegalStateException(
+                "Cannot resolve week_id for schedulingAuctionId=" + schedulingAuctionId);
         }
 
         boolean flipped = statusUpdater.tryFlipToRunning(schedulingAuctionId, PROCESS);
@@ -69,16 +80,13 @@ public class TargetPriceRecalcService {
         log.info("TARGET_PRICE success schedulingAuctionId={} round={} rows={} durationMs={}",
             schedulingAuctionId, sa.getRound(), rows, durationMs);
 
-        Long weekId = saRepo.findWeekIdById(schedulingAuctionId);
-        if (weekId == null) {
-            throw new IllegalStateException(
-                "Cannot resolve week_id for schedulingAuctionId=" + schedulingAuctionId);
-        }
         events.publishEvent(new TargetPriceRecalculatedEvent(
             schedulingAuctionId, sa.getRound(), weekId, sa.getAuctionId()));
+
+        return new RecalcResult(sa.getRound(), rows);
     }
 
-    public void recalculate(long schedulingAuctionId) {
-        run(schedulingAuctionId);
+    public RecalcResult recalculate(long schedulingAuctionId) {
+        return run(schedulingAuctionId);
     }
 }

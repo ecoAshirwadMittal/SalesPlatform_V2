@@ -38,14 +38,21 @@ public class BidRankingService {
      * Runs RANKING for a closed round. Throws
      * {@link RecalcAlreadyRunningException} if status already RUNNING.
      * Throws {@link IllegalArgumentException} for closed round &notin; {1,2}.
-     * On any other failure, status flips to FAILED in a sub-tx and the
-     * exception is rethrown.
+     * Throws {@link IllegalStateException} if {@code week_id} cannot be
+     * resolved for the SA (referential gap). On any other failure during the
+     * UPDATE itself, status flips to FAILED in a sub-tx and the exception is
+     * rethrown.
+     *
+     * <p>Pre-checks (round + week resolution) run before the state flip so
+     * any failure leaves status untouched. This avoids a class of bugs where
+     * a post-success exception would roll back the SUCCESS write and leave
+     * status stuck at RUNNING.
      *
      * <p>{@code REQUIRES_NEW} so each process is independent of orchestrator
      * failure modes.
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void run(long schedulingAuctionId) {
+    public RecalcResult run(long schedulingAuctionId) {
         SchedulingAuction sa = saRepo.findById(schedulingAuctionId)
             .orElseThrow(() -> new EntityNotFoundException(
                 "scheduling_auction not found: id=" + schedulingAuctionId));
@@ -53,6 +60,12 @@ public class BidRankingService {
         if (sa.getRound() != 1 && sa.getRound() != 2) {
             throw new IllegalArgumentException(
                 "RANKING only valid for closed round 1 or 2; was " + sa.getRound());
+        }
+
+        Long weekId = saRepo.findWeekIdById(schedulingAuctionId);
+        if (weekId == null) {
+            throw new IllegalStateException(
+                "Cannot resolve week_id for schedulingAuctionId=" + schedulingAuctionId);
         }
 
         boolean flipped = statusUpdater.tryFlipToRunning(schedulingAuctionId, PROCESS);
@@ -79,20 +92,17 @@ public class BidRankingService {
         log.info("RANKING success schedulingAuctionId={} round={} rows={} durationMs={}",
             schedulingAuctionId, sa.getRound(), rows, durationMs);
 
-        Long weekId = saRepo.findWeekIdById(schedulingAuctionId);
-        if (weekId == null) {
-            throw new IllegalStateException(
-                "Cannot resolve week_id for schedulingAuctionId=" + schedulingAuctionId);
-        }
         events.publishEvent(new BidRankingUpdatedEvent(
             schedulingAuctionId, sa.getRound(), weekId, sa.getAuctionId()));
+
+        return new RecalcResult(sa.getRound(), rows);
     }
 
     /**
      * Admin re-rank entry point. Same shape as {@link #run} but the caller
      * is a controller; just delegates.
      */
-    public void recalculate(long schedulingAuctionId) {
-        run(schedulingAuctionId);
+    public RecalcResult recalculate(long schedulingAuctionId) {
+        return run(schedulingAuctionId);
     }
 }
