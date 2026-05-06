@@ -19,9 +19,14 @@ import java.util.Optional;
  * via {@code SUB_ClearQualifiedBuyerList} parity: delete all QBC rows for
  * the SA, then recompute and insert fresh rows. {@link #deleteBySchedulingAuctionId}
  * is the delete half of that flow.
+ *
+ * <p>R2-init (sub-project 5) extends this with a three-set bulk insert that
+ * lives in {@link QualifiedBuyerCodeRepositoryCustom} — Spring Data composes
+ * the fragment via the {@code <RepoName>Impl} naming convention.
  */
 @Repository
-public interface QualifiedBuyerCodeRepository extends JpaRepository<QualifiedBuyerCode, Long> {
+public interface QualifiedBuyerCodeRepository
+        extends JpaRepository<QualifiedBuyerCode, Long>, QualifiedBuyerCodeRepositoryCustom {
 
     @Modifying
     @Transactional
@@ -36,4 +41,11 @@ public interface QualifiedBuyerCodeRepository extends JpaRepository<QualifiedBuy
 
     List<QualifiedBuyerCode> findBySchedulingAuctionIdInAndBuyerCodeId(
             Collection<Long> schedulingAuctionIds, Long buyerCodeId);
+
+    /**
+     * Returns every QBC row scoped to a single SchedulingAuction. Used by
+     * the R2-init service (sub-project 5, Task 11) to read back the just-inserted
+     * three-set rows for downstream special-treatment processing.
+     */
+    List<QualifiedBuyerCode> findBySchedulingAuctionId(Long schedulingAuctionId);
 }
