@@ -103,9 +103,12 @@ class BidRankingRepositoryIT extends PostgresIntegrationTest {
 
     @Test
     void rejects_invalid_round() {
-        // Spring's @Transactional(MANDATORY) repository wraps IllegalArgumentException
-        // in InvalidDataAccessApiUsageException — assert on the root cause.
+        // The repository is @Repository-annotated, so Spring's
+        // PersistenceExceptionTranslationPostProcessor wraps the raw
+        // IllegalArgumentException in InvalidDataAccessApiUsageException.
         assertThatThrownBy(() -> repo.rankClosedRound(999001L, 3))
+            .isInstanceOf(org.springframework.dao.InvalidDataAccessApiUsageException.class)
+            .hasRootCauseInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("closedRound must be 1 or 2");
     }
 
