@@ -92,6 +92,25 @@ public class RecalcStatusUpdater {
     }
 
     /**
+     * Mark SKIPPED. Sub-project 5 calls this when the config gate
+     * ({@code calculate_round2_buyer_participation = false}) short-circuits
+     * R2_INIT — the service is itself in REQUIRES_NEW, so MANDATORY joins
+     * that tx (which will commit cleanly; no parent rollback to survive).
+     */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void markSkipped(long schedulingAuctionId, String process) {
+        String column = columnPrefix(process);
+        String sql = """
+            UPDATE auctions.scheduling_auctions
+               SET %s_status      = 'SKIPPED',
+                   %s_finished_at = NOW(),
+                   %s_error       = NULL
+             WHERE id = ?
+            """.formatted(column, column, column);
+        jdbc.update(sql, schedulingAuctionId);
+    }
+
+    /**
      * Maps a process identifier to the schema column-prefix used in the
      * status UPDATE statements. Throws on any unrecognised value rather than
      * silently routing to {@code target_price} — a typo (e.g. "ranking"
@@ -101,6 +120,7 @@ public class RecalcStatusUpdater {
         return switch (process) {
             case "RANKING" -> "ranking";
             case "TARGET_PRICE" -> "target_price";
+            case "R2_INIT" -> "r2_init";
             case null -> throw new IllegalArgumentException(
                 "process must not be null");
             default -> throw new IllegalArgumentException(
