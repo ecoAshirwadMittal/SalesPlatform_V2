@@ -2,7 +2,7 @@ package com.ecoatm.salesplatform.model.auctions;
 
 import jakarta.persistence.*;
 
-import java.time.Instant;
+import Instant;
 
 @Entity
 @Table(name = "scheduling_auctions", schema = "auctions")
@@ -89,10 +89,10 @@ public class SchedulingAuction {
     private String rankingError;
 
     @Column(name = "ranking_started_at")
-    private java.time.Instant rankingStartedAt;
+    private Instant rankingStartedAt;
 
     @Column(name = "ranking_finished_at")
-    private java.time.Instant rankingFinishedAt;
+    private Instant rankingFinishedAt;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "target_price_status", length = 20, nullable = false)
@@ -102,10 +102,10 @@ public class SchedulingAuction {
     private String targetPriceError;
 
     @Column(name = "target_price_started_at")
-    private java.time.Instant targetPriceStartedAt;
+    private Instant targetPriceStartedAt;
 
     @Column(name = "target_price_finished_at")
-    private java.time.Instant targetPriceFinishedAt;
+    private Instant targetPriceFinishedAt;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -165,11 +165,11 @@ public class SchedulingAuction {
     public String getRankingError() { return rankingError; }
     public void setRankingError(String rankingError) { this.rankingError = rankingError; }
 
-    public java.time.Instant getRankingStartedAt() { return rankingStartedAt; }
-    public void setRankingStartedAt(java.time.Instant rankingStartedAt) { this.rankingStartedAt = rankingStartedAt; }
+    public Instant getRankingStartedAt() { return rankingStartedAt; }
+    public void setRankingStartedAt(Instant rankingStartedAt) { this.rankingStartedAt = rankingStartedAt; }
 
-    public java.time.Instant getRankingFinishedAt() { return rankingFinishedAt; }
-    public void setRankingFinishedAt(java.time.Instant rankingFinishedAt) { this.rankingFinishedAt = rankingFinishedAt; }
+    public Instant getRankingFinishedAt() { return rankingFinishedAt; }
+    public void setRankingFinishedAt(Instant rankingFinishedAt) { this.rankingFinishedAt = rankingFinishedAt; }
 
     public RecalcStatus getTargetPriceStatus() { return targetPriceStatus; }
     public void setTargetPriceStatus(RecalcStatus targetPriceStatus) { this.targetPriceStatus = targetPriceStatus; }
@@ -177,9 +177,9 @@ public class SchedulingAuction {
     public String getTargetPriceError() { return targetPriceError; }
     public void setTargetPriceError(String targetPriceError) { this.targetPriceError = targetPriceError; }
 
-    public java.time.Instant getTargetPriceStartedAt() { return targetPriceStartedAt; }
-    public void setTargetPriceStartedAt(java.time.Instant targetPriceStartedAt) { this.targetPriceStartedAt = targetPriceStartedAt; }
+    public Instant getTargetPriceStartedAt() { return targetPriceStartedAt; }
+    public void setTargetPriceStartedAt(Instant targetPriceStartedAt) { this.targetPriceStartedAt = targetPriceStartedAt; }
 
-    public java.time.Instant getTargetPriceFinishedAt() { return targetPriceFinishedAt; }
-    public void setTargetPriceFinishedAt(java.time.Instant targetPriceFinishedAt) { this.targetPriceFinishedAt = targetPriceFinishedAt; }
+    public Instant getTargetPriceFinishedAt() { return targetPriceFinishedAt; }
+    public void setTargetPriceFinishedAt(Instant targetPriceFinishedAt) { this.targetPriceFinishedAt = targetPriceFinishedAt; }
 }
