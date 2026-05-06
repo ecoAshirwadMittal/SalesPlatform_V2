@@ -267,11 +267,11 @@ public record RecalcResponse(
 
 ### 6.3 Error mapping
 
-Reuses existing infrastructure:
+Reuses existing infrastructure where possible:
 
-- `AuctionStateException` (P8 — already 409-mapped via
-  `GlobalExceptionHandler`). New code constant in the exception:
-  `RECALC_ALREADY_RUNNING`.
+- New exception `RecalcAlreadyRunningException` (mirrors the
+  `RoundAlreadyTransitionedException` shape from P8 lifecycle work).
+  Mapped 409 in `GlobalExceptionHandler` via a new `@ExceptionHandler`.
 - `EntityNotFoundException` for unknown `schedulingAuctionId` → existing
   404 mapping.
 - `IllegalArgumentException` for `round ∉ {1, 2}` → existing 422 mapping.
@@ -527,7 +527,7 @@ UPDATE auctions.scheduling_auctions
 ```
 
 Zero rows-affected → throw
-`AuctionStateException("RECALC_ALREADY_RUNNING")` → 409 from admin
+`RecalcAlreadyRunningException` → 409 from admin
 endpoint; orchestrator path swallows + logs.
 
 The same shape applies to `target_price_*`.
