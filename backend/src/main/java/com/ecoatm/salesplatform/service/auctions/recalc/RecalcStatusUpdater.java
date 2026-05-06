@@ -5,15 +5,23 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
-
 /**
- * Writes recalc status fields in a REQUIRES_NEW transaction so the status
- * survives even when the surrounding recalc tx rolls back.
+ * Writes recalc status fields on {@code auctions.scheduling_auctions}.
  *
- * <p>Used by {@link BidRankingService} and {@link TargetPriceRecalcService}
- * for the FAILED + RUNNING-clear paths. The SUCCESS path can use the
- * surrounding REQUIRES_NEW tx (no need for a sub-tx since the tx commits).
+ * <p>Used by {@link BidRankingService} and {@link TargetPriceRecalcService}.
+ * Each method's transaction propagation is chosen so the on-disk status is
+ * the right answer regardless of how the surrounding recalc tx exits:
+ *
+ * <ul>
+ *   <li>{@code tryFlipToRunning} runs in {@code REQUIRES_NEW} so the
+ *       state-flip is observable to other callers immediately, before the
+ *       recalc work begins.</li>
+ *   <li>{@code markSuccess} runs in {@code MANDATORY} — it joins the parent
+ *       recalc tx (which will commit on the success path), and a missing
+ *       parent tx is a wiring bug we want to surface.</li>
+ *   <li>{@code markFailed} runs in {@code REQUIRES_NEW} so the FAILED row
+ *       survives even when the parent recalc tx rolls back.</li>
+ * </ul>
  */
 @Component
 public class RecalcStatusUpdater {
@@ -31,7 +39,7 @@ public class RecalcStatusUpdater {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public boolean tryFlipToRunning(long schedulingAuctionId, String process) {
-        String column = process.equals("RANKING") ? "ranking" : "target_price";
+        String column = columnPrefix(process);
         String sql = """
             UPDATE auctions.scheduling_auctions
                SET %s_status      = 'RUNNING',
@@ -51,7 +59,7 @@ public class RecalcStatusUpdater {
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public void markSuccess(long schedulingAuctionId, String process) {
-        String column = process.equals("RANKING") ? "ranking" : "target_price";
+        String column = columnPrefix(process);
         String sql = """
             UPDATE auctions.scheduling_auctions
                SET %s_status      = 'SUCCESS',
@@ -69,7 +77,7 @@ public class RecalcStatusUpdater {
      */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void markFailed(long schedulingAuctionId, String process, String errorText) {
-        String column = process.equals("RANKING") ? "ranking" : "target_price";
+        String column = columnPrefix(process);
         String truncated = errorText == null
             ? null
             : errorText.length() > 4000 ? errorText.substring(0, 4000) : errorText;
@@ -83,5 +91,20 @@ public class RecalcStatusUpdater {
         jdbc.update(sql, truncated, schedulingAuctionId);
     }
 
-    Instant now() { return Instant.now(); }   // package-private for test override
+    /**
+     * Maps a process identifier to the schema column-prefix used in the
+     * status UPDATE statements. Throws on any unrecognised value rather than
+     * silently routing to {@code target_price} — a typo (e.g. "ranking"
+     * lowercase) would otherwise corrupt the wrong status column.
+     */
+    private static String columnPrefix(String process) {
+        return switch (process) {
+            case "RANKING" -> "ranking";
+            case "TARGET_PRICE" -> "target_price";
+            case null -> throw new IllegalArgumentException(
+                "process must not be null");
+            default -> throw new IllegalArgumentException(
+                "Unknown recalc process: " + process);
+        };
+    }
 }
