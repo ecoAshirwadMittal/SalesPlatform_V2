@@ -546,8 +546,8 @@ The same shape applies to `target_price_*`.
 | Service (TargetPriceRecalc) | `TargetPriceRecalcServiceTest` | Same shape |
 | Service (Orchestrator) | `RecalcOrchestratorTest` | RANKING failure does NOT prevent TARGET_PRICE from running; both processes' state changes survive a thrown unchecked exception in either |
 | Listener | `RecalcRoundClosedListenerTest` | Round 1 + 2 trigger orchestrator; round 3 does not; orchestrator throw is logged but never propagated |
-| Controller | `RecalcAdminControllerIT` | ADMIN role required (403); 200 + RecalcResponse on success; 409 RUNNING; 404 unknown id; 422 round ∉ {1,2} |
-| Snowflake push | `BidRankingSnowflakePushListenerTest` + `TargetPriceSnowflakePushListenerTest` | snowflake.enabled=false short-circuits; enabled writes correct MERGE shape; failure logs to `snowflake_sync_log` |
+| Controller | `RecalcAdminControllerIT` | `Administrator` or `SalesOps` role required (403); 200 + RecalcResponse on success; 409 RUNNING; 404 unknown id; 400 round ∉ {1,2} (auto-mapped from `IllegalArgumentException` by `GlobalExceptionHandler` — no separate 422) |
+| Snowflake push | `BidRankingSnowflakePushListenerTest` + `TargetPriceSnowflakePushListenerTest` | snowflake.enabled=false short-circuits; enabled writes correct MERGE shape; failure is logged. **Deferred:** the `snowflake_sync_log` FAILED-row write described in §7 is not implemented; both listener catch blocks carry a `// future:` comment and no `syncLogRepo` exists yet. To restore, add a repository for `integration.snowflake_sync_log` and call `recordFailure(...)` from both catch blocks. |
 | End-to-end | `RecalcEndToEndIT` | Seed + simulated `RoundClosedEvent` → all status columns + ranked + target-price columns + both events |
 
 ### 9.2 Fixture
@@ -608,7 +608,7 @@ and `RecalcEndToEndIT`.
 | `target_price_factor_filters` has rounds 2 and 3 represented; if a band is missing for one round the LEFT JOIN gives NULL factor — CTE uses `ELSE mb.max_bid` so target falls back to the unadjusted max bid. | Tested explicitly in `TargetPriceRecalcRepositoryIT` "missing factor band" case. |
 | `po_detail` price column is `NUMERIC(14, 2)` whereas `aggregated_inventory.round{N}_target_price` is `NUMERIC(14, 4)`. Coerce in the CTE — Postgres widens automatically; no explicit cast needed. | Validated by sample `EvaluatedBid` arithmetic in IT fixture. |
 | Two parallel recalc tx attempts (cron tick + admin manual-fire racing) | Q3.6 — state-flip UPDATE with `WHERE *_status <> 'RUNNING'` is the single source of truth; second caller gets 0 rows-affected → 409. |
-| Snowflake table column drift (`AUCTIONS.BUYER_BID` rank columns renamed) | Fixed by the writer interface; renames live in one JDBC impl class. Failure = log + `snowflake_sync_log` FAILED row. Local Postgres unaffected. |
+| Snowflake table column drift (`AUCTIONS.BUYER_BID` rank columns renamed) | Fixed by the writer interface; renames live in one JDBC impl class. Failure currently = log only (the `snowflake_sync_log` FAILED-row write is deferred — see §9.1). Local Postgres unaffected. |
 | Status row stuck at `RUNNING` if JVM dies mid-tx | The status flip + recalc are in the same `REQUIRES_NEW` tx — a JVM crash before commit rolls back the flip too. Status stays at the prior state. Admin endpoint can reset by re-firing. |
 
 ---

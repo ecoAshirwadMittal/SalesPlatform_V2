@@ -35,6 +35,7 @@ public class TargetPriceSnowflakePushListener {
                 event.weekId(), event.closedRound() + 1);
         } catch (RuntimeException ex) {
             log.error("[snowflake] target-price push failed for event={}", event, ex);
+            // future: write a FAILED row to integration.snowflake_sync_log
         }
     }
 }
