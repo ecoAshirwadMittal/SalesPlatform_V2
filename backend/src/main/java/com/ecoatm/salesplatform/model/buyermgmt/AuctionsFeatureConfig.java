@@ -39,6 +39,9 @@ public class AuctionsFeatureConfig {
     @Column(name = "minimum_allowed_bid", nullable = false)
     private BigDecimal minimumAllowedBid;
 
+    @Column(name = "calculate_round2_buyer_participation", nullable = false)
+    private boolean calculateRound2BuyerParticipation = true;
+
     public Long getId() {
         return id;
     }
@@ -77,5 +80,13 @@ public class AuctionsFeatureConfig {
 
     public void setMinimumAllowedBid(BigDecimal minimumAllowedBid) {
         this.minimumAllowedBid = minimumAllowedBid;
+    }
+
+    public boolean isCalculateRound2BuyerParticipation() {
+        return calculateRound2BuyerParticipation;
+    }
+
+    public void setCalculateRound2BuyerParticipation(boolean calculateRound2BuyerParticipation) {
+        this.calculateRound2BuyerParticipation = calculateRound2BuyerParticipation;
     }
 }
