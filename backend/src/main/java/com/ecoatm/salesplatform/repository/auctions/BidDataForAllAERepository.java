@@ -61,6 +61,7 @@ public class BidDataForAllAERepository {
                     FROM buyer_mgmt.buyer_code_buyers bcb
                     JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
                    WHERE bcb.buyer_code_id = bc.id
+                   ORDER BY bcb.buyer_id
                    LIMIT 1) AS company_name
             FROM buyer_mgmt.buyer_codes bc
            WHERE bc.id = CAST(:buyer_code_id AS bigint)
@@ -122,6 +123,16 @@ public class BidDataForAllAERepository {
      * @return number of {@code bid_data} rows inserted — typically equals
      *         the count of non-deprecated AE rows for the week with a
      *         positive (DW vs WH branch) quantity
+     * @implNote <strong>Caller contract:</strong> This method APPENDS rows
+     *           to {@code auctions.bid_data} for the supplied
+     *           ({@code bid_round_id}, {@code buyer_code_id}) pair. There is
+     *           <strong>no idempotency guard</strong> — calling twice with
+     *           the same {@code bid_round_id} produces duplicate rows. The
+     *           caller ({@code BidDataForAllAEService} in sub-project 5
+     *           Task 10) is responsible for ensuring at-most-once invocation
+     *           per ({@code SchedulingAuction}, special-treatment buyer code)
+     *           tuple, typically by getting-or-creating exactly one
+     *           {@code bid_round} per pair before invocation.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public int insertForSpecialBuyer(long r2SchedulingAuctionId,

@@ -79,6 +79,7 @@ public class BidDataCreationRepository {
                    FROM buyer_mgmt.buyer_code_buyers bcb
                    JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
                   WHERE bcb.buyer_code_id = bc.id
+                  ORDER BY bcb.buyer_id
                   LIMIT 1)               AS company_name,
                 CASE
                     WHEN bc.buyer_code_type IN ('Data_Wipe', 'Purchasing_Order_Data_Wipe')
