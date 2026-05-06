@@ -142,3 +142,7 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
 - `po.sync.enabled` — default `true`; disables push when false
 - `po.sync.writer` — `logging` (default) or `jdbc` (prod)
 - `po.sync.snowflake-timeout-seconds` — default 60
+
+## Recalc (4C) sync config
+- `recalc.snowflake.bid-ranking-writer` — `logging` (default) or `jdbc`
+- `recalc.snowflake.target-price-writer` — `logging` (default) or `jdbc`

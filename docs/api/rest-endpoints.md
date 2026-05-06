@@ -1054,3 +1054,16 @@ re-uploads.
 Error codes: `INVALID_REQUEST`, `INVALID_WEEK_RANGE`, `UPLOAD_PARSE_ERROR`,
 `UPLOAD_ROW_ERRORS`, `MISSING_BUYER_CODE`, `PURCHASE_ORDER_NOT_FOUND`,
 `DUPLICATE_PO_DETAIL`, `UNSUPPORTED_MEDIA_TYPE`.
+
+## Scheduling Auctions — Recalc (4C)
+
+### POST /api/v1/admin/auctions/scheduling-auctions/{id}/re-rank
+**Auth:** `Administrator` or `SalesOps`
+**Description:** Re-runs bid ranking for the closed round (round ∈ {1, 2}). Requires `ranking_status` ≠ `RUNNING` — otherwise 409.
+**Response 200:** `RecalcResponse` `{ schedulingAuctionId, closedRound, status: "SUCCESS", error: null, startedAt, finishedAt, rowsAffected, durationMs }`
+**Response 400:** Round ∉ {1, 2}.
+**Response 404:** Unknown id.
+**Response 409:** Recalc already running.
+
+### POST /api/v1/admin/auctions/scheduling-auctions/{id}/recalculate-target-price
+Same shape as `/re-rank`, but drives the TARGET_PRICE process.

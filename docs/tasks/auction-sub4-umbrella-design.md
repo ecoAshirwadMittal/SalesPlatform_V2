@@ -154,7 +154,7 @@ NOT exist in Mendix.
 | Umbrella (this doc) | `docs/tasks/auction-sub4-umbrella-design.md` |
 | 4A — EB module | `docs/tasks/auction-eb-module-design.md` *(future)* |
 | 4B — PO module | `docs/tasks/auction-po-module-design.md` *(future)* |
-| 4C — Ranking + recalc | `docs/tasks/auction-bid-ranking-design.md` *(future)* |
+| 4C — Ranking + recalc | `docs/tasks/auction-bid-ranking-design.md` *(drafted 2026-04-30)* |
 
 ### Plan locations (written after each child's spec is approved)
 
@@ -162,7 +162,7 @@ NOT exist in Mendix.
 |---|---|
 | 4A | `docs/tasks/auction-eb-module-plan.md` *(future)* |
 | 4B | `docs/tasks/auction-po-module-plan.md` *(future)* |
-| 4C | `docs/tasks/auction-bid-ranking-plan.md` *(future)* |
+| 4C | `docs/tasks/auction-bid-ranking-plan.md` *(drafted 2026-04-30)* |
 
 ---
 

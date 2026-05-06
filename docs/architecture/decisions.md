@@ -5,6 +5,33 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-04-30 — Sub-project 4C: Bid Ranking + Target-Price Recalc
+
+**Status:** Accepted.
+
+### Context
+Mendix `ACT_TriggerBidRankingCalculation` + `ACT_CalculateTargetPrice` are the two heaviest queries on round close. Sub-project 3 stubbed them via `BidRankingStubListener`. 4A (EB) and 4B (PO) shipped the data inputs; 4C ports the queries themselves.
+
+### Decisions
+1. Two independent processes (RANKING + TARGET_PRICE), each in its own `REQUIRES_NEW` tx.
+2. Reserve-floor inclusion in ranking is configurable on `bid_ranking_config.include_reserve_floor`.
+3. Synchronous on the cron-tick listener thread; ShedLock on the cron prevents parallel ticks.
+4. Two admin recovery endpoints (re-rank, recalculate-target-price), each rejecting 409 when status=`RUNNING`.
+5. Per-process Snowflake events; full week refresh per push; bounded payload (~few-thousand rows).
+6. Status writes that survive rollback live in a `REQUIRES_NEW` sub-tx (`RecalcStatusUpdater`).
+
+### Consequences
+- One-process failure does not stop the other; ops can fix and re-fire each independently.
+- Cron ticks see deterministic ordering — RANKING then TARGET_PRICE per closed round.
+- Schema migration V82 is purely additive.
+
+### References
+- `docs/tasks/auction-bid-ranking-design.md` — full spec
+- `docs/tasks/auction-bid-ranking-plan.md` — implementation plan
+- `docs/tasks/auction-sub4-umbrella-design.md` — parent decomposition
+
+---
+
 ## 2026-04-25 — Pixel-compare strategy: local baselines + semantic assertions
 
 **Status:** Accepted. Supersedes the Phase-13 `compare-against-QA-reference`
