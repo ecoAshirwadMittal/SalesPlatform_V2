@@ -53,7 +53,7 @@ public class BidRankingRepository {
 
           UNION ALL
 
-          SELECT NULL::bigint AS bid_data_id, rb.product_id AS ecoid,
+          SELECT CAST(NULL AS bigint) AS bid_data_id, rb.product_id AS ecoid,
                  rb.grade AS merged_grade, rb.bid AS amount
             FROM auctions.reserve_bid rb
             JOIN params p ON p.include_eb = TRUE
@@ -103,7 +103,7 @@ public class BidRankingRepository {
 
           UNION ALL
 
-          SELECT NULL::bigint AS bid_data_id, rb.product_id AS ecoid,
+          SELECT CAST(NULL AS bigint) AS bid_data_id, rb.product_id AS ecoid,
                  rb.grade AS merged_grade, rb.bid AS amount
             FROM auctions.reserve_bid rb
             JOIN params p ON p.include_eb = TRUE
