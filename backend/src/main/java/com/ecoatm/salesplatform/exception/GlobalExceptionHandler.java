@@ -123,6 +123,13 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException.class)
+    public ResponseEntity<Map<String, Object>> handleRecalcAlreadyRunning(
+            com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(BidDataValidationException.class)
     public ResponseEntity<Map<String, String>> handleBidDataValidation(BidDataValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
