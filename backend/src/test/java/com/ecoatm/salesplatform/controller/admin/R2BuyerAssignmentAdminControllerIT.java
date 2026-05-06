@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.controller.admin;
 
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
 import com.ecoatm.salesplatform.model.auctions.RecalcStatus;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
@@ -9,7 +10,6 @@ import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.service.auctions.r2init.R2BuyerAssignmentResult;
 import com.ecoatm.salesplatform.service.auctions.r2init.R2BuyerAssignmentService;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

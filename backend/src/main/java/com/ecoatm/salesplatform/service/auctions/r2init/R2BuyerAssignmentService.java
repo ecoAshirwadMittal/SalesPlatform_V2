@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions.r2init;
 
 import com.ecoatm.salesplatform.event.R2BuyerAssignmentCompletedEvent;
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
@@ -10,7 +11,6 @@ import com.ecoatm.salesplatform.repository.auctions.R2BuyerQualificationReposito
 import com.ecoatm.salesplatform.repository.auctions.R2SpecialBuyerRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.recalc.RecalcStatusUpdater;
-import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -90,8 +90,8 @@ public class R2BuyerAssignmentService {
      * Runs R2 buyer assignment for a round-2 SchedulingAuction.
      *
      * @throws EntityNotFoundException        404 — SA id unknown
-     * @throws IllegalArgumentException       422 — round != 2
-     * @throws IllegalStateException          500 — week_id unresolved or
+     * @throws IllegalArgumentException       400 — round != 2
+     * @throws IllegalStateException          409 — week_id unresolved or
      *                                        feature-config singleton missing
      * @throws RecalcAlreadyRunningException  409 — another caller already
      *                                        flipped status to RUNNING
@@ -104,7 +104,7 @@ public class R2BuyerAssignmentService {
         // r2_init_status untouched).
         SchedulingAuction sa = saRepo.findById(schedulingAuctionId)
             .orElseThrow(() -> new EntityNotFoundException(
-                "scheduling_auction not found: id=" + schedulingAuctionId));
+                "scheduling_auction", schedulingAuctionId));
 
         if (sa.getRound() != 2) {
             throw new IllegalArgumentException(

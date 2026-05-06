@@ -48,7 +48,7 @@ backend/src/main/java/com/ecoatm/salesplatform/
   exception/
     RecalcAlreadyRunningException.java           -- add Process.R2_INIT enum constant
   repository/
-    QualifiedBuyerCodeRepository.java            -- add bulkInsertForR2 + bulkInsertJunctions
+    QualifiedBuyerCodeRepository.java            -- add bulkInsertForR2 + bulkInsertJunctions (V72 no-op)
   config/
     SecurityConfig.java                          -- admin matcher for /reassign-r2-buyers
 ```
@@ -85,7 +85,7 @@ backend/src/test/
       R2BuyerQualificationRepositoryIT.java
       R2SpecialBuyerRepositoryIT.java
       BidDataForAllAERepositoryIT.java
-      QualifiedBuyerCodeRepositoryR2IT.java     -- bulkInsertForR2 + junctions
+      QualifiedBuyerCodeRepositoryR2IT.java     -- bulkInsertForR2 + junctions (V72 no-op)
     service/auctions/r2init/
       R2BuyerAssignmentServiceTest.java
       BidDataForAllAEServiceTest.java
@@ -654,6 +654,16 @@ git commit -m "feat(5): R2SpecialBuyerRepository ports SUB_ListBuyerCodesForSpec
 ---
 
 ## Task 8: Extend `QualifiedBuyerCodeRepository` — bulk insert + junctions
+
+> **Post-V72 superseded**: V72 (`buyer_mgmt_qbc_flatten`) DROPPED the
+> junction tables `qbc_buyer_codes` + `qbc_scheduling_auctions` and
+> added direct FK columns on `qualified_buyer_codes`. The shipped
+> implementation uses Spring Data fragment-composition pattern
+> (`QualifiedBuyerCodeRepositoryCustom` + `Impl`) with raw JDBC for
+> the Postgres `bigint[]` array binding — see commit `8b5eaf7`.
+> `bulkInsertJunctions` ships as a documented no-op for spec parity;
+> `R2BuyerAssignmentService` does NOT call it. The SQL examples below
+> are preserved for historical context only.
 
 **Files:**
 - Modify: `backend/src/main/java/com/ecoatm/salesplatform/repository/QualifiedBuyerCodeRepository.java`

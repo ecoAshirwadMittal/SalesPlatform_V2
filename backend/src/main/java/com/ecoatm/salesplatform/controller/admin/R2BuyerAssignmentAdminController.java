@@ -1,11 +1,11 @@
 package com.ecoatm.salesplatform.controller.admin;
 
 import com.ecoatm.salesplatform.dto.admin.R2BuyerAssignmentResponse;
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.r2init.R2BuyerAssignmentResult;
 import com.ecoatm.salesplatform.service.auctions.r2init.R2BuyerAssignmentService;
-import jakarta.persistence.EntityNotFoundException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,7 +54,7 @@ public class R2BuyerAssignmentAdminController {
         // The service's @Transactional(REQUIRES_NEW) commits before returning,
         // so this read sees the latest row.
         SchedulingAuction sa = saRepo.findById(saId).orElseThrow(
-            () -> new EntityNotFoundException("scheduling_auction not found: id=" + saId));
+            () -> new EntityNotFoundException("scheduling_auction", saId));
 
         // DTO field semantics: qualifiedCount = qualified-but-not-special.
         // Service result.qualifiedCount() is the UNION (qualified + special).

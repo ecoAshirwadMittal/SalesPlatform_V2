@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions.r2init;
 
 import com.ecoatm.salesplatform.event.R2BuyerAssignmentCompletedEvent;
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
@@ -10,7 +11,6 @@ import com.ecoatm.salesplatform.repository.auctions.R2BuyerQualificationReposito
 import com.ecoatm.salesplatform.repository.auctions.R2SpecialBuyerRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.recalc.RecalcStatusUpdater;
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

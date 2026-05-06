@@ -688,7 +688,7 @@ safety net.
 |---|---|---|
 | Repository (qualification CTE) | `R2BuyerQualificationRepositoryIT` | All four `regular_buyer_qualification` modes; `RegularBuyerInventoryOptions` toggles; DW vs Wholesale branch on target price; `target_percent` band; `target_value` band; rerun idempotent |
 | Repository (special-treatment CTE) | `R2SpecialBuyerRepositoryIT` | `stb_allow_all_buyers_override = TRUE` short-circuits; zero-prior-bids → STB; mixed codes → not STB; `is_special_buyer = FALSE` excluded |
-| Repository (QBC bulk INSERT) | `QualifiedBuyerCodeRepositoryIT` extension | Three-set INSERT writes correct counts; junction rows populated; rerun via DELETE-then-INSERT idempotent |
+| Repository (QBC bulk INSERT) | `QualifiedBuyerCodeRepositoryIT` extension | Three-set INSERT writes correct counts; `bulkInsertJunctions` documented as no-op (V72 flattened); rerun via DELETE-then-INSERT idempotent |
 | Repository (special bid_data) | `BidDataForAllAERepositoryIT` | Bulk INSERT writes one row per (special-QBC, AE); DW vs Wholesale price/qty branch correct; deprecated AEs excluded |
 | Service | `R2BuyerAssignmentServiceTest` | Status flip PENDING→RUNNING→SUCCESS; `calculate_round2_buyer_participation = FALSE` → SKIPPED with no QBC writes; on repo throw → status flip RUNNING→FAILED with truncated error; event published only on SUCCESS; admin recalculate path rejects RUNNING |
 | Listener | `R2BuyerAssignmentListenerTest` | Round 2 triggers service; rounds 1, 3 do not; service throw is logged but never propagated; `auctions.r2-init.enabled=false` short-circuits |
