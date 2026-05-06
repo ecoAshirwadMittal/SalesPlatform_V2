@@ -119,8 +119,21 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
 
         int rowsInserted = repo.bulkInsertForR2(R2_SA_ID, qualified, special);
 
-        // Distinct buyer_code_ids written for the SA equals total rows — no
-        // duplicate row per code despite the buyer_code_buyers M:M join.
+        // Code 999101 (CODE_WH_ABOVE) is linked to TWO active buyers in the
+        // fixture (buyer_code_buyers rows: (999101, 999101) + (999101, 999102)).
+        // Without the SQL's `GROUP BY bc.id`, the M:M join would produce 2 QBC
+        // rows for this code. This is the load-bearing regression guard for
+        // the fan-out collapse — assert exactly 1 row for code 999101.
+        Integer rowsForFanOutCode = jdbc.queryForObject(
+            "SELECT COUNT(*) FROM buyer_mgmt.qualified_buyer_codes "
+                + "WHERE scheduling_auction_id = ? AND buyer_code_id = ?",
+            Integer.class, R2_SA_ID, CODE_WH_ABOVE);
+        assertThat(rowsForFanOutCode)
+            .as("GROUP BY bc.id must collapse the 2-buyer fan-out for code 999101")
+            .isEqualTo(1);
+
+        // Defence-in-depth: distinct buyer_code_ids written for the SA equals
+        // total rows — no duplicate row per code anywhere in the result set.
         Integer distinctCodes = jdbc.queryForObject(
             "SELECT COUNT(DISTINCT buyer_code_id) "
                 + "FROM buyer_mgmt.qualified_buyer_codes "

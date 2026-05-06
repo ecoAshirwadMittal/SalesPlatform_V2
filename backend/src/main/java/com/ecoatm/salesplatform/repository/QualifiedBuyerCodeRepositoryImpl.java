@@ -69,12 +69,15 @@ public class QualifiedBuyerCodeRepositoryImpl implements QualifiedBuyerCodeRepos
         Session session = em.unwrap(Session.class);
         return session.doReturningWork(connection -> {
             try (PreparedStatement ps = connection.prepareStatement(BULK_INSERT_SQL)) {
+                // Reuse the two java.sql.Array objects across 6 placeholders to avoid 4 redundant JNI roundtrips.
+                java.sql.Array specialArr   = connection.createArrayOf("bigint", safeSpecial);
+                java.sql.Array qualifiedArr = connection.createArrayOf("bigint", safeQualified);
                 ps.setLong(1, saId);
-                ps.setArray(2, connection.createArrayOf("bigint", safeSpecial));    // qualification_type WHEN special
-                ps.setArray(3, connection.createArrayOf("bigint", safeQualified));  // qualification_type WHEN qualified
-                ps.setArray(4, connection.createArrayOf("bigint", safeSpecial));    // included WHEN special
-                ps.setArray(5, connection.createArrayOf("bigint", safeQualified));  // included WHEN qualified
-                ps.setArray(6, connection.createArrayOf("bigint", safeSpecial));    // is_special_treatment
+                ps.setArray(2, specialArr);    // qualification_type WHEN special
+                ps.setArray(3, qualifiedArr);  // qualification_type WHEN qualified
+                ps.setArray(4, specialArr);    // included WHEN special
+                ps.setArray(5, qualifiedArr);  // included WHEN qualified
+                ps.setArray(6, specialArr);    // is_special_treatment
                 return ps.executeUpdate();
             }
         });

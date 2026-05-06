@@ -72,9 +72,16 @@ VALUES
   (999109, 'R2T-WH-NOBID',    'Wholesale',        'Active');  -- never bid in R1
 
 -- Buyer-code ↔ buyer M:M links. 999108 belongs to disabled buyer 999103.
+-- Code 999101 is intentionally linked to TWO active buyers (999101 + 999102)
+-- to exercise the GROUP BY bc.id collapse of the M:M fan-out in
+-- QualifiedBuyerCodeRepositoryImpl#bulkInsertForR2. Buyer 999102 is Active
+-- and is_special_buyer=FALSE, so this extra link does not affect T6/T7
+-- qualification or special-treatment assertions (buyer 999102 stays out of
+-- the special_buyers CTE; code 999101 is asserted via contains() in T6).
 INSERT INTO buyer_mgmt.buyer_code_buyers (buyer_code_id, buyer_id)
 VALUES
   (999101, 999101),
+  (999101, 999102),  -- M:M fan-out: code 999101 linked to a second active buyer
   (999102, 999101),
   (999103, 999101),
   (999104, 999101),
