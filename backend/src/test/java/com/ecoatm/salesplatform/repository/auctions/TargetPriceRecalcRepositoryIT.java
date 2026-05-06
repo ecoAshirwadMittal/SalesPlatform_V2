@@ -80,6 +80,18 @@ class TargetPriceRecalcRepositoryIT extends PostgresIntegrationTest {
     }
 
     @Test
+    void percentage_factor_branch_computes_percent_of_max_bid() {
+        // (ECO-C, A): MaxBid=150 falls in [0, 200] band → Percentage_Factor 10.
+        // Formula: ROUND(150 * 10 / 100, 2) = 15.00. No EB row for ECO-C, no PO.
+        // GREATEST(15.00, 0, 0) = 15.00. This pins the current Percentage_Factor
+        // arithmetic. Note: a value of 15 means "10% of MaxBid IS the result",
+        // not "MaxBid plus 10%". Change this test if the business rule changes.
+        repo.recalcClosedRound(999001L, 1);
+
+        assertTargetPrice("ECO-C", "A", new BigDecimal("15.0000"));
+    }
+
+    @Test
     void no_factor_match_falls_back_to_max_bid() {
         // Delete the band-filter for round 2 to force "no factor matched"
         jdbc.update("DELETE FROM auctions.target_price_factor_filters WHERE bid_round_selection_filter_id = 999002");
