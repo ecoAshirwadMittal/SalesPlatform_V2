@@ -4,5 +4,6 @@ public enum RecalcStatus {
     PENDING,
     RUNNING,
     SUCCESS,
-    FAILED
+    FAILED,
+    SKIPPED
 }

@@ -107,6 +107,19 @@ public class SchedulingAuction {
     @Column(name = "target_price_finished_at")
     private Instant targetPriceFinishedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "r2_init_status", length = 20, nullable = false)
+    private RecalcStatus r2InitStatus = RecalcStatus.PENDING;
+
+    @Column(name = "r2_init_error", columnDefinition = "TEXT")
+    private String r2InitError;
+
+    @Column(name = "r2_init_started_at")
+    private Instant r2InitStartedAt;
+
+    @Column(name = "r2_init_finished_at")
+    private Instant r2InitFinishedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -182,4 +195,16 @@ public class SchedulingAuction {
 
     public Instant getTargetPriceFinishedAt() { return targetPriceFinishedAt; }
     public void setTargetPriceFinishedAt(Instant targetPriceFinishedAt) { this.targetPriceFinishedAt = targetPriceFinishedAt; }
+
+    public RecalcStatus getR2InitStatus() { return r2InitStatus; }
+    public void setR2InitStatus(RecalcStatus r2InitStatus) { this.r2InitStatus = r2InitStatus; }
+
+    public String getR2InitError() { return r2InitError; }
+    public void setR2InitError(String r2InitError) { this.r2InitError = r2InitError; }
+
+    public Instant getR2InitStartedAt() { return r2InitStartedAt; }
+    public void setR2InitStartedAt(Instant r2InitStartedAt) { this.r2InitStartedAt = r2InitStartedAt; }
+
+    public Instant getR2InitFinishedAt() { return r2InitFinishedAt; }
+    public void setR2InitFinishedAt(Instant r2InitFinishedAt) { this.r2InitFinishedAt = r2InitFinishedAt; }
 }
