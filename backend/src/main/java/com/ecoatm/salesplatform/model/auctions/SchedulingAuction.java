@@ -2,7 +2,7 @@ package com.ecoatm.salesplatform.model.auctions;
 
 import jakarta.persistence.*;
 
-import Instant;
+import java.time.Instant;
 
 @Entity
 @Table(name = "scheduling_auctions", schema = "auctions")
