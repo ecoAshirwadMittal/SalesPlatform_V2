@@ -99,4 +99,16 @@ public interface SchedulingAuctionRepository extends JpaRepository<SchedulingAuc
      */
     Optional<SchedulingAuction> findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(
             int round, SchedulingAuctionStatus status);
+
+    /**
+     * Resolves the auction-week id for a given scheduling_auction. Used by
+     * recalc services (4C) when publishing process-completion events that
+     * carry the week id for downstream Snowflake push.
+     */
+    @Query("""
+        select a.weekId from SchedulingAuction s
+          join Auction a on s.auctionId = a.id
+         where s.id = :id
+    """)
+    Long findWeekIdById(@Param("id") long schedulingAuctionId);
 }
