@@ -81,6 +81,32 @@ public class SchedulingAuction {
     @Column(name = "changed_by_id")
     private Long changedById;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ranking_status", length = 20, nullable = false)
+    private RecalcStatus rankingStatus = RecalcStatus.PENDING;
+
+    @Column(name = "ranking_error", columnDefinition = "TEXT")
+    private String rankingError;
+
+    @Column(name = "ranking_started_at")
+    private java.time.Instant rankingStartedAt;
+
+    @Column(name = "ranking_finished_at")
+    private java.time.Instant rankingFinishedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_price_status", length = 20, nullable = false)
+    private RecalcStatus targetPriceStatus = RecalcStatus.PENDING;
+
+    @Column(name = "target_price_error", columnDefinition = "TEXT")
+    private String targetPriceError;
+
+    @Column(name = "target_price_started_at")
+    private java.time.Instant targetPriceStartedAt;
+
+    @Column(name = "target_price_finished_at")
+    private java.time.Instant targetPriceFinishedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -132,4 +158,28 @@ public class SchedulingAuction {
 
     public Instant getChangedDate() { return changedDate; }
     public void setChangedDate(Instant changedDate) { this.changedDate = changedDate; }
+
+    public RecalcStatus getRankingStatus() { return rankingStatus; }
+    public void setRankingStatus(RecalcStatus rankingStatus) { this.rankingStatus = rankingStatus; }
+
+    public String getRankingError() { return rankingError; }
+    public void setRankingError(String rankingError) { this.rankingError = rankingError; }
+
+    public java.time.Instant getRankingStartedAt() { return rankingStartedAt; }
+    public void setRankingStartedAt(java.time.Instant rankingStartedAt) { this.rankingStartedAt = rankingStartedAt; }
+
+    public java.time.Instant getRankingFinishedAt() { return rankingFinishedAt; }
+    public void setRankingFinishedAt(java.time.Instant rankingFinishedAt) { this.rankingFinishedAt = rankingFinishedAt; }
+
+    public RecalcStatus getTargetPriceStatus() { return targetPriceStatus; }
+    public void setTargetPriceStatus(RecalcStatus targetPriceStatus) { this.targetPriceStatus = targetPriceStatus; }
+
+    public String getTargetPriceError() { return targetPriceError; }
+    public void setTargetPriceError(String targetPriceError) { this.targetPriceError = targetPriceError; }
+
+    public java.time.Instant getTargetPriceStartedAt() { return targetPriceStartedAt; }
+    public void setTargetPriceStartedAt(java.time.Instant targetPriceStartedAt) { this.targetPriceStartedAt = targetPriceStartedAt; }
+
+    public java.time.Instant getTargetPriceFinishedAt() { return targetPriceFinishedAt; }
+    public void setTargetPriceFinishedAt(java.time.Instant targetPriceFinishedAt) { this.targetPriceFinishedAt = targetPriceFinishedAt; }
 }
