@@ -5,6 +5,44 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-05-06 — Sub-project 5: R2 Buyer Assignment
+
+**Status:** Accepted.
+
+### Context
+`R2InitStubListener` previously logged "would assign R2 buyers + process special buyers" on `RoundStartedEvent(round=2)` and did nothing — every live R2 cycle saw zero qualified buyers, blocking R2 bid submission entirely. This was the most critical end-to-end gap remaining after sub-project 4C. The Mendix flow splits into buyer-code qualification (`SUB_AssignRoundTwoBuyers` + `SUB_GenerateRound2QualifiedBuyerCodes`) and special-buyer bid-data seeding (`Sub_ProcessSpecialBuyers` + `SUB_CreateBidDataForAllAE`). Migration **V72** (already shipped) flattened the legacy Mendix M:M junctions `qbc_buyer_codes` + `qbc_scheduling_auctions` into direct FK columns on `qualified_buyer_codes`; the original three-step write design collapsed to a single bulk INSERT.
+
+### Decisions
+1. **Single process** `R2_INIT` (not two like 4C) — phases 4 (QBC write) and 5 (special bid_data seed) share row-level dependencies; one tx + admin re-fire is simpler than orchestrating partial commits.
+2. **Status sub-tx pattern reused** — FAILED writes via `RecalcStatusUpdater.markFailed(REQUIRES_NEW)` survive the parent rollback (same idiom as 4C decision 3.8).
+3. **`calculate_round2_buyer_participation = FALSE` short-circuits to `SKIPPED`** — distinct terminal state so admins can tell "didn't run" from "ran with empty result".
+4. **Set-based qualification CTE — no Java loops** — Mendix's per-buyer-per-AE microflow loop expressed as one Postgres CTE (mirrors 4C decision 3.7).
+5. **DENSE_RANK is not used** — qualification is a per-(buyer_code, ecoid, grade) pass/fail predicate, no ranking to compute.
+6. **CTE matches new-stack enums** — `RegularBuyerQualification ∈ {All_Buyers, Only_Qualified}` and `RegularBuyerInventoryOption ∈ {InventoryRound1QualifiedBids, ShowAllInventory}` per V59; legacy three-value Mendix enums are excluded by CHECK constraints.
+7. **Buyer-code type filter is `('Wholesale','Data_Wipe')` only** — Purchasing_Order variants do not participate in R2 buyer qualification (separate PO-commitment flow).
+8. **Three-set QBC write is one bulk INSERT** — qualified, not-qualified, and special-treatment sets unioned in a single SQL with derived `qualification_type` / `is_special_treatment` columns.
+9. **Special-treatment is computed independently** — a buyer with `is_special_buyer = TRUE` AND every DW/WH code passing STB check (override OR zero prior bids) is added to qualified set regardless of `Only_Qualified` exclusion.
+10. **Special-buyer bid_data uses a bulk INSERT, not the existing `BidDataCreationRepository.generate(...)`** — that method short-circuits on the QBC `included` gate; STBs need every-AE-row semantics.
+11. **Admin endpoint rejects 409 when `r2_init_status = 'RUNNING'`** — single-statement guard via state-flip UPDATE (same as 4C decision 3.6).
+12. **Listener is `@Async("snowflakeExecutor")`** — same pattern as `R1InitListener`; offloads the bulk CTE off the cron-tick post-commit thread.
+
+### Consequences
+- One R2 listener invocation produces a deterministic snapshot — DELETE-then-INSERT plus one bulk bid_data SQL — bounded by ~600 buyer codes × ~30k AEs.
+- Schema migration V83 is purely additive (4 columns + CHECK constraint); existing rows pick up `r2_init_status = 'PENDING'` via column default.
+- Admin endpoint `POST /api/v1/admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers` is the recovery path; no frontend UI today (REST-only, mirrors 4C).
+- **No Snowflake push** — legacy never synced QBC rows to Snowflake. If/when reporting needs it, model after `BidRankingSnowflakePushListener`.
+- **Follow-up: sub-project 5b** — `bid_meets_threshold` / `row_visible` stubs in `BidDataCreationRepository` are still hardcoded `TRUE`. Sub-project 5 unblocks R2 by writing QBCs; 5b makes per-row visibility correct for non-special bidders.
+- **Follow-up: sub-project 5c** — `SUB_HandleSpecialTreatmentBuyerOnRoundStart` refines STB row-visibility post-seed.
+
+### References
+- `docs/tasks/auction-r2-buyer-assignment-design.md` — full spec (decisions, schema, SQL contracts)
+- `docs/business-logic/r2-buyer-assignment.md` — narrative business logic
+- Schema: `V83__auctions_r2_init_status.sql`
+- Mendix sources: `migration_context/backend/services/SUB_AssignRoundTwoBuyers.md`, `SUB_GenerateRound2QualifiedBuyerCodes.md`, `SUB_IsSpecialTreatmentBuyer.md`, `Sub_ProcessSpecialBuyers.md`, `SUB_CreateBidDataForAllAE.md`
+- Related ADRs: 2026-04-30 (4C), 2026-04-22 (R1 init + V72 QBC flattening), 2026-04-20 (cron skeleton + event contract)
+
+---
+
 ## 2026-04-30 — Sub-project 4C: Bid Ranking + Target-Price Recalc
 
 **Status:** Accepted.

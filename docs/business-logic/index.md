@@ -9,3 +9,4 @@ Overview of business domain documentation for SalesPlatform Modern.
 - [Reserve bid sync](reserve-bid-sync.md)
 - [Purchase order sync](purchase-order-sync.md)
 - [Bid ranking + target-price recalc](bid-ranking-and-target-price.md)
+- [R2 Buyer Assignment](r2-buyer-assignment.md)

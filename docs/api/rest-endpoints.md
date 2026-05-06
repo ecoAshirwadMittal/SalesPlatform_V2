@@ -1067,3 +1067,40 @@ Error codes: `INVALID_REQUEST`, `INVALID_WEEK_RANGE`, `UPLOAD_PARSE_ERROR`,
 
 ### POST /api/v1/admin/auctions/scheduling-auctions/{id}/recalculate-target-price
 Same shape as `/re-rank`, but drives the TARGET_PRICE process.
+
+## Scheduling Auctions — R2 Buyer Assignment (Sub-project 5)
+
+### POST /api/v1/admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers
+**Auth:** `Administrator` or `SalesOps`
+**Description:** Recomputes the R2 qualified-buyer-code set + special-treatment bid_data for the given Round 2 scheduling auction. Idempotent: rerun produces the same QBC rows after the DELETE-then-INSERT cycle. Mirrors the cron-tick path triggered by `RoundStartedEvent(round=2)`.
+**Request body:** none.
+**Response 200:** `R2BuyerAssignmentResponse`
+
+```json
+{
+  "schedulingAuctionId": 301,
+  "status": "SUCCESS",
+  "error": null,
+  "startedAt": "2026-05-06T14:00:00Z",
+  "finishedAt": "2026-05-06T14:00:01Z",
+  "qualifiedCount": 412,
+  "specialTreatmentCount": 6,
+  "notQualifiedCount": 167,
+  "specialBidDataCount": 1734,
+  "durationMs": 1183
+}
+```
+
+`status` is one of `SUCCESS`, `FAILED`, or `SKIPPED` (the latter when
+`auctions_feature_config.calculate_round2_buyer_participation = FALSE` —
+no QBC or bid_data rows are written).
+
+**Errors:**
+
+| Status | Cause |
+|---|---|
+| `400` | Round is not 2 (`IllegalArgumentException`). |
+| `401` | No JWT / unauthenticated. |
+| `403` | Caller is not Administrator or SalesOps. |
+| `404` | Unknown `schedulingAuctionId`. |
+| `409` | `r2_init_status = 'RUNNING'` — another run is in flight. |

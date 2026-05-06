@@ -146,3 +146,9 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
 ## Recalc (4C) sync config
 - `recalc.snowflake.bid-ranking-writer` — `logging` (default) or `jdbc`
 - `recalc.snowflake.target-price-writer` — `logging` (default) or `jdbc`
+
+## R2 Buyer Assignment (5) config
+- `auctions.r2-init.enabled` — default `true`; when `false`, the
+  `R2BuyerAssignmentListener` short-circuits and does not write QBCs
+  or special-buyer bid_data on `RoundStartedEvent(round=2)`. The admin
+  recovery endpoint is unaffected.
