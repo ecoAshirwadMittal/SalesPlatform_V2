@@ -275,3 +275,14 @@ po:
     enabled: true
     writer: logging                  # logging (default) | jdbc
     snowflake-timeout-seconds: 60
+
+# ─────────────────────────────────────
+# Sub-project 4C: Bid Ranking + Target Price recalc
+# Per-process Snowflake writer selection. Default 'logging' is a no-op
+# (logs the intended push); flip to 'jdbc' in prod to wire the real
+# Snowflake MERGE writers.
+# ─────────────────────────────────────
+recalc:
+  snowflake:
+    bid-ranking-writer: logging      # logging | jdbc
+    target-price-writer: logging     # logging | jdbc
