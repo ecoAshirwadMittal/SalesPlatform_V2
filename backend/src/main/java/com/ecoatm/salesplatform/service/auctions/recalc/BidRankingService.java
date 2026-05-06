@@ -79,7 +79,11 @@ public class BidRankingService {
         log.info("RANKING success schedulingAuctionId={} round={} rows={} durationMs={}",
             schedulingAuctionId, sa.getRound(), rows, durationMs);
 
-        long weekId = saRepo.findWeekIdById(schedulingAuctionId);
+        Long weekId = saRepo.findWeekIdById(schedulingAuctionId);
+        if (weekId == null) {
+            throw new IllegalStateException(
+                "Cannot resolve week_id for schedulingAuctionId=" + schedulingAuctionId);
+        }
         events.publishEvent(new BidRankingUpdatedEvent(
             schedulingAuctionId, sa.getRound(), weekId, sa.getAuctionId()));
     }
