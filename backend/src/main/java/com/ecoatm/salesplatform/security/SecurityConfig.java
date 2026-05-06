@@ -73,6 +73,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/re-rank",
                                  "/api/v1/admin/auctions/scheduling-auctions/*/recalculate-target-price")
                     .hasAnyRole("Administrator", "SalesOps")
+                // Sub-project 5 R2 buyer assignment admin endpoint
+                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/reassign-r2-buyers")
+                    .hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")
