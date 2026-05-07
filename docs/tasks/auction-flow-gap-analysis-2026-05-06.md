@@ -126,24 +126,23 @@ ship in any order.
 
 ## 7. Follow-up risks
 
-### Latent bug: `R2BuyerAssignmentService.recalculate()` self-call AOP bypass
+### ~~Latent bug: `R2BuyerAssignmentService.recalculate()` self-call AOP bypass~~ — **fixed 2026-05-07**
 
-`R2BuyerAssignmentService.recalculate()` calls `run()` on the same bean
-instance. Spring's CGLIB proxy intercepts `recalculate()` but not the
-`this.run()` self-call, so `run()`'s `@Transactional(MANDATORY)` annotation is
-never applied. Without a surrounding transaction, the `MANDATORY` repos inside
-`run()` throw `IllegalTransactionStateException`. Production
-`POST /api/v1/admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers`
-would fail with a 500.
+**Status:** Fixed — commit `3a096b1` annotates `R2BuyerAssignmentService.recalculate()`
+with `@Transactional(propagation = REQUIRES_NEW)`, matching the pattern applied
+to both R3 services in sub-project 6.
 
-The bug is silent in the test suite because `R2BuyerAssignmentAdminControllerIT`
+**Original bug:** `recalculate()` called `this.run()` on the same bean instance.
+Spring's CGLIB proxy intercepts `recalculate()` but not the self-call, so the
+`@Transactional(REQUIRES_NEW)` annotation on `run()` was never applied. Without
+a surrounding transaction, the inner `MANDATORY` calls (e.g.,
+`RecalcStatusUpdater.markSuccess`) threw `IllegalTransactionStateException`.
+Production `POST /api/v1/admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers`
+would have failed with a 500.
+
+The bug was silent in the test suite because `R2BuyerAssignmentAdminControllerIT`
 is a `@WebMvcTest` slice with `@MockBean R2BuyerAssignmentService` — the real
-service body is never invoked.
-
-**Fix (sub-project 5 follow-on):** annotate `R2BuyerAssignmentService.recalculate()`
-with `@Transactional(propagation = REQUIRES_NEW)` — the same fix applied to
-both R3 services in sub-project 6 (see ADR 2026-05-07, implementation
-deviations).
+service body was never invoked.
 
 ---
 
