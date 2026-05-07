@@ -77,7 +77,7 @@ class R2BuyerAssignmentServiceTest {
         when(qualRepo.qualifiedBuyerCodes(502L)).thenReturn(qualified);
         when(specialRepo.specialTreatmentBuyerCodes(502L)).thenReturn(special);
         when(qbcRepo.deleteBySchedulingAuctionId(502L)).thenReturn(0);
-        when(qbcRepo.bulkInsertForR2(eq(502L), any(Long[].class), any(Long[].class)))
+        when(qbcRepo.bulkInsertForRound(eq(502L), any(Long[].class), any(Long[].class)))
             .thenReturn(8);   // 4 qualified, 4 not_qualified
         when(specialBidDataService.generateForSpecialBuyers(eq(502L), eq(special))).thenReturn(20);
 
@@ -85,7 +85,7 @@ class R2BuyerAssignmentServiceTest {
 
         verify(statusUpdater).tryFlipToRunning(502L, "R2_INIT");
         verify(qbcRepo).deleteBySchedulingAuctionId(502L);
-        verify(qbcRepo).bulkInsertForR2(eq(502L), any(Long[].class), any(Long[].class));
+        verify(qbcRepo).bulkInsertForRound(eq(502L), any(Long[].class), any(Long[].class));
         verify(specialBidDataService).generateForSpecialBuyers(502L, special);
         verify(statusUpdater).markSuccess(502L, "R2_INIT");
 

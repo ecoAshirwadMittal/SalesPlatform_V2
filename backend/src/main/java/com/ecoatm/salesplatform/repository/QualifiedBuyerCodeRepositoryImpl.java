@@ -59,7 +59,7 @@ public class QualifiedBuyerCodeRepositoryImpl implements QualifiedBuyerCodeRepos
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
-    public int bulkInsertForR2(Long saId, Long[] qualifiedIds, Long[] specialIds) {
+    public int bulkInsertForRound(Long saId, Long[] qualifiedIds, Long[] specialIds) {
         // Defensive defaults — Postgres array_op() with NULL returns NULL,
         // never TRUE. Empty arrays evaluate false on every row, which is
         // the correct semantic for an empty set.
@@ -88,7 +88,7 @@ public class QualifiedBuyerCodeRepositoryImpl implements QualifiedBuyerCodeRepos
      * {@code qbc_scheduling_auctions} were dropped by V72 — the QBC table
      * holds {@code scheduling_auction_id} and {@code buyer_code_id} as
      * direct FK columns now (populated by
-     * {@link #bulkInsertForR2(Long, Long[], Long[])}). Retained for
+     * {@link #bulkInsertForRound(Long, Long[], Long[])}). Retained for
      * spec parity; always returns 0.
      */
     @Override

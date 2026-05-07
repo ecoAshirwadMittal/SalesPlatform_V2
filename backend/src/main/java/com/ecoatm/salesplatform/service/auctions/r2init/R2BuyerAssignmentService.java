@@ -145,7 +145,7 @@ public class R2BuyerAssignmentService {
             // bulkInsertJunctions repo method is a documented post-V72 no-op
             // and is intentionally NOT called here (design §7.3 step 3).
             qbcRepo.deleteBySchedulingAuctionId(schedulingAuctionId);
-            int totalRows = qbcRepo.bulkInsertForR2(
+            int totalRows = qbcRepo.bulkInsertForRound(
                 schedulingAuctionId,
                 qualified.toArray(new Long[0]),
                 special.toArray(new Long[0]));

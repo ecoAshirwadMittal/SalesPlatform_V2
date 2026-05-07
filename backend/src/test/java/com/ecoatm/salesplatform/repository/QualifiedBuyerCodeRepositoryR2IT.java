@@ -46,15 +46,15 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     @Autowired QualifiedBuyerCodeRepository repo;
     @Autowired JdbcTemplate jdbc;
 
-    // ---- bulkInsertForR2: three-set semantics ---------------------------
+    // ---- bulkInsertForRound: three-set semantics ---------------------------
 
     @Test
-    @DisplayName("bulkInsertForR2 writes Qualified for codes in qualifiedIds set with is_special_treatment=FALSE")
+    @DisplayName("bulkInsertForRound writes Qualified for codes in qualifiedIds set with is_special_treatment=FALSE")
     void qualified_set_marked_qualified_not_special() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE, CODE_WH_PCT};
         Long[] special   = new Long[] {};
 
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         QualifiedBuyerCode aboveQbc = onlyQbcForCode(R2_SA_ID, CODE_WH_ABOVE);
         assertThat(aboveQbc.getQualificationType()).isEqualTo(QualificationType.Qualified);
@@ -63,12 +63,12 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bulkInsertForR2 writes Qualified + is_special_treatment=TRUE for codes in specialIds set")
+    @DisplayName("bulkInsertForRound writes Qualified + is_special_treatment=TRUE for codes in specialIds set")
     void special_set_marked_qualified_and_special() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {CODE_SPECIAL};
 
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         QualifiedBuyerCode specialQbc = onlyQbcForCode(R2_SA_ID, CODE_SPECIAL);
         assertThat(specialQbc.getQualificationType()).isEqualTo(QualificationType.Qualified);
@@ -77,12 +77,12 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bulkInsertForR2 writes Not_Qualified + is_special_treatment=FALSE for active codes outside both sets")
+    @DisplayName("bulkInsertForRound writes Not_Qualified + is_special_treatment=FALSE for active codes outside both sets")
     void not_qualified_set_marked_not_qualified() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {};
 
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         QualifiedBuyerCode farQbc = onlyQbcForCode(R2_SA_ID, CODE_WH_FAR);
         assertThat(farQbc.getQualificationType()).isEqualTo(QualificationType.Not_Qualified);
@@ -91,12 +91,12 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bulkInsertForR2 filters to active Wholesale/Data_Wipe codes — PO and Disabled-buyer codes excluded")
+    @DisplayName("bulkInsertForRound filters to active Wholesale/Data_Wipe codes — PO and Disabled-buyer codes excluded")
     void filters_to_active_wholesale_datawipe() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {};
 
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         // PO (999107) and Disabled-buyer's WH code (999108) must NOT have a row.
         Integer poCount = jdbc.queryForObject(
@@ -112,12 +112,12 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     }
 
     @Test
-    @DisplayName("bulkInsertForR2 emits exactly one row per active DW/WH code (M:M fan-out collapsed)")
+    @DisplayName("bulkInsertForRound emits exactly one row per active DW/WH code (M:M fan-out collapsed)")
     void no_duplicate_rows_per_code() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {};
 
-        int rowsInserted = repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        int rowsInserted = repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         // Code 999101 (CODE_WH_ABOVE) is linked to TWO active buyers in the
         // fixture (buyer_code_buyers rows: (999101, 999101) + (999101, 999102)).
@@ -155,7 +155,7 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
         Long[] qualified = new Long[] {CODE_WH_ABOVE, CODE_WH_PCT};
         Long[] special   = new Long[] {CODE_SPECIAL};
 
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         List<QualifiedBuyerCode> qbcs = repo.findBySchedulingAuctionId(R2_SA_ID);
         assertThat(qbcs)
@@ -174,13 +174,13 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     void junctions_no_op_post_v72() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {};
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         int rows = repo.bulkInsertJunctions(R2_SA_ID);
 
         // Post-V72, qbc_scheduling_auctions and qbc_buyer_codes are dropped:
         // the FK-flattened columns on qualified_buyer_codes are populated by
-        // bulkInsertForR2 itself. Method is retained for spec parity.
+        // bulkInsertForRound itself. Method is retained for spec parity.
         assertThat(rows).isZero();
     }
 
@@ -189,7 +189,7 @@ class QualifiedBuyerCodeRepositoryR2IT extends PostgresIntegrationTest {
     void junctions_idempotent() {
         Long[] qualified = new Long[] {CODE_WH_ABOVE};
         Long[] special   = new Long[] {};
-        repo.bulkInsertForR2(R2_SA_ID, qualified, special);
+        repo.bulkInsertForRound(R2_SA_ID, qualified, special);
 
         repo.bulkInsertJunctions(R2_SA_ID);
         int second = repo.bulkInsertJunctions(R2_SA_ID);
