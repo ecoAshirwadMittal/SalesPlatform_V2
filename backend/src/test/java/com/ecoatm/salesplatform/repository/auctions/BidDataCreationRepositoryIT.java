@@ -523,4 +523,169 @@ class BidDataCreationRepositoryIT {
 
         assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isZero();
     }
+
+    // -------------------------------------------------------------------------
+    // R3 cascade tests (Task 6)
+    // -------------------------------------------------------------------------
+
+    /**
+     * R3 with all 3 filter knobs NULL → fallthrough TRUE for every row,
+     * even AEs without prior bid.
+     */
+    @Test
+    void generate_r3_allNullFilters_visibleEvenWithoutPriorBid() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("ALN1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("ALN1", "A", new BigDecimal("100.00"))
+                // No prior bid
+                .qbc(false, true, "Qualified")
+                .brsfR3(null, null, null);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 percent-variation branch: latest_bid >= round3_target_price - (round3_target_price * pct/100).
+     */
+    @Test
+    void generate_r3_pctVarBranch_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("R3P1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("R3P1", "A", new BigDecimal("100.00"))
+                .priorBid("R3P1", "A", new BigDecimal("96.00"), 1)  // 96 >= 100 - (100*5/100)=95
+                .qbc(false, true, "Qualified")
+                .brsfR3(new BigDecimal("5"), null, null);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 amount-variation branch: latest_bid >= round3_target_price - amt.
+     */
+    @Test
+    void generate_r3_amtVarBranch_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("R3A1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("R3A1", "A", new BigDecimal("100.00"))
+                .priorBid("R3A1", "A", new BigDecimal("99.00"), 1)  // 99 >= 100-1=99
+                .qbc(false, true, "Qualified")
+                .brsfR3(null, new BigDecimal("1.00"), null);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 rank-limit branch: round3_bid_rank <= rank_lim.
+     */
+    @Test
+    void generate_r3_rankLimBranch_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("R3R1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("R3R1", "A", new BigDecimal("100.00"))
+                .priorBidWithRank("R3R1", "A", new BigDecimal("10.00"), 1, 2)  // rank=2 <= 3
+                .qbc(false, true, "Qualified")
+                .brsfR3(null, null, 3);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 with all 3 filters set + buyer bid fails ALL branches → invisible.
+     */
+    @Test
+    void generate_r3_allFiltersSet_failAll_invisible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("R3F1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("R3F1", "A", new BigDecimal("100.00"))
+                .priorBidWithRank("R3F1", "A", new BigDecimal("10.00"), 1, 10)  // 10 < 95, 10 < 99, rank=10 > 3
+                .qbc(false, true, "Qualified")
+                .brsfR3(new BigDecimal("5"), new BigDecimal("1.00"), 3);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isZero();
+    }
+
+    /**
+     * R3 DISTINCT ON picks R2 over R1 by submitted_datetime when both bid the same AE.
+     * R1 bid 10 (would fail R3 pct branch); R2 bid 96 (passes R3 pct branch).
+     * The CTE's {@code ORDER BY submitted_datetime DESC} picks R2 → row visible.
+     *
+     * <p>The {@code submitted_datetime} offset logic in
+     * {@link BidDataScenario#priorBid(int, String, String, BigDecimal, int)}
+     * seeds R1 with a larger {@code offsetHours} (offset = currentRound - priorRound = 3-1 = 2)
+     * so R1's timestamp is earlier, and R2 with a smaller offset (3-2 = 1) so R2's timestamp
+     * is later. {@code ORDER BY submitted_datetime DESC} therefore picks R2 first.
+     */
+    @Test
+    void generate_r3_distinctOn_picksR2OverR1() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("DST1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("DST1", "A", new BigDecimal("100.00"))
+                // R1 bid (low — would fail R3 pct branch on its own)
+                .priorBid(1, "DST1", "A", new BigDecimal("10.00"), 1)
+                // R2 bid (passes R3 pct branch); seeded after R1 so submitted_datetime is later
+                .priorBid(2, "DST1", "A", new BigDecimal("96.00"), 1)
+                .qbc(false, true, "Qualified")
+                .brsfR3(new BigDecimal("5"), null, null);
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 with rank_lim set + prev_rank IS NULL → rank branch can't match.
+     * Other branches NULL → buyer fails. Verifies the {@code IS NOT NULL} guard
+     * on the rank branch.
+     */
+    @Test
+    void generate_r3_prevRankNull_rankBranchOnly_invisible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("RNK1", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("RNK1", "A", new BigDecimal("100.00"))
+                .priorBid("RNK1", "A", new BigDecimal("10.00"), 1)  // round3_bid_rank=NULL
+                .qbc(false, true, "Qualified")
+                .brsfR3(null, null, 3);  // rank_lim only
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isZero();
+    }
 }
