@@ -152,3 +152,24 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   `R2BuyerAssignmentListener` short-circuits and does not write QBCs
   or special-buyer bid_data on `RoundStartedEvent(round=2)`. The admin
   recovery endpoint is unaffected.
+
+## R3 Init + Pre-process (6) config
+- `auctions.r3-preprocess.enabled` — default `true`; when `false`, the
+  `R3PreProcessListener` short-circuits on `RoundClosedEvent(round=2)` and
+  does not write R3 QBCs or `round3_buyer_data_reports`. The admin
+  `/preprocess-r3` recovery endpoint is unaffected.
+- `auctions.r3-init.enabled` — default `true`; when `false`, the
+  `R3InitListener` short-circuits on `RoundStartedEvent(round=3)` and
+  does not flip the `Round3InitStatus`. The admin `/reinit-r3` recovery
+  endpoint is unaffected.
+
+## JPA / Hibernate config
+- `spring.jpa.open-in-view: false` — added in sub-project 6 (Task 16).
+  Disables the Open-Session-In-View anti-pattern. Without this setting,
+  Hibernate's L1 cache in admin response paths serves a stale entity
+  snapshot (pre-JDBC-write) when the controller reads the SA back to build
+  the response DTO — masking JDBC-written status updates from
+  `RecalcStatusUpdater`. This is the recommended production setting for a
+  pure REST API; lazy-load-outside-tx patterns would surface as
+  `LazyInitializationException`, but the full controller IT sweep confirms
+  none exist today.

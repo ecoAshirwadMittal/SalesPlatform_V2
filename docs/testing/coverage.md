@@ -34,3 +34,16 @@ Target 85%+. Qualification CTE + special-treatment CTE + QBC bulk INSERT
 `BidDataForAllAERepositoryIT` + `QualifiedBuyerCodeRepositoryIT` +
 `R2BuyerAssignmentServiceTest` + `R2BuyerAssignmentListenerTest` +
 `R2BuyerAssignmentAdminControllerIT` + `R2BuyerAssignmentEndToEndIT`.
+
+---
+
+## auctions.r3lifecycle (new 2026-05-07)
+Target 85%+. R3 qualification CTE + STB CTE + QBC three-set INSERT +
+round3 reports INSERT + predecessor guard + has_round=false SKIPPED branch
+are the load-bearing paths; see
+`R3PreProcessSupportRepositoryIT` + `R3BuyerQualificationRepositoryIT` +
+`R3SpecialBuyerRepositoryIT` + `Round3BuyerDataReportRepositoryR3IT` +
+`QualifiedBuyerCodeRepositoryR2IT` (extended R3 case) +
+`R3PreProcessServiceTest` + `R3InitServiceTest` +
+`R3PreProcessListenerTest` + `R3InitListenerTest` +
+`R3LifecycleAdminControllerIT` + `R3LifecycleEndToEndIT`.

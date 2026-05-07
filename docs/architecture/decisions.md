@@ -5,6 +5,50 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-05-07 — Sub-project 6: R3 Init + Pre-process
+
+**Status:** Accepted.
+
+### Context
+Two stub listeners (`R3InitStubListener`, `R3PreProcessStubListener`) deferred all R3 (Upsell) bidding logic. While they existed, the R3 round had zero `qualified_buyer_codes` rows — bidders saw an empty inventory dashboard — and `auctions.round3_buyer_data_reports` was never written, leaving the already-shipped Round 3 Bid Report admin page permanently empty. Sub-project 6 ports Mendix `SUB_Round3_PreProcessRoundData` (minus BidData generation) and `ACT_Round3_SetStarted` / `SUB_InitializeRound3`. The R3 qualification rule was supplied directly by the product owner as a three-branch SQL predicate, replacing Mendix's legacy "any nonzero bid qualifies" semantics.
+
+### Decisions
+See `docs/tasks/auction-r3-init-preprocess-design.md` §3 for the full list of 14 numbered decisions. Key highlights:
+
+1. **Two sibling services, not an orchestrator** — `R3PreProcessService` (triggered by `RoundClosedEvent(round=2)`) and `R3InitService` (triggered by `RoundStartedEvent(round=3)`) are independent. They fire at different lifecycle points, do non-overlapping work, and have independent recovery semantics (decision 3.1).
+2. **Predecessor guard in code, not constraint** — `R3InitService.run` rejects with 422 unless `r3_preprocess_status = SUCCESS` on the same R3 SA row (decision 3.2).
+3. **`has_round = false` → SKIPPED** — pre-process gates on the R3 SA's `has_round` flag; `FALSE` produces a `SKIPPED` terminal state with no row writes (decision 3.3).
+4. **No BidData generation in pre-process** — R3 BidData flows through the existing on-demand `BidDataCreationService` path from the bidder dashboard; `ACT_GenerateRound3_BidDataObjects` and `Sub_ProcessSpecialBuyers` are intentionally not ported (decision 3.5).
+5. **New R3 qualification rule** — per (ecoid, grade, buyer_code) take latest bid across rounds 1+2, evaluate against three filter knobs (`bid_percentage_variation`, `bid_amount_variation`, `rank_qualification_limit`). All three NULL → fall-through qualify. Replaces `SUB_GenerateRound3QualifiedBuyerCodes` step 5 (decision 3.6).
+6. **Whole-percent convention everywhere** — R3 stores `bid_percentage_variation = 5` for 5%. R2's `target_percent` was stored as 0.05 in V59/sub-project 5; sub-project 6 normalises R2 to whole-percent by updating the CTE formula and test fixtures (decision 3.8).
+7. **STB CTE retained for R3 QBC writes** — `is_special_treatment = TRUE` rows are written to `qualified_buyer_codes` for the R3 SA; `BidDataCreationService` reads this flag for STB all-AE visibility (decision 3.9).
+8. **`ACT_ChangeSavedBidsToPreviouslySubmitted` not ported** — schema tracks submission as `bid_rounds.submitted` boolean; no per-row state flip needed (decision 3.12).
+
+### Implementation deviations (discovered during build)
+
+- **V85 migration** — the design assumed `auctions.round3_buyer_data_reports` (V62) already had `scheduling_auction_id` and `buyer_codes` columns. In practice it did not. `V85__auctions_r3_reports_scheduling_auction.sql` adds them. Phase 5 of `R3PreProcessService` writes these columns via `bulkInsertForSchedulingAuction`.
+- **`R3LifecycleValidationException` (HTTP 422)** — existing `GlobalExceptionHandler` mappings route `IllegalArgumentException` → 400 and `IllegalStateException` → 409. Neither matched the desired 422 for service-layer guard failures (predecessor check, wrong-round validation). A new exception class wraps these and is mapped to 422. Admin endpoints translate service exceptions via this wrapper.
+- **`spring.jpa.open-in-view: false` added project-wide** — Hibernate's L1 cache was masking JDBC-written status updates in admin response paths: the controller read the SA entity back to build the response DTO, but the cache served the pre-JDBC-write snapshot. Disabling OSIV forces a fresh load on every request. This is the recommended production setting for a pure REST API.
+- **`@Transactional(REQUIRES_NEW)` on both `recalculate()` methods** — Spring's CGLIB proxy does not intercept self-calls. `recalculate()` calls `run()` inside the same class; `run()` declares `@Transactional(MANDATORY)` via the status-updater repos, which would throw `IllegalTransactionStateException` if no outer tx existed. Annotating `recalculate()` itself with `REQUIRES_NEW` starts the tx that the inner methods join. **Future admin-recovery wrappers should follow this same pattern.**
+- **`R3InitService` JPA/JDBC interleave fix** — `saRepo.save(sa)` followed by JDBC `markSuccess` causes Hibernate's flush at tx commit to overwrite the JDBC-written final status. Fixed via `em.refresh(sa)` after `tryFlipToRunning` (which performs a `REQUIRES_NEW` sub-tx) and `saveAndFlush(sa)` before `markSuccess()`. This ensures the Hibernate snapshot reflects the current DB state before the JDBC write lands.
+
+### Consequences
+- R3 BidData stays empty until the first bidder-dashboard view triggers `BidDataCreationService` on-demand creation (per decision 3.5).
+- Predecessor-guard failure leaves the R3 SA in `PENDING` init state — admin must rerun `/preprocess-r3` first.
+- OSIV=false is now the global setting; lazy-load-outside-tx patterns would fail. The `R3LifecycleAdminControllerIT` sweep (and all other ControllerITs) validates no such patterns exist today.
+- **Follow-up risk (latent bug in R2):** `R2BuyerAssignmentService.recalculate()` has the same self-call AOP bypass as R3 had before the fix. The existing `R2BuyerAssignmentAdminControllerIT` is a `@WebMvcTest` slice with `@MockBean service`, so the bug is never exercised by the test suite. Production `/reassign-r2-buyers` would fail with `IllegalTransactionStateException`. Fix: annotate `R2BuyerAssignmentService.recalculate()` with `@Transactional(propagation = REQUIRES_NEW)`.
+- Schema migrations V84 + V85 are purely additive; existing rows pick up `r3_preprocess_status = 'PENDING'` and `r3_init_status = 'PENDING'` via column defaults.
+
+### References
+- `docs/tasks/auction-r3-init-preprocess-design.md` — full spec (14 decisions, schema, SQL contracts)
+- `docs/tasks/auction-r3-init-preprocess-plan.md` — task-by-task implementation plan
+- `docs/business-logic/r3-init-and-preprocess.md` — narrative business logic
+- Schema: `V84__auctions_r3_lifecycle_status.sql`, `V85__auctions_r3_reports_scheduling_auction.sql`
+- Mendix sources: `migration_context/backend/ACT_Round3_SetStarted.md`, `migration_context/backend/services/SUB_Round3_PreProcessRoundData.md`, `migration_context/backend/services/SUB_GenerateRound3QualifiedBuyerCodes.md`
+- Related ADRs: 2026-05-06 (5), 2026-04-30 (4C)
+
+---
+
 ## 2026-05-06 — Sub-project 5: R2 Buyer Assignment
 
 **Status:** Accepted.

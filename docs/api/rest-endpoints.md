@@ -1104,3 +1104,69 @@ no QBC or bid_data rows are written).
 | `403` | Caller is not Administrator or SalesOps. |
 | `404` | Unknown `schedulingAuctionId`. |
 | `409` | `r2_init_status = 'RUNNING'` — another run is in flight. |
+
+## Scheduling Auctions — R3 Lifecycle (Sub-project 6)
+
+### POST /api/v1/admin/auctions/scheduling-auctions/{id}/preprocess-r3
+**Auth:** `Administrator` or `SalesOps`
+**Description:** Recomputes the R3 qualified-buyer-code set + `round3_buyer_data_reports` for the given Round 3 scheduling auction. Idempotent: rerun deletes existing QBCs and reports for the R3 SA, then bulk-inserts the fresh result. Resolves the sibling R2 SA internally to bulk-delete unsubmitted R2 bids (Phase 1). Mirrors the cron-tick path triggered by `RoundClosedEvent(round=2)`.
+**Request body:** none.
+**Response 200:** `R3PreProcessResponse`
+
+```json
+{
+  "schedulingAuctionId": 401,
+  "status": "SUCCESS",
+  "error": null,
+  "startedAt": "2026-05-07T10:00:00Z",
+  "finishedAt": "2026-05-07T10:00:02Z",
+  "qualifiedCount": 380,
+  "specialTreatmentCount": 5,
+  "notQualifiedCount": 220,
+  "reportRowCount": 18,
+  "deletedBidsCount": 47,
+  "durationMs": 1852,
+  "skipped": false
+}
+```
+
+`status` is one of `SUCCESS`, `FAILED`, or `SKIPPED` (the latter when the R3 SA's `has_round = false` — no QBC or report rows are written).
+
+**Errors:**
+
+| Status | Cause |
+|---|---|
+| `400` | Round is not 3 (`IllegalArgumentException`). |
+| `401` | No JWT / unauthenticated. |
+| `403` | Caller is not Administrator or SalesOps. |
+| `404` | Unknown `schedulingAuctionId`. |
+| `409` | `r3_preprocess_status = 'RUNNING'` — another run is in flight. |
+| `422` | Validation failure wrapping `IllegalArgumentException` or `IllegalStateException` from the service (e.g., sibling R2 SA not found). Mapped by `R3LifecycleValidationException` → `GlobalExceptionHandler`. |
+
+### POST /api/v1/admin/auctions/scheduling-auctions/{id}/reinit-r3
+**Auth:** `Administrator` or `SalesOps`
+**Description:** Re-runs the R3 init (status-flip + predecessor guard) for the given Round 3 scheduling auction. Refuses unless `r3_preprocess_status = SUCCESS` on the same SA row. Idempotent: re-firing from any terminal state (SUCCESS, FAILED) is allowed.
+**Request body:** none.
+**Response 200:** `R3InitResponse`
+
+```json
+{
+  "schedulingAuctionId": 401,
+  "status": "SUCCESS",
+  "error": null,
+  "startedAt": "2026-05-07T10:01:00Z",
+  "finishedAt": "2026-05-07T10:01:00Z",
+  "durationMs": 22
+}
+```
+
+**Errors:**
+
+| Status | Cause |
+|---|---|
+| `400` | Round is not 3 (`IllegalArgumentException`). |
+| `401` | No JWT / unauthenticated. |
+| `403` | Caller is not Administrator or SalesOps. |
+| `404` | Unknown `schedulingAuctionId`. |
+| `409` | `r3_init_status = 'RUNNING'` — another run is in flight. |
+| `422` | Predecessor guard failure: `r3_preprocess_status ≠ SUCCESS` — pre-process must succeed before init. Mapped by `R3LifecycleValidationException` → `GlobalExceptionHandler`. |

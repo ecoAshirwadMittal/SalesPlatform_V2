@@ -31,3 +31,10 @@ Inventory of major modules and their primary entities.
 - Trigger: `RoundStartedEvent` for round = 2
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers`
 - Snowflake sync: none — legacy never synced QBC rows to Snowflake
+
+## R3 Init + Pre-process (Sub-project 6)
+- Source modules: AuctionUI (`ACT_Round3_SetStarted`, `SUB_InitializeRound3`, `SUB_Round3_PreProcessRoundData`, `SUB_GenerateRound3QualifiedBuyerCodes`, `SUB_ListRoundThreeBuyersDataForQualifiedBuyers`, `SUB_Round2_DeleteUnsubmittedBids`)
+- Primary tables: `auctions.scheduling_auctions` (R3-lifecycle status flags from V84), `buyer_mgmt.qualified_buyer_codes` (R3 three-set write per SA), `auctions.round3_buyer_data_reports` (V85 adds `scheduling_auction_id` + `buyer_codes` columns), `auctions.bid_round_selection_filters` (V84 adds three R3-qualification knobs)
+- Trigger: `R3PreProcessService` on `RoundClosedEvent(round=2)`; `R3InitService` on `RoundStartedEvent(round=3)`
+- Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
+- Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)

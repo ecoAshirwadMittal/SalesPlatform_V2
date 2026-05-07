@@ -24,8 +24,9 @@ land, or whenever the stub listeners under
 math) is now functionally complete. **Sub-project 5 (R2 buyer assignment) shipped 2026-05-06** —
 `R2InitStubListener` has been replaced by `R2BuyerAssignmentListener` +
 `R2BuyerAssignmentService`; QBC + special-buyer bid_data writes now run
-on `RoundStartedEvent(round=2)`. The remaining stub-listener work is the
-**R3 init** and **R3 pre-process** branches (sub-project 6).
+on `RoundStartedEvent(round=2)`. **Sub-project 6 (R3 init + pre-process) shipped 2026-05-07** —
+both R3 stub listeners have been deleted and replaced by production services; V84 + V85 migrations
+apply the new status columns and reports-table wiring. The stub directory is now empty.
 
 ---
 
@@ -42,8 +43,8 @@ on `RoundStartedEvent(round=2)`. The remaining stub-listener work is the
 | **R2 init (buyer assignment)** | ✅ Built (5) | `R2BuyerAssignmentListener` + `R2BuyerAssignmentService` (replaced `R2InitStubListener` 2026-05-06); QBC three-set write + special-buyer bid_data seed; status columns on `scheduling_auctions` from V83 |
 | R2 bid submission | 🟡 Partial | Submission pipeline works; **but** `BidDataCreationRepository.java:126–137` hardcodes `bid_meets_threshold` and `row_visible` to `TRUE` regardless of R1 rank |
 | **R2 close → RANKING + TARGET_PRICE** | ✅ Built (4C) | Same listener handles round 2 → produces `round3_target_price` and `round3_bid_rank` |
-| **R3 init (Upsell setup)** | 🔴 Stub | `service/auctions/lifecycle/stub/R3InitStubListener.java:22` — logs "would set Upsell round started" |
-| **R3 pre-process (data prep)** | 🔴 Stub | `service/auctions/lifecycle/stub/R3PreProcessStubListener.java:22` — logs on `RoundClosedEvent(round ∈ {2,3})`; no `bid_data` rows seeded for R3 |
+| **R3 init (Upsell setup)** | ✅ Built (6) — V84/V85; replaced both stubs; full test suite | `R3InitListener` + `R3InitService`; predecessor guard requires `r3_preprocess_status = SUCCESS` |
+| **R3 pre-process (data prep)** | ✅ Built (6) — V84/V85; replaced both stubs; full test suite | `R3PreProcessListener` + `R3PreProcessService`; 5 phases — delete unsubmitted R2 bids, regular CTE, STB CTE, QBC bulk INSERT, round3 reports |
 | R3 bid submission | 🟡 Partial | Pipeline mechanically supports R3, but R3 has no inventory until pre-process lands |
 | R3 close + ranking | 🔴 Not applicable + missing | `RecalcRoundClosedListener` gates on `round ∈ {1,2}` (terminal-round design); no 4C recalc fires for R3 close |
 | R3 reports (Round 3 Bid Report by Buyer) | ✅ Built (read-only) | `Round3ReportController` + `Round3ReportService`; `auctions.round3_buyer_data_reports`; frontend at `admin/auctions-data-center/round3-bid-report/page.tsx`. Empty until R3 pre-process lands |
@@ -55,12 +56,9 @@ on `RoundStartedEvent(round=2)`. The remaining stub-listener work is the
 
 ## 3. Stub listeners — what each defers
 
-| Stub file | Fires on | Missing production behavior |
-|---|---|---|
-| `service/auctions/lifecycle/stub/R3InitStubListener.java:22` | `RoundStartedEvent(round=3)` | **R3 (Upsell) init**: `ACT_Round3_SetStarted` / `SUB_InitializeRound3` |
-| `service/auctions/lifecycle/stub/R3PreProcessStubListener.java:22` | `RoundClosedEvent(round ∈ {2,3})` | **R3 data pre-processing**: `SUB_Round3_PreProcessRoundData` + `ACT_GenerateRound3_BidDataObjects` (seeds R3 `bid_data` rows + `round3_buyer_data_reports`) |
+> **All stub listeners have been deleted.** Sub-project 5 deleted `R2InitStubListener` (2026-05-06); sub-project 6 deleted both `R3InitStubListener` and `R3PreProcessStubListener` (2026-05-07). The `service/auctions/lifecycle/stub/` directory is now empty.
 
-> `R2InitStubListener` was deleted 2026-05-06 (sub-project 5 shipped).
+There are no remaining stub listeners.
 
 ---
 
@@ -109,7 +107,7 @@ Ranked by criticality × dependency-blocking factor.
 | # | Item | Scope | Rationale |
 |---|---|---|---|
 | **1** | ~~**Sub-project 5: R2 buyer assignment** — replace `R2InitStubListener` with `SUB_AssignRoundTwoBuyers` + `SUB_GenerateRound2QualifiedBuyerCodes`~~ ✅ **Shipped 2026-05-06** | L | Blocks every live R2 cycle. Without it, zero buyers are scoped to R2 |
-| **2** | **Sub-project 6: R3 init + pre-process** — replace `R3InitStubListener` and `R3PreProcessStubListener` with `ACT_Round3_SetStarted` + `SUB_Round3_PreProcessRoundData` / `ACT_GenerateRound3_BidDataObjects` | L | Blocks R3 (Upsell) bidding; populates the already-shipped R3 report page |
+| **2** | ~~**Sub-project 6: R3 init + pre-process** — replace `R3InitStubListener` and `R3PreProcessStubListener` with `ACT_Round3_SetStarted` + `SUB_Round3_PreProcessRoundData`~~ ✅ **Shipped 2026-05-07** | L | Both stubs deleted; V84 + V85 migrations; `R3PreProcessService` + `R3InitService` + full test suite |
 | **3** | **Fix `bid_meets_threshold` + `row_visible` stubs in `BidDataCreationRepository.java:126–137`** | M | Every buyer currently sees every row in R2/R3 regardless of R1 rank — functionally incorrect for production |
 | **4** | **Buyer auction email notifications** — port `ACT_Round3_StartNotification`; wire the three notification-sent columns on `SchedulingAuction.java:51–57` | M | Schema slots exist; no service writes them |
 | **5** | **Buyer Award Summary Report** — port `SUB_LoadBuyerAwardsSummaryReport` + admin page | M | Finance/ops reporting hole — entirely absent |
@@ -119,11 +117,33 @@ Ranked by criticality × dependency-blocking factor.
 | **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
 | **10** | **PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend) | S | PO creation is one-row-at-a-time; reserve-bids has batch upload |
 
-**Critical path:** items 2 and 3 are the remaining production blockers
-(item 1 shipped 2026-05-06 as sub-project 5). Without items 2 and 3, R3
-(Upsell) bidding does not function and R2 per-row visibility is
-incorrect for non-special buyers. Items 4–10 are non-blocking polish
-that can ship in any order.
+**Critical path:** item 3 is the remaining production blocker (items 1 and 2
+shipped as sub-projects 5 and 6). Without item 3, R2/R3 per-row visibility is
+incorrect for non-special buyers. Items 4–10 are non-blocking polish that can
+ship in any order.
+
+---
+
+## 7. Follow-up risks
+
+### Latent bug: `R2BuyerAssignmentService.recalculate()` self-call AOP bypass
+
+`R2BuyerAssignmentService.recalculate()` calls `run()` on the same bean
+instance. Spring's CGLIB proxy intercepts `recalculate()` but not the
+`this.run()` self-call, so `run()`'s `@Transactional(MANDATORY)` annotation is
+never applied. Without a surrounding transaction, the `MANDATORY` repos inside
+`run()` throw `IllegalTransactionStateException`. Production
+`POST /api/v1/admin/auctions/scheduling-auctions/{id}/reassign-r2-buyers`
+would fail with a 500.
+
+The bug is silent in the test suite because `R2BuyerAssignmentAdminControllerIT`
+is a `@WebMvcTest` slice with `@MockBean R2BuyerAssignmentService` — the real
+service body is never invoked.
+
+**Fix (sub-project 5 follow-on):** annotate `R2BuyerAssignmentService.recalculate()`
+with `@Transactional(propagation = REQUIRES_NEW)` — the same fix applied to
+both R3 services in sub-project 6 (see ADR 2026-05-07, implementation
+deviations).
 
 ---
 
@@ -131,9 +151,12 @@ that can ship in any order.
 
 | File | Role |
 |---|---|
-| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R2InitStubListener.java` | Sub-project 5 placeholder |
-| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R3InitStubListener.java` | Sub-project 6 placeholder |
-| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R3PreProcessStubListener.java` | Sub-project 6 placeholder |
+| ~~`backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R2InitStubListener.java`~~ | Deleted (sub-project 5 shipped 2026-05-06) |
+| ~~`backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R3InitStubListener.java`~~ | Deleted (sub-project 6 shipped 2026-05-07) |
+| ~~`backend/src/main/java/com/ecoatm/salesplatform/service/auctions/lifecycle/stub/R3PreProcessStubListener.java`~~ | Deleted (sub-project 6 shipped 2026-05-07) |
+| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/r3init/R3PreProcessService.java` | R3 pre-process implementation (sub-project 6) |
+| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/r3init/R3InitService.java` | R3 init implementation with predecessor guard (sub-project 6) |
+| `backend/src/main/java/com/ecoatm/salesplatform/controller/admin/R3LifecycleAdminController.java` | REST-only /preprocess-r3 + /reinit-r3 endpoints (sub-project 6) |
 | `backend/src/main/java/com/ecoatm/salesplatform/repository/auctions/BidDataCreationRepository.java` lines 126–137 | `bid_meets_threshold` + `row_visible` stubs |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/BidRankingSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/TargetPriceSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |

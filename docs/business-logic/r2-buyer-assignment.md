@@ -49,7 +49,7 @@ For each (buyer_code, ecoid, grade) tuple in the prior round's submitted
 bids, the predicate cascade is (first match wins):
 
 1. `r1_target_price = 0 AND bid_amount > 0` → qualifies
-2. `r1_target_price > 0 AND bid_amount / r1_target_price >= 1 - target_percent` → qualifies
+2. `r1_target_price > 0 AND bid_amount / r1_target_price >= 1 - (target_percent / 100)` → qualifies (whole-percent: `target_percent = 5` means 5%)
 3. `(r1_target_price - bid_amount) <= target_value` → qualifies
 4. Inventory-option fallback (above) — qualifies
 5. Otherwise — does not qualify
