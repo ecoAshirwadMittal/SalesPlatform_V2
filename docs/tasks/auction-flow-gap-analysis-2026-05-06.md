@@ -90,13 +90,13 @@ There are no remaining stub listeners.
 |---|---|---|
 | Pull | `aggregated_inventory` weekly load — `SnowflakeAggInventoryReader` | ✅ Built |
 | Pull | `reserve_bid` — `ReserveBidSyncScheduledJob` + `JdbcReserveBidSnowflakeReader` | ✅ Built (4A) |
-| Push | `AUCTIONS.RESERVE_BID` — `ReserveBidSnowflakePushListener` | ✅ Built (4A); `// future:` deferred sync-log |
-| Push | `AUCTIONS.UPSERT_PURCHASE_ORDER` — `PurchaseOrderSnowflakePushListener` | ✅ Built (4B); same deferral |
+| Push | `AUCTIONS.RESERVE_BID` — `ReserveBidSnowflakePushListener` | ✅ Built (4A); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
+| Push | `AUCTIONS.UPSERT_PURCHASE_ORDER` — `PurchaseOrderSnowflakePushListener` | ✅ Built (4B); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
 | Push | Auction status — `AuctionStatusSnowflakePushListener` | ✅ Built |
-| Push | `AUCTIONS.BUYER_BID` rankings — `BidRankingSnowflakePushListener.java:38` | ✅ Built (4C); `// future: write a FAILED row to integration.snowflake_sync_log` |
-| Push | `AUCTIONS.TARGET_PRICE_AUDIT` — `TargetPriceSnowflakePushListener.java:38` | ✅ Built (4C); same deferral |
+| Push | `AUCTIONS.BUYER_BID` rankings — `BidRankingSnowflakePushListener` | ✅ Built (4C); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
+| Push | `AUCTIONS.TARGET_PRICE_AUDIT` — `TargetPriceSnowflakePushListener` | ✅ Built (4C); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
 | Missing | Manual "send all bids" admin action (Mendix `ACT_Auction_SendAllBidsToSnowflake_Admin`) | 🔴 Not ported |
-| Missing | `syncLogRepo.recordFailure(...)` in the four push-listener catch blocks | 🔴 `SyncLogWriter` + `SnowflakeSyncLogRepository` exist (used by `AggregatedInventoryService`); not injected into the four 4x listeners |
+| ~~Missing~~ | ~~`syncLogRepo.recordFailure(...)` in the four push-listener catch blocks~~ | ✅ Wired in gap-analysis #6 (2026-05-07) via `SyncLogWriter.writeFailed(...)` |
 
 ---
 
@@ -111,7 +111,7 @@ Ranked by criticality × dependency-blocking factor.
 | **3** | ~~**Fix `bid_meets_threshold` + `row_visible` stubs in `BidDataCreationRepository.java:126–137`**~~ ✅ **Shipped 2026-05-07 (sub-project 5b)** | M | R2 + R3 cascades + STB shortcut; 20 new IT cases; design at `docs/tasks/auction-r2-r3-row-visibility-design.md` |
 | **4** | **Buyer auction email notifications** — port `ACT_Round3_StartNotification`; wire the three notification-sent columns on `SchedulingAuction.java:51–57` | M | Schema slots exist; no service writes them |
 | **5** | **Buyer Award Summary Report** — port `SUB_LoadBuyerAwardsSummaryReport` + admin page | M | Finance/ops reporting hole — entirely absent |
-| **6** | **Wire `syncLogRepo.recordFailure(...)` in all 4 push-listener catch blocks** (EB, PO, 4C-BidRanking, 4C-TargetPrice) | S | `SyncLogWriter` + `SnowflakeSyncLogRepository` already exist; just inject and call |
+| **6** | ~~**Wire `syncLogRepo.recordFailure(...)` in all 4 push-listener catch blocks**~~ ✅ **Shipped 2026-05-07** | S | New `SyncLogWriter.writeFailed(syncType, targetKey, errorMessage)` method (single-shot REQUIRES_NEW); 4 listeners now record FAILED rows on push exceptions |
 | **7** | **Frontend UI for `/re-rank` and `/recalculate-target-price`** | S | REST endpoints shipped in 4C; design deferred UI |
 | **8** | **Special-treatment buyer handling** — `SUB_HandleSpecialTreatmentBuyerOnRoundStart` | M | `is_special_treatment` exists on `QualifiedBuyerCode`; `row_visible=TRUE` ignores it |
 | **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
@@ -155,8 +155,8 @@ service body was never invoked.
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/r3init/R3InitService.java` | R3 init implementation with predecessor guard (sub-project 6) |
 | `backend/src/main/java/com/ecoatm/salesplatform/controller/admin/R3LifecycleAdminController.java` | REST-only /preprocess-r3 + /reinit-r3 endpoints (sub-project 6) |
 | ~~`backend/src/main/java/com/ecoatm/salesplatform/repository/auctions/BidDataCreationRepository.java` lines 126–137~~ | ~~`bid_meets_threshold` + `row_visible` stubs~~ (resolved by sub-project 5b) |
-| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/BidRankingSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |
-| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/TargetPriceSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |
+| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/BidRankingSnowflakePushListener.java` | `// future:` comment removed; `writeFailed` wired (#6, 2026-05-07) |
+| `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/TargetPriceSnowflakePushListener.java` | `// future:` comment removed; `writeFailed` wired (#6, 2026-05-07) |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/recalc/RecalcOrchestrator.java` | 4C two-process coordinator |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/recalc/BidRankingService.java` | DENSE_RANK process |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/recalc/TargetPriceRecalcService.java` | GREATEST CTE process |
