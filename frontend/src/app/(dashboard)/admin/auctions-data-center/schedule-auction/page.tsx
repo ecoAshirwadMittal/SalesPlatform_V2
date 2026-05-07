@@ -5,6 +5,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   closeRound,
   listSchedulingAuctions,
+  reRank,
+  recalculateTargetPrice,
+  RecalcAlreadyRunningError,
   RoundAlreadyTransitionedError,
   startRound,
   type SchedulingAuctionListPageResponse,
@@ -94,6 +97,29 @@ export default function SchedulingAuctionListPage() {
           : err instanceof Error
             ? err.message
             : 'Round transition failed';
+      setTransitionError(msg);
+    } finally {
+      setTransitioning(null);
+    }
+  };
+
+  const handleRecalc = async (id: number, action: 're-rank' | 'recalculate-target-price') => {
+    setTransitionError(null);
+    setTransitioning(id);
+    try {
+      if (action === 're-rank') {
+        await reRank(id);
+      } else {
+        await recalculateTargetPrice(id);
+      }
+      await refresh();
+    } catch (err) {
+      const msg =
+        err instanceof RecalcAlreadyRunningError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Recalculation failed';
       setTransitionError(msg);
     } finally {
       setTransitioning(null);
@@ -190,6 +216,8 @@ export default function SchedulingAuctionListPage() {
                 }}
                 onStart={() => void handleTransition(r.id, 'start')}
                 onClose={() => void handleTransition(r.id, 'close')}
+                onRerank={() => void handleRecalc(r.id, 're-rank')}
+                onRecalcTargetPrice={() => void handleRecalc(r.id, 'recalculate-target-price')}
               />
             ))}
             {data && data.content.length === 0 && (
@@ -242,12 +270,16 @@ function SchedulingRow({
   onEdit,
   onStart,
   onClose,
+  onRerank,
+  onRecalcTargetPrice,
 }: {
   row: SchedulingAuctionListRow;
   isTransitioning: boolean;
   onEdit: () => void;
   onStart: () => void;
   onClose: () => void;
+  onRerank: () => void;
+  onRecalcTargetPrice: () => void;
 }) {
   return (
     <tr>
@@ -296,6 +328,28 @@ function SchedulingRow({
             >
               {isTransitioning ? '…' : 'Close'}
             </button>
+          )}
+          {row.roundStatus === 'Closed' && (row.round === 1 || row.round === 2) && (
+            <>
+              <button
+                type="button"
+                className={styles.editLink}
+                aria-label={`Re-rank round ${row.id}`}
+                disabled={isTransitioning}
+                onClick={onRerank}
+              >
+                {isTransitioning ? '…' : 'Re-rank'}
+              </button>
+              <button
+                type="button"
+                className={styles.editLink}
+                aria-label={`Recalc target price round ${row.id}`}
+                disabled={isTransitioning}
+                onClick={onRecalcTargetPrice}
+              >
+                {isTransitioning ? '…' : 'Recalc TP'}
+              </button>
+            </>
           )}
         </div>
       </td>

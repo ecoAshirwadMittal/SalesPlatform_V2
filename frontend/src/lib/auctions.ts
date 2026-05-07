@@ -519,3 +519,55 @@ export function startRound(id: number): Promise<RoundTransitionResponse> {
 export function closeRound(id: number): Promise<RoundTransitionResponse> {
   return postRoundTransition(id, 'close');
 }
+
+// ---------------------------------------------------------------------------
+// Admin recalc endpoints — re-rank + recalculate-target-price for closed
+// rounds 1 and 2 (sub-project 4C). Backend RecalcAdminController.
+// ---------------------------------------------------------------------------
+
+export const RecalcResponseSchema = z.object({
+  id: z.number(),
+  round: z.number().int(),
+  status: z.string(),
+  error: z.string().nullable(),
+  startedAt: z.string(),
+  finishedAt: z.string(),
+  rowsAffected: z.number().int(),
+  durationMs: z.number().int(),
+});
+export type RecalcResponse = z.infer<typeof RecalcResponseSchema>;
+
+export class RecalcAlreadyRunningError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'RecalcAlreadyRunningError';
+  }
+}
+
+async function postRecalc(
+  id: number,
+  action: 're-rank' | 'recalculate-target-price',
+): Promise<RecalcResponse> {
+  const res = await apiFetch(
+    `/api/v1/admin/auctions/scheduling-auctions/${id}/${action}`,
+    { method: 'POST' },
+  );
+  if (res.status === 409) {
+    const { message } = await readErrorEnvelope(res);
+    throw new RecalcAlreadyRunningError(message);
+  }
+  if (res.status === 422 || res.status === 404 || res.status === 400) {
+    const { message } = await readErrorEnvelope(res);
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return RecalcResponseSchema.parse(await res.json());
+}
+
+export function reRank(id: number): Promise<RecalcResponse> {
+  return postRecalc(id, 're-rank');
+}
+
+export function recalculateTargetPrice(id: number): Promise<RecalcResponse> {
+  return postRecalc(id, 'recalculate-target-price');
+}
