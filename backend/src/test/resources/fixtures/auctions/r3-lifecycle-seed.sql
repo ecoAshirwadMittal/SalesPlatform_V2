@@ -109,21 +109,25 @@ VALUES
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── auctions.aggregated_inventory ───────────────────────────────────────────
--- 6 (ecoid, grade) rows for week 601.
+-- 7 (ecoid, grade) rows for week 601.
 -- round3_target_price is the R3 qualification threshold used by the CTE.
 -- ECO-F is deprecated (is_deprecated=true) — R3 CTE should skip it.
+-- ECO-A-DW (id=60007) is a separate DW-variant row for ECO-A with
+--   round3_target_price=90; ACME-DW's bid_data references this row so
+--   the qualification math uses target=90 (88 >= 90-(90*5/100)=85.5 → qualifies).
 INSERT INTO auctions.aggregated_inventory
     (id, week_id, ecoid2, merged_grade,
      total_quantity, dw_total_quantity,
      avg_target_price, dw_avg_target_price, round3_target_price,
      is_deprecated, created_date, changed_date)
 VALUES
-    (60001, 601, 'ECO-A', 'Grade_A', 100, 50, 100.00, 90.00, 100.00, false, NOW(), NOW()),
-    (60002, 601, 'ECO-B', 'Grade_A', 200, 80,  50.00, 45.00,  50.00, false, NOW(), NOW()),
-    (60003, 601, 'ECO-C', 'Grade_B', 150, 60,  75.00, 70.00,  75.00, false, NOW(), NOW()),
-    (60004, 601, 'ECO-D', 'Grade_B', 100, 40,  25.00, 22.00,  25.00, false, NOW(), NOW()),
-    (60005, 601, 'ECO-E', 'Grade_C',  80, 30,  40.00, 38.00,  40.00, false, NOW(), NOW()),
-    (60006, 601, 'ECO-F', 'Grade_C',  60, 20,  60.00, 55.00,  60.00, true,  NOW(), NOW())
+    (60001, 601, 'ECO-A',    'Grade_A', 100, 50, 100.00, 90.00, 100.00, false, NOW(), NOW()),
+    (60002, 601, 'ECO-B',    'Grade_A', 200, 80,  50.00, 45.00,  50.00, false, NOW(), NOW()),
+    (60003, 601, 'ECO-C',    'Grade_B', 150, 60,  75.00, 70.00,  75.00, false, NOW(), NOW()),
+    (60004, 601, 'ECO-D',    'Grade_B', 100, 40,  25.00, 22.00,  25.00, false, NOW(), NOW()),
+    (60005, 601, 'ECO-E',    'Grade_C',  80, 30,  40.00, 38.00,  40.00, false, NOW(), NOW()),
+    (60006, 601, 'ECO-F',    'Grade_C',  60, 20,  60.00, 55.00,  60.00, true,  NOW(), NOW()),
+    (60007, 601, 'ECO-A-DW', 'Grade_A',  50, 50,  90.00, 90.00,  90.00, false, NOW(), NOW())
 ON CONFLICT (id) DO NOTHING;
 
 -- ─── buyer_mgmt.buyers ───────────────────────────────────────────────────────
@@ -247,7 +251,9 @@ VALUES
      5, false),
 
     -- ACME-DW R2 (bid_round_id=60007, SA 6002): bid=88 vs DW target=90 → qualifies via pct
-    (60003, 60007, 60002, 60001,
+    -- References aggregated_inventory 60007 (ECO-A-DW, round3_target_price=90)
+    -- pct check: 88 >= 90 - (90*5/100) = 85.5 → QUALIFIES
+    (60003, 60007, 60002, 60007,
      'ECO-A', 'Grade_A', 'ACME-DW', 'Acme Corp', 'Data_Wipe',
      88.00, 88.00, '2026-05-02 10:00:00+00',
      5, 90.00, 2, 601,
