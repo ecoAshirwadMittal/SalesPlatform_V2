@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.model.auctions.PODetail;
 import com.ecoatm.salesplatform.model.auctions.PurchaseOrder;
 import com.ecoatm.salesplatform.repository.auctions.PODetailRepository;
 import com.ecoatm.salesplatform.repository.auctions.PurchaseOrderRepository;
+import com.ecoatm.salesplatform.service.auctions.SyncLogWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -26,15 +27,18 @@ public class PurchaseOrderSnowflakePushListener {
     private final PODetailRepository detailRepo;
     private final PurchaseOrderSnowflakeWriter writer;
     private final Environment env;
+    private final SyncLogWriter syncLogWriter;
 
     public PurchaseOrderSnowflakePushListener(PurchaseOrderRepository poRepo,
                                               PODetailRepository detailRepo,
                                               PurchaseOrderSnowflakeWriter writer,
-                                              Environment env) {
+                                              Environment env,
+                                              SyncLogWriter syncLogWriter) {
         this.poRepo = poRepo;
         this.detailRepo = detailRepo;
         this.writer = writer;
         this.env = env;
+        this.syncLogWriter = syncLogWriter;
     }
 
     @Async("snowflakeExecutor")
@@ -53,6 +57,9 @@ public class PurchaseOrderSnowflakePushListener {
         } catch (Exception ex) {
             log.warn("Snowflake push failed for PO {}; will be re-pushed on next upload",
                     event.purchaseOrderId(), ex);
+            syncLogWriter.writeFailed("PURCHASE_ORDER",
+                    "action=" + event.action() + ",poId=" + event.purchaseOrderId(),
+                    ex.toString());
         }
     }
 

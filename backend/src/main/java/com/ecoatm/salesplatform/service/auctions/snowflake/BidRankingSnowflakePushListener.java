@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions.snowflake;
 
 import com.ecoatm.salesplatform.event.BidRankingUpdatedEvent;
+import com.ecoatm.salesplatform.service.auctions.SyncLogWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -16,10 +17,14 @@ public class BidRankingSnowflakePushListener {
 
     private final BidRankingSnowflakeWriter writer;
     private final Environment env;
+    private final SyncLogWriter syncLogWriter;
 
-    public BidRankingSnowflakePushListener(BidRankingSnowflakeWriter writer, Environment env) {
+    public BidRankingSnowflakePushListener(BidRankingSnowflakeWriter writer,
+                                           Environment env,
+                                           SyncLogWriter syncLogWriter) {
         this.writer = writer;
         this.env = env;
+        this.syncLogWriter = syncLogWriter;
     }
 
     @Async("snowflakeExecutor")
@@ -35,7 +40,9 @@ public class BidRankingSnowflakePushListener {
                 event.weekId(), event.closedRound() + 1);
         } catch (RuntimeException ex) {
             log.error("[snowflake] bid-ranking push failed for event={}", event, ex);
-            // future: write a FAILED row to integration.snowflake_sync_log
+            syncLogWriter.writeFailed("BID_RANKING",
+                    "weekId=" + event.weekId() + ",targetRound=" + (event.closedRound() + 1),
+                    ex.toString());
         }
     }
 }

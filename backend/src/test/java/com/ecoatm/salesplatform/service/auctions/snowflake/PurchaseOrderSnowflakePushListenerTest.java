@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import com.ecoatm.salesplatform.repository.auctions.PODetailRepository;
 import com.ecoatm.salesplatform.repository.auctions.PurchaseOrderRepository;
+import com.ecoatm.salesplatform.service.auctions.SyncLogWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.env.Environment;
@@ -16,6 +17,8 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class PurchaseOrderSnowflakePushListenerTest {
@@ -24,6 +27,7 @@ class PurchaseOrderSnowflakePushListenerTest {
     PODetailRepository detailRepo;
     PurchaseOrderSnowflakeWriter writer;
     Environment env;
+    SyncLogWriter syncLogWriter;
     PurchaseOrderSnowflakePushListener listener;
 
     @BeforeEach
@@ -32,8 +36,9 @@ class PurchaseOrderSnowflakePushListenerTest {
         detailRepo = mock(PODetailRepository.class);
         writer = mock(PurchaseOrderSnowflakeWriter.class);
         env = mock(Environment.class);
+        syncLogWriter = mock(SyncLogWriter.class);
         when(env.getProperty("po.sync.enabled", "true")).thenReturn("true");
-        listener = new PurchaseOrderSnowflakePushListener(poRepo, detailRepo, writer, env);
+        listener = new PurchaseOrderSnowflakePushListener(poRepo, detailRepo, writer, env, syncLogWriter);
     }
 
     @Test
@@ -60,6 +65,21 @@ class PurchaseOrderSnowflakePushListenerTest {
                 .when(writer).upsert(any());
         listener.onChange(new PurchaseOrderChangedEvent(7L,
                 PurchaseOrderChangedEvent.Action.UPSERT));  // must NOT throw
+    }
+
+    @Test
+    void writerThrows_writesSyncLogFailedRow() {
+        PurchaseOrder po = stubPo(42L);
+        when(poRepo.findByIdWithDetails(42L)).thenReturn(Optional.of(po));
+        doThrow(new RuntimeException("Snowflake down")).when(writer).upsert(any());
+
+        listener.onChange(new PurchaseOrderChangedEvent(42L,
+                PurchaseOrderChangedEvent.Action.UPSERT));
+
+        verify(syncLogWriter).writeFailed(
+                eq("PURCHASE_ORDER"),
+                eq("action=UPSERT,poId=42"),
+                contains("Snowflake down"));
     }
 
     @Test

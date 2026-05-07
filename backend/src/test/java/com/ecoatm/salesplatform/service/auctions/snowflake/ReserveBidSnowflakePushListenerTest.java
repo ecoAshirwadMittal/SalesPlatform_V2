@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.service.auctions.snowflake;
 import com.ecoatm.salesplatform.event.ReserveBidChangedEvent;
 import com.ecoatm.salesplatform.model.auctions.ReserveBid;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidRepository;
+import com.ecoatm.salesplatform.service.auctions.SyncLogWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,6 +16,9 @@ import java.math.BigDecimal;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -23,13 +27,14 @@ class ReserveBidSnowflakePushListenerTest {
     @Mock ReserveBidRepository repo;
     @Mock ReserveBidSnowflakeWriter writer;
     @Mock Environment env;
+    @Mock SyncLogWriter syncLogWriter;
 
     ReserveBidSnowflakePushListener listener;
 
     @BeforeEach
     void setUp() {
         when(env.getProperty("eb.sync.enabled", Boolean.class, true)).thenReturn(true);
-        listener = new ReserveBidSnowflakePushListener(repo, writer, env);
+        listener = new ReserveBidSnowflakePushListener(repo, writer, env, syncLogWriter);
     }
 
     @Test
@@ -48,9 +53,22 @@ class ReserveBidSnowflakePushListenerTest {
     }
 
     @Test
+    void writerThrows_writesSyncLogFailedRow() {
+        doThrow(new RuntimeException("Snowflake down")).when(writer).upsert(any());
+        when(repo.findAllById(List.of(1L))).thenReturn(List.of(new ReserveBid()));
+
+        listener.onChanged(new ReserveBidChangedEvent(List.of(1L), ReserveBidChangedEvent.Action.UPSERT));
+
+        verify(syncLogWriter).writeFailed(
+                eq("RESERVE_BID"),
+                contains("action=UPSERT"),
+                contains("Snowflake down"));
+    }
+
+    @Test
     void featureFlagOff_noWriterCall() {
         when(env.getProperty("eb.sync.enabled", Boolean.class, true)).thenReturn(false);
-        ReserveBidSnowflakePushListener off = new ReserveBidSnowflakePushListener(repo, writer, env);
+        ReserveBidSnowflakePushListener off = new ReserveBidSnowflakePushListener(repo, writer, env, syncLogWriter);
 
         off.onChanged(new ReserveBidChangedEvent(List.of(1L), ReserveBidChangedEvent.Action.UPSERT));
 

@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.service.auctions.snowflake;
 import com.ecoatm.salesplatform.event.ReserveBidChangedEvent;
 import com.ecoatm.salesplatform.model.auctions.ReserveBid;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidRepository;
+import com.ecoatm.salesplatform.service.auctions.SyncLogWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.env.Environment;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -24,13 +26,16 @@ public class ReserveBidSnowflakePushListener {
     private final ReserveBidRepository repo;
     private final ReserveBidSnowflakeWriter writer;
     private final Environment env;
+    private final SyncLogWriter syncLogWriter;
 
     public ReserveBidSnowflakePushListener(ReserveBidRepository repo,
                                            ReserveBidSnowflakeWriter writer,
-                                           Environment env) {
+                                           Environment env,
+                                           SyncLogWriter syncLogWriter) {
         this.repo = repo;
         this.writer = writer;
         this.env = env;
+        this.syncLogWriter = syncLogWriter;
     }
 
     @Async("snowflakeExecutor")
@@ -56,7 +61,15 @@ public class ReserveBidSnowflakePushListener {
         } catch (Exception ex) {
             log.error("[eb-push] failed action={} ids={} - swallowed so Postgres tx stands",
                     event.action(), event.changedIds(), ex);
+            syncLogWriter.writeFailed("RESERVE_BID",
+                    "action=" + event.action() + ",ids=" + truncateIds(event.changedIds()),
+                    ex.toString());
         }
+    }
+
+    private static String truncateIds(Collection<Long> ids) {
+        String s = ids.toString();
+        return s.length() <= 200 ? s : s.substring(0, 197) + "...";
     }
 
     private static String actingUser() {

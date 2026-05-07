@@ -22,7 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
  * {@code V69__integration_snowflake_sync_log_widen_status.sql}.
  */
 @Component
-class SyncLogWriter {
+public class SyncLogWriter {
 
     /** Status string values — mirror the V69 CHECK constraint. */
     static final String STATUS_STARTED = "STARTED";
@@ -36,7 +36,7 @@ class SyncLogWriter {
 
     private final SnowflakeSyncLogRepository repository;
 
-    SyncLogWriter(SnowflakeSyncLogRepository repository) {
+    public SyncLogWriter(SnowflakeSyncLogRepository repository) {
         this.repository = repository;
     }
 
@@ -71,6 +71,36 @@ class SyncLogWriter {
         row.setRowsUpserted(0);
         row.setStartedAt(now);
         row.setFinishedAt(now);
+        return repository.save(row).getId();
+    }
+
+    /**
+     * Single-insert FAILED log row for fire-and-forget callers (e.g. Snowflake
+     * push listeners) that don't have a prior STARTED row to flip. Use when
+     * the calling code has no log id to thread through and just needs a
+     * breadcrumb.
+     *
+     * <p>Symmetric with {@link #writeSkippedLocked(String, String)} —
+     * single-row INSERT with {@code started_at = finished_at = NOW()},
+     * no prior STARTED row, no log id needed.
+     *
+     * @param syncType     identifier for the sync category (e.g. "BID_RANKING")
+     * @param targetKey    identifier for the target being synced (e.g. "weekId=601,targetRound=2")
+     * @param errorMessage exception message; truncated to 1000 chars if longer
+     * @return generated log row id
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public Long writeFailed(String syncType, String targetKey, String errorMessage) {
+        Instant now = Instant.now();
+        SnowflakeSyncLog row = new SnowflakeSyncLog();
+        row.setSyncType(syncType);
+        row.setTargetKey(targetKey);
+        row.setStatus(STATUS_FAILED);
+        row.setRowsRead(0);
+        row.setRowsUpserted(0);
+        row.setStartedAt(now);
+        row.setFinishedAt(now);
+        row.setErrorMessage(truncate(errorMessage));
         return repository.save(row).getId();
     }
 
