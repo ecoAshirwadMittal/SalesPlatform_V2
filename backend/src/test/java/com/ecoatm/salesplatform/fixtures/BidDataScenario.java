@@ -5,7 +5,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -55,13 +57,23 @@ public final class BidDataScenario {
     private String buyerCodeType = "Wholesale"; // "Wholesale" or "DW"
     private boolean specialTreatment = false;
     private boolean included = true;
+    private String qualificationType = "Qualified";
     private final Map<InventoryKey, InventorySpec> inventory = new HashMap<>();
     private final Map<InventoryKey, DualInventorySpec> dualInventory = new HashMap<>();
     private final Map<InventoryKey, BidSpec> priorRoundBids = new HashMap<>();
     private FilterSpec filter = null;
+    private FilterSpecR2 filterR2 = null;
+    private FilterSpecR3 filterR3 = null;
+    private final List<ExtendedBidSpec> extendedPriorBids = new ArrayList<>();
+    private final List<R3TargetPriceSpec> r3TargetPrices = new ArrayList<>();
 
     private Long resolvedBuyerCodeId;
     private Long resolvedBidDataDocId;
+
+    // Resolved during commitAndReturnBidRoundId() — used by priorBid helpers
+    private Long resolvedAuctionId;
+    private Long resolvedWeekId;
+    private Long resolvedUserId;
 
     public BidDataScenario(JdbcTemplate jdbc) {
         this.jdbc = jdbc;
@@ -134,6 +146,120 @@ public final class BidDataScenario {
     }
 
     /**
+     * Set all three QBC fields in one call: {@code is_special_treatment},
+     * {@code included}, and {@code qualification_type}.
+     *
+     * <p>Unlike the individual {@link #included} / {@link #specialTreatment}
+     * setters (which default to {@code 'Qualified'}), this overload also
+     * controls {@code qualificationType} so R2/R3 tests can seed
+     * {@code 'Not_Qualified'} rows for exclusion-branch coverage.
+     */
+    public BidDataScenario qbc(boolean isSpecialTreatment, boolean included, String qualificationType) {
+        this.specialTreatment = isSpecialTreatment;
+        this.included = included;
+        this.qualificationType = qualificationType;
+        return this;
+    }
+
+    /**
+     * Register a {@code bid_round_selection_filters} row for round 2.
+     *
+     * <p>{@code qualMode} ∈ {@code {'All_Buyers','Only_Qualified'}}.
+     * {@code invMode} ∈ {@code {'ShowAllInventory','InventoryRound1QualifiedBids'}}.
+     * {@code stb_allow_all_buyers_override} is set to {@code false}.
+     * Whole-percent convention: {@code targetPercent=5} means 5% (stored as-is
+     * in the {@code NUMERIC(10,4)} column).
+     *
+     * <p>This method is an alternative to {@link #qualificationFilter} for
+     * round-2 scenarios that need explicit {@code qualMode} and {@code invMode}
+     * control. If both are called, {@code brsfR2} takes precedence.
+     */
+    public BidDataScenario brsfR2(BigDecimal targetPercent, BigDecimal targetValue,
+                                  String qualMode, String invMode) {
+        this.filterR2 = new FilterSpecR2(targetPercent, targetValue, qualMode, invMode);
+        return this;
+    }
+
+    /**
+     * Register a {@code bid_round_selection_filters} row for round 3.
+     *
+     * <p>Any of the three parameters may be {@code null} (→ SQL NULL). The
+     * other columns default to {@code 'Only_Qualified'} /
+     * {@code 'InventoryRound1QualifiedBids'} / {@code stb_allow_all_buyers_override=false}.
+     */
+    public BidDataScenario brsfR3(BigDecimal pctVar, BigDecimal amtVar, Integer rankLim) {
+        this.filterR3 = new FilterSpecR3(pctVar, amtVar, rankLim);
+        return this;
+    }
+
+    /**
+     * Seed a prior-round {@code bid_data} row for the scenario's buyer code at
+     * {@code priorRound = currentRound - 1}.
+     *
+     * <p>Delegates to {@link #priorBid(int, String, String, BigDecimal, int)}
+     * with {@code round3BidRank = null}.
+     */
+    public BidDataScenario priorBid(String ecoid, String mergedGrade,
+                                    BigDecimal amount, int quantity) {
+        return priorBid(round - 1, ecoid, mergedGrade, amount, quantity);
+    }
+
+    /**
+     * Seed a prior-round {@code bid_data} row for round {@code priorRound}
+     * and set {@code round3_bid_rank} to the given value.
+     *
+     * <p>Delegates to {@link #priorBid(int, String, String, BigDecimal, int)}
+     * with the supplied rank.
+     */
+    public BidDataScenario priorBidWithRank(String ecoid, String mergedGrade,
+                                            BigDecimal amount, int quantity,
+                                            Integer round3BidRank) {
+        extendedPriorBids.add(
+                new ExtendedBidSpec(round - 1, ecoid, mergedGrade, amount, quantity, round3BidRank));
+        return this;
+    }
+
+    /**
+     * Seed a prior-round {@code bid_data} row for an arbitrary {@code priorRound}.
+     *
+     * <p>At commit time the builder will look up or auto-create:
+     * <ol>
+     *   <li>A {@code scheduling_auctions} row for {@code (auctionId, priorRound)}</li>
+     *   <li>A {@code bid_rounds} row for {@code (prior_sa, buyerCodeId)}</li>
+     *   <li>A {@code bid_data_docs} row for the prior round</li>
+     * </ol>
+     * then INSERT one {@code bid_data} row with the supplied values.
+     * The {@code submitted_datetime} offset is
+     * {@code (this.round - priorRound) * 1 hour} before NOW so that older
+     * rounds have earlier timestamps (R1 &lt; R2 when both priors are seeded).
+     *
+     * <p>This overload is intentionally {@code public} — Task 6 test 6 calls
+     * {@code .priorBid(1, ...)} and {@code .priorBid(2, ...)} directly to seed
+     * both R1 and R2 priors for an R3 scenario.
+     */
+    public BidDataScenario priorBid(int priorRound, String ecoid, String mergedGrade,
+                                    BigDecimal amount, int quantity) {
+        extendedPriorBids.add(
+                new ExtendedBidSpec(priorRound, ecoid, mergedGrade, amount, quantity, null));
+        return this;
+    }
+
+    /**
+     * Update {@code auctions.aggregated_inventory.round3_target_price} for the
+     * given {@code (ecoid, mergedGrade)} row (matched by {@code week_id},
+     * {@code ecoid2}, and {@code merged_grade}).
+     *
+     * <p>The UPDATE runs during {@link #commitAndReturnBidRoundId()} after all
+     * inventory INSERTs, so the inventory row must already be registered via
+     * {@link #inventory} or {@link #dwInventory}.
+     */
+    public BidDataScenario r3TargetPrice(String ecoid, String mergedGrade,
+                                         BigDecimal round3TargetPrice) {
+        r3TargetPrices.add(new R3TargetPriceSpec(ecoid, mergedGrade, round3TargetPrice));
+        return this;
+    }
+
+    /**
      * Register a prior-round bid row keyed by {@code ecoid + "|" + grade}.
      * Rows are only inserted when {@code round > 1} and this map is non-empty.
      * V73 made {@code bid_quantity} nullable — {@code submitted_bid_quantity}
@@ -181,6 +307,7 @@ public final class BidDataScenario {
             throw new IllegalStateException(
                     "BidDataScenario requires at least one mdm.week row — none found");
         }
+        this.resolvedWeekId = weekId;
 
         // Translate the fixture's collapsed "DW" alias into the actual schema
         // values the buyer_codes table stores (V8 enumerates the four legacy
@@ -214,6 +341,7 @@ public final class BidDataScenario {
             throw new IllegalStateException(
                     "BidDataScenario requires at least one identity.users row — none found");
         }
+        this.resolvedUserId = userId;
 
         // Insert the bid_data_docs row keyed by (user, buyer_code, week). The
         // unique constraint uq_bdd_user_buyer_week means we must reuse an
@@ -238,6 +366,7 @@ public final class BidDataScenario {
                 Long.class,
                 "BidData scenario " + System.nanoTime(),
                 weekId);
+        this.resolvedAuctionId = auctionId;
 
         // ── Step 3: scheduling_auctions ───────────────────────────────────────────
         Instant r1Start = Instant.parse("2026-04-21T16:00:00Z");
@@ -311,12 +440,14 @@ public final class BidDataScenario {
                 weekId);
 
         // ── Step 5: qualified_buyer_codes (flat post-V72) ─────────────────────────
-        // id defaults to nextval('buyer_mgmt.qualified_buyer_codes_id_seq') — omitted.
+        // qualificationType defaults to 'Qualified'; the .qbc(...) overload lets
+        // R2/R3 tests seed 'Not_Qualified' rows for exclusion-branch coverage.
         jdbc.update(
                 "INSERT INTO buyer_mgmt.qualified_buyer_codes "
                         + "(qualification_type, included, is_special_treatment, "
                         + " scheduling_auction_id, buyer_code_id) "
-                        + "VALUES ('Qualified', ?, ?, ?, ?)",
+                        + "VALUES (?, ?, ?, ?, ?)",
+                qualificationType,
                 included,
                 specialTreatment,
                 schedulingAuctionId,
@@ -394,7 +525,32 @@ public final class BidDataScenario {
 
         // ── Step 8: bid_round_selection_filters ───────────────────────────────────
         // The CHECK constraint on this table rejects round=1 — skip silently.
-        if (filter != null && round >= 2) {
+        // filterR2 / filterR3 take precedence over the legacy qualificationFilter
+        // when present; they allow explicit control of qualMode and invMode.
+        if (filterR2 != null) {
+            jdbc.update(
+                    "INSERT INTO auctions.bid_round_selection_filters "
+                            + "(round, target_percent, target_value, "
+                            + " regular_buyer_qualification, regular_buyer_inventory_options, "
+                            + " stb_allow_all_buyers_override) "
+                            + "VALUES (2, ?, ?, ?, ?, false)",
+                    filterR2.targetPercent(),
+                    filterR2.targetValue(),
+                    filterR2.qualMode(),
+                    filterR2.invMode());
+        } else if (filterR3 != null) {
+            jdbc.update(
+                    "INSERT INTO auctions.bid_round_selection_filters "
+                            + "(round, bid_percentage_variation, bid_amount_variation, "
+                            + " rank_qualification_limit, "
+                            + " regular_buyer_qualification, regular_buyer_inventory_options, "
+                            + " stb_allow_all_buyers_override) "
+                            + "VALUES (3, ?, ?, ?, 'Only_Qualified', "
+                            + "         'InventoryRound1QualifiedBids', false)",
+                    filterR3.pctVar(),
+                    filterR3.amtVar(),
+                    filterR3.rankLim());
+        } else if (filter != null && round >= 2) {
             jdbc.update(
                     "INSERT INTO auctions.bid_round_selection_filters "
                             + "(round, target_percent, target_value, total_value_floor) "
@@ -403,6 +559,27 @@ public final class BidDataScenario {
                     filter.targetPercent(),
                     filter.targetValue(),
                     filter.floor());
+        }
+
+        // ── Step 9: r3_target_price updates ──────────────────────────────────────
+        // Applied after inventory INSERTs so the rows to UPDATE exist.
+        for (R3TargetPriceSpec spec : r3TargetPrices) {
+            jdbc.update(
+                    "UPDATE auctions.aggregated_inventory "
+                            + "SET round3_target_price = ? "
+                            + "WHERE week_id = ? AND ecoid2 = ? AND merged_grade = ?",
+                    spec.round3TargetPrice(),
+                    weekId,
+                    spec.ecoid(),
+                    spec.mergedGrade());
+        }
+
+        // ── Step 10: extended prior-round bid_data rows ───────────────────────────
+        // .priorBid(int, ...) and .priorBidWithRank(...) accumulate specs here.
+        // Each spec may reference a different priorRound, requiring a separate
+        // scheduling_auction lookup-or-create within this auction.
+        for (ExtendedBidSpec spec : extendedPriorBids) {
+            insertExtendedPriorBid(spec, auctionId, buyerCodeId, weekId, userId);
         }
 
         return bidRoundId;
@@ -434,6 +611,130 @@ public final class BidDataScenario {
         return resolvedBidDataDocId;
     }
 
+    /**
+     * Look up or create the prior-round scheduling_auction, bid_round, and
+     * bid_data_docs for the given spec, then INSERT a bid_data row.
+     *
+     * <p>The {@code submitted_datetime} is offset from NOW by
+     * {@code (this.round - spec.priorRound) * 1 hour} so that older rounds
+     * sort earlier in time (R1 &lt; R2 when both priors are seeded for R3).
+     */
+    private void insertExtendedPriorBid(ExtendedBidSpec spec,
+                                        Long auctionId,
+                                        Long buyerCodeId,
+                                        Long weekId,
+                                        Long userId) {
+        int priorRound = spec.priorRound();
+
+        // Derive fixed timestamps for the prior SA so look-up-or-create is stable.
+        Instant priorSaStart = switch (priorRound) {
+            case 1 -> Instant.parse("2026-04-21T16:00:00Z");
+            case 2 -> Instant.parse("2026-04-25T13:00:00Z");
+            default -> Instant.parse("2026-04-26T11:00:00Z");
+        };
+        Instant priorSaEnd = switch (priorRound) {
+            case 1 -> Instant.parse("2026-04-25T07:00:00Z");
+            case 2 -> Instant.parse("2026-04-26T08:00:00Z");
+            default -> Instant.parse("2026-04-27T12:00:00Z");
+        };
+
+        // Look up or create the prior scheduling_auction within this auction.
+        Long priorSaId = jdbc.query(
+                "SELECT id FROM auctions.scheduling_auctions "
+                        + "WHERE auction_id = ? AND round = ? LIMIT 1",
+                rs -> rs.next() ? rs.getLong(1) : null,
+                auctionId, priorRound);
+        if (priorSaId == null) {
+            priorSaId = jdbc.queryForObject(
+                    "INSERT INTO auctions.scheduling_auctions "
+                            + "(auction_id, name, round, start_datetime, end_datetime, "
+                            + " round_status, has_round) "
+                            + "VALUES (?, ?, ?, ?, ?, 'Closed', true) RETURNING id",
+                    Long.class,
+                    auctionId,
+                    "Round " + priorRound,
+                    priorRound,
+                    Timestamp.from(priorSaStart),
+                    Timestamp.from(priorSaEnd));
+        }
+
+        // Offset so older rounds have earlier submitted_datetime.
+        long offsetHours = (long) (round - priorRound);
+        Instant submittedAt = Instant.now().minusSeconds(offsetHours * 3600L);
+
+        // Look up or create the prior bid_round.
+        Long priorBidRoundId = jdbc.query(
+                "SELECT id FROM auctions.bid_rounds "
+                        + "WHERE scheduling_auction_id = ? AND buyer_code_id = ? LIMIT 1",
+                rs -> rs.next() ? rs.getLong(1) : null,
+                priorSaId, buyerCodeId);
+        if (priorBidRoundId == null) {
+            priorBidRoundId = jdbc.queryForObject(
+                    "INSERT INTO auctions.bid_rounds "
+                            + "(scheduling_auction_id, buyer_code_id, week_id, "
+                            + " submitted, submitted_datetime) "
+                            + "VALUES (?, ?, ?, true, ?) RETURNING id",
+                    Long.class,
+                    priorSaId,
+                    buyerCodeId,
+                    weekId,
+                    Timestamp.from(submittedAt));
+        }
+
+        // Look up or create the prior bid_data_docs.
+        Long priorDocId = jdbc.queryForObject(
+                "INSERT INTO auctions.bid_data_docs (user_id, buyer_code_id, week_id) "
+                        + "VALUES (?, ?, ?) "
+                        + "ON CONFLICT (user_id, buyer_code_id, week_id) "
+                        + "DO UPDATE SET changed_date = NOW() "
+                        + "RETURNING id",
+                Long.class,
+                userId,
+                buyerCodeId,
+                weekId);
+
+        // Resolve aggregated_inventory_id by (week_id, ecoid2, merged_grade).
+        Long aggInvId = jdbc.query(
+                "SELECT id FROM auctions.aggregated_inventory "
+                        + "WHERE week_id = ? AND ecoid2 = ? AND merged_grade = ? LIMIT 1",
+                rs -> rs.next() ? rs.getLong(1) : null,
+                weekId, spec.ecoid(), spec.mergedGrade());
+
+        // Derive the buyer code text for the denormalized 'code' column.
+        String codeText = jdbc.query(
+                "SELECT code FROM buyer_mgmt.buyer_codes WHERE id = ? LIMIT 1",
+                rs -> rs.next() ? rs.getString(1) : null,
+                buyerCodeId);
+
+        jdbc.update(
+                "INSERT INTO auctions.bid_data "
+                        + "(bid_round_id, buyer_code_id, aggregated_inventory_id, "
+                        + " ecoid, merged_grade, code, "
+                        + " bid_amount, submitted_bid_amount, submitted_bid_quantity, "
+                        + " submitted_datetime, bid_quantity, target_price, "
+                        + " buyer_code_type, bid_round, week_id, bid_data_doc_id, "
+                        + " round3_bid_rank) "
+                        + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, ?)",
+                priorBidRoundId,
+                buyerCodeId,
+                aggInvId,
+                spec.ecoid(),
+                spec.mergedGrade(),
+                codeText,
+                spec.amount(),
+                spec.amount(),
+                spec.quantity(),
+                Timestamp.from(submittedAt),
+                spec.quantity(),
+                // buyer_code_type: collapse DW aliases to 'DW' for fixture clarity
+                "DW".equalsIgnoreCase(buyerCodeType) ? "DW" : buyerCodeType,
+                priorRound,
+                // week_id on bid_data is an INT denormalized column (not FK)
+                weekId.intValue(),
+                priorDocId,
+                spec.round3BidRank());
+    }
+
     // ── Value types ───────────────────────────────────────────────────────────────
 
     public record InventorySpec(int quantity, BigDecimal targetPrice) {}
@@ -445,6 +746,24 @@ public final class BidDataScenario {
     public record BidSpec(int quantity, BigDecimal amount) {}
 
     public record FilterSpec(BigDecimal targetPercent, BigDecimal targetValue, BigDecimal floor) {}
+
+    /** Round-2 BRSF with explicit qualification mode and inventory mode. */
+    public record FilterSpecR2(BigDecimal targetPercent, BigDecimal targetValue,
+                               String qualMode, String invMode) {}
+
+    /**
+     * Round-3 BRSF. Any field may be {@code null} (→ SQL NULL).
+     * Maps to {@code bid_percentage_variation}, {@code bid_amount_variation},
+     * and {@code rank_qualification_limit} (V84 columns).
+     */
+    public record FilterSpecR3(BigDecimal pctVar, BigDecimal amtVar, Integer rankLim) {}
+
+    /** Extended bid spec for {@link #priorBid} / {@link #priorBidWithRank}. */
+    public record ExtendedBidSpec(int priorRound, String ecoid, String mergedGrade,
+                                  BigDecimal amount, int quantity, Integer round3BidRank) {}
+
+    /** Spec for {@link #r3TargetPrice} — patches {@code aggregated_inventory} after INSERT. */
+    public record R3TargetPriceSpec(String ecoid, String mergedGrade, BigDecimal round3TargetPrice) {}
 
     private record InventoryKey(String ecoid, String grade) {}
 }
