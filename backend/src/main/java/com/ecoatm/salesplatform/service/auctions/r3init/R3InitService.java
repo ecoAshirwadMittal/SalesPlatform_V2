@@ -103,9 +103,16 @@ public class R3InitService {
     /**
      * Admin-recovery entrypoint — delegates to {@link #run(long)}.
      *
+     * <p>{@code REQUIRES_NEW} here ensures an active transaction exists when
+     * {@code run()} is called via direct self-invocation (Spring AOP does not
+     * proxy self-calls). {@link com.ecoatm.salesplatform.service.auctions.recalc.RecalcStatusUpdater}
+     * methods declared {@code MANDATORY} (e.g. {@code markSuccess}) see this
+     * transaction.
+     *
      * @param r3SaId  the id of the round-3 scheduling auction
      * @return        duration result
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public R3InitResult recalculate(long r3SaId) {
         return run(r3SaId);
     }

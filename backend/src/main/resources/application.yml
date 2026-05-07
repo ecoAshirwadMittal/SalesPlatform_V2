@@ -34,6 +34,7 @@ spring:
   # validate = Hibernate checks entities match DB schema; never auto-creates
   # ─────────────────────────────────────
   jpa:
+    open-in-view: false   # disable OSIV — prevents stale JPA L1 cache after REQUIRES_NEW commits
     hibernate:
       ddl-auto: none
     show-sql: false

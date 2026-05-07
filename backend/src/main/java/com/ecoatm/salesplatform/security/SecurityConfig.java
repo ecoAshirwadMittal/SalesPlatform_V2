@@ -57,6 +57,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/inventory/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers(HttpMethod.PUT, "/api/v1/admin/auctions/round-filters/**").hasRole("Administrator")
                 .requestMatchers(HttpMethod.POST, "/api/v1/admin/auctions/*/rounds/1/init").hasRole("Administrator")
+                // Sub-project 6 R3 lifecycle admin endpoints (Administrator only).
+                // Must precede the broader /api/v1/admin/auctions/** matcher.
+                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/preprocess-r3")
+                    .hasRole("Administrator")
+                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/reinit-r3")
+                    .hasRole("Administrator")
                 .requestMatchers("/api/v1/admin/auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")

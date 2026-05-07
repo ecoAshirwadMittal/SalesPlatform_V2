@@ -130,6 +130,18 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
     }
 
+    /**
+     * R3 admin endpoints wrap round-mismatch and predecessor-guard failures in
+     * this exception so they surface as 422 rather than the generic 400/409 that
+     * raw {@code IllegalArgumentException}/{@code IllegalStateException} produce.
+     */
+    @ExceptionHandler(R3LifecycleValidationException.class)
+    public ResponseEntity<Map<String, Object>> handleR3LifecycleValidation(
+            R3LifecycleValidationException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(errorBody(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(BidDataValidationException.class)
     public ResponseEntity<Map<String, String>> handleBidDataValidation(BidDataValidationException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)

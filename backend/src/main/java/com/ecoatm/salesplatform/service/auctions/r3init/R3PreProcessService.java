@@ -174,6 +174,19 @@ public class R3PreProcessService {
      * @throws EntityNotFoundException  R3 SA id unknown
      * @throws IllegalStateException    no R2 SA found for the same auction
      */
+    /**
+     * Admin-recovery entrypoint — takes R3 SA id only, resolves R2 SA from
+     * sibling lookup via {@code (auctionId, round=2)}.
+     *
+     * <p>{@code REQUIRES_NEW} here ensures an active transaction exists when
+     * {@code run()} is called via direct self-invocation (Spring AOP does not
+     * proxy self-calls). Repositories inside {@code run()} that declare
+     * {@code Propagation.MANDATORY} see this transaction.
+     *
+     * @throws EntityNotFoundException  R3 SA id unknown
+     * @throws IllegalStateException    no R2 SA found for the same auction
+     */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public R3PreProcessResult recalculate(long r3SaId) {
         SchedulingAuction r3Sa = saRepo.findById(r3SaId)
             .orElseThrow(() -> new EntityNotFoundException(
