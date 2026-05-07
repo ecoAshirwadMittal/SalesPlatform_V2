@@ -210,6 +210,24 @@ auctions:
   # ─────────────────────────────────────
   r2-init:
     enabled: ${AUCTIONS_R2_INIT_ENABLED:true}
+  # ─────────────────────────────────────
+  # R3 pre-process listener (Sub-project 6)
+  # enabled=false → R3PreProcessListener bean is not created;
+  # RoundClosedEvent(round=2) is not processed and no R3 pre-process occurs.
+  # Flip enabled=true (default) so the real service performs R3 pre-processing
+  # on every R2 close.
+  # ─────────────────────────────────────
+  r3-preprocess:
+    enabled: ${AUCTIONS_R3_PREPROCESS_ENABLED:true}
+  # ─────────────────────────────────────
+  # R3 initialization listener (Sub-project 6)
+  # enabled=false → R3InitListener bean is not created;
+  # RoundStartedEvent(round=3) is not processed and no R3 init occurs.
+  # Flip enabled=true (default) so the real service performs R3 initialization
+  # on every R3 transition.
+  # ─────────────────────────────────────
+  r3-init:
+    enabled: ${AUCTIONS_R3_INIT_ENABLED:true}
 
 ---
 # ─────────────────────────────────────
