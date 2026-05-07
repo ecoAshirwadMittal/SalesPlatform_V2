@@ -120,6 +120,32 @@ public class SchedulingAuction {
     @Column(name = "r2_init_finished_at")
     private Instant r2InitFinishedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "r3_preprocess_status", length = 20, nullable = false)
+    private RecalcStatus r3PreprocessStatus = RecalcStatus.PENDING;
+
+    @Column(name = "r3_preprocess_error", columnDefinition = "TEXT")
+    private String r3PreprocessError;
+
+    @Column(name = "r3_preprocess_started_at")
+    private Instant r3PreprocessStartedAt;
+
+    @Column(name = "r3_preprocess_finished_at")
+    private Instant r3PreprocessFinishedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "r3_init_status", length = 20, nullable = false)
+    private RecalcStatus r3InitStatus = RecalcStatus.PENDING;
+
+    @Column(name = "r3_init_error", columnDefinition = "TEXT")
+    private String r3InitError;
+
+    @Column(name = "r3_init_started_at")
+    private Instant r3InitStartedAt;
+
+    @Column(name = "r3_init_finished_at")
+    private Instant r3InitFinishedAt;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -207,4 +233,28 @@ public class SchedulingAuction {
 
     public Instant getR2InitFinishedAt() { return r2InitFinishedAt; }
     public void setR2InitFinishedAt(Instant r2InitFinishedAt) { this.r2InitFinishedAt = r2InitFinishedAt; }
+
+    public RecalcStatus getR3PreprocessStatus() { return r3PreprocessStatus; }
+    public void setR3PreprocessStatus(RecalcStatus r3PreprocessStatus) { this.r3PreprocessStatus = r3PreprocessStatus; }
+
+    public String getR3PreprocessError() { return r3PreprocessError; }
+    public void setR3PreprocessError(String r3PreprocessError) { this.r3PreprocessError = r3PreprocessError; }
+
+    public Instant getR3PreprocessStartedAt() { return r3PreprocessStartedAt; }
+    public void setR3PreprocessStartedAt(Instant r3PreprocessStartedAt) { this.r3PreprocessStartedAt = r3PreprocessStartedAt; }
+
+    public Instant getR3PreprocessFinishedAt() { return r3PreprocessFinishedAt; }
+    public void setR3PreprocessFinishedAt(Instant r3PreprocessFinishedAt) { this.r3PreprocessFinishedAt = r3PreprocessFinishedAt; }
+
+    public RecalcStatus getR3InitStatus() { return r3InitStatus; }
+    public void setR3InitStatus(RecalcStatus r3InitStatus) { this.r3InitStatus = r3InitStatus; }
+
+    public String getR3InitError() { return r3InitError; }
+    public void setR3InitError(String r3InitError) { this.r3InitError = r3InitError; }
+
+    public Instant getR3InitStartedAt() { return r3InitStartedAt; }
+    public void setR3InitStartedAt(Instant r3InitStartedAt) { this.r3InitStartedAt = r3InitStartedAt; }
+
+    public Instant getR3InitFinishedAt() { return r3InitFinishedAt; }
+    public void setR3InitFinishedAt(Instant r3InitFinishedAt) { this.r3InitFinishedAt = r3InitFinishedAt; }
 }
