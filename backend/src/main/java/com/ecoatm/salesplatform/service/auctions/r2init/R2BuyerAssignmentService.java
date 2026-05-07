@@ -190,7 +190,13 @@ public class R2BuyerAssignmentService {
     /**
      * Admin re-run entry point. Same shape as {@link #run} but delegates;
      * exists so the controller (T13) has a stable, semantic name.
+     *
+     * <p>Annotated {@code REQUIRES_NEW} so the Spring CGLIB proxy starts a
+     * transaction before the self-call to {@code run()}, which would
+     * otherwise bypass the proxy and leave inner {@code MANDATORY} repository
+     * calls without a tx context.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public R2BuyerAssignmentResult recalculate(long schedulingAuctionId) {
         return run(schedulingAuctionId);
     }
