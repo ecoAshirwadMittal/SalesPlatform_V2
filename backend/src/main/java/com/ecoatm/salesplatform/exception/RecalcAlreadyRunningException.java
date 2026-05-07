@@ -1,14 +1,14 @@
 package com.ecoatm.salesplatform.exception;
 
 /**
- * Thrown by RANKING / TARGET_PRICE / R2_INIT services when their state-flip UPDATE
- * matches 0 rows — meaning another caller (cron tick or admin endpoint)
+ * Thrown by RANKING / TARGET_PRICE / R2_INIT / R3_PREPROCESS / R3_INIT services when their
+ * state-flip UPDATE matches 0 rows — meaning another caller (cron tick or admin endpoint)
  * already flipped the status to RUNNING. Maps to HTTP 409 in
  * GlobalExceptionHandler.
  */
 public class RecalcAlreadyRunningException extends RuntimeException {
 
-    public enum Process { RANKING, TARGET_PRICE, R2_INIT }
+    public enum Process { RANKING, TARGET_PRICE, R2_INIT, R3_PREPROCESS, R3_INIT }
 
     private final Process process;
     private final long schedulingAuctionId;
