@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import {
   downloadPoDetailsUrl,
   getPurchaseOrder,
   listPoDetails,
   updatePurchaseOrder,
-  uploadPoDetails,
 } from "@/lib/api/purchaseOrderClient";
 import type {
   PODetailRow,
@@ -20,7 +20,6 @@ export default function EditPurchaseOrderPage() {
   const [po, setPo] = useState<PurchaseOrderRow | null>(null);
   const [details, setDetails] = useState<PODetailRow[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   async function reload() {
     try {
@@ -34,23 +33,6 @@ export default function EditPurchaseOrderPage() {
   }
 
   useEffect(() => { reload(); }, [id]);
-
-  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const result = await uploadPoDetails(id, file);
-      alert(`Wipe-and-replace: deleted ${result.deletedCount}, `
-          + `created ${result.createdCount}, skipped ${result.skippedCount}.`);
-      reload();
-    } catch (e) {
-      alert("Upload failed: " + (e as Error).message);
-    } finally {
-      setUploading(false);
-      e.target.value = "";
-    }
-  }
 
   async function onSaveHeader(e: React.FormEvent) {
     e.preventDefault();
@@ -83,7 +65,9 @@ export default function EditPurchaseOrderPage() {
 
       <section style={{ marginBottom: "1.5rem" }}>
         <h2>Details ({details.length})</h2>
-        <input type="file" accept=".xlsx" onChange={onUpload} disabled={uploading} />
+        <Link href={`/admin/auctions-data-center/purchase-orders/${id}/upload`}>
+          Upload Excel
+        </Link>
         <a href={downloadPoDetailsUrl(id)} style={{ marginLeft: "1rem" }}>
           Download Excel
         </a>
