@@ -50,7 +50,7 @@ apply the new status columns and reports-table wiring. The stub directory is now
 | R3 reports (Round 3 Bid Report by Buyer) | ✅ Built (read-only) | `Round3ReportController` + `Round3ReportService`; `auctions.round3_buyer_data_reports`; frontend at `admin/auctions-data-center/round3-bid-report/page.tsx`. Empty until R3 pre-process lands |
 | Buyer notification (R3 start email) | 🔴 Missing | `ACT_Round3_StartNotification` not ported. Schema has `is_start_notification_sent`, `is_end_notification_sent`, `is_reminder_notification_sent` on `SchedulingAuction.java:51–57` but no writes |
 | Buyer Award Summary Report | 🔴 Missing | Mendix `SUB_LoadBuyerAwardsSummaryReport` + `EM_BuyerAwardsSummaryReport` — no service, controller, or frontend page exists |
-| Order / PWS handoff post-auction | 🔴 Not ported | `ACT_Auction_SendAllBidsToSnowflake_Admin` (manual bulk re-push) absent. `OfferService:662` carries `// TODO: Sync offer data to Snowflake analytics` |
+| Order / PWS handoff post-auction | 🔴 Partially ported | ~~`ACT_Auction_SendAllBidsToSnowflake_Admin` (manual bulk re-push) absent~~ ✅ Shipped 2026-05-07 (gap-analysis #9). `OfferService:662` still carries `// TODO: Sync offer data to Snowflake analytics` |
 
 ---
 
@@ -95,7 +95,7 @@ There are no remaining stub listeners.
 | Push | Auction status — `AuctionStatusSnowflakePushListener` | ✅ Built |
 | Push | `AUCTIONS.BUYER_BID` rankings — `BidRankingSnowflakePushListener` | ✅ Built (4C); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
 | Push | `AUCTIONS.TARGET_PRICE_AUDIT` — `TargetPriceSnowflakePushListener` | ✅ Built (4C); FAILED sync-log wired in gap-analysis #6 (2026-05-07) |
-| Missing | Manual "send all bids" admin action (Mendix `ACT_Auction_SendAllBidsToSnowflake_Admin`) | 🔴 Not ported |
+| ~~Missing~~ | ~~Manual "send all bids" admin action (Mendix `ACT_Auction_SendAllBidsToSnowflake_Admin`)~~ ✅ Shipped 2026-05-07 — `AuctionSnowflakeResyncService` + `POST /api/v1/admin/auctions/{auctionId}/resync-snowflake`; loops closed rounds calling `pushBidRankings` + `pushTargetPrices` per round; per-round failure isolation via `SyncLogWriter.writeFailed`; "Re-sync" button on auctions list page for `Started`/`Closed` auctions | ✅ Shipped |
 | ~~Missing~~ | ~~`syncLogRepo.recordFailure(...)` in the four push-listener catch blocks~~ | ✅ Wired in gap-analysis #6 (2026-05-07) via `SyncLogWriter.writeFailed(...)` |
 
 ---
@@ -114,7 +114,7 @@ Ranked by criticality × dependency-blocking factor.
 | **6** | ~~**Wire `syncLogRepo.recordFailure(...)` in all 4 push-listener catch blocks**~~ ✅ **Shipped 2026-05-07** | S | New `SyncLogWriter.writeFailed(syncType, targetKey, errorMessage)` method (single-shot REQUIRES_NEW); 4 listeners now record FAILED rows on push exceptions |
 | **7** | ~~**Frontend UI for `/re-rank` and `/recalculate-target-price`**~~ ✅ **Shipped 2026-05-07** | S | Admin buttons in `schedule-auction/page.tsx` for closed rounds 1+2; calls `reRank()` / `recalculateTargetPrice()` clients; mirrors the start/close transition UX |
 | **8** | **Special-treatment buyer handling** — `SUB_HandleSpecialTreatmentBuyerOnRoundStart` | M | `is_special_treatment` exists on `QualifiedBuyerCode`; `row_visible=TRUE` ignores it |
-| **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
+| **9** | ~~**Admin "send all bids to Snowflake"**~~ ✅ **Shipped 2026-05-07** | S | New `AuctionSnowflakeResyncService` + `POST /api/v1/admin/auctions/{auctionId}/resync-snowflake`; loops auction's closed rounds calling existing `pushBidRankings` + `pushTargetPrices` per round; per-round failure isolation via `SyncLogWriter.writeFailed`; "Re-sync" button on auctions list page |
 | **10** | ~~**PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend)~~ ✅ **Shipped 2026-05-07** | S | New `purchase-orders/[id]/upload/page.tsx` route mirrors the reserve-bids upload UX (counts + errors table + back navigation). Backend `POST /{id}/details/upload` was already wired. |
 
 **Critical path:** items 1, 2, and 3 are all shipped. Items 4–10 are non-blocking
