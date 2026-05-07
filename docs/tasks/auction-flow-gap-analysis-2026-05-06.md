@@ -80,7 +80,7 @@ There are no remaining stub listeners.
 - No "Re-rank" / "Recalculate Target Price" UI buttons (4C deferred to REST-only by design — endpoints exist on `RecalcAdminController`)
 - No Buyer Award Summary Report page
 - No R2 qualified-buyer-code result view (criteria-config exists; assignment-result view does not)
-- No PO Excel upload route under `purchase-orders/` (reserve-bids has one; `POExcelParser` exists in backend)
+- ~~No PO Excel upload route under `purchase-orders/`~~ ✅ Shipped (5b → #10) — `purchase-orders/[id]/upload/page.tsx`
 
 ---
 
@@ -115,7 +115,7 @@ Ranked by criticality × dependency-blocking factor.
 | **7** | **Frontend UI for `/re-rank` and `/recalculate-target-price`** | S | REST endpoints shipped in 4C; design deferred UI |
 | **8** | **Special-treatment buyer handling** — `SUB_HandleSpecialTreatmentBuyerOnRoundStart` | M | `is_special_treatment` exists on `QualifiedBuyerCode`; `row_visible=TRUE` ignores it |
 | **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
-| **10** | **PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend) | S | PO creation is one-row-at-a-time; reserve-bids has batch upload |
+| **10** | ~~**PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend)~~ ✅ **Shipped 2026-05-07** | S | New `purchase-orders/[id]/upload/page.tsx` route mirrors the reserve-bids upload UX (counts + errors table + back navigation). Backend `POST /{id}/details/upload` was already wired. |
 
 **Critical path:** items 1, 2, and 3 are all shipped. Items 4–10 are non-blocking
 polish that can ship in any order.
