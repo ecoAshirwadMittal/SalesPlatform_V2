@@ -108,7 +108,7 @@ Ranked by criticality × dependency-blocking factor.
 |---|---|---|---|
 | **1** | ~~**Sub-project 5: R2 buyer assignment** — replace `R2InitStubListener` with `SUB_AssignRoundTwoBuyers` + `SUB_GenerateRound2QualifiedBuyerCodes`~~ ✅ **Shipped 2026-05-06** | L | Blocks every live R2 cycle. Without it, zero buyers are scoped to R2 |
 | **2** | ~~**Sub-project 6: R3 init + pre-process** — replace `R3InitStubListener` and `R3PreProcessStubListener` with `ACT_Round3_SetStarted` + `SUB_Round3_PreProcessRoundData`~~ ✅ **Shipped 2026-05-07** | L | Both stubs deleted; V84 + V85 migrations; `R3PreProcessService` + `R3InitService` + full test suite |
-| **3** | **Fix `bid_meets_threshold` + `row_visible` stubs in `BidDataCreationRepository.java:126–137`** | M | Every buyer currently sees every row in R2/R3 regardless of R1 rank — functionally incorrect for production |
+| **3** | ~~**Fix `bid_meets_threshold` + `row_visible` stubs in `BidDataCreationRepository.java:126–137`**~~ ✅ **Shipped 2026-05-07 (sub-project 5b)** | M | R2 + R3 cascades + STB shortcut; 20 new IT cases; design at `docs/tasks/auction-r2-r3-row-visibility-design.md` |
 | **4** | **Buyer auction email notifications** — port `ACT_Round3_StartNotification`; wire the three notification-sent columns on `SchedulingAuction.java:51–57` | M | Schema slots exist; no service writes them |
 | **5** | **Buyer Award Summary Report** — port `SUB_LoadBuyerAwardsSummaryReport` + admin page | M | Finance/ops reporting hole — entirely absent |
 | **6** | **Wire `syncLogRepo.recordFailure(...)` in all 4 push-listener catch blocks** (EB, PO, 4C-BidRanking, 4C-TargetPrice) | S | `SyncLogWriter` + `SnowflakeSyncLogRepository` already exist; just inject and call |
@@ -117,10 +117,8 @@ Ranked by criticality × dependency-blocking factor.
 | **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
 | **10** | **PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend) | S | PO creation is one-row-at-a-time; reserve-bids has batch upload |
 
-**Critical path:** item 3 is the remaining production blocker (items 1 and 2
-shipped as sub-projects 5 and 6). Without item 3, R2/R3 per-row visibility is
-incorrect for non-special buyers. Items 4–10 are non-blocking polish that can
-ship in any order.
+**Critical path:** items 1, 2, and 3 are all shipped. Items 4–10 are non-blocking
+polish that can ship in any order.
 
 ---
 

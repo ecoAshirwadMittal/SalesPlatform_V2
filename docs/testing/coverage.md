@@ -47,3 +47,12 @@ are the load-bearing paths; see
 `R3PreProcessServiceTest` + `R3InitServiceTest` +
 `R3PreProcessListenerTest` + `R3InitListenerTest` +
 `R3LifecycleAdminControllerIT` + `R3LifecycleEndToEndIT`.
+
+---
+
+## auctions.biddata.row-visibility (new 2026-05-07)
+Target 85%+. R2 cascade (Only_Qualified branches × 6 + qual_mode shortcuts × 3),
+R3 cascade (4 branches + all-NULL fallthrough + DISTINCT-ON R2-over-R1 + rank-NULL
+guard = 7 cases), STB shortcut for R2 + R3 (× 2), R1 regression sanity (× 1).
+See `BidDataCreationRepositoryIT` (20 new cases added by sub-project 5b) and
+`BidDataScenario` builder extensions (7 new fluent primitives).

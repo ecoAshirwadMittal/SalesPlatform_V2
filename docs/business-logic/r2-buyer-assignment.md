@@ -159,13 +159,28 @@ exists). If/when reporting needs QBC analytics in Snowflake, model after
 `BidRankingSnowflakePushListener` — but that is a follow-on, not part of
 sub-project 5.
 
+## Per-row R2 visibility (sub-project 5b, 2026-05-07)
+
+`BidDataCreationRepository` now applies the same per-AE predicate cascade as
+`R2BuyerQualificationRepository` (sub-project 5), just at row scope rather than
+buyer scope. The cascade has 5 branches:
+
+1. `qual_mode = 'All_Buyers'` → row visible regardless of R1 bid
+2. No R1 bid + `inv_mode = 'ShowAllInventory'` → visible; otherwise invisible
+3. R1 bid + target = 0 + bid > 0 → visible
+4. R1 bid + bid/target ≥ 1 - (target_pct / 100) → visible (percent band)
+5. R1 bid + (target - bid) ≤ target_value → visible (flat band)
+
+Plus inv_mode fallback: `InventoryRound1QualifiedBids` admits any positive R1 bid.
+
+DW vs Wholesale buyer codes use `dw_avg_target_price` vs `avg_target_price`
+respectively.
+
+**STB shortcut:** if `qualified_buyer_codes.is_special_treatment = TRUE` for the
+buyer code, `row_visible = TRUE` regardless of threshold.
+
 ## Related sub-projects
 
-- **5b** — fix `bid_meets_threshold` / `row_visible` stubs in
-  `BidDataCreationRepository.java:124-138`. R2 non-special bidders rely
-  on these for per-row gating; sub-project 5 unblocks R2 by writing
-  QBCs, but per-row visibility for non-special buyers still uses the
-  hardcoded `TRUE` until 5b lands.
 - **5c** — port `SUB_HandleSpecialTreatmentBuyerOnRoundStart`. Refines
   R2/R3 row-visibility and rerun semantics for STBs after they've been
   seeded.

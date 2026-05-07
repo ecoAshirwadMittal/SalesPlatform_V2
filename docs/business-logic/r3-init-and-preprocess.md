@@ -177,13 +177,26 @@ None. Legacy Mendix never pushed R3 QBC rows or round-3 reports to Snowflake.
 If/when reporting needs these in Snowflake, model after
 `BidRankingSnowflakePushListener`.
 
+## Per-row R3 visibility (sub-project 5b, 2026-05-07)
+
+`BidDataCreationRepository` applies the per-row form of sub-project 6's R3
+selection rule. For each (ecoid, merged_grade) row, take the buyer's latest
+submitted nonzero bid across rounds 1+2 (`DISTINCT ON ... ORDER BY
+submitted_datetime DESC`) and apply the 4-branch OR cascade:
+
+1. All three filter knobs NULL → row visible regardless
+2. `bid_percentage_variation` set + latest_bid ≥ round3_target_price × (1 - pct/100)
+3. `bid_amount_variation` set + latest_bid ≥ round3_target_price - amt
+4. `rank_qualification_limit` set + round3_bid_rank ≤ limit
+
+ANY branch matches → row visible.
+
+**STB shortcut:** same as R2 — `is_special_treatment=TRUE` admits regardless.
+
 ## Related sub-projects
 
 - **4C** — ships `round3_target_price` and `round3_bid_rank` on R2 close;
   these are the inputs to the R3 qualification CTE.
 - **5** — ships R2 QBC writes and the `bulkInsertForRound` rename.
-- **5b** — fixes `bid_meets_threshold` / `row_visible` stubs in
-  `BidDataCreationRepository`. R3 bidder visibility depends on this for
-  non-special buyers.
 - **5c** — ports `SUB_HandleSpecialTreatmentBuyerOnRoundStart`. Refines STB
   row-visibility post-seed at R3.

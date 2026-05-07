@@ -5,6 +5,53 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## ADR — Sub-project 5b: R2/R3 row visibility correctness (2026-05-07)
+
+**Status:** Accepted
+
+**Context:** `BidDataCreationRepository.generate(...)` had two `TRUE`-constant stubs
+for `bid_meets_threshold` and `row_visible` since sub-project 4. Every R2/R3 buyer
+saw every AE row regardless of R1 rank, R1 bid amount, or whether they had a prior
+bid at all. Functionally incorrect for production. Sub-project 5b replaces both
+stubs with the real predicate cascades:
+
+- **R2** ports the per-AE predicate from `SUB_Round2AggregatedInventorySingleItem`
+  (5 branches with DW/Wholesale split, with whole-percent unit alignment).
+- **R3** uses the per-row form of sub-project 6's R3 selection rule (4 branches:
+  all-NULL fallthrough + pct + amt + rank).
+- **STB shortcut**: `row_visible = is_special_treatment OR bid_meets_threshold` —
+  STB buyers see every row regardless of threshold (covers gap-analysis #8's
+  basic STB-sees-all rule; full STB rerun semantics remain a 5c task).
+
+**Decisions:** see `docs/tasks/auction-r2-r3-row-visibility-design.md` §3 for the
+14 numbered decisions. Highlights:
+- One method, one CTE_SQL constant, branched on `params.round` (decision 3.1)
+- Round-agnostic `prior_round_biddata` via `DISTINCT ON` (decision 3.6)
+- `prior_scheduling_auction` CTE deleted (subsumed)
+- Orphaned `selection_filter` CTE deleted as part of the refactor
+- LEFT JOIN refactor for "missing QBC" deferred (cosmetic only)
+
+**Implementation notes:**
+- `BidDataScenario` test builder gained 7 primitives (qbc, brsfR2, brsfR3,
+  priorBid, priorBidWithRank, explicit-round priorBid overload, r3TargetPrice)
+  to author R2/R3/STB scenarios fluently.
+- The builder's `insertExtendedPriorBid` helper now UPDATEs `submitted=TRUE`
+  on existing prior bid_round rows when reused, because the new
+  `prior_round_biddata` CTE filters `submitted = TRUE`.
+- 20 new IT cases in `BidDataCreationRepositoryIT` (R2 cascade × 9, R2 qual_mode
+  shortcuts × 3, R3 cascade × 7, STB shortcut × 2).
+
+**Consequences:**
+- Bidder dashboard now correctly filters AEs per-buyer for R2 and R3.
+- Existing R1-init behaviour preserved (R1 ELSE branch returns TRUE).
+- `BidDataCreationService` signature + concurrency contract unchanged.
+
+**Out of scope:**
+- Sub-project 5c: `SUB_HandleSpecialTreatmentBuyerOnRoundStart` (STB rerun)
+- LEFT JOIN refactor for "missing QBC" distinction
+
+---
+
 ## 2026-05-07 — Sub-project 6: R3 Init + Pre-process
 
 **Status:** Accepted.
