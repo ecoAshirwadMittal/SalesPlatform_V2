@@ -38,8 +38,7 @@ stubs with the real predicate cascades:
 - The builder's `insertExtendedPriorBid` helper now UPDATEs `submitted=TRUE`
   on existing prior bid_round rows when reused, because the new
   `prior_round_biddata` CTE filters `submitted = TRUE`.
-- 20 new IT cases in `BidDataCreationRepositoryIT` (R2 cascade × 9, R2 qual_mode
-  shortcuts × 3, R3 cascade × 7, STB shortcut × 2).
+- 20 new IT cases in `BidDataCreationRepositoryIT` (10 R2 tests: 7 Only_Qualified branches + 1 DW + 1 All_Buyers + 1 noPriorBid_invisible; 7 R3 tests; 2 STB; 1 R1 regression).
 
 **Consequences:**
 - Bidder dashboard now correctly filters AEs per-buyer for R2 and R3.

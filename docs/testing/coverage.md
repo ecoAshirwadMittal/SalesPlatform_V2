@@ -51,8 +51,6 @@ are the load-bearing paths; see
 ---
 
 ## auctions.biddata.row-visibility (new 2026-05-07)
-Target 85%+. R2 cascade (Only_Qualified branches × 6 + qual_mode shortcuts × 3),
-R3 cascade (4 branches + all-NULL fallthrough + DISTINCT-ON R2-over-R1 + rank-NULL
-guard = 7 cases), STB shortcut for R2 + R3 (× 2), R1 regression sanity (× 1).
+Target 85%+. 10 R2 tests (7 Only_Qualified branches + 1 DW + 1 All_Buyers + 1 noPriorBid_invisible) + 7 R3 tests + 2 STB + 1 R1 = 20 total.
 See `BidDataCreationRepositoryIT` (20 new cases added by sub-project 5b) and
 `BidDataScenario` builder extensions (7 new fluent primitives).

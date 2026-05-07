@@ -41,11 +41,11 @@ apply the new status columns and reports-table wiring. The stub directory is now
 | R1 bid submission | ✅ Built | `BidDataCreationService`, `BidDataSubmissionService`, `BidderDashboardService`; `BidImportService` (Excel upload); `BidCarryoverService`; frontend at `bidder/dashboard/**` |
 | **R1 close → RANKING + TARGET_PRICE** | ✅ Built (4C) | `RecalcRoundClosedListener` → `RecalcOrchestrator` → `BidRankingService` / `TargetPriceRecalcService`; status columns on `scheduling_auctions` from V82 |
 | **R2 init (buyer assignment)** | ✅ Built (5) | `R2BuyerAssignmentListener` + `R2BuyerAssignmentService` (replaced `R2InitStubListener` 2026-05-06); QBC three-set write + special-buyer bid_data seed; status columns on `scheduling_auctions` from V83 |
-| R2 bid submission | 🟡 Partial | Submission pipeline works; **but** `BidDataCreationRepository.java:126–137` hardcodes `bid_meets_threshold` and `row_visible` to `TRUE` regardless of R1 rank |
+| R2 bid submission | ✅ Built (5b) | `BidDataCreationRepository` now applies the R2 5-branch cascade + STB shortcut (sub-project 5b, 2026-05-07). Per-row visibility correct for non-special and STB bidders. |
 | **R2 close → RANKING + TARGET_PRICE** | ✅ Built (4C) | Same listener handles round 2 → produces `round3_target_price` and `round3_bid_rank` |
 | **R3 init (Upsell setup)** | ✅ Built (6) — V84/V85; replaced both stubs; full test suite | `R3InitListener` + `R3InitService`; predecessor guard requires `r3_preprocess_status = SUCCESS` |
 | **R3 pre-process (data prep)** | ✅ Built (6) — V84/V85; replaced both stubs; full test suite | `R3PreProcessListener` + `R3PreProcessService`; 5 phases — delete unsubmitted R2 bids, regular CTE, STB CTE, QBC bulk INSERT, round3 reports |
-| R3 bid submission | 🟡 Partial | Pipeline mechanically supports R3, but R3 has no inventory until pre-process lands |
+| R3 bid submission | ✅ Built (5b/6) | R3 pre-process (sub-project 6) populates QBCs + reports; R3 cascade in `BidDataCreationRepository` (sub-project 5b) gates per-row visibility on the buyer's R1+R2 latest bid. |
 | R3 close + ranking | 🔴 Not applicable + missing | `RecalcRoundClosedListener` gates on `round ∈ {1,2}` (terminal-round design); no 4C recalc fires for R3 close |
 | R3 reports (Round 3 Bid Report by Buyer) | ✅ Built (read-only) | `Round3ReportController` + `Round3ReportService`; `auctions.round3_buyer_data_reports`; frontend at `admin/auctions-data-center/round3-bid-report/page.tsx`. Empty until R3 pre-process lands |
 | Buyer notification (R3 start email) | 🔴 Missing | `ACT_Round3_StartNotification` not ported. Schema has `is_start_notification_sent`, `is_end_notification_sent`, `is_reminder_notification_sent` on `SchedulingAuction.java:51–57` but no writes |
@@ -154,7 +154,7 @@ service body was never invoked.
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/r3init/R3PreProcessService.java` | R3 pre-process implementation (sub-project 6) |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/r3init/R3InitService.java` | R3 init implementation with predecessor guard (sub-project 6) |
 | `backend/src/main/java/com/ecoatm/salesplatform/controller/admin/R3LifecycleAdminController.java` | REST-only /preprocess-r3 + /reinit-r3 endpoints (sub-project 6) |
-| `backend/src/main/java/com/ecoatm/salesplatform/repository/auctions/BidDataCreationRepository.java` lines 126–137 | `bid_meets_threshold` + `row_visible` stubs |
+| ~~`backend/src/main/java/com/ecoatm/salesplatform/repository/auctions/BidDataCreationRepository.java` lines 126–137~~ | ~~`bid_meets_threshold` + `row_visible` stubs~~ (resolved by sub-project 5b) |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/BidRankingSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/snowflake/TargetPriceSnowflakePushListener.java` line 38 | Deferred `syncLogRepo` call |
 | `backend/src/main/java/com/ecoatm/salesplatform/service/auctions/recalc/RecalcOrchestrator.java` | 4C two-process coordinator |

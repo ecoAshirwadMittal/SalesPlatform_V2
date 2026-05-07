@@ -260,11 +260,14 @@ public final class BidDataScenario {
     }
 
     /**
-     * Register a prior-round bid row keyed by {@code ecoid + "|" + grade}.
-     * Rows are only inserted when {@code round > 1} and this map is non-empty.
-     * V73 made {@code bid_quantity} nullable — {@code submitted_bid_quantity}
-     * is populated; {@code bid_data_doc_id} is left null.
+     * @deprecated Inserts a prior bid_data row against an unsubmitted bid_round.
+     *             Sub-project 5b's {@code prior_round_biddata} CTE filters
+     *             {@code br_prev.submitted = TRUE}, so rows seeded by this method
+     *             are invisible to the CTE. Use {@link #priorBid(String, String, BigDecimal, int)}
+     *             instead for any R2/R3 scenario that needs the prior bid to be
+     *             visible to {@code BidDataCreationRepository.generate}.
      */
+    @Deprecated
     public BidDataScenario priorRoundBid(String ecoid, String grade, int qty, BigDecimal amount) {
         priorRoundBids.put(new InventoryKey(ecoid, grade), new BidSpec(qty, amount));
         return this;
