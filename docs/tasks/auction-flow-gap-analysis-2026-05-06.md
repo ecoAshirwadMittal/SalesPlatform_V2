@@ -77,7 +77,7 @@ There are no remaining stub listeners.
 - `bidder/dashboard/**` — bidder dashboard
 
 **Missing**:
-- No "Re-rank" / "Recalculate Target Price" UI buttons (4C deferred to REST-only by design — endpoints exist on `RecalcAdminController`)
+- ~~No "Re-rank" / "Recalculate Target Price" UI buttons~~ ✅ Shipped (5b → #7) — buttons on closed rounds 1+2 in `schedule-auction/page.tsx`
 - No Buyer Award Summary Report page
 - No R2 qualified-buyer-code result view (criteria-config exists; assignment-result view does not)
 - ~~No PO Excel upload route under `purchase-orders/`~~ ✅ Shipped (5b → #10) — `purchase-orders/[id]/upload/page.tsx`
@@ -112,7 +112,7 @@ Ranked by criticality × dependency-blocking factor.
 | **4** | **Buyer auction email notifications** — port `ACT_Round3_StartNotification`; wire the three notification-sent columns on `SchedulingAuction.java:51–57` | M | Schema slots exist; no service writes them |
 | **5** | **Buyer Award Summary Report** — port `SUB_LoadBuyerAwardsSummaryReport` + admin page | M | Finance/ops reporting hole — entirely absent |
 | **6** | ~~**Wire `syncLogRepo.recordFailure(...)` in all 4 push-listener catch blocks**~~ ✅ **Shipped 2026-05-07** | S | New `SyncLogWriter.writeFailed(syncType, targetKey, errorMessage)` method (single-shot REQUIRES_NEW); 4 listeners now record FAILED rows on push exceptions |
-| **7** | **Frontend UI for `/re-rank` and `/recalculate-target-price`** | S | REST endpoints shipped in 4C; design deferred UI |
+| **7** | ~~**Frontend UI for `/re-rank` and `/recalculate-target-price`**~~ ✅ **Shipped 2026-05-07** | S | Admin buttons in `schedule-auction/page.tsx` for closed rounds 1+2; calls `reRank()` / `recalculateTargetPrice()` clients; mirrors the start/close transition UX |
 | **8** | **Special-treatment buyer handling** — `SUB_HandleSpecialTreatmentBuyerOnRoundStart` | M | `is_special_treatment` exists on `QualifiedBuyerCode`; `row_visible=TRUE` ignores it |
 | **9** | **Admin "send all bids to Snowflake"** — port `ACT_Auction_SendAllBidsToSnowflake_Admin` as a bulk re-push endpoint | S | Ops have no force-resync path today |
 | **10** | ~~**PO Excel upload page** — mirror reserve-bids upload route (`POExcelParser` exists in backend)~~ ✅ **Shipped 2026-05-07** | S | New `purchase-orders/[id]/upload/page.tsx` route mirrors the reserve-bids upload UX (counts + errors table + back navigation). Backend `POST /{id}/details/upload` was already wired. |
