@@ -279,4 +279,28 @@ class BidDataCreationRepositoryIT {
 
         assertThat(inserted).isEqualTo(1);
     }
+
+    /**
+     * R2 Only_Qualified buyer whose R1 bid is below all threshold branches:
+     * {@code bid_meets_threshold} must be FALSE → no row inserted.
+     */
+    @Test
+    void generate_r2_onlyQualified_belowAllThresholds_insertsZero() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("AAA1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("AAA1", "A", new BigDecimal("10.00"), 1)  // 10 << 100, below all thresholds
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        int inserted = repo.generate(bidRoundId, buyerCodeId, bidDataDocId);
+
+        assertThat(inserted).isZero();
+    }
 }
