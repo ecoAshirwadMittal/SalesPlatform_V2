@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.model.auctions.ScheduleAuctionInitStatus;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.recalc.RecalcStatusUpdater;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,13 +37,16 @@ public class R3InitService {
     private final SchedulingAuctionRepository saRepo;
     private final RecalcStatusUpdater         statusUpdater;
     private final ApplicationEventPublisher   events;
+    private final EntityManager               em;
 
     public R3InitService(SchedulingAuctionRepository saRepo,
                          RecalcStatusUpdater statusUpdater,
-                         ApplicationEventPublisher events) {
+                         ApplicationEventPublisher events,
+                         EntityManager em) {
         this.saRepo = saRepo;
         this.statusUpdater = statusUpdater;
         this.events = events;
+        this.em = em;
     }
 
     /**
@@ -80,8 +84,17 @@ public class R3InitService {
 
         long start = System.currentTimeMillis();
         try {
+            // tryFlipToRunning committed its own REQUIRES_NEW tx, so the DB row now
+            // has r3_init_status=RUNNING + r3_init_started_at=NOW(). Hibernate's L1
+            // cache still holds the pre-flip snapshot. em.refresh(sa) forces a re-read
+            // from DB, picking up those committed values so the subsequent saveAndFlush
+            // does not overwrite them with the stale snapshot values.
+            em.refresh(sa);
             sa.setRound3InitStatus(ScheduleAuctionInitStatus.Complete);
-            saRepo.save(sa);
+            // saveAndFlush flushes immediately, ensuring the JDBC UPDATE in markSuccess
+            // is the last write within this transaction (no deferred Hibernate flush at
+            // commit time that could overwrite the SUCCESS status).
+            saRepo.saveAndFlush(sa);
 
             // TODO(gap-analysis #4): R3 start-notification email
             // TODO(gap-analysis #9): SUB_Round3SendAuctionToSnowflake dedicated push

@@ -7,6 +7,7 @@ import com.ecoatm.salesplatform.model.auctions.ScheduleAuctionInitStatus;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.service.auctions.recalc.RecalcStatusUpdater;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -32,6 +34,7 @@ class R3InitServiceTest {
     @Mock SchedulingAuctionRepository saRepo;
     @Mock RecalcStatusUpdater         statusUpdater;
     @Mock ApplicationEventPublisher   events;
+    @Mock EntityManager               em;
 
     @InjectMocks R3InitService service;
 
@@ -50,12 +53,15 @@ class R3InitServiceTest {
         SchedulingAuction sa = r3Sa(id, RecalcStatus.SUCCESS);
         when(saRepo.findById(id)).thenReturn(Optional.of(sa));
         when(statusUpdater.tryFlipToRunning(id, "R3_INIT")).thenReturn(true);
+        // em.refresh is called to pick up tryFlipToRunning's committed write; no-op in unit tests
+        doNothing().when(em).refresh(sa);
+        when(saRepo.saveAndFlush(sa)).thenReturn(sa);
 
         R3InitResult result = service.run(id);
 
         assertThat(result.durationMs()).isGreaterThanOrEqualTo(0);
         assertThat(sa.getRound3InitStatus()).isEqualTo(ScheduleAuctionInitStatus.Complete);
-        verify(saRepo).save(sa);
+        verify(saRepo).saveAndFlush(sa);
         verify(statusUpdater).markSuccess(id, "R3_INIT");
         verify(events).publishEvent(any(R3InitCompletedEvent.class));
     }
@@ -116,13 +122,14 @@ class R3InitServiceTest {
     }
 
     @Test
-    @DisplayName("save throw → markFailed and propagate, round3InitStatus left at Complete on entity (set before save)")
+    @DisplayName("saveAndFlush throw → markFailed and propagate")
     void save_throw_marks_failed() {
         long id = 6003L;
         SchedulingAuction sa = r3Sa(id, RecalcStatus.SUCCESS);
         when(saRepo.findById(id)).thenReturn(Optional.of(sa));
         when(statusUpdater.tryFlipToRunning(id, "R3_INIT")).thenReturn(true);
-        when(saRepo.save(sa)).thenThrow(new RuntimeException("db down"));
+        doNothing().when(em).refresh(sa);
+        when(saRepo.saveAndFlush(sa)).thenThrow(new RuntimeException("db down"));
 
         assertThatThrownBy(() -> service.run(id))
             .isInstanceOf(RuntimeException.class)
