@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchWeeks, type WeekOption } from '@/lib/aggregatedInventory';
 import {
   listAuctions,
+  resyncSnowflake,
   type AuctionListPageResponse,
   type AuctionListRow,
 } from '@/lib/auctions';
@@ -36,6 +37,8 @@ export default function AuctionsListPage() {
   const [page, setPage] = useState(0);
   const [data, setData] = useState<AuctionListPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [resyncing, setResyncing] = useState<number | null>(null);
+  const [resyncStatus, setResyncStatus] = useState<string | null>(null);
 
   const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
@@ -90,6 +93,22 @@ export default function AuctionsListPage() {
   const updateFilter = <K extends keyof Filters>(k: K, v: string) =>
     setInput((prev) => ({ ...prev, [k]: v }));
 
+  const handleResync = async (id: number) => {
+    setResyncStatus(null);
+    setResyncing(id);
+    try {
+      const res = await resyncSnowflake(id);
+      setResyncStatus(
+        `Auction ${id}: ${res.totalSuccesses} succeeded, ${res.totalFailures} failed` +
+        ` (${res.outcomes.length} closed rounds, ${res.durationMs}ms)`,
+      );
+    } catch (err) {
+      setResyncStatus(err instanceof Error ? err.message : 'Re-sync failed');
+    } finally {
+      setResyncing(null);
+    }
+  };
+
   const total = data?.totalElements ?? 0;
   const startIdx = total === 0 ? 0 : page * PAGE_SIZE + 1;
   const endIdx = Math.min(total, (page + 1) * PAGE_SIZE);
@@ -109,6 +128,7 @@ export default function AuctionsListPage() {
           Refresh
         </button>
         {error && <span className={styles.error}>{error}</span>}
+        {resyncStatus && <span className={styles.error}>{resyncStatus}</span>}
       </header>
 
       <div className={styles.gridWrap}>
@@ -166,9 +186,11 @@ export default function AuctionsListPage() {
               <AuctionRow
                 key={r.id}
                 row={r}
+                isResyncing={resyncing === r.id}
                 onEdit={() =>
                   router.push(`/admin/auctions-data-center/auctions/${r.id}/schedule`)
                 }
+                onResync={() => void handleResync(r.id)}
               />
             ))}
             {data && data.content.length === 0 && (
@@ -215,7 +237,17 @@ export default function AuctionsListPage() {
   );
 }
 
-function AuctionRow({ row, onEdit }: { row: AuctionListRow; onEdit: () => void }) {
+function AuctionRow({
+  row,
+  isResyncing,
+  onEdit,
+  onResync,
+}: {
+  row: AuctionListRow;
+  isResyncing: boolean;
+  onEdit: () => void;
+  onResync: () => void;
+}) {
   return (
     <tr>
       <td>{row.auctionTitle}</td>
@@ -238,6 +270,18 @@ function AuctionRow({ row, onEdit }: { row: AuctionListRow; onEdit: () => void }
         >
           {row.auctionStatus === 'Unscheduled' ? 'Schedule' : 'View'}
         </button>
+        {(row.auctionStatus === 'Started' || row.auctionStatus === 'Closed') && (
+          <button
+            type="button"
+            className={styles.editLink}
+            aria-label={`Re-sync ${row.auctionTitle} to Snowflake`}
+            disabled={isResyncing}
+            onClick={onResync}
+            style={{ marginLeft: 4 }}
+          >
+            {isResyncing ? '…' : 'Re-sync'}
+          </button>
+        )}
       </td>
     </tr>
   );

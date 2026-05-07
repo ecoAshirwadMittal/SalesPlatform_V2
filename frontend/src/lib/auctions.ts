@@ -571,3 +571,43 @@ export function reRank(id: number): Promise<RecalcResponse> {
 export function recalculateTargetPrice(id: number): Promise<RecalcResponse> {
   return postRecalc(id, 'recalculate-target-price');
 }
+
+// ---------------------------------------------------------------------------
+// Admin Snowflake bulk re-push for an auction (gap-analysis #9, 2026-05-07).
+// Loops auction's closed rounds and re-fires per-round bid-ranking +
+// target-price pushes. Per-round failures are isolated server-side via
+// SyncLogWriter.writeFailed.
+// ---------------------------------------------------------------------------
+
+export const RoundOutcomeSchema = z.object({
+  closedRound: z.number().int(),
+  targetRound: z.number().int(),
+  bidRankingPushed: z.boolean(),
+  targetPricePushed: z.boolean(),
+});
+export type RoundOutcome = z.infer<typeof RoundOutcomeSchema>;
+
+export const AuctionSnowflakeResyncResponseSchema = z.object({
+  auctionId: z.number(),
+  weekId: z.number(),
+  outcomes: z.array(RoundOutcomeSchema),
+  totalSuccesses: z.number().int(),
+  totalFailures: z.number().int(),
+  durationMs: z.number().int(),
+});
+export type AuctionSnowflakeResyncResponse = z.infer<typeof AuctionSnowflakeResyncResponseSchema>;
+
+export async function resyncSnowflake(auctionId: number): Promise<AuctionSnowflakeResyncResponse> {
+  const res = await apiFetch(`/api/v1/admin/auctions/${auctionId}/resync-snowflake`, {
+    method: 'POST',
+  });
+  if (res.status === 404) {
+    const { message } = await readErrorEnvelope(res);
+    throw new AuctionNotFoundError(message);
+  }
+  if (!res.ok) {
+    const { message } = await readErrorEnvelope(res);
+    throw new Error(message || `HTTP ${res.status}`);
+  }
+  return AuctionSnowflakeResyncResponseSchema.parse(await res.json());
+}
