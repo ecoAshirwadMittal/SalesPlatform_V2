@@ -57,6 +57,8 @@ bids, the predicate cascade is (first match wins):
 `r1_target_price` is read from `aggregated_inventory.dw_avg_target_price`
 or `avg_target_price` based on `bid_data.buyer_code_type`.
 
+**Convention (sub-project 6, 2026-05-07):** `target_percent` values are stored as whole percent (e.g., `5` for 5%), aligned with Mendix native convention and R3's `bid_percentage_variation`. The CTE formula divides by 100: `bid >= target - (target * pct / 100)`.
+
 ## Special-treatment semantics
 
 Special-treatment buyers join the qualified set even when

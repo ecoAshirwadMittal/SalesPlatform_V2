@@ -83,7 +83,7 @@ public class R2BuyerQualificationRepository {
                  CASE
                    WHEN r.r1_target_price = 0 AND r.bid_amount > 0 THEN TRUE
                    WHEN r.r1_target_price > 0
-                        AND r.bid_amount / r.r1_target_price >= 1 - p.target_pct THEN TRUE
+                        AND r.bid_amount / r.r1_target_price >= 1 - (p.target_pct / 100) THEN TRUE
                    WHEN (r.r1_target_price - r.bid_amount) <= p.target_val THEN TRUE
                    WHEN p.inv_mode = 'InventoryRound1QualifiedBids' AND r.bid_amount > 0 THEN TRUE
                    WHEN p.inv_mode = 'ShowAllInventory' THEN TRUE

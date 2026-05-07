@@ -10,7 +10,7 @@
 --   * 2 scheduling_auctions: id=999101 (R1, Closed), id=999102 (R2, Started)
 --   * 1 bid_round_selection_filters row for round=2 with the *defaults the
 --     plan tests start from* — Only_Qualified + InventoryRound1QualifiedBids,
---     target_percent=0.05 (5%), target_value=1.00. Tests UPDATE the row
+--     target_percent=5 (5%), target_value=1.00. Tests UPDATE the row
 --     to flip qual_mode / inv_mode for individual scenarios.
 --   * 3 buyers (2 Active, 1 Disabled)
 --   * 9 buyer_codes covering every dimension the CTE filters on:
@@ -49,7 +49,7 @@ VALUES
 INSERT INTO auctions.bid_round_selection_filters
   (id, round, target_percent, target_value, regular_buyer_qualification, regular_buyer_inventory_options)
 VALUES
-  (999102, 2, 0.05, 1.00, 'Only_Qualified', 'InventoryRound1QualifiedBids');
+  (999102, 2, 5, 1.00, 'Only_Qualified', 'InventoryRound1QualifiedBids');
 
 -- Buyers (V8 schema: id is BIGINT, not BIGSERIAL — must be explicit)
 INSERT INTO buyer_mgmt.buyers (id, company_name, status, is_special_buyer)
@@ -128,7 +128,7 @@ INSERT INTO auctions.bid_data
 VALUES
   -- 999101: WH ABOVE — bid 120 vs target 100 → qualifies (Only_Qualified strict)
   (999101, 999101, 999101, 'ECO-X', 'A', 'R2T-WH-ABOVE',    'R2 Test Active Buyer A', 'Wholesale', 120.00, 1, 999100),
-  -- 999102: WH PCT — bid 96 vs target 100 (96/100 = 0.96 ≥ 1 - 0.05) → qualifies pct band
+  -- 999102: WH PCT — bid 96 vs target 100 (96/100 = 0.96 ≥ 1 - (5/100) = 0.95) → qualifies pct band
   (999102, 999102, 999102, 'ECO-X', 'A', 'R2T-WH-PCT',      'R2 Test Active Buyer A', 'Wholesale',  96.00, 1, 999100),
   -- 999103: WH FLAT — bid 99.50 vs target 100 (100 - 99.50 = 0.50 ≤ 1.00) → qualifies flat band
   (999103, 999103, 999103, 'ECO-X', 'A', 'R2T-WH-FLAT',     'R2 Test Active Buyer A', 'Wholesale',  99.50, 1, 999100),
