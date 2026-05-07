@@ -451,4 +451,76 @@ class BidDataCreationRepositoryIT {
 
         assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
     }
+
+    /**
+     * R2 All_Buyers admits all rows regardless of R1 bid history. No R1 bid is
+     * needed for the row to be visible.
+     */
+    @Test
+    void generate_r2_allBuyers_visibleRegardlessOfBid() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("ALB1", "A", 10, new BigDecimal("100.00"))
+                // No prior bid seeded — All_Buyers admits anyway
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "All_Buyers", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified buyer with NO R1 bid + inv_mode=ShowAllInventory →
+     * row visible (the {@code prb.prev_amount IS NULL} sub-branch admits).
+     */
+    @Test
+    void generate_r2_onlyQualified_noPriorBid_showAllInventory_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("NPB1", "A", 10, new BigDecimal("100.00"))
+                // No prior bid
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "ShowAllInventory");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified buyer with NO R1 bid + inv_mode=InventoryRound1QualifiedBids →
+     * row INVISIBLE. The no-prior-bid branch in the R2 cascade returns FALSE because
+     * inv_mode is not 'ShowAllInventory'. Mirrors Task 2's
+     * {@code generate_r2_onlyQualified_belowAllThresholds_insertsZero} but with a
+     * different ecoid for fixture isolation.
+     *
+     * Skipped if Task 2's test already covers this exact scenario; otherwise this
+     * provides a second independent witness.
+     */
+    @Test
+    void generate_r2_onlyQualified_noPriorBid_inventoryRound1Qualified_invisible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("NPB2", "A", 10, new BigDecimal("100.00"))
+                // No prior bid
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isZero();
+    }
 }
