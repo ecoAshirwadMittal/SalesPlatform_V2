@@ -37,8 +37,28 @@ public class Round3BuyerDataReport {
     @Column(name = "auction_id")
     private Long auctionId;
 
+    /**
+     * Parent scheduling auction (R3). Populated by R3PreProcessService phase 5
+     * when bulk-inserting reports from qualified buyer codes. Used for
+     * idempotent delete-then-reinsert cycles during admin recovery.
+     *
+     * @since V85 (sub-project 6)
+     */
+    @Column(name = "scheduling_auction_id")
+    private Long schedulingAuctionId;
+
     @Column(name = "buyer_code", length = 100)
     private String buyerCode;
+
+    /**
+     * Comma-joined buyer codes (created by R3PreProcessService bulk insert).
+     * For legacy Mendix rows, this is NULL — they use {@link #buyerCode}.
+     * For R3-generated rows, this contains all codes for the company.
+     *
+     * @since V85 (sub-project 6)
+     */
+    @Column(name = "buyer_codes", length = 1000)
+    private String buyerCodes;
 
     @Column(name = "company_name", length = 500)
     private String companyName;
@@ -70,8 +90,14 @@ public class Round3BuyerDataReport {
     public Long getAuctionId() { return auctionId; }
     public void setAuctionId(Long auctionId) { this.auctionId = auctionId; }
 
+    public Long getSchedulingAuctionId() { return schedulingAuctionId; }
+    public void setSchedulingAuctionId(Long schedulingAuctionId) { this.schedulingAuctionId = schedulingAuctionId; }
+
     public String getBuyerCode() { return buyerCode; }
     public void setBuyerCode(String buyerCode) { this.buyerCode = buyerCode; }
+
+    public String getBuyerCodes() { return buyerCodes; }
+    public void setBuyerCodes(String buyerCodes) { this.buyerCodes = buyerCodes; }
 
     public String getCompanyName() { return companyName; }
     public void setCompanyName(String companyName) { this.companyName = companyName; }
