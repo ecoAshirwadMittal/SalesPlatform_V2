@@ -121,6 +121,8 @@ public class RecalcStatusUpdater {
             case "RANKING" -> "ranking";
             case "TARGET_PRICE" -> "target_price";
             case "R2_INIT" -> "r2_init";
+            case "R3_INIT" -> "r3_init";
+            case "R3_PREPROCESS" -> "r3_preprocess";
             case null -> throw new IllegalArgumentException(
                 "process must not be null");
             default -> throw new IllegalArgumentException(

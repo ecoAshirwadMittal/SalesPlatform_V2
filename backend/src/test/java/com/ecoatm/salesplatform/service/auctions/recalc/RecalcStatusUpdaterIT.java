@@ -105,6 +105,52 @@ class RecalcStatusUpdaterIT extends PostgresIntegrationTest {
                 .hasMessageContaining("BOGUS");
     }
 
+    // ---- R3_PREPROCESS (sub-project 6 additions) ---------------------------
+
+    @Test
+    @DisplayName("tryFlipToRunning routes R3_PREPROCESS to r3_preprocess_status column")
+    void flips_r3_preprocess_to_running() {
+        long saId = seedSchedulingAuction("r3_preprocess_status", "PENDING");
+
+        boolean flipped = updater.tryFlipToRunning(saId, "R3_PREPROCESS");
+
+        assertThat(flipped).isTrue();
+        assertThat(currentStatus(saId, "r3_preprocess_status")).isEqualTo("RUNNING");
+        assertThat(timestamp(saId, "r3_preprocess_started_at")).isNotNull();
+        assertThat(timestamp(saId, "r3_preprocess_finished_at")).isNull();
+    }
+
+    @Test
+    @DisplayName("markSkipped writes SKIPPED + finished_at + clears error for R3_PREPROCESS")
+    void marks_skipped_for_r3_preprocess() {
+        long saId = seedSchedulingAuction("r3_preprocess_status", "PENDING");
+        // Pre-seed an error to verify it gets cleared.
+        jdbc.update("UPDATE auctions.scheduling_auctions SET r3_preprocess_error = ? WHERE id = ?",
+                "stale", saId);
+
+        // markSkipped is MANDATORY → must run inside a tx.
+        txTemplate.executeWithoutResult(status -> updater.markSkipped(saId, "R3_PREPROCESS"));
+
+        assertThat(currentStatus(saId, "r3_preprocess_status")).isEqualTo("SKIPPED");
+        assertThat(timestamp(saId, "r3_preprocess_finished_at")).isNotNull();
+        assertThat(error(saId, "r3_preprocess_error")).isNull();
+    }
+
+    // ---- R3_INIT (sub-project 6 additions) ---------------------------------
+
+    @Test
+    @DisplayName("tryFlipToRunning routes R3_INIT to r3_init_status column")
+    void flips_r3_init_to_running() {
+        long saId = seedSchedulingAuction("r3_init_status", "PENDING");
+
+        boolean flipped = updater.tryFlipToRunning(saId, "R3_INIT");
+
+        assertThat(flipped).isTrue();
+        assertThat(currentStatus(saId, "r3_init_status")).isEqualTo("RUNNING");
+        assertThat(timestamp(saId, "r3_init_started_at")).isNotNull();
+        assertThat(timestamp(saId, "r3_init_finished_at")).isNull();
+    }
+
     // ---- helpers ---------------------------------------------------------
 
     /**
