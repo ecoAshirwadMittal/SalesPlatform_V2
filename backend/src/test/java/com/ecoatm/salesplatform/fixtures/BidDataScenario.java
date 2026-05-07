@@ -663,6 +663,9 @@ public final class BidDataScenario {
         Instant submittedAt = Instant.now().minusSeconds(offsetHours * 3600L);
 
         // Look up or create the prior bid_round.
+        // If a prior bid_round was already created (submitted=false by the main commit
+        // sequence), mark it submitted=true and stamp submitted_datetime so the
+        // prior_round_biddata CTE (which filters br_prev.submitted=TRUE) can see it.
         Long priorBidRoundId = jdbc.query(
                 "SELECT id FROM auctions.bid_rounds "
                         + "WHERE scheduling_auction_id = ? AND buyer_code_id = ? LIMIT 1",
@@ -679,6 +682,15 @@ public final class BidDataScenario {
                     buyerCodeId,
                     weekId,
                     Timestamp.from(submittedAt));
+        } else {
+            // Ensure the existing row is marked submitted=true so the new
+            // prior_round_biddata CTE (br_prev.submitted = TRUE) picks it up.
+            jdbc.update(
+                    "UPDATE auctions.bid_rounds "
+                            + "SET submitted = true, submitted_datetime = ? "
+                            + "WHERE id = ?",
+                    Timestamp.from(submittedAt),
+                    priorBidRoundId);
         }
 
         // Look up or create the prior bid_data_docs.

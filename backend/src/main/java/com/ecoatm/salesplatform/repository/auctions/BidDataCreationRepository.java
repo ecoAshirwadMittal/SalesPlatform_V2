@@ -31,9 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
  * transaction. Under {@code @DataJpaTest} the outer test transaction
  * satisfies this.
  *
- * <p>Two known stubs marked with {@code TODO} ({@code bid_meets_threshold}
- * and {@code row_visible}) are left as constant {@code TRUE} for sub-project
- * 4 (R2/R3 qualification gate) to replace.
+ * <p>The R2/R3 per-row threshold cascade and STB shortcut were ported from
+ * Mendix {@code SUB_Round2AggregatedInventorySingleItem} and the per-row form
+ * of sub-project 6's R3 selection rule (sub-project 5b, 2026-05-07).
  */
 @Repository
 public class BidDataCreationRepository {
@@ -85,11 +85,21 @@ public class BidDataCreationRepository {
                     WHEN bc.buyer_code_type IN ('Data_Wipe', 'Purchasing_Order_Data_Wipe')
                         THEN 'DW'
                     ELSE 'Wholesale'
-                END                      AS buyer_code_type
+                END                      AS buyer_code_type,
+                -- 5b: R2 BRSF inputs (NULL when round=1; chk_brsf_round permits 2 or 3 only)
+                brsf.target_percent                  AS target_pct,
+                brsf.target_value                    AS target_val,
+                brsf.regular_buyer_qualification     AS qual_mode,
+                brsf.regular_buyer_inventory_options AS inv_mode,
+                -- 5b: R3 BRSF inputs
+                brsf.bid_percentage_variation        AS pct_var,
+                brsf.bid_amount_variation            AS amt_var,
+                brsf.rank_qualification_limit        AS rank_lim
             FROM auctions.bid_rounds br
             JOIN auctions.scheduling_auctions sa ON sa.id = br.scheduling_auction_id
             JOIN auctions.auctions a              ON a.id = sa.auction_id
             JOIN buyer_mgmt.buyer_codes bc        ON bc.id = :buyer_code_id
+            LEFT JOIN auctions.bid_round_selection_filters brsf ON brsf.round = sa.round
             WHERE br.id = :bid_round_id
         ),
         existing_check AS (
@@ -102,11 +112,6 @@ public class BidDataCreationRepository {
             FROM buyer_mgmt.qualified_buyer_codes qbc, params
             WHERE qbc.scheduling_auction_id = params.scheduling_auction_id
               AND qbc.buyer_code_id         = params.buyer_code_id
-        ),
-        selection_filter AS (
-            SELECT bsf.*
-            FROM auctions.bid_round_selection_filters bsf, params
-            WHERE bsf.round = params.round
         ),
         inventory AS (
             /* Alias `ecoid2` → `ecoid` so downstream CTEs and the final INSERT
@@ -122,46 +127,89 @@ public class BidDataCreationRepository {
                  OR (params.buyer_code_type = 'Wholesale' AND ai.total_quantity    > 0)
                   )
         ),
+        prior_round_biddata AS (
+            -- 5b: latest submitted nonzero bid per (ecoid, merged_grade) across ALL prior rounds.
+            --   R2 (round=2): only R1 SAs match `sa_prev.round < 2` → DISTINCT ON returns the
+            --     unique R1 bid per AE.
+            --   R3 (round=3): R1+R2 SAs match → DISTINCT ON + ORDER BY submitted_datetime DESC
+            --     picks R2 over R1 when both exist.
+            --   R1 (round=1): no prior rounds → CTE returns zero rows; bid_meets_threshold
+            --     defaults TRUE in the outer CASE.
+            SELECT DISTINCT ON (bd.ecoid, bd.merged_grade)
+                   bd.ecoid,
+                   bd.merged_grade,
+                   bd.submitted_bid_quantity AS prev_qty,
+                   bd.submitted_bid_amount   AS prev_amount,
+                   bd.round3_bid_rank        AS prev_rank
+              FROM auctions.bid_data bd
+              JOIN auctions.bid_rounds br_prev
+                ON br_prev.id = bd.bid_round_id AND br_prev.submitted = TRUE
+              JOIN auctions.scheduling_auctions sa_prev
+                ON sa_prev.id = br_prev.scheduling_auction_id
+              JOIN auctions.scheduling_auctions sa_cur
+                ON sa_cur.id = (SELECT scheduling_auction_id FROM params)
+               AND sa_prev.auction_id = sa_cur.auction_id
+             WHERE bd.buyer_code_id = (SELECT buyer_code_id FROM params)
+               AND sa_prev.round    < (SELECT round FROM params)
+               AND bd.submitted_bid_amount > 0
+             ORDER BY bd.ecoid, bd.merged_grade, bd.submitted_datetime DESC
+        ),
         inventory_with_threshold AS (
             SELECT inv.*,
-                   /* TODO: sub-project 4 will replace this constant with a
-                      real R2/R3 threshold check derived from
-                      selection_filter and prior_round_biddata. */
-                   TRUE AS bid_meets_threshold
+                   prb.prev_qty, prb.prev_amount, prb.prev_rank,
+                   CASE
+                     -- 5b R2 cascade (5 branches, DW vs Wholesale split, ports SUB_Round2AggregatedInventorySingleItem)
+                     WHEN p.round = 2 THEN
+                       CASE
+                         WHEN p.qual_mode = 'All_Buyers' THEN TRUE
+                         WHEN prb.prev_amount IS NULL THEN
+                           (p.inv_mode = 'ShowAllInventory')
+                         WHEN p.buyer_code_type = 'DW' THEN
+                              (inv.dw_avg_target_price = 0 AND prb.prev_amount > 0)
+                           OR (inv.dw_avg_target_price > 0
+                               AND prb.prev_amount / inv.dw_avg_target_price >= 1 - (p.target_pct / 100))
+                           OR (inv.dw_avg_target_price - prb.prev_amount <= p.target_val)
+                           OR (p.inv_mode = 'InventoryRound1QualifiedBids' AND prb.prev_amount > 0)
+                           OR (p.inv_mode = 'ShowAllInventory')
+                         ELSE
+                              (inv.avg_target_price = 0 AND prb.prev_amount > 0)
+                           OR (inv.avg_target_price > 0
+                               AND prb.prev_amount / inv.avg_target_price >= 1 - (p.target_pct / 100))
+                           OR (inv.avg_target_price - prb.prev_amount <= p.target_val)
+                           OR (p.inv_mode = 'InventoryRound1QualifiedBids' AND prb.prev_amount > 0)
+                           OR (p.inv_mode = 'ShowAllInventory')
+                       END
+                     -- 5b R3 cascade (4 branches, ports per-row form of sub-project 6's R3 selection rule)
+                     WHEN p.round = 3 THEN
+                       (p.pct_var IS NULL AND p.amt_var IS NULL AND p.rank_lim IS NULL)
+                       OR (p.pct_var IS NOT NULL
+                           AND prb.prev_amount IS NOT NULL
+                           AND prb.prev_amount
+                               >= inv.round3_target_price - (inv.round3_target_price * p.pct_var / 100))
+                       OR (p.amt_var IS NOT NULL
+                           AND prb.prev_amount IS NOT NULL
+                           AND prb.prev_amount >= inv.round3_target_price - p.amt_var)
+                       OR (p.rank_lim IS NOT NULL
+                           AND prb.prev_rank IS NOT NULL
+                           AND prb.prev_rank <= p.rank_lim)
+                     -- R1 fallthrough: no prior round, no per-row filtering
+                     ELSE TRUE
+                   END AS bid_meets_threshold
             FROM inventory inv
+            CROSS JOIN params p
+            LEFT JOIN prior_round_biddata prb
+                   ON prb.ecoid = inv.ecoid AND prb.merged_grade = inv.merged_grade
         ),
         inventory_qualified AS (
             SELECT iwt.*,
-                   /* TODO: sub-project 4 will replace this with the
-                      special-treatment + included branching from
-                      qualified_buyer_check. */
-                   TRUE AS row_visible
-            FROM inventory_with_threshold iwt, qualified_buyer_check q
-            WHERE q.included = true
-        ),
-        prior_scheduling_auction AS (
-            SELECT sa_prev.id AS prev_sa_id
-            FROM auctions.scheduling_auctions sa_prev, params
-            WHERE sa_prev.auction_id = (
-                SELECT auction_id FROM auctions.scheduling_auctions
-                WHERE id = params.scheduling_auction_id
-            )
-              AND sa_prev.round = params.round - 1
-        ),
-        prior_round_biddata AS (
-            SELECT bd.ecoid, bd.merged_grade,
-                   bd.submitted_bid_quantity AS prev_qty,
-                   bd.submitted_bid_amount   AS prev_amount
-            FROM auctions.bid_data bd
-            JOIN auctions.bid_rounds br_prev ON br_prev.id = bd.bid_round_id
-            JOIN prior_scheduling_auction psa ON psa.prev_sa_id = br_prev.scheduling_auction_id
-            WHERE bd.buyer_code_id = (SELECT buyer_code_id FROM params)
+                   (q.is_special_treatment OR iwt.bid_meets_threshold) AS row_visible
+              FROM inventory_with_threshold iwt
+              CROSS JOIN qualified_buyer_check q
+             WHERE q.included = TRUE
         ),
         qualified_rows AS (
-            SELECT iq.*, prb.prev_qty, prb.prev_amount
-            FROM inventory_qualified iq
-            LEFT JOIN prior_round_biddata prb
-                   ON prb.ecoid = iq.ecoid AND prb.merged_grade = iq.merged_grade,
+            SELECT iq.*
+            FROM inventory_qualified iq,
                  existing_check ec
             WHERE iq.row_visible = TRUE AND ec.n = 0
         )
@@ -244,13 +292,9 @@ public class BidDataCreationRepository {
      *           acquire the same advisory lock before invoking this
      *           method; otherwise duplicate-row anomalies are possible
      *           under concurrent load.
-     * @implNote Sub-project 4 will redesign the {@code row_visible} +
-     *           {@code bid_meets_threshold} stubs (currently constant
-     *           {@code TRUE}) and may also convert the
-     *           {@code inventory_qualified} cross join to a {@code LEFT JOIN}
-     *           so that "missing QBC" can be distinguished from "QBC
-     *           present but excluded". Until then, mode (b) above is the
-     *           caller's responsibility to detect.
+     * @implNote The {@code row_visible} and {@code bid_meets_threshold} predicates
+     *           were filled in by sub-project 5b. See
+     *           {@code docs/tasks/auction-r2-r3-row-visibility-design.md}.
      */
     @Transactional(propagation = Propagation.MANDATORY)
     public int generate(long bidRoundId, long buyerCodeId, long bidDataDocId) {

@@ -184,6 +184,12 @@ class BidDataCreationRepositoryIT {
      * row's {@code previous_round_bid_quantity} / {@code previous_round_bid_amount}
      * must reflect the R1 {@code submitted_*} values. Locks the
      * {@code prior_round_biddata} CTE join.
+     *
+     * <p>After sub-project 5b's SQL refactor the {@code prior_round_biddata} CTE
+     * requires {@code bid_rounds.submitted = TRUE}; use {@link BidDataScenario#priorBid}
+     * (which seeds a submitted round) instead of the legacy {@code priorRoundBid}
+     * helper. A BRSF row with {@code All_Buyers} admits the row unconditionally so
+     * the carryforward assertion stays valid.
      */
     @Test
     void generate_priorRoundCarryforward_populatesPreviousRoundColumns() {
@@ -191,7 +197,10 @@ class BidDataCreationRepositoryIT {
                 .round(2)
                 .buyerCodeType("Wholesale")
                 .inventory("CRY1", "A", 30, new BigDecimal("20.00"))
-                .priorRoundBid("CRY1", "A", 7, new BigDecimal("18.50"));
+                .priorBid("CRY1", "A", new BigDecimal("18.50"), 7)
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "All_Buyers", "ShowAllInventory");
 
         long bidRoundId   = scenario.commitAndReturnBidRoundId();
         long buyerCodeId  = scenario.lastBuyerCodeId();
@@ -281,8 +290,10 @@ class BidDataCreationRepositoryIT {
     }
 
     /**
-     * R2 Only_Qualified buyer whose R1 bid is below all threshold branches:
-     * {@code bid_meets_threshold} must be FALSE → no row inserted.
+     * R2 Only_Qualified buyer with NO R1 bid + inv_mode=InventoryRound1QualifiedBids:
+     * the no-prior-bid branch in the R2 cascade returns FALSE (inv_mode requires
+     * 'ShowAllInventory' to admit when prev_amount IS NULL), so the row is invisible
+     * and zero {@code bid_data} rows are inserted.
      */
     @Test
     void generate_r2_onlyQualified_belowAllThresholds_insertsZero() {
@@ -290,7 +301,7 @@ class BidDataCreationRepositoryIT {
                 .round(2)
                 .buyerCodeType("Wholesale")
                 .inventory("AAA1", "A", 10, new BigDecimal("100.00"))
-                .priorBid("AAA1", "A", new BigDecimal("10.00"), 1)  // 10 << 100, below all thresholds
+                // No .priorBid(...) — prev_amount IS NULL
                 .qbc(false, true, "Qualified")
                 .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
                         "Only_Qualified", "InventoryRound1QualifiedBids");
