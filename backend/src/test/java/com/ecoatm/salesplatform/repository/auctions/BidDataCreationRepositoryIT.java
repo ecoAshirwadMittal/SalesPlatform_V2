@@ -314,4 +314,141 @@ class BidDataCreationRepositoryIT {
 
         assertThat(inserted).isZero();
     }
+
+    /**
+     * R2 Only_Qualified Wholesale buyer whose R1 bid clears the percent threshold
+     * (bid >= target * (1 - target_pct/100)) → row visible.
+     */
+    @Test
+    void generate_r2_onlyQualified_percentBranch_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("PCT1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("PCT1", "A", new BigDecimal("96.00"), 1)  // 96 >= 100*(1-5/100)=95
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("0.50"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified Wholesale buyer whose R1 bid clears the value-band threshold
+     * (target - bid <= target_value) → row visible.
+     */
+    @Test
+    void generate_r2_onlyQualified_valueBranch_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("VAL1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("VAL1", "A", new BigDecimal("99.00"), 1)  // target-bid=1 <= target_val=1
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("0.01"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified buyer with target=0 and nonzero R1 bid → row visible
+     * (the "target=0 AND bid>0" sub-branch).
+     */
+    @Test
+    void generate_r2_onlyQualified_targetZeroBidNonzero_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("ZER1", "A", 10, new BigDecimal("0.00"))    // target=0
+                .priorBid("ZER1", "A", new BigDecimal("5.00"), 1)
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified buyer with R1 bid below all per-row thresholds AND
+     * inv_mode=InventoryRound1QualifiedBids → fallback branch admits because bid > 0.
+     */
+    @Test
+    void generate_r2_onlyQualified_inventoryRound1QualifiedBidsFallback_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("FBK1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("FBK1", "A", new BigDecimal("10.00"), 1)  // far below all thresholds
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified buyer with R1 bid below all per-row thresholds AND
+     * inv_mode=ShowAllInventory → admits regardless of bid amount.
+     */
+    @Test
+    void generate_r2_onlyQualified_showAllInventory_visible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("SAI1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("SAI1", "A", new BigDecimal("1.00"), 1)
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "ShowAllInventory");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R2 Only_Qualified DW buyer reads from {@code dw_avg_target_price}, not
+     * {@code avg_target_price}. Wholesale price is set to a sentinel so a
+     * mis-routed CASE branch surfaces.
+     */
+    @Test
+    void generate_r2_onlyQualified_dwBranch_usesDwTarget() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("DW")
+                // Decoy: wholesale qty=50, target=99 (would FAIL pct/value if mis-routed)
+                // Real: DW qty=25, target=20; bid 19 satisfies value branch (20-19=1 <= 1)
+                .dwInventory("DWB1", "A",
+                        50, new BigDecimal("99.00"),
+                        25, new BigDecimal("20.00"))
+                .priorBid("DWB1", "A", new BigDecimal("19.00"), 1)
+                .qbc(false, true, "Qualified")
+                .brsfR2(new BigDecimal("0.01"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
 }
