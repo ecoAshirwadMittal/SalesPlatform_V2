@@ -688,4 +688,74 @@ class BidDataCreationRepositoryIT {
 
         assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isZero();
     }
+
+    // -------------------------------------------------------------------------
+    // STB shortcut tests (Task 7)
+    // -------------------------------------------------------------------------
+
+    /**
+     * R2 STB buyer with R1 bid that would otherwise fail all threshold branches →
+     * row visible because is_special_treatment=TRUE shortcuts the cascade.
+     */
+    @Test
+    void generate_r2_stbShortcut_visibleDespiteFailedThresholds() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(2)
+                .buyerCodeType("Wholesale")
+                .inventory("STB1", "A", 10, new BigDecimal("100.00"))
+                .priorBid("STB1", "A", new BigDecimal("1.00"), 1)  // would fail all branches
+                .qbc(true, true, "Qualified")  // is_special_treatment=TRUE
+                .brsfR2(new BigDecimal("5"), new BigDecimal("1.00"),
+                        "Only_Qualified", "InventoryRound1QualifiedBids");
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R3 STB buyer with no prior bid AND filters configured (so the threshold
+     * cascade would say "invisible") → row visible because is_special_treatment.
+     */
+    @Test
+    void generate_r3_stbShortcut_visibleDespiteNoBid() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(3)
+                .buyerCodeType("Wholesale")
+                .inventory("STB2", "A", 10, new BigDecimal("100.00"))
+                .r3TargetPrice("STB2", "A", new BigDecimal("100.00"))
+                // No prior bid
+                .qbc(true, true, "Qualified")  // is_special_treatment=TRUE
+                .brsfR3(new BigDecimal("5"), new BigDecimal("1.00"), 3);  // all 3 set
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(1);
+    }
+
+    /**
+     * R1 sanity: round=1 + no BRSF row + no prior bid → all rows visible
+     * (R1 ELSE branch in the outer CASE returns TRUE; matches pre-5b behaviour).
+     */
+    @Test
+    void generate_r1_sanity_allRowsVisible() {
+        BidDataScenario scenario = new BidDataScenario(jdbc)
+                .round(1)
+                .buyerCodeType("Wholesale")
+                .inventory("R1S1", "A", 10, new BigDecimal("100.00"))
+                .inventory("R1S2", "A", 5,  new BigDecimal("50.00"))
+                .qbc(false, true, "Qualified");
+                // No BRSF row for round=1 (V59 chk_brsf_round forbids it)
+                // No prior bid (R1 has no prior round)
+
+        long bidRoundId   = scenario.commitAndReturnBidRoundId();
+        long buyerCodeId  = scenario.lastBuyerCodeId();
+        long bidDataDocId = scenario.lastBidDataDocId();
+
+        assertThat(repo.generate(bidRoundId, buyerCodeId, bidDataDocId)).isEqualTo(2);
+    }
 }
