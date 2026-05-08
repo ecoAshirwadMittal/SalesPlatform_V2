@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidRow } from "@/lib/reserveBidTypes";
+import styles from "./reserveBidsList.module.css";
 
 export default function ReserveBidsPage() {
   const [rows, setRows] = useState<ReserveBidRow[]>([]);
@@ -56,28 +57,36 @@ export default function ReserveBidsPage() {
   };
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Reserve Bids (EB)</h1>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+    <div className={styles.page}>
+      <div className={styles.headerRow}>
+        <h1 className={styles.heading}>Reserve Bids (EB)</h1>
+        <div className={styles.actions}>
           <Link href="/admin/auctions-data-center/reserve-bids/upload">
-            <button>Upload Excel</button>
+            <button className="btn-outline">Upload Excel</button>
           </Link>
-          <button onClick={handleDownload}>Download Excel</button>
+          <button className="btn-outline" onClick={handleDownload}>Download Excel</button>
           <Link href="/admin/auctions-data-center/reserve-bids/new">
-            <button>New</button>
+            <button className="btn-outline">New</button>
           </Link>
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: "0.5rem", margin: "1rem 0" }}>
-        <input placeholder="Filter productId..." value={productIdFilter}
-               onChange={(e) => { setProductIdFilter(e.target.value); setPage(0); }} />
-        <input placeholder="Filter grade contains..." value={gradeFilter}
-               onChange={(e) => { setGradeFilter(e.target.value); setPage(0); }} />
+      <div className={styles.filterRow}>
+        <input
+          className={styles.filterInput}
+          placeholder="Filter productId..."
+          value={productIdFilter}
+          onChange={(e) => { setProductIdFilter(e.target.value); setPage(0); }}
+        />
+        <input
+          className={styles.filterInput}
+          placeholder="Filter grade contains..."
+          value={gradeFilter}
+          onChange={(e) => { setGradeFilter(e.target.value); setPage(0); }}
+        />
       </div>
 
-      {error && <div role="alert" style={{ color: "red" }}>{error}</div>}
+      {error && <div role="alert" className={styles.errorAlert}>{error}</div>}
       {loading && <div>Loading...</div>}
 
       <table style={{ width: "100%", borderCollapse: "collapse" }}>

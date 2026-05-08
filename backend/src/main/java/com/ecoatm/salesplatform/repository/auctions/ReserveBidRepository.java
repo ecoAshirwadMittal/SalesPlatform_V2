@@ -19,14 +19,32 @@ public interface ReserveBidRepository extends JpaRepository<ReserveBid, Long> {
 
     boolean existsByProductIdAndGrade(String productId, String grade);
 
-    @Query("""
-        SELECT rb FROM ReserveBid rb
-        WHERE (:productId IS NULL OR rb.productId = :productId)
-          AND (:grade IS NULL OR LOWER(rb.grade) LIKE LOWER(CONCAT('%', :grade, '%')))
-          AND (:minBid IS NULL OR rb.bid >= :minBid)
-          AND (:maxBid IS NULL OR rb.bid <= :maxBid)
-          AND (:updatedSince IS NULL OR rb.lastUpdateDatetime >= :updatedSince)
-        """)
+    // Native SQL with explicit CAST(:param AS type) — Hibernate 6 + Postgres cannot
+    // infer parameter types through getParameterMetaData() for nullable JPQL params
+    // when the placeholder appears inside lower()/concat() or numeric comparisons,
+    // so Postgres defaults them to bytea and the describe step fails. Same pattern
+    // used in AuctionListService and BuyerOverviewService.
+    @Query(value = """
+        SELECT rb.* FROM auctions.reserve_bid rb
+        WHERE (CAST(:productId AS text) IS NULL OR rb.product_id = CAST(:productId AS text))
+          AND (CAST(:grade AS text) IS NULL
+               OR LOWER(rb.grade) LIKE LOWER(CONCAT('%', CAST(:grade AS text), '%')))
+          AND (CAST(:minBid AS numeric) IS NULL OR rb.bid >= CAST(:minBid AS numeric))
+          AND (CAST(:maxBid AS numeric) IS NULL OR rb.bid <= CAST(:maxBid AS numeric))
+          AND (CAST(:updatedSince AS timestamptz) IS NULL
+               OR rb.last_update_datetime >= CAST(:updatedSince AS timestamptz))
+        """,
+        countQuery = """
+        SELECT COUNT(*) FROM auctions.reserve_bid rb
+        WHERE (CAST(:productId AS text) IS NULL OR rb.product_id = CAST(:productId AS text))
+          AND (CAST(:grade AS text) IS NULL
+               OR LOWER(rb.grade) LIKE LOWER(CONCAT('%', CAST(:grade AS text), '%')))
+          AND (CAST(:minBid AS numeric) IS NULL OR rb.bid >= CAST(:minBid AS numeric))
+          AND (CAST(:maxBid AS numeric) IS NULL OR rb.bid <= CAST(:maxBid AS numeric))
+          AND (CAST(:updatedSince AS timestamptz) IS NULL
+               OR rb.last_update_datetime >= CAST(:updatedSince AS timestamptz))
+        """,
+        nativeQuery = true)
     Page<ReserveBid> search(@Param("productId") String productId,
                             @Param("grade") String grade,
                             @Param("minBid") BigDecimal minBid,

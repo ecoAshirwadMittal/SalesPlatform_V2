@@ -1,0 +1,139 @@
+/* Shared form styling for reserve-bid scaffold pages (/new, /[id], /upload, /[id]/audit).
+   Tailwind preflight strips default input/button styling — these rules restore a
+   minimal-but-visible baseline keyed off the Phase 0 design tokens in globals.css.
+   The full pixel-parity rebuild lives in the styling spec (§4–§5). */
+
+.page {
+  padding: clamp(20px, 2vw, 32px) clamp(24px, 3vw, 40px);
+  max-width: 640px;
+}
+
+.heading {
+  font-family: var(--font-family-primary);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-body);
+  margin: 0 0 16px;
+}
+
+.errorAlert {
+  border: 1px solid #C0392B;
+  background: #FDECEA;
+  color: #C0392B;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.field label {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.field input,
+.field select,
+.field textarea {
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  color: var(--color-text-body);
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  padding: 8px 12px;
+  height: 36px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--color-brand-teal);
+  outline-offset: -1px;
+  border-color: var(--color-brand-teal);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.templateLink {
+  display: inline-block;
+  margin-top: 4px;
+  color: var(--color-brand-teal);
+  text-decoration: underline;
+  font-size: 14px;
+  font-family: var(--font-family-primary);
+}
+
+.templateLink:hover {
+  text-decoration: none;
+}
+
+.resultPanel {
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  padding: 12px;
+  margin-top: 16px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.resultPanel h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 8px;
+  color: var(--color-text-body);
+}
+
+.resultStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 12px;
+}
+
+.resultStats li {
+  font-size: 14px;
+}
+
+.resultStats strong {
+  font-weight: 600;
+}
+
+.errorList {
+  margin: 0;
+  padding-left: 20px;
+  color: #C0392B;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.errorListHeading {
+  font-size: 14px;
+  font-weight: 500;
+  color: #C0392B;
+  margin: 8px 0 4px;
+}
+
+.resultActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
