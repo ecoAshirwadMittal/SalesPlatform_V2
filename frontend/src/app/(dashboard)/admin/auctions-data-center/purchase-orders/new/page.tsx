@@ -40,7 +40,7 @@ export default function NewPurchaseOrderPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchWeeks()
+    fetchWeeks({ includeFuture: true })
       .then((list) => {
         if (cancelled) return;
         setWeeks(list);

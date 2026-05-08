@@ -58,8 +58,16 @@ public class AggregatedInventoryController {
     }
 
     @GetMapping("/weeks")
-    public ResponseEntity<List<WeekOption>> listWeeks() {
-        List<Week> weeks = weekRepository.findCurrentAndPastWeeks();
+    public ResponseEntity<List<WeekOption>> listWeeks(
+            @RequestParam(defaultValue = "false") boolean includeFuture) {
+        // Inventory page hides not-yet-started weeks (they have no Snowflake
+        // data to render), but the PO landing's week-range dropdowns need
+        // every week — POs routinely cover future weeks. The opt-in flag
+        // keeps the existing inventory call-sites untouched while letting
+        // PO callers ask for the full set.
+        List<Week> weeks = includeFuture
+                ? weekRepository.findAllByOrderByWeekStartDateTimeDesc()
+                : weekRepository.findCurrentAndPastWeeks();
         List<WeekOption> options = weeks.stream()
                 .map(w -> new WeekOption(w.getId(), w.getWeekDisplay(),
                         w.getWeekStartDateTime(), w.getWeekEndDateTime()))

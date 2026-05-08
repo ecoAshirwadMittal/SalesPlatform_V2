@@ -58,7 +58,7 @@ export default function PurchaseOrdersLandingPage() {
   // that PO's range so the user lands on a populated grid.
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchWeeks(), findMostRecentPurchaseOrder()])
+    Promise.all([fetchWeeks({ includeFuture: true }), findMostRecentPurchaseOrder()])
       .then(([weekList, mostRecent]) => {
         if (cancelled) return;
         setWeeks(weekList);
@@ -196,7 +196,7 @@ export default function PurchaseOrdersLandingPage() {
       ) : empty ? (
         <EmptyRangeState onCreateClick={() => setModalOpen(true)} />
       ) : single ? (
-        <PurchaseOrderEditor poId={single.id} />
+        <PurchaseOrderEditor poId={single.id} hideRangeCard />
       ) : null}
     </div>
   );

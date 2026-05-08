@@ -50,7 +50,7 @@ export default function NewPoModal({ open, onClose, onCreated }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    fetchWeeks()
+    fetchWeeks({ includeFuture: true })
       .then(setWeeks)
       .catch(() => setError("Failed to load weeks"));
   }, [open]);

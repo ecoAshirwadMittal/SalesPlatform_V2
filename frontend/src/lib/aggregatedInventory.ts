@@ -67,8 +67,15 @@ export const SyncTriggerResponseSchema = z.object({
 });
 export type SyncTriggerResponseDto = z.infer<typeof SyncTriggerResponseSchema>;
 
-export async function fetchWeeks(): Promise<WeekOption[]> {
-  const res = await apiFetch('/api/v1/admin/inventory/weeks');
+export async function fetchWeeks(
+  opts: { includeFuture?: boolean } = {},
+): Promise<WeekOption[]> {
+  // Inventory drops future weeks (no Snowflake data to render), but the
+  // PO landing's week-range dropdowns need them — POs routinely cover
+  // future weeks. Default stays false so existing inventory callers
+  // are untouched.
+  const qs = opts.includeFuture ? '?includeFuture=true' : '';
+  const res = await apiFetch('/api/v1/admin/inventory/weeks' + qs);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return z.array(WeekOptionSchema).parse(await res.json());
 }

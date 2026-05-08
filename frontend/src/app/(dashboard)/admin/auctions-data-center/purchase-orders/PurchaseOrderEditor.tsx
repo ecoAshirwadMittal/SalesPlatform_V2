@@ -99,9 +99,16 @@ interface Props {
    * the grid (rare but possible).
    */
   onRangeChanged?: (po: PurchaseOrderRow) => void;
+  /**
+   * Hide the "From: ... To: ... [Edit week range]" card. Set true on
+   * the landing where the same info + edit affordance already lives in
+   * the top dropdowns; left default false on /[id] where the inner
+   * card is the only edit surface.
+   */
+  hideRangeCard?: boolean;
 }
 
-export function PurchaseOrderEditor({ poId, onRangeChanged }: Props) {
+export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = false }: Props) {
   const [po, setPo] = useState<PurchaseOrderRow | null>(null);
   const [details, setDetails] = useState<PODetailRow[]>([]);
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
@@ -145,7 +152,7 @@ export function PurchaseOrderEditor({ poId, onRangeChanged }: Props) {
 
   useEffect(() => {
     reload();
-    fetchWeeks().then(setWeeks).catch(() => {/* header edit just degrades to ids */});
+    fetchWeeks({ includeFuture: true }).then(setWeeks).catch(() => {/* header edit just degrades to ids */});
     // poId-driven reload — deliberate dependency.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [poId]);
@@ -183,7 +190,10 @@ export function PurchaseOrderEditor({ poId, onRangeChanged }: Props) {
         </div>
       )}
 
-      {/* Header (week range) edit panel — collapsed by default. */}
+      {/* Header (week range) edit panel — collapsed by default. Hidden
+          on the landing where the top dropdowns already serve this
+          purpose. */}
+      {!hideRangeCard && (
       <section style={{
         background: "#fff",
         border: `1px solid ${BORDER}`,
@@ -227,6 +237,7 @@ export function PurchaseOrderEditor({ poId, onRangeChanged }: Props) {
           </div>
         )}
       </section>
+      )}
 
       {/* Action toolbar — Upload + Download as proper buttons. */}
       <section style={{
