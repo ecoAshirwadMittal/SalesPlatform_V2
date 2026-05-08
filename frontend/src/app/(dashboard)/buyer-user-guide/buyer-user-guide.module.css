@@ -1,0 +1,20 @@
+.page {
+  padding: 1.25rem 1.5rem;
+  background: #F7F7F7;
+  color: #112d32;
+  font-family: "Trebuchet MS", Arial, sans-serif;
+  min-height: 200px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #112d32;
+  margin: 0 0 1rem;
+}
+
+.body {
+  font-size: .95rem;
+  color: #514F4E;
+  margin: 0;
+}
