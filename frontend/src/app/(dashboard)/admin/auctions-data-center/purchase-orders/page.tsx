@@ -39,7 +39,6 @@ const BG = "#F7F7F7";
 const DANGER = "#a31b1b";
 
 const STATE_COLORS: Record<string, string> = {
-  DRAFT: "#a07f00",
   ACTIVE: "#176c4d",
   CLOSED: "#606671",
 };

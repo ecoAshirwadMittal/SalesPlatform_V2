@@ -65,11 +65,14 @@ class PurchaseOrderTest {
     }
 
     @Test
-    void lifecycleStateDeriveDraft() {
+    void lifecycleStateFutureRangeIsActive() {
+        // Used to assert DRAFT here; the lifecycle dropped that state because
+        // a PO with a future range is still freely editable + uploadable, so
+        // there's no behavioural difference from any other ACTIVE PO.
         Week future = stubWeek(LocalDate.now().plusDays(30), LocalDate.now().plusDays(36));
         Week futureEnd = stubWeek(LocalDate.now().plusDays(37), LocalDate.now().plusDays(43));
         assertThat(PurchaseOrderLifecycleState.derive(LocalDate.now(), future, futureEnd))
-                .isEqualTo(PurchaseOrderLifecycleState.DRAFT);
+                .isEqualTo(PurchaseOrderLifecycleState.ACTIVE);
     }
 
     @Test

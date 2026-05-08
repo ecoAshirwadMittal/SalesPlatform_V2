@@ -1,4 +1,4 @@
-export type PurchaseOrderLifecycleState = "DRAFT" | "ACTIVE" | "CLOSED";
+export type PurchaseOrderLifecycleState = "ACTIVE" | "CLOSED";
 
 export interface PurchaseOrderRow {
   id: number;
