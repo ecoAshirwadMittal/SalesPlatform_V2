@@ -37,9 +37,22 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onCreated: (poId: number) => void;
+  /**
+   * Optional defaults for the week dropdowns. When the modal is launched
+   * from the landing's empty-state CTA ("No PO for this range — create
+   * one?"), the caller passes the picked range so the user doesn't
+   * re-type what they just selected. Resets back to empty on close so
+   * subsequent opens from the toolbar's + New PO button show a fresh
+   * form.
+   */
+  defaultWeekFromId?: number;
+  defaultWeekToId?: number;
 }
 
-export default function NewPoModal({ open, onClose, onCreated }: Props) {
+export default function NewPoModal({
+  open, onClose, onCreated,
+  defaultWeekFromId, defaultWeekToId,
+}: Props) {
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
   const [weekFromId, setWeekFromId] = useState<number | "">("");
   const [weekToId, setWeekToId] = useState<number | "">("");
@@ -54,6 +67,16 @@ export default function NewPoModal({ open, onClose, onCreated }: Props) {
       .then(setWeeks)
       .catch(() => setError("Failed to load weeks"));
   }, [open]);
+
+  // Seed the dropdowns from defaults whenever the modal opens. Doing
+  // this in the open-side effect (rather than initialState) means an
+  // already-mounted modal picks up changed defaults if the user updates
+  // the landing's range pickers between closes.
+  useEffect(() => {
+    if (!open) return;
+    if (typeof defaultWeekFromId === "number") setWeekFromId(defaultWeekFromId);
+    if (typeof defaultWeekToId === "number") setWeekToId(defaultWeekToId);
+  }, [open, defaultWeekFromId, defaultWeekToId]);
 
   // Reset form when the modal closes so the next open doesn't show
   // stale fields. (Mendix's modal does the same — fresh state per open.)

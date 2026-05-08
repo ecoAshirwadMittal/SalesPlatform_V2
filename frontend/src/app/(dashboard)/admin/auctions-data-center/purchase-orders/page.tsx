@@ -53,6 +53,11 @@ export default function PurchaseOrdersLandingPage() {
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  // When the modal is launched from the empty-state CTA, we want it
+  // pre-filled with the picked range. The toolbar's + New PO button
+  // launches with no defaults so the user always gets a fresh form
+  // for arbitrary new POs.
+  const [modalPreFillRange, setModalPreFillRange] = useState(false);
 
   // Bootstrap: load weeks list + most-recent PO; pre-fill dropdowns to
   // that PO's range so the user lands on a populated grid.
@@ -121,7 +126,7 @@ export default function PurchaseOrdersLandingPage() {
 
         <button
           type="button"
-          onClick={() => setModalOpen(true)}
+          onClick={() => { setModalPreFillRange(false); setModalOpen(true); }}
           style={{
             padding: "0.5rem 1rem",
             background: TEAL,
@@ -173,6 +178,8 @@ export default function PurchaseOrdersLandingPage() {
           // PO; the user almost always wants to upload Excel next.
           router.push(`/admin/auctions-data-center/purchase-orders/${poId}`);
         }}
+        defaultWeekFromId={modalPreFillRange && weekFromId != null ? weekFromId : undefined}
+        defaultWeekToId={modalPreFillRange && weekToId != null ? weekToId : undefined}
       />
 
       {error && (
@@ -194,7 +201,7 @@ export default function PurchaseOrdersLandingPage() {
       ) : multi ? (
         <MultiMatchError matches={multi} />
       ) : empty ? (
-        <EmptyRangeState onCreateClick={() => setModalOpen(true)} />
+        <EmptyRangeState onCreateClick={() => { setModalPreFillRange(true); setModalOpen(true); }} />
       ) : single ? (
         <PurchaseOrderEditor poId={single.id} hideRangeCard />
       ) : null}
