@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,6 +12,10 @@ import type {
   PurchaseOrderRow,
 } from "@/lib/types/purchaseOrder";
 import NewPoModal from "./NewPoModal";
+import {
+  ColumnVisibilityMenu,
+  useColumnVisibility,
+} from "@/lib/admin/dataGrid/columnVisibility";
 
 /**
  * Local-only side fixes from the 2026-05-08 PO styling spec (S1–S6).
@@ -57,12 +61,10 @@ interface SortState { col: SortCol; dir: SortDir }
 const DEFAULT_SORT: SortState = { col: "id", dir: "desc" };
 
 /*
- * PO-9 — column-visibility selector. Eye-icon button next to + New PO
- * opens a popover with one checkbox per column. State is persisted to
- * localStorage so the choice survives reloads (matches QA's "remember
- * my view" behavior). All columns are toggleable; no minimum-1
- * enforcement — empty grid is the user's prerogative and they can
- * always re-show via the menu.
+ * PO-9 — column-visibility selector. State + popover live in
+ * lib/admin/dataGrid/columnVisibility.tsx so the same hook + component
+ * power the /[id] line-items grid (and any future grid). This page
+ * just supplies its column registry and storage key.
  */
 type ColKey = "id" | "weekRange" | "state" | "totalRecords" | "lastRefresh" | "actions";
 const COL_LABELS: Record<ColKey, string> = {
@@ -73,7 +75,7 @@ const COL_LABELS: Record<ColKey, string> = {
   lastRefresh: "Last refresh",
   actions: "Actions",
 };
-const ALL_COLS: ColKey[] = ["id", "weekRange", "state", "totalRecords", "lastRefresh", "actions"];
+const ALL_COLS = ["id", "weekRange", "state", "totalRecords", "lastRefresh", "actions"] as const satisfies readonly ColKey[];
 const VISIBILITY_STORAGE_KEY = "po-list.visibleCols.v1";
 
 export default function PurchaseOrdersPage() {
@@ -87,52 +89,7 @@ export default function PurchaseOrdersPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [sort, setSort] = useState<SortState | null>(DEFAULT_SORT);
 
-  // Hydrate from localStorage so the layout survives reloads. SSR-safe:
-  // the initial state matches the server-rendered (all-visible) markup,
-  // and the effect upgrades after hydration with the user's saved set.
-  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(() => new Set(ALL_COLS));
-  const [colMenuOpen, setColMenuOpen] = useState(false);
-  const colMenuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    try {
-      const raw = window.localStorage.getItem(VISIBILITY_STORAGE_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw) as string[];
-      const valid = parsed.filter((k): k is ColKey => (ALL_COLS as string[]).includes(k));
-      setVisibleCols(new Set(valid));
-    } catch { /* corrupt storage — fall back to all-visible */ }
-  }, []);
-
-  function toggleCol(col: ColKey) {
-    setVisibleCols(prev => {
-      const next = new Set(prev);
-      if (next.has(col)) next.delete(col);
-      else next.add(col);
-      try {
-        window.localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify([...next]));
-      } catch { /* storage unavailable — column toggle still works in-session */ }
-      return next;
-    });
-  }
-
-  // Click-outside / Escape closes the column menu.
-  useEffect(() => {
-    if (!colMenuOpen) return;
-    function onDoc(e: MouseEvent) {
-      if (!colMenuRef.current) return;
-      if (!colMenuRef.current.contains(e.target as Node)) setColMenuOpen(false);
-    }
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setColMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDoc);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [colMenuOpen]);
+  const colVis = useColumnVisibility(ALL_COLS, COL_LABELS, VISIBILITY_STORAGE_KEY);
 
   async function reload() {
     setLoading(true);
@@ -193,69 +150,7 @@ export default function PurchaseOrdersPage() {
         </h2>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
-          {/* PO-9 — column visibility toggle */}
-          <div ref={colMenuRef} style={{ position: "relative" }}>
-            <button
-              type="button"
-              onClick={() => setColMenuOpen(o => !o)}
-              aria-haspopup="menu"
-              aria-expanded={colMenuOpen}
-              title="Show / hide columns"
-              style={{
-                padding: "0.4rem 0.6rem",
-                background: "#F7F7F7",
-                color: "#3C3C3C",
-                border: "1px solid #D0D0D0",
-                borderRadius: 4,
-                cursor: "pointer",
-                fontSize: 14,
-                fontFamily: "inherit",
-              }}
-            >
-              {/* Eye glyph — matches QA's icon font affordance */}
-              <span aria-hidden="true">👁</span>
-              <span style={{ marginLeft: 6 }}>Columns</span>
-            </button>
-            {colMenuOpen && (
-              <div
-                role="menu"
-                style={{
-                  position: "absolute",
-                  top: "calc(100% + 4px)",
-                  right: 0,
-                  background: "#fff",
-                  border: "1px solid #D0D0D0",
-                  borderRadius: 4,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                  padding: "0.5rem 0",
-                  minWidth: 180,
-                  zIndex: 50,
-                }}
-              >
-                {ALL_COLS.map(col => (
-                  <label
-                    key={col}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "0.5rem",
-                      padding: "0.35rem 0.75rem",
-                      cursor: "pointer",
-                      fontSize: 14,
-                      color: "#3C3C3C",
-                    }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={visibleCols.has(col)}
-                      onChange={() => toggleCol(col)}
-                    />
-                    {COL_LABELS[col]}
-                  </label>
-                ))}
-              </div>
-            )}
-          </div>
+          <ColumnVisibilityMenu state={colVis} />
 
           {/*
             PO-4: primary entry is now the modal — single step, week-range
@@ -297,20 +192,20 @@ export default function PurchaseOrdersPage() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#F7F7F7", textAlign: "left" }}>
-            {visibleCols.has("id") && <SortableTh col="id" sort={sort} onSort={onSort}>ID</SortableTh>}
-            {visibleCols.has("weekRange") && <SortableTh col="weekFrom.id" sort={sort} onSort={onSort}>Week range</SortableTh>}
-            {visibleCols.has("state") && <th style={thStyle}>State</th>}
-            {visibleCols.has("totalRecords") && <SortableTh col="totalRecords" sort={sort} onSort={onSort}>Total rows</SortableTh>}
-            {visibleCols.has("lastRefresh") && <SortableTh col="poRefreshTimestamp" sort={sort} onSort={onSort}>Last refresh</SortableTh>}
-            {visibleCols.has("actions") && <th style={thStyle}>Actions</th>}
+            {colVis.visible.has("id") && <SortableTh col="id" sort={sort} onSort={onSort}>ID</SortableTh>}
+            {colVis.visible.has("weekRange") && <SortableTh col="weekFrom.id" sort={sort} onSort={onSort}>Week range</SortableTh>}
+            {colVis.visible.has("state") && <th style={thStyle}>State</th>}
+            {colVis.visible.has("totalRecords") && <SortableTh col="totalRecords" sort={sort} onSort={onSort}>Total rows</SortableTh>}
+            {colVis.visible.has("lastRefresh") && <SortableTh col="poRefreshTimestamp" sort={sort} onSort={onSort}>Last refresh</SortableTh>}
+            {colVis.visible.has("actions") && <th style={thStyle}>Actions</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.id} style={{ borderBottom: "1px solid #eee" }}>
-              {visibleCols.has("id") && <td>{r.id}</td>}
-              {visibleCols.has("weekRange") && <td>{r.weekRangeLabel}</td>}
-              {visibleCols.has("state") && (
+              {colVis.visible.has("id") && <td>{r.id}</td>}
+              {colVis.visible.has("weekRange") && <td>{r.weekRangeLabel}</td>}
+              {colVis.visible.has("state") && (
                 <td>
                   <span style={{
                     padding: "0.15rem 0.6rem", borderRadius: 999,
@@ -318,12 +213,12 @@ export default function PurchaseOrdersPage() {
                   }}>{r.state}</span>
                 </td>
               )}
-              {visibleCols.has("totalRecords") && <td>{r.totalRecords}</td>}
-              {visibleCols.has("lastRefresh") && (
+              {colVis.visible.has("totalRecords") && <td>{r.totalRecords}</td>}
+              {colVis.visible.has("lastRefresh") && (
                 <td>{r.poRefreshTimestamp
                   ? new Date(r.poRefreshTimestamp).toLocaleString() : "—"}</td>
               )}
-              {visibleCols.has("actions") && (
+              {colVis.visible.has("actions") && (
                 <td>
                   {/* S5 — underlined Edit (teal) + Delete (danger red) actions. */}
                   <Link

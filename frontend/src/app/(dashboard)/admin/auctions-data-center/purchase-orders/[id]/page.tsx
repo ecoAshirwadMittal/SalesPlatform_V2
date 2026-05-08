@@ -38,6 +38,34 @@ import type {
   PurchaseOrderLifecycleState,
   PurchaseOrderRow,
 } from "@/lib/types/purchaseOrder";
+import {
+  ColumnVisibilityMenu,
+  useColumnVisibility,
+} from "@/lib/admin/dataGrid/columnVisibility";
+
+/*
+ * PO-9 phase 2 — column visibility for the 8-column line-items grid.
+ * Separate storage key from the list page so toggling one doesn't
+ * affect the other.
+ */
+type DetailColKey =
+  | "productId" | "grade" | "modelName" | "buyerCode"
+  | "price" | "qtyCap" | "priceFulfilled" | "qtyFulfilled";
+const DETAIL_COL_LABELS: Record<DetailColKey, string> = {
+  productId: "Product ID",
+  grade: "Grade",
+  modelName: "Model Name",
+  buyerCode: "Buyer Code",
+  price: "Price",
+  qtyCap: "Qty Cap",
+  priceFulfilled: "Price Fulfilled",
+  qtyFulfilled: "Qty Fulfilled",
+};
+const DETAIL_ALL_COLS = [
+  "productId", "grade", "modelName", "buyerCode",
+  "price", "qtyCap", "priceFulfilled", "qtyFulfilled",
+] as const satisfies readonly DetailColKey[];
+const DETAIL_VISIBILITY_STORAGE_KEY = "po-detail.visibleCols.v1";
 
 const TEAL = "#407874";
 const TEXT = "#3C3C3C";
@@ -71,6 +99,9 @@ export default function EditPurchaseOrderPage() {
   const [draftToId, setDraftToId] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const colVis = useColumnVisibility(
+    DETAIL_ALL_COLS, DETAIL_COL_LABELS, DETAIL_VISIBILITY_STORAGE_KEY,
+  );
 
   async function reload() {
     try {
@@ -213,7 +244,8 @@ export default function EditPurchaseOrderPage() {
         <h3 style={{ margin: 0, fontSize: 18, color: TEXT, fontWeight: 500 }}>
           Line items <span style={{ color: TEXT_MUTED, fontSize: 14, fontWeight: 400 }}>({details.length})</span>
         </h3>
-        <div style={{ display: "flex", gap: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <ColumnVisibilityMenu state={colVis} />
           <Link
             href={`/admin/auctions-data-center/purchase-orders/${id}/upload`}
             style={ghostBtnLink}
@@ -239,20 +271,20 @@ export default function EditPurchaseOrderPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ background: BG, borderBottom: `1px solid ${BORDER}` }}>
-              <Th>Product ID</Th>
-              <Th>Grade</Th>
-              <Th>Model Name</Th>
-              <Th>Buyer Code</Th>
-              <Th align="right">Price</Th>
-              <Th align="right">Qty Cap</Th>
-              <Th align="right">Price Fulfilled</Th>
-              <Th align="right">Qty Fulfilled</Th>
+              {colVis.visible.has("productId") && <Th>Product ID</Th>}
+              {colVis.visible.has("grade") && <Th>Grade</Th>}
+              {colVis.visible.has("modelName") && <Th>Model Name</Th>}
+              {colVis.visible.has("buyerCode") && <Th>Buyer Code</Th>}
+              {colVis.visible.has("price") && <Th align="right">Price</Th>}
+              {colVis.visible.has("qtyCap") && <Th align="right">Qty Cap</Th>}
+              {colVis.visible.has("priceFulfilled") && <Th align="right">Price Fulfilled</Th>}
+              {colVis.visible.has("qtyFulfilled") && <Th align="right">Qty Fulfilled</Th>}
             </tr>
           </thead>
           <tbody>
             {details.length === 0 && (
               <tr>
-                <td colSpan={8} style={{
+                <td colSpan={colVis.visible.size} style={{
                   padding: "2rem",
                   textAlign: "center",
                   color: TEXT_MUTED,
@@ -264,14 +296,14 @@ export default function EditPurchaseOrderPage() {
             )}
             {details.map(d => (
               <tr key={d.id} style={{ borderBottom: `1px solid ${DIVIDER}` }}>
-                <Td>{d.productId}</Td>
-                <Td>{d.grade}</Td>
-                <Td>{d.modelName ?? "—"}</Td>
-                <Td>{d.buyerCode}</Td>
-                <Td align="right">{usd.format(Number(d.price))}</Td>
-                <Td align="right">{d.qtyCap == null ? "—" : num.format(d.qtyCap)}</Td>
-                <Td align="right">{d.priceFulfilled == null ? "—" : usd.format(Number(d.priceFulfilled))}</Td>
-                <Td align="right">{d.qtyFulfilled == null ? "—" : num.format(d.qtyFulfilled)}</Td>
+                {colVis.visible.has("productId") && <Td>{d.productId}</Td>}
+                {colVis.visible.has("grade") && <Td>{d.grade}</Td>}
+                {colVis.visible.has("modelName") && <Td>{d.modelName ?? "—"}</Td>}
+                {colVis.visible.has("buyerCode") && <Td>{d.buyerCode}</Td>}
+                {colVis.visible.has("price") && <Td align="right">{usd.format(Number(d.price))}</Td>}
+                {colVis.visible.has("qtyCap") && <Td align="right">{d.qtyCap == null ? "—" : num.format(d.qtyCap)}</Td>}
+                {colVis.visible.has("priceFulfilled") && <Td align="right">{d.priceFulfilled == null ? "—" : usd.format(Number(d.priceFulfilled))}</Td>}
+                {colVis.visible.has("qtyFulfilled") && <Td align="right">{d.qtyFulfilled == null ? "—" : num.format(d.qtyFulfilled)}</Td>}
               </tr>
             ))}
           </tbody>
