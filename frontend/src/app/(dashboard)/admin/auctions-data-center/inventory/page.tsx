@@ -48,9 +48,19 @@ const usdFormatter = new Intl.NumberFormat('en-US', {
   currency: 'USD',
   maximumFractionDigits: 2,
 });
+// QA renders six-figure payout totals as integer dollars (e.g. "$1,980,410").
+// Cents on six-figure aggregates is just visual noise — kept for per-unit
+// prices like Average Target Price + per-row Target Price columns where the
+// cents actually carry signal.
+const usdIntegerFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  maximumFractionDigits: 0,
+});
 const intFormatter = new Intl.NumberFormat('en-US');
 
 const formatUsd = (n: number) => usdFormatter.format(n);
+const formatUsdInteger = (n: number) => usdIntegerFormatter.format(n);
 const formatInt = (n: number) => intFormatter.format(n);
 
 export default function AggregatedInventoryPage() {
@@ -252,10 +262,10 @@ export default function AggregatedInventoryPage() {
 
       <section className={styles.kpiStrip} aria-label="Inventory totals">
         <Kpi label="Total Quantity" value={formatInt(totals?.totalQuantity ?? 0)} />
-        <Kpi label="Total Payout" value={formatUsd(Number(totals?.totalPayout ?? 0))} />
+        <Kpi label="Total Payout" value={formatUsdInteger(Number(totals?.totalPayout ?? 0))} />
         <Kpi label="Average Target Price" value={formatUsd(Number(totals?.averageTargetPrice ?? 0))} />
         <Kpi label="DW Total Quantity" value={formatInt(totals?.dwTotalQuantity ?? 0)} />
-        <Kpi label="DW Total Payout" value={formatUsd(Number(totals?.dwTotalPayout ?? 0))} />
+        <Kpi label="DW Total Payout" value={formatUsdInteger(Number(totals?.dwTotalPayout ?? 0))} />
         <Kpi label="DW Average Target Price" value={formatUsd(Number(totals?.dwAverageTargetPrice ?? 0))} />
       </section>
 
