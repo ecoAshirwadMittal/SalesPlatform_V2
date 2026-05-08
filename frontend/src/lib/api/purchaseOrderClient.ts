@@ -22,10 +22,23 @@ export async function listPurchaseOrders(params: {
   page?: number; size?: number;
   weekFromId?: number; weekToId?: number;
   yearFrom?: number; yearTo?: number;
+  /**
+   * Spring Data sort spec, e.g. "id,desc" or "weekFrom.id,asc". Multiple
+   * may be passed (joined here into one comma-separated value, which Spring
+   * splits back out). Caller is responsible for using property paths the
+   * underlying entity actually exposes — derived columns like `state`
+   * cannot be sorted server-side.
+   */
+  sort?: string | string[];
 }): Promise<PurchaseOrderListResponse> {
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null) qs.set(k, String(v));
+    if (v === undefined || v === null) continue;
+    if (k === "sort" && Array.isArray(v)) {
+      for (const s of v) qs.append("sort", s);
+    } else {
+      qs.set(k, String(v));
+    }
   }
   return jsonOrThrow(await fetch(`${BASE}?${qs}`, { credentials: "include" }));
 }

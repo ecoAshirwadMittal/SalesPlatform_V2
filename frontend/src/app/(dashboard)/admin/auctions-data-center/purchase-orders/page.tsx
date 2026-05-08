@@ -38,6 +38,24 @@ const STATE_COLORS: Record<PurchaseOrderLifecycleState, string> = {
 const PO_TEAL = "#407874"; // CLAUDE.md brand teal — used for Edit link
 const PO_DANGER = "#a31b1b"; // Delete (matches existing red affordance)
 
+/*
+ * PO-3 phase 1 — server-side sort headers. Each clickable column header
+ * cycles desc → asc → none → desc. Only one column sorts at a time
+ * (matches QA's single-sort behavior and Spring's default precedence
+ * rules). Columns map to JPA property paths the repository's findFiltered
+ * query exposes: derived columns like `state` (computed from week-range
+ * vs today) and `weekRangeLabel` (built at projection time per PO-7) are
+ * not server-sortable, so they're rendered as plain headers.
+ *
+ * The full filter row + comparator UI is Sprint A.2; this commit just
+ * lights up the sort affordance the existing Pageable surface already
+ * supports.
+ */
+type SortCol = "id" | "weekFrom.id" | "totalRecords" | "poRefreshTimestamp";
+type SortDir = "asc" | "desc";
+interface SortState { col: SortCol; dir: SortDir }
+const DEFAULT_SORT: SortState = { col: "id", dir: "desc" };
+
 export default function PurchaseOrdersPage() {
   const router = useRouter();
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
@@ -47,11 +65,15 @@ export default function PurchaseOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [sort, setSort] = useState<SortState | null>(DEFAULT_SORT);
 
   async function reload() {
     setLoading(true);
     try {
-      const r = await listPurchaseOrders({ page, size });
+      const r = await listPurchaseOrders({
+        page, size,
+        sort: sort ? `${sort.col},${sort.dir}` : undefined,
+      });
       setRows(r.items);
       setTotal(r.total);
       setError(null);
@@ -62,7 +84,16 @@ export default function PurchaseOrdersPage() {
     }
   }
 
-  useEffect(() => { reload(); }, [page]);
+  useEffect(() => { reload(); }, [page, sort]);
+
+  function onSort(col: SortCol) {
+    setSort(current => {
+      if (!current || current.col !== col) return { col, dir: "desc" };
+      if (current.dir === "desc") return { col, dir: "asc" };
+      return null; // third click clears, falls back to backend default
+    });
+    setPage(0);
+  }
 
   async function onDelete(id: number) {
     if (!confirm(`Delete PO #${id}? This will cascade-delete all detail rows.`)) return;
@@ -132,8 +163,12 @@ export default function PurchaseOrdersPage() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#F7F7F7", textAlign: "left" }}>
-            <th>ID</th><th>Week range</th><th>State</th>
-            <th>Total rows</th><th>Last refresh</th><th>Actions</th>
+            <SortableTh col="id" sort={sort} onSort={onSort}>ID</SortableTh>
+            <SortableTh col="weekFrom.id" sort={sort} onSort={onSort}>Week range</SortableTh>
+            <th style={thStyle}>State</th>
+            <SortableTh col="totalRecords" sort={sort} onSort={onSort}>Total rows</SortableTh>
+            <SortableTh col="poRefreshTimestamp" sort={sort} onSort={onSort}>Last refresh</SortableTh>
+            <th style={thStyle}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -198,5 +233,53 @@ export default function PurchaseOrdersPage() {
                 disabled={(page + 1) * size >= total}>Next</button>
       </footer>
     </div>
+  );
+}
+
+const thStyle: React.CSSProperties = {
+  padding: "10px 12px",
+  fontWeight: 500,
+  fontSize: 13,
+  color: "#3C3C3C",
+  whiteSpace: "nowrap",
+};
+
+function SortableTh({
+  col,
+  sort,
+  onSort,
+  children,
+}: {
+  col: SortCol;
+  sort: SortState | null;
+  onSort: (col: SortCol) => void;
+  children: React.ReactNode;
+}) {
+  const active = sort?.col === col;
+  // Single neutral arrow when this column isn't the active sort, so
+  // hovering doesn't make every column look hot. Active column gets a
+  // direction-specific glyph.
+  const glyph = !active ? "↕" : sort.dir === "desc" ? "↓" : "↑";
+  return (
+    <th style={thStyle}>
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        style={{
+          background: "none",
+          border: 0,
+          padding: 0,
+          font: "inherit",
+          color: active ? PO_TEAL : "#3C3C3C",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        {children}
+        <span aria-hidden="true" style={{ fontSize: 11, opacity: active ? 1 : 0.45 }}>{glyph}</span>
+      </button>
+    </th>
   );
 }
