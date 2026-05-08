@@ -1,5 +1,28 @@
 "use client";
 
+/**
+ * PO detail / edit page — replaces the dev-scaffold version (gap PO-1).
+ *
+ * Pre-2026-05-08 this page rendered:
+ *   - "PO #5 — UNKNOWN" title
+ *   - "Week from id 557" / "Week to id 101" raw FK ids in the header form
+ *   - Bare-text "Save header", "Upload Excel", "Download Excel" links
+ *   - 33 detail rows in a flat unstyled table with no header treatment,
+ *     no divider lines, no PriceFulfilled/QtyFulfilled columns, no
+ *     pagination
+ *
+ * This iteration replaces all of that with a presentable detail layout.
+ * The 8-column grid matches QA's column set (gap PO-6 surfaces the
+ * Fulfilled columns the previous code dropped). Styling consumes the
+ * existing globals tokens documented in
+ * docs/tasks/qa-vs-local-po-styling-spec-2026-05-08.md §1.
+ *
+ * Out of scope (deferred to Sprint A grid rebuild):
+ *   - Sort headers, filter row + comparator dropdown
+ *   - Column visibility selector
+ *   - Server-side pagination > 200 rows
+ */
+
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
@@ -9,87 +32,357 @@ import {
   listPoDetails,
   updatePurchaseOrder,
 } from "@/lib/api/purchaseOrderClient";
+import { fetchWeeks, type WeekOption } from "@/lib/aggregatedInventory";
 import type {
   PODetailRow,
+  PurchaseOrderLifecycleState,
   PurchaseOrderRow,
 } from "@/lib/types/purchaseOrder";
+
+const TEAL = "#407874";
+const TEXT = "#3C3C3C";
+const TEXT_MUTED = "#606671";
+const BORDER = "#D0D0D0";
+const DIVIDER = "#E5E5E5";
+const BG = "#F7F7F7";
+const DANGER = "#a31b1b";
+
+const STATE_COLORS: Record<PurchaseOrderLifecycleState, string> = {
+  DRAFT: "#a07f00",
+  ACTIVE: "#176c4d",
+  CLOSED: "#606671",
+};
+
+const usd = new Intl.NumberFormat("en-US", {
+  style: "currency",
+  currency: "USD",
+  maximumFractionDigits: 2,
+});
+const num = new Intl.NumberFormat("en-US");
 
 export default function EditPurchaseOrderPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const [po, setPo] = useState<PurchaseOrderRow | null>(null);
   const [details, setDetails] = useState<PODetailRow[]>([]);
+  const [weeks, setWeeks] = useState<WeekOption[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [draftFromId, setDraftFromId] = useState<number | "">("");
+  const [draftToId, setDraftToId] = useState<number | "">("");
+  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function reload() {
     try {
-      const [p, d] = await Promise.all([getPurchaseOrder(id), listPoDetails(id, 0, 200)]);
+      const [p, d] = await Promise.all([
+        getPurchaseOrder(id),
+        listPoDetails(id, 0, 200),
+      ]);
       setPo(p);
       setDetails(d.items);
+      setDraftFromId(p.weekFromId);
+      setDraftToId(p.weekToId);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
   }
 
-  useEffect(() => { reload(); }, [id]);
+  useEffect(() => {
+    reload();
+    fetchWeeks().then(setWeeks).catch(() => {/* header edit just degrades to ids */});
+  }, [id]);
 
-  async function onSaveHeader(e: React.FormEvent) {
-    e.preventDefault();
-    if (!po) return;
+  async function onSaveHeader() {
+    if (typeof draftFromId !== "number" || typeof draftToId !== "number") return;
+    setSaving(true);
     try {
-      await updatePurchaseOrder(id,
-              { weekFromId: po.weekFromId, weekToId: po.weekToId });
-      reload();
+      await updatePurchaseOrder(id, { weekFromId: draftFromId, weekToId: draftToId });
+      setEditing(false);
+      await reload();
     } catch (e) {
-      alert("Save failed: " + (e as Error).message);
+      setError("Save failed: " + (e as Error).message);
+    } finally {
+      setSaving(false);
     }
   }
 
-  if (!po) return <div>Loading…</div>;
+  if (!po) return <div style={{ color: TEXT_MUTED }}>Loading…</div>;
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <h1>PO #{po.id} — {po.weekRangeLabel}</h1>
-      {error && <div role="alert" style={{ color: "red" }}>{error}</div>}
+    <div>
+      <Link
+        href="/admin/auctions-data-center/purchase-orders"
+        style={{ color: TEAL, fontSize: 14, textDecoration: "none" }}
+      >
+        ← Back to Purchase Order
+      </Link>
 
-      <form onSubmit={onSaveHeader} style={{ marginBottom: "1.5rem" }}>
-        <label>Week from id <input type="number" value={po.weekFromId}
-              onChange={e => setPo({ ...po, weekFromId: Number(e.target.value) })} /></label>
-        {" "}
-        <label>Week to id <input type="number" value={po.weekToId}
-              onChange={e => setPo({ ...po, weekToId: Number(e.target.value) })} /></label>
-        {" "}
-        <button type="submit">Save header</button>
-      </form>
+      <header style={{ margin: "0.5rem 0 1.5rem" }}>
+        <h2 style={{
+          margin: 0,
+          fontSize: "42px",
+          fontWeight: 500,
+          lineHeight: "54.6px",
+          color: TEXT,
+        }}>
+          PO #{po.id}
+        </h2>
+        <p style={{ margin: "0.25rem 0 0", color: TEXT_MUTED, fontSize: 14 }}>
+          {po.weekRangeLabel}
+          {" · "}
+          <StatePill state={po.state} />
+          {po.poRefreshTimestamp && (
+            <>
+              {" · last refresh "}
+              {new Date(po.poRefreshTimestamp).toLocaleString()}
+            </>
+          )}
+        </p>
+      </header>
 
-      <section style={{ marginBottom: "1.5rem" }}>
-        <h2>Details ({details.length})</h2>
-        <Link href={`/admin/auctions-data-center/purchase-orders/${id}/upload`}>
-          Upload Excel
-        </Link>
-        <a href={downloadPoDetailsUrl(id)} style={{ marginLeft: "1rem" }}>
-          Download Excel
-        </a>
+      {error && (
+        <div role="alert" style={{
+          color: DANGER,
+          background: "#fde7e7",
+          border: "1px solid #f5c2c2",
+          padding: "0.5rem 0.75rem",
+          borderRadius: 4,
+          marginBottom: "1rem",
+          fontSize: 14,
+        }}>
+          {error}
+        </div>
+      )}
+
+      {/* Header (week range) edit panel — collapsed by default. */}
+      <section style={{
+        background: "#fff",
+        border: `1px solid ${BORDER}`,
+        borderRadius: 4,
+        padding: "1rem",
+        marginBottom: "1.5rem",
+      }}>
+        {!editing ? (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div style={{ color: TEXT_MUTED, fontSize: 14 }}>
+              <strong style={{ color: TEXT, fontWeight: 500 }}>From:</strong> {po.weekFromLabel}
+              {" · "}
+              <strong style={{ color: TEXT, fontWeight: 500 }}>To:</strong> {po.weekToLabel}
+            </div>
+            <button
+              onClick={() => setEditing(true)}
+              style={ghostBtn}
+            >
+              Edit week range
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap" }}>
+            <label style={{ color: TEXT_MUTED, fontSize: 14, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              From Week
+              <WeekSelect value={draftFromId} weeks={weeks} onChange={setDraftFromId} />
+            </label>
+            <label style={{ color: TEXT_MUTED, fontSize: 14, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+              To Week
+              <WeekSelect value={draftToId} weeks={weeks} onChange={setDraftToId} />
+            </label>
+            <div style={{ display: "flex", gap: "0.5rem", marginLeft: "auto" }}>
+              <button onClick={onSaveHeader} disabled={saving} style={primaryBtn}>
+                {saving ? "Saving…" : "Save"}
+              </button>
+              <button
+                onClick={() => { setEditing(false); setDraftFromId(po.weekFromId); setDraftToId(po.weekToId); }}
+                disabled={saving}
+                style={ghostBtn}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </section>
 
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
-        <thead>
-          <tr style={{ background: "#F7F7F7" }}>
-            <th>Product</th><th>Grade</th><th>Model</th>
-            <th>Price</th><th>QtyCap</th><th>Buyer</th>
-          </tr>
-        </thead>
-        <tbody>
-          {details.map(d => (
-            <tr key={d.id}>
-              <td>{d.productId}</td><td>{d.grade}</td>
-              <td>{d.modelName}</td><td>{d.price}</td>
-              <td>{d.qtyCap ?? "—"}</td><td>{d.buyerCode}</td>
+      {/* Action toolbar — Upload + Download as proper buttons. */}
+      <section style={{
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        marginBottom: "0.75rem",
+      }}>
+        <h3 style={{ margin: 0, fontSize: 18, color: TEXT, fontWeight: 500 }}>
+          Line items <span style={{ color: TEXT_MUTED, fontSize: 14, fontWeight: 400 }}>({details.length})</span>
+        </h3>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <Link
+            href={`/admin/auctions-data-center/purchase-orders/${id}/upload`}
+            style={ghostBtnLink}
+          >
+            ↑ Upload Excel
+          </Link>
+          <a
+            href={downloadPoDetailsUrl(id)}
+            style={ghostBtnLink}
+          >
+            ↓ Download Excel
+          </a>
+        </div>
+      </section>
+
+      {/* Line items grid — 8 columns matching QA. */}
+      <div style={{
+        background: "#fff",
+        border: `1px solid ${BORDER}`,
+        borderRadius: 4,
+        overflow: "hidden",
+      }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+          <thead>
+            <tr style={{ background: BG, borderBottom: `1px solid ${BORDER}` }}>
+              <Th>Product ID</Th>
+              <Th>Grade</Th>
+              <Th>Model Name</Th>
+              <Th>Buyer Code</Th>
+              <Th align="right">Price</Th>
+              <Th align="right">Qty Cap</Th>
+              <Th align="right">Price Fulfilled</Th>
+              <Th align="right">Qty Fulfilled</Th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {details.length === 0 && (
+              <tr>
+                <td colSpan={8} style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: TEXT_MUTED,
+                  fontStyle: "italic",
+                }}>
+                  No line items yet — upload an Excel file to populate.
+                </td>
+              </tr>
+            )}
+            {details.map(d => (
+              <tr key={d.id} style={{ borderBottom: `1px solid ${DIVIDER}` }}>
+                <Td>{d.productId}</Td>
+                <Td>{d.grade}</Td>
+                <Td>{d.modelName ?? "—"}</Td>
+                <Td>{d.buyerCode}</Td>
+                <Td align="right">{usd.format(Number(d.price))}</Td>
+                <Td align="right">{d.qtyCap == null ? "—" : num.format(d.qtyCap)}</Td>
+                <Td align="right">{d.priceFulfilled == null ? "—" : usd.format(Number(d.priceFulfilled))}</Td>
+                <Td align="right">{d.qtyFulfilled == null ? "—" : num.format(d.qtyFulfilled)}</Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
+
+function Th({ children, align }: { children: React.ReactNode; align?: "right" }) {
+  return (
+    <th style={{
+      textAlign: align ?? "left",
+      padding: "10px 12px",
+      color: TEXT,
+      fontWeight: 500,
+      fontSize: 13,
+      letterSpacing: "0.02em",
+      whiteSpace: "nowrap",
+    }}>
+      {children}
+    </th>
+  );
+}
+
+function Td({ children, align }: { children: React.ReactNode; align?: "right" }) {
+  return (
+    <td style={{
+      padding: "8px 12px",
+      color: TEXT,
+      textAlign: align ?? "left",
+      whiteSpace: "nowrap",
+    }}>
+      {children}
+    </td>
+  );
+}
+
+function StatePill({ state }: { state: PurchaseOrderLifecycleState }) {
+  return (
+    <span style={{
+      padding: "0.15rem 0.6rem",
+      borderRadius: 999,
+      background: STATE_COLORS[state],
+      color: "white",
+      fontSize: "0.75rem",
+      fontWeight: 600,
+      letterSpacing: "0.02em",
+    }}>
+      {state}
+    </span>
+  );
+}
+
+function WeekSelect({
+  value,
+  weeks,
+  onChange,
+}: {
+  value: number | "";
+  weeks: WeekOption[];
+  onChange: (id: number | "") => void;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={(e) =>
+        onChange(e.target.value === "" ? "" : Number(e.target.value))
+      }
+      style={{
+        height: 32,
+        padding: "0 8px",
+        background: BG,
+        color: value === "" ? TEXT_MUTED : TEXT,
+        border: `1px solid ${BORDER}`,
+        borderRadius: 4,
+        fontSize: 14,
+        fontFamily: "inherit",
+      }}
+    >
+      <option value="">— Choose a week —</option>
+      {weeks.map((w) => (
+        <option key={w.id} value={w.id}>{w.weekDisplay}</option>
+      ))}
+    </select>
+  );
+}
+
+const primaryBtn: React.CSSProperties = {
+  padding: "8px 18px",
+  background: TEAL,
+  color: "white",
+  border: 0,
+  borderRadius: 4,
+  fontSize: 14,
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+const ghostBtn: React.CSSProperties = {
+  padding: "8px 18px",
+  background: BG,
+  color: TEXT,
+  border: `1px solid ${BORDER}`,
+  borderRadius: 4,
+  fontSize: 14,
+  cursor: "pointer",
+  fontFamily: "inherit",
+};
+const ghostBtnLink: React.CSSProperties = {
+  ...ghostBtn,
+  textDecoration: "none",
+  display: "inline-flex",
+  alignItems: "center",
+};
