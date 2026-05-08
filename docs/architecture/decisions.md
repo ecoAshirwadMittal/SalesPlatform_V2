@@ -5,6 +5,70 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-05-07 — Inventory KPI cards: keep bordered-card layout (vs QA inline)
+
+**Status:** Accepted (logged divergence — no code change).
+
+### Context
+QA renders the inventory KPIs (`/admin/auctions-data-center/inventory`)
+as inline label-then-value text in a single horizontal row. Local
+renders the same six metrics as bordered cards in a 6-column grid
+(`.kpiStrip` + `.kpiCard` in `inventory.module.css`). Both surfaces
+show the same numbers from the same backend; the divergence is
+purely presentational, but it is a divergence and was flagged in
+`docs/tasks/qa-vs-local-pixel-walkthrough-2026-05-07.md` §1.3.
+
+### Decision
+Keep the bordered-card layout. Rationale:
+- Already shipped and stable; reverting to inline labels is rework
+  with no functional gain.
+- Bordered cards scale better on narrow viewports — the inline row
+  collapses ungracefully below ~1100px while the grid reflows.
+- Cards make the metric labels more scannable: each label sits above
+  its value with consistent leading, instead of being inlined with
+  `Label: value` punctuation that the eye has to parse.
+
+### Consequences
+- The QA-vs-local walkthrough item M13a is closed by this decision,
+  not by a code change.
+- Any future "match QA exactly" mandate would need to revisit this.
+- Layout choice is locked in `inventory.module.css` `.kpiStrip` /
+  `.kpiCard`; future contributors should not switch back to inline
+  text without re-opening this ADR.
+
+### References
+- `docs/tasks/qa-vs-local-implementation-plan-2026-05-07.md` Bundle M13
+- `docs/tasks/qa-vs-local-pixel-walkthrough-2026-05-07.md` §1.3
+- Local impl: `frontend/src/app/(dashboard)/admin/auctions-data-center/inventory/page.tsx`
+
+---
+
+## 2026-05-07 — Sidebar color: keep teal gradient (per CLAUDE.md spec) over QA's legacy solid green
+
+**Status:** Accepted (logged divergence — no code change).
+
+### Context
+The local admin sidebar uses the teal palette documented in
+`CLAUDE.md` (#407874 teal, #112d32 dark). QA's legacy admin still
+ships the older solid green sidebar from the pre-rebrand Mendix theme.
+Walkthrough item L21 noted the divergence.
+
+### Decision
+Local stays on teal. `CLAUDE.md` is the single source of truth for
+brand tokens for the rebuild, and the teal token (#407874) is the
+documented spec. QA is the stale surface, not local.
+
+### Consequences
+- L21 is closed by this decision; no CSS change.
+- If/when QA is updated to the rebrand palette, this divergence
+  disappears organically.
+
+### References
+- `CLAUDE.md` "Color tokens" section (#407874 teal)
+- `docs/tasks/qa-vs-local-implementation-plan-2026-05-07.md` Bundle M14, L21
+
+---
+
 ## 2026-04-30 — Sub-project 4C: Bid Ranking + Target-Price Recalc
 
 **Status:** Accepted.
