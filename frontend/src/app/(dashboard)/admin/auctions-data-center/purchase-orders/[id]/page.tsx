@@ -67,6 +67,46 @@ const DETAIL_ALL_COLS = [
 ] as const satisfies readonly DetailColKey[];
 const DETAIL_VISIBILITY_STORAGE_KEY = "po-detail.visibleCols.v1";
 
+/*
+ * PO-3 phase 1 (line items) — client-side sort. Different from the
+ * server-side sort on the list page because /[id]/details already caps
+ * at 200 rows and each PO is bounded (largest historical PO is 437
+ * rows, served via paged calls if size is bumped). Re-fetching with
+ * a server sort would cost an HTTP round-trip per click; an in-memory
+ * comparator is faster and just as correct for this volume.
+ *
+ * Each click cycles desc → asc → none → desc; "none" returns the
+ * server-supplied order (insert-order). Comparator handles nullable
+ * numerics by sorting nulls last regardless of direction.
+ */
+type DetailSortDir = "asc" | "desc";
+interface DetailSortState { col: DetailColKey; dir: DetailSortDir }
+
+function compareDetail(a: PODetailRow, b: PODetailRow, col: DetailColKey, dir: DetailSortDir): number {
+  const sign = dir === "desc" ? -1 : 1;
+  // Type-aware extractor — the strings come back as JSON strings for
+  // BigDecimal fields, hence the Number coercion for monetary cols.
+  const get = (r: PODetailRow): number | string | null => {
+    switch (col) {
+      case "productId":      return r.productId;
+      case "grade":          return r.grade;
+      case "modelName":      return r.modelName;
+      case "buyerCode":      return r.buyerCode;
+      case "price":          return Number(r.price);
+      case "qtyCap":         return r.qtyCap;
+      case "priceFulfilled": return r.priceFulfilled == null ? null : Number(r.priceFulfilled);
+      case "qtyFulfilled":   return r.qtyFulfilled;
+    }
+  };
+  const av = get(a), bv = get(b);
+  // Nulls always sort last regardless of direction — matches QA grid behavior.
+  if (av == null && bv == null) return 0;
+  if (av == null) return 1;
+  if (bv == null) return -1;
+  if (typeof av === "number" && typeof bv === "number") return sign * (av - bv);
+  return sign * String(av).localeCompare(String(bv));
+}
+
 const TEAL = "#407874";
 const TEXT = "#3C3C3C";
 const TEXT_MUTED = "#606671";
@@ -102,6 +142,20 @@ export default function EditPurchaseOrderPage() {
   const colVis = useColumnVisibility(
     DETAIL_ALL_COLS, DETAIL_COL_LABELS, DETAIL_VISIBILITY_STORAGE_KEY,
   );
+  const [sort, setSort] = useState<DetailSortState | null>(null);
+
+  function onSort(col: DetailColKey) {
+    setSort(curr => {
+      if (!curr || curr.col !== col) return { col, dir: "desc" };
+      if (curr.dir === "desc") return { col, dir: "asc" };
+      return null;
+    });
+  }
+
+  // Sorting is read-only — re-render without re-fetch when sort changes.
+  const sortedDetails = sort
+    ? [...details].sort((a, b) => compareDetail(a, b, sort.col, sort.dir))
+    : details;
 
   async function reload() {
     try {
@@ -271,14 +325,14 @@ export default function EditPurchaseOrderPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
           <thead>
             <tr style={{ background: BG, borderBottom: `1px solid ${BORDER}` }}>
-              {colVis.visible.has("productId") && <Th>Product ID</Th>}
-              {colVis.visible.has("grade") && <Th>Grade</Th>}
-              {colVis.visible.has("modelName") && <Th>Model Name</Th>}
-              {colVis.visible.has("buyerCode") && <Th>Buyer Code</Th>}
-              {colVis.visible.has("price") && <Th align="right">Price</Th>}
-              {colVis.visible.has("qtyCap") && <Th align="right">Qty Cap</Th>}
-              {colVis.visible.has("priceFulfilled") && <Th align="right">Price Fulfilled</Th>}
-              {colVis.visible.has("qtyFulfilled") && <Th align="right">Qty Fulfilled</Th>}
+              {colVis.visible.has("productId") && <SortTh col="productId" sort={sort} onSort={onSort}>Product ID</SortTh>}
+              {colVis.visible.has("grade") && <SortTh col="grade" sort={sort} onSort={onSort}>Grade</SortTh>}
+              {colVis.visible.has("modelName") && <SortTh col="modelName" sort={sort} onSort={onSort}>Model Name</SortTh>}
+              {colVis.visible.has("buyerCode") && <SortTh col="buyerCode" sort={sort} onSort={onSort}>Buyer Code</SortTh>}
+              {colVis.visible.has("price") && <SortTh col="price" sort={sort} onSort={onSort} align="right">Price</SortTh>}
+              {colVis.visible.has("qtyCap") && <SortTh col="qtyCap" sort={sort} onSort={onSort} align="right">Qty Cap</SortTh>}
+              {colVis.visible.has("priceFulfilled") && <SortTh col="priceFulfilled" sort={sort} onSort={onSort} align="right">Price Fulfilled</SortTh>}
+              {colVis.visible.has("qtyFulfilled") && <SortTh col="qtyFulfilled" sort={sort} onSort={onSort} align="right">Qty Fulfilled</SortTh>}
             </tr>
           </thead>
           <tbody>
@@ -294,7 +348,7 @@ export default function EditPurchaseOrderPage() {
                 </td>
               </tr>
             )}
-            {details.map(d => (
+            {sortedDetails.map(d => (
               <tr key={d.id} style={{ borderBottom: `1px solid ${DIVIDER}` }}>
                 {colVis.visible.has("productId") && <Td>{d.productId}</Td>}
                 {colVis.visible.has("grade") && <Td>{d.grade}</Td>}
@@ -325,6 +379,50 @@ function Th({ children, align }: { children: React.ReactNode; align?: "right" })
       whiteSpace: "nowrap",
     }}>
       {children}
+    </th>
+  );
+}
+
+function SortTh({
+  col, sort, onSort, align, children,
+}: {
+  col: DetailColKey;
+  sort: DetailSortState | null;
+  onSort: (col: DetailColKey) => void;
+  align?: "right";
+  children: React.ReactNode;
+}) {
+  const active = sort?.col === col;
+  const glyph = !active ? "↕" : sort.dir === "desc" ? "↓" : "↑";
+  return (
+    <th style={{
+      textAlign: align ?? "left",
+      padding: "10px 12px",
+      color: TEXT,
+      fontWeight: 500,
+      fontSize: 13,
+      letterSpacing: "0.02em",
+      whiteSpace: "nowrap",
+    }}>
+      <button
+        type="button"
+        onClick={() => onSort(col)}
+        style={{
+          background: "none",
+          border: 0,
+          padding: 0,
+          font: "inherit",
+          color: active ? TEAL : TEXT,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
+          flexDirection: align === "right" ? "row-reverse" : "row",
+        }}
+      >
+        {children}
+        <span aria-hidden="true" style={{ fontSize: 11, opacity: active ? 1 : 0.45 }}>{glyph}</span>
+      </button>
     </th>
   );
 }
