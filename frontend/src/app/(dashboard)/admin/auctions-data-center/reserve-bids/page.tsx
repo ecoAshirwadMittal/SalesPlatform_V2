@@ -6,6 +6,7 @@ import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidRow } from "@/lib/reserveBidTypes";
 import styles from "./reserveBidsList.module.css";
 import ReserveBidAuditModal from "./ReserveBidAuditModal";
+import ReserveBidUploadModal from "./ReserveBidUploadModal";
 
 const PAGE_SIZE = 20;
 const FILTER_DEBOUNCE_MS = 400;
@@ -27,7 +28,7 @@ const COLUMNS: ColumnDef[] = [
   { key: "productId", label: "Product ID", sort: "product_id", numeric: true,  toggleable: true  },
   { key: "grade",     label: "Grade",      sort: "grade",                       toggleable: true  },
   { key: "brand",     label: "Brand",      sort: "brand",                       toggleable: true  },
-  { key: "model",     label: "Model",      sort: "model",                       toggleable: true  },
+  { key: "model",     label: "Model Name", sort: "model",                       toggleable: true  },
   { key: "bid",       label: "Bid",        sort: "bid",        numeric: true,  toggleable: true  },
   { key: "updated",   label: "Last Updated", sort: "last_update_datetime",     toggleable: true  },
   { key: "actions",   label: "Audit",                                            toggleable: false },
@@ -67,6 +68,7 @@ export default function ReserveBidsPage() {
   const [columnMenuOpen, setColumnMenuOpen] = useState(false);
 
   const [auditTarget, setAuditTarget] = useState<{ id: number; productId: string } | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   // Debounce filter input → applied filters → fetch
   useEffect(() => {
@@ -160,11 +162,11 @@ export default function ReserveBidsPage() {
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Reserve Bids (EB)</h1>
         <div className={styles.actions}>
-          <Link href="/admin/auctions-data-center/reserve-bids/upload">
-            <button className="btn-outline" type="button">Upload Excel</button>
-          </Link>
+          <button className="btn-outline" type="button" onClick={() => setUploadOpen(true)}>
+            Upload EB Price
+          </button>
           <button className="btn-outline" type="button" onClick={handleDownload}>
-            Download Excel
+            Download
           </button>
           <Link href="/admin/auctions-data-center/reserve-bids/new">
             <button className="btn-outline" type="button">New</button>
@@ -328,6 +330,13 @@ export default function ReserveBidsPage() {
           reserveBidId={auditTarget.id}
           productId={auditTarget.productId}
           onClose={() => setAuditTarget(null)}
+        />
+      )}
+
+      {uploadOpen && (
+        <ReserveBidUploadModal
+          onClose={() => setUploadOpen(false)}
+          onUploaded={() => { void load(); }}
         />
       )}
     </div>

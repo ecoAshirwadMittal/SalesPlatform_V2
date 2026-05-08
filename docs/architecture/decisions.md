@@ -5,6 +5,34 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## ADR — Reserve Bids: intentional divergences from QA Mendix (2026-05-08)
+
+**Status:** Accepted.
+
+**Context:** The 2026-05-08 QA-vs-local audit on `/admin/auctions-data-center/reserve-bids` flagged three "differences from QA" that are deliberate, not gaps. Recording them here so future audits stop re-flagging them and so reviewers know they were considered.
+
+**Decisions:**
+
+1. **Local Admin sub-nav does not match QA's flat menu** (gap RB-25). QA's Mendix sidebar exposes `Settings` and `Admin` as inline items at the top level. Local groups Mendix's `Admin` page set into a collapsible Admin section with four sub-routes (Application Control Center, Auction Control Center, Auctions Data Center, PWS Data Center). The local sub-routes do not exist in QA — they are net-new admin surfaces in this rebuild. We keep the divergence: collapsing the four into the legacy QA shape would either (a) bury the new pages in unrelated menus or (b) require a global nav redesign. Reserve Bids itself remains a top-level item identical to QA.
+
+2. **Local exposes user identity in the top bar** (gap RB-26). QA renders only a status indicator. Local renders "Admin User" + an avatar pill + a "User menu" button. This is a strict improvement (admins routinely need to confirm whose session they're in before performing destructive ops like Delete) and ships across every admin page, not just Reserve Bids. We keep the divergence.
+
+3. **No breadcrumbs on either app — local stays parity, deferred** (gap RB-27). The Reserve Bids list lives at `/admin/auctions-data-center/reserve-bids` — a long URL that benefits from breadcrumbs. Neither QA nor local has them today, and adding them only on Reserve Bids would create cross-page inconsistency. Defer until a global breadcrumb pattern is decided across the admin shell.
+
+**Consequences:**
+
+- Future QA-vs-local audits that walk the Reserve Bids surface should reference this ADR and skip RB-25 / RB-26 / RB-27.
+- If the admin nav is ever reshaped (e.g. flattening the four Control Centers), revisit (1).
+- If global breadcrumbs land, retrofit Reserve Bids first since its URL is among the deepest.
+
+**Out of scope:** RB-3 (whether to keep the `/new` manual-create route) is a separate decision and remains open — it ties to the Mendix invariant "EB authored only via Excel," which a future ADR or product call should resolve.
+
+**References:**
+- Walkthrough: `docs/tasks/qa-vs-local-reserve-bids-walkthrough-2026-05-08.md` §9, §10
+- Styling spec: `docs/tasks/qa-vs-local-reserve-bids-styling-spec-2026-05-08.md` §11
+
+---
+
 <<<<<<< HEAD
 ## ADR — Sub-project 5b: R2/R3 row visibility correctness (2026-05-07)
 
