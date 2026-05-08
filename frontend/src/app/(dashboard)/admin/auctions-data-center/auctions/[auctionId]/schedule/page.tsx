@@ -343,6 +343,19 @@ export default function AuctionSchedulePage() {
             </span>
           </p>
         </div>
+        {/* H10: deep-link to the R2 qualified-buyers result view. Visible
+            once R2 init has run at least once (Started, Closed, or any
+            non-Unscheduled status). Pre-R2-init the page would show an
+            empty grid, so we hide the link rather than confuse SalesOps. */}
+        {detail.auctionStatus !== 'Unscheduled' && (
+          <Link
+            href={`/admin/auctions-data-center/auctions/${auctionId}/r2-qualified-buyers`}
+            className={styles.backLink}
+            style={{ alignSelf: 'flex-end' }}
+          >
+            View R2 qualified buyers →
+          </Link>
+        )}
       </header>
 
       {isReadOnly && (
