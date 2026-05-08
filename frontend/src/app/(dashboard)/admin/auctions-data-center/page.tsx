@@ -44,7 +44,12 @@ const tiles: Tile[] = [
   { label: 'Company Holiday', href: '/admin/auctions-data-center/company-holiday' },
   { label: 'Cohort Mapping', href: '/admin/auctions-data-center/cohort-mapping' },
   // Row 6 — P8 ports
-  { label: 'Round Three Bid Report by Buyer', href: '/admin/auctions-data-center/round3-bid-report' },
+  // M11d (2026-05-07): admin surfaces standardize on "Upsell Round" for the
+  // R3 label. Bidder-facing copy still reads "Round 3" per the 2026-04-23
+  // ADR (`docs/architecture/decisions.md`, "Round 3 displays as Round 3"
+  // section). Route + identifier kept as `round3-bid-report` because the
+  // numeric round is 3; only the visible label changes.
+  { label: 'Upsell Round Bid Report by Buyer', href: '/admin/auctions-data-center/round3-bid-report' },
 ];
 
 export default function AuctionsDataCenterPage() {

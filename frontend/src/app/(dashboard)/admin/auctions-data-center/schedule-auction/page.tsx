@@ -38,8 +38,47 @@ const statusClass: Record<string, string> = {
   Closed: styles.statusClosed,
 };
 
+/**
+ * M30 (2026-05-07): live "Next transition in Xm Ys" indicator. SalesOps
+ * cannot tell from the static list whether a transition is "stuck" or
+ * pending the next cron tick (~60s lag). The hook drives a 1Hz wall
+ * clock so each row's countdown re-renders without touching the API.
+ *
+ * Returning a millisecond-precision number lets the row format with
+ * `Math.floor` for stable display while keeping the hook itself
+ * trivially testable.
+ */
+function useNowTick(intervalMs = 1000): number {
+  const [now, setNow] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
+/**
+ * Format the difference between `targetMs` and `nowMs` as `Xm Ys`.
+ * Negative deltas (target already passed but cron hasn't fired yet)
+ * collapse to "due now" — the cron tick fires within ~60s of the
+ * boundary, so a static "due now" is accurate without special-casing
+ * each second past zero.
+ */
+function formatTransitionCountdown(nowMs: number, targetMs: number): string {
+  const delta = targetMs - nowMs;
+  if (delta <= 0) return 'due now';
+  const totalSeconds = Math.floor(delta / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}m ${seconds}s`;
+}
+
 export default function SchedulingAuctionListPage() {
   const router = useRouter();
+  // M30: 1Hz wall clock so the per-row "Next transition in Xm Ys" tag
+  // recomputes without re-fetching the list. Cheap — no network, no
+  // state copy.
+  const now = useNowTick();
   const [page, setPage] = useState(0);
   const [data, setData] = useState<SchedulingAuctionListPageResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -230,6 +269,7 @@ export default function SchedulingAuctionListPage() {
               <SchedulingRow
                 key={r.id}
                 row={r}
+                now={now}
                 isTransitioning={transitioning === r.id}
                 onEdit={() => {
                   if (r.auctionId) {
@@ -298,6 +338,7 @@ export default function SchedulingAuctionListPage() {
 
 function SchedulingRow({
   row,
+  now,
   isTransitioning,
   onEdit,
   onStart,
@@ -306,6 +347,7 @@ function SchedulingRow({
   onRecalcTargetPrice,
 }: {
   row: SchedulingAuctionListRow;
+  now: number;
   isTransitioning: boolean;
   onEdit: () => void;
   onStart: () => void;
@@ -313,6 +355,25 @@ function SchedulingRow({
   onRerank: () => void;
   onRecalcTargetPrice: () => void;
 }) {
+  // M30: which boundary are we counting down to?
+  //   Scheduled → Started fires at startDatetime
+  //   Started   → Closed  fires at endDatetime
+  // Closed / Unscheduled rows have no upcoming transition.
+  const transitionTargetIso =
+    row.roundStatus === 'Scheduled'
+      ? row.startDatetime
+      : row.roundStatus === 'Started'
+        ? row.endDatetime
+        : null;
+  const transitionTargetMs =
+    transitionTargetIso != null ? new Date(transitionTargetIso).getTime() : NaN;
+  const showCountdown = transitionTargetIso != null && Number.isFinite(transitionTargetMs);
+  const countdownLabel = showCountdown ? formatTransitionCountdown(now, transitionTargetMs) : '';
+  // The transition fires off the row's relevant boundary, so we attach
+  // the tag under the corresponding date column for visual proximity.
+  const showCountdownOnStartCell = row.roundStatus === 'Scheduled';
+  const showCountdownOnEndCell = row.roundStatus === 'Started';
+
   return (
     <tr>
       <td>{row.auctionId ?? '—'}</td>
@@ -320,8 +381,22 @@ function SchedulingRow({
       <td>{row.auctionWeekYear ?? '—'}</td>
       <td>{row.round}</td>
       <td>{row.name ?? '—'}</td>
-      <td>{formatDate(row.startDatetime)}</td>
-      <td>{formatDate(row.endDatetime)}</td>
+      <td>
+        {formatDate(row.startDatetime)}
+        {showCountdown && showCountdownOnStartCell && (
+          <div className={styles.transitionTag} aria-label="Next transition">
+            Next transition: {countdownLabel}
+          </div>
+        )}
+      </td>
+      <td>
+        {formatDate(row.endDatetime)}
+        {showCountdown && showCountdownOnEndCell && (
+          <div className={styles.transitionTag} aria-label="Next transition">
+            Next transition: {countdownLabel}
+          </div>
+        )}
+      </td>
       <td>
         <span className={`${styles.statusBadge} ${statusClass[row.roundStatus] ?? ''}`}>
           {row.roundStatus}

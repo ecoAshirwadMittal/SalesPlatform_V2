@@ -274,3 +274,22 @@
   font-size: .8rem;
 }
 
+/*
+ * M11c (2026-05-07): Mendix-parity inflated-quantity + inventory-locked
+ * warnings inside the Create Auction modal. Muted amber tone — the
+ * messages are advisory, not errors, so they sit visually between the
+ * neutral helper text (#6b6b6b) and the red error banner. Matches QA's
+ * legacy `mx-text` warning classes in EcoAtm.css.
+ */
+.warningText {
+  margin: 0 0 .5rem;
+  font-size: .8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: #8a5a00;
+}
+
+.warningText:last-of-type {
+  margin-bottom: .75rem;
+}
+

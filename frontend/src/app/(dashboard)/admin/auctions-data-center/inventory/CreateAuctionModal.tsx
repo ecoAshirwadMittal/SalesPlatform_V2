@@ -126,6 +126,22 @@ export function CreateAuctionModal({
           auction overview.
         </p>
 
+        {/*
+          M11c (2026-05-07): QA's Mendix Create Auction modal renders two
+          warning paragraphs above the action row that local was missing.
+          They are intentionally muted-amber (not red) — the inflated-quantity
+          path is informational, and the inventory-locked sentence is a
+          forward-looking caveat, not an error. See `inventory.module.css`
+          `.warningText` for the styling vocabulary.
+        */}
+        <p className={styles.warningText}>
+          Inflated quantities will added to the available quantity. Please review the
+          configuration before creating the Auction.
+        </p>
+        <p className={styles.warningText}>
+          You will not be able to change inventory once auction is created.
+        </p>
+
         {bannerError && (
           <div className={styles.errorBanner} role="alert">
             {bannerError}

@@ -122,6 +122,28 @@
 .statusStarted { background: #d08214; }
 .statusClosed { background: #112d32; }
 
+/*
+ * M30 (2026-05-07): live "Next transition in Xm Ys" tag rendered under
+ * the Start (Scheduled rows) or End (Started rows) date column.
+ * Intentionally muted — SalesOps already gets the round status from the
+ * adjacent badge, so the tag reads as a quiet annotation rather than a
+ * primary signal. Cron lag on the row's clock is ~60s, so the countdown
+ * gives confidence the transition is pending rather than stuck.
+ */
+.transitionTag {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 1px 6px;
+  background: #eef4f3;
+  border: 1px solid #cfe0dc;
+  border-radius: 10px;
+  color: #2d4f4c;
+  font-size: .7rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
 .empty {
   text-align: center;
   padding: 2rem 0;
