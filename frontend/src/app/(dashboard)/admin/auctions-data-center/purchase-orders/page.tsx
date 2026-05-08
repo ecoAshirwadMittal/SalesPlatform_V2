@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -56,6 +56,26 @@ type SortDir = "asc" | "desc";
 interface SortState { col: SortCol; dir: SortDir }
 const DEFAULT_SORT: SortState = { col: "id", dir: "desc" };
 
+/*
+ * PO-9 — column-visibility selector. Eye-icon button next to + New PO
+ * opens a popover with one checkbox per column. State is persisted to
+ * localStorage so the choice survives reloads (matches QA's "remember
+ * my view" behavior). All columns are toggleable; no minimum-1
+ * enforcement — empty grid is the user's prerogative and they can
+ * always re-show via the menu.
+ */
+type ColKey = "id" | "weekRange" | "state" | "totalRecords" | "lastRefresh" | "actions";
+const COL_LABELS: Record<ColKey, string> = {
+  id: "ID",
+  weekRange: "Week range",
+  state: "State",
+  totalRecords: "Total rows",
+  lastRefresh: "Last refresh",
+  actions: "Actions",
+};
+const ALL_COLS: ColKey[] = ["id", "weekRange", "state", "totalRecords", "lastRefresh", "actions"];
+const VISIBILITY_STORAGE_KEY = "po-list.visibleCols.v1";
+
 export default function PurchaseOrdersPage() {
   const router = useRouter();
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
@@ -66,6 +86,53 @@ export default function PurchaseOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [sort, setSort] = useState<SortState | null>(DEFAULT_SORT);
+
+  // Hydrate from localStorage so the layout survives reloads. SSR-safe:
+  // the initial state matches the server-rendered (all-visible) markup,
+  // and the effect upgrades after hydration with the user's saved set.
+  const [visibleCols, setVisibleCols] = useState<Set<ColKey>>(() => new Set(ALL_COLS));
+  const [colMenuOpen, setColMenuOpen] = useState(false);
+  const colMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(VISIBILITY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as string[];
+      const valid = parsed.filter((k): k is ColKey => (ALL_COLS as string[]).includes(k));
+      setVisibleCols(new Set(valid));
+    } catch { /* corrupt storage — fall back to all-visible */ }
+  }, []);
+
+  function toggleCol(col: ColKey) {
+    setVisibleCols(prev => {
+      const next = new Set(prev);
+      if (next.has(col)) next.delete(col);
+      else next.add(col);
+      try {
+        window.localStorage.setItem(VISIBILITY_STORAGE_KEY, JSON.stringify([...next]));
+      } catch { /* storage unavailable — column toggle still works in-session */ }
+      return next;
+    });
+  }
+
+  // Click-outside / Escape closes the column menu.
+  useEffect(() => {
+    if (!colMenuOpen) return;
+    function onDoc(e: MouseEvent) {
+      if (!colMenuRef.current) return;
+      if (!colMenuRef.current.contains(e.target as Node)) setColMenuOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setColMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [colMenuOpen]);
 
   async function reload() {
     setLoading(true);
@@ -124,28 +191,95 @@ export default function PurchaseOrdersPage() {
         }}>
           Purchase Order
         </h2>
-        {/*
-          PO-4: primary entry is now the modal — single step, week-range
-          + xlsx upload in one shot. The /new route still exists as a
-          fallback (deep-linkable), but is no longer linked from this
-          page.
-         */}
-        <button
-          type="button"
-          onClick={() => setModalOpen(true)}
-          style={{
-            padding: "0.5rem 1rem",
-            background: PO_TEAL,
-            color: "white",
-            border: 0,
-            borderRadius: 4,
-            cursor: "pointer",
-            fontSize: 14,
-            fontFamily: "inherit",
-          }}
-        >
-          + New PO
-        </button>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", position: "relative" }}>
+          {/* PO-9 — column visibility toggle */}
+          <div ref={colMenuRef} style={{ position: "relative" }}>
+            <button
+              type="button"
+              onClick={() => setColMenuOpen(o => !o)}
+              aria-haspopup="menu"
+              aria-expanded={colMenuOpen}
+              title="Show / hide columns"
+              style={{
+                padding: "0.4rem 0.6rem",
+                background: "#F7F7F7",
+                color: "#3C3C3C",
+                border: "1px solid #D0D0D0",
+                borderRadius: 4,
+                cursor: "pointer",
+                fontSize: 14,
+                fontFamily: "inherit",
+              }}
+            >
+              {/* Eye glyph — matches QA's icon font affordance */}
+              <span aria-hidden="true">👁</span>
+              <span style={{ marginLeft: 6 }}>Columns</span>
+            </button>
+            {colMenuOpen && (
+              <div
+                role="menu"
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 4px)",
+                  right: 0,
+                  background: "#fff",
+                  border: "1px solid #D0D0D0",
+                  borderRadius: 4,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                  padding: "0.5rem 0",
+                  minWidth: 180,
+                  zIndex: 50,
+                }}
+              >
+                {ALL_COLS.map(col => (
+                  <label
+                    key={col}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "0.5rem",
+                      padding: "0.35rem 0.75rem",
+                      cursor: "pointer",
+                      fontSize: 14,
+                      color: "#3C3C3C",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={visibleCols.has(col)}
+                      onChange={() => toggleCol(col)}
+                    />
+                    {COL_LABELS[col]}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/*
+            PO-4: primary entry is now the modal — single step, week-range
+            + xlsx upload in one shot. The /new route still exists as a
+            fallback (deep-linkable), but is no longer linked from this
+            page.
+           */}
+          <button
+            type="button"
+            onClick={() => setModalOpen(true)}
+            style={{
+              padding: "0.5rem 1rem",
+              background: PO_TEAL,
+              color: "white",
+              border: 0,
+              borderRadius: 4,
+              cursor: "pointer",
+              fontSize: 14,
+              fontFamily: "inherit",
+            }}
+          >
+            + New PO
+          </button>
+        </div>
       </header>
 
       <NewPoModal
@@ -163,52 +297,58 @@ export default function PurchaseOrdersPage() {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: "#F7F7F7", textAlign: "left" }}>
-            <SortableTh col="id" sort={sort} onSort={onSort}>ID</SortableTh>
-            <SortableTh col="weekFrom.id" sort={sort} onSort={onSort}>Week range</SortableTh>
-            <th style={thStyle}>State</th>
-            <SortableTh col="totalRecords" sort={sort} onSort={onSort}>Total rows</SortableTh>
-            <SortableTh col="poRefreshTimestamp" sort={sort} onSort={onSort}>Last refresh</SortableTh>
-            <th style={thStyle}>Actions</th>
+            {visibleCols.has("id") && <SortableTh col="id" sort={sort} onSort={onSort}>ID</SortableTh>}
+            {visibleCols.has("weekRange") && <SortableTh col="weekFrom.id" sort={sort} onSort={onSort}>Week range</SortableTh>}
+            {visibleCols.has("state") && <th style={thStyle}>State</th>}
+            {visibleCols.has("totalRecords") && <SortableTh col="totalRecords" sort={sort} onSort={onSort}>Total rows</SortableTh>}
+            {visibleCols.has("lastRefresh") && <SortableTh col="poRefreshTimestamp" sort={sort} onSort={onSort}>Last refresh</SortableTh>}
+            {visibleCols.has("actions") && <th style={thStyle}>Actions</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map(r => (
             <tr key={r.id} style={{ borderBottom: "1px solid #eee" }}>
-              <td>{r.id}</td>
-              <td>{r.weekRangeLabel}</td>
-              <td>
-                <span style={{
-                  padding: "0.15rem 0.6rem", borderRadius: 999,
-                  background: STATE_COLORS[r.state], color: "white", fontSize: "0.85rem",
-                }}>{r.state}</span>
-              </td>
-              <td>{r.totalRecords}</td>
-              <td>{r.poRefreshTimestamp
-                ? new Date(r.poRefreshTimestamp).toLocaleString() : "—"}</td>
-              <td>
-                {/* S5 — underlined Edit (teal) + Delete (danger red) actions. */}
-                <Link
-                  href={`/admin/auctions-data-center/purchase-orders/${r.id}`}
-                  style={{ color: PO_TEAL, textDecoration: "underline" }}
-                >
-                  Edit
-                </Link>
-                {" · "}
-                <button
-                  onClick={() => onDelete(r.id)}
-                  style={{
-                    background: "none",
-                    color: PO_DANGER,
-                    border: 0,
-                    padding: 0,
-                    cursor: "pointer",
-                    textDecoration: "underline",
-                    font: "inherit",
-                  }}
-                >
-                  Delete
-                </button>
-              </td>
+              {visibleCols.has("id") && <td>{r.id}</td>}
+              {visibleCols.has("weekRange") && <td>{r.weekRangeLabel}</td>}
+              {visibleCols.has("state") && (
+                <td>
+                  <span style={{
+                    padding: "0.15rem 0.6rem", borderRadius: 999,
+                    background: STATE_COLORS[r.state], color: "white", fontSize: "0.85rem",
+                  }}>{r.state}</span>
+                </td>
+              )}
+              {visibleCols.has("totalRecords") && <td>{r.totalRecords}</td>}
+              {visibleCols.has("lastRefresh") && (
+                <td>{r.poRefreshTimestamp
+                  ? new Date(r.poRefreshTimestamp).toLocaleString() : "—"}</td>
+              )}
+              {visibleCols.has("actions") && (
+                <td>
+                  {/* S5 — underlined Edit (teal) + Delete (danger red) actions. */}
+                  <Link
+                    href={`/admin/auctions-data-center/purchase-orders/${r.id}`}
+                    style={{ color: PO_TEAL, textDecoration: "underline" }}
+                  >
+                    Edit
+                  </Link>
+                  {" · "}
+                  <button
+                    onClick={() => onDelete(r.id)}
+                    style={{
+                      background: "none",
+                      color: PO_DANGER,
+                      border: 0,
+                      padding: 0,
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                      font: "inherit",
+                    }}
+                  >
+                    Delete
+                  </button>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
