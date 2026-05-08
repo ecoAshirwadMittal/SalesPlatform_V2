@@ -63,13 +63,24 @@ export async function findPosByRange(
 }
 
 /**
- * Most recent PO globally, used as the landing's default selection
- * when no week-range query string is present. Sorted by changedDate
- * desc by the backend.
+ * Most recent PO globally, used as the landing's default selection.
+ * Sorted by changedDate desc by the backend.
  */
 export async function findMostRecentPurchaseOrder(): Promise<PurchaseOrderRow | null> {
   const r = await listPurchaseOrders({ page: 0, size: 1, sort: "changedDate,desc" });
   return r.items[0] ?? null;
+}
+
+/**
+ * All POs for the landing's PO picker dropdown. Caps at 500 — well above
+ * the historical PO volume per the migration data (V21 imported a few
+ * dozen) but high enough that future usage stays comfortably bounded.
+ * Sorted newest-changed first so the dropdown opens with the relevant
+ * ones at the top.
+ */
+export async function listAllPurchaseOrders(): Promise<PurchaseOrderRow[]> {
+  const r = await listPurchaseOrders({ page: 0, size: 500, sort: "changedDate,desc" });
+  return r.items;
 }
 
 export async function createPurchaseOrder(req: PurchaseOrderRequest): Promise<PurchaseOrderRow> {

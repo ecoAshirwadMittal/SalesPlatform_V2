@@ -1,37 +1,32 @@
 "use client";
 
 /**
- * PO landing — PO-as-grid surface (replaces the old list view).
+ * PO landing — single PO-picker model (matches QA).
  *
- * QA's PO module is a single PO grid keyed by week range, not a list of
- * POs. Two dropdowns at the top ("Week from" / "Week to") select the
- * range, the backend looks up the matching PO via /by-range, and the
- * shared <PurchaseOrderEditor /> renders the line items below.
+ * QA's PO surface is a single dropdown listing every existing PO by
+ * its week-range label. Picking one loads its grid below. There is
+ * no concept of "search by week range" — once a PO exists for a
+ * multi-week period, it's an object, not a query.
  *
- * Default selection: most recently changed PO (the user is almost
- * always coming back to "the one I just touched"). The dropdowns hydrate
- * to that PO's range; switching either dropdown re-fetches.
+ * Earlier iterations of this page used two dropdowns (Week from /
+ * Week to) and a backend by-range lookup, which forced an
+ * empty-state UX (no PO matches this range) and a multi-match error
+ * branch. Both go away with the single-picker model — the dropdown
+ * only shows POs that exist, so 0-match and N-match are impossible
+ * by construction.
  *
- * Match cardinality:
- *   - 0 → empty-state CTA: "No PO for this range — create one?" with
- *         a button that opens the existing NewPoModal pre-filled
- *   - 1 → render the editor for that PO
- *   - 2+ → red error banner ("Multiple POs cover this range — please
- *         clean up the duplicates"). Schema allows this; UX surfaces
- *         it rather than silently picking one
- *
- * The list view + browse-all surface are intentionally gone. /[id]
- * remains as a deep-link wrapper so existing URLs (audit logs etc.)
- * still resolve.
+ * The picked PO renders via <PurchaseOrderEditor /> below. The
+ * editor's inner "Edit week range" card is re-enabled here (we hid
+ * it briefly when the top dropdowns were redundant range pickers —
+ * now that the top is a navigation-only PO selector, the inner card
+ * is once again the only way to edit the current PO's range).
  */
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  findMostRecentPurchaseOrder,
-  findPosByRange,
+  listAllPurchaseOrders,
 } from "@/lib/api/purchaseOrderClient";
-import { fetchWeeks, type WeekOption } from "@/lib/aggregatedInventory";
 import type { PurchaseOrderRow } from "@/lib/types/purchaseOrder";
 import NewPoModal from "./NewPoModal";
 import { PurchaseOrderEditor } from "./PurchaseOrderEditor";
@@ -43,66 +38,40 @@ const BORDER = "#D0D0D0";
 const BG = "#F7F7F7";
 const DANGER = "#a31b1b";
 
+const STATE_COLORS: Record<string, string> = {
+  DRAFT: "#a07f00",
+  ACTIVE: "#176c4d",
+  CLOSED: "#606671",
+};
+
 export default function PurchaseOrdersLandingPage() {
   const router = useRouter();
-  const [weeks, setWeeks] = useState<WeekOption[]>([]);
-  const [weekFromId, setWeekFromId] = useState<number | null>(null);
-  const [weekToId, setWeekToId] = useState<number | null>(null);
-  const [matches, setMatches] = useState<PurchaseOrderRow[] | null>(null);
+  const [allPos, setAllPos] = useState<PurchaseOrderRow[]>([]);
+  const [pickedPoId, setPickedPoId] = useState<number | null>(null);
   const [bootstrapping, setBootstrapping] = useState(true);
-  const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  // When the modal is launched from the empty-state CTA, we want it
-  // pre-filled with the picked range. The toolbar's + New PO button
-  // launches with no defaults so the user always gets a fresh form
-  // for arbitrary new POs.
-  const [modalPreFillRange, setModalPreFillRange] = useState(false);
 
-  // Bootstrap: load weeks list + most-recent PO; pre-fill dropdowns to
-  // that PO's range so the user lands on a populated grid.
+  // Bootstrap: fetch all POs, default-pick the most-recent one. The
+  // service returns them sorted newest-changed first, so [0] is the
+  // natural landing target.
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchWeeks({ includeFuture: true }), findMostRecentPurchaseOrder()])
-      .then(([weekList, mostRecent]) => {
+    listAllPurchaseOrders()
+      .then((pos) => {
         if (cancelled) return;
-        setWeeks(weekList);
-        if (mostRecent) {
-          setWeekFromId(mostRecent.weekFromId);
-          setWeekToId(mostRecent.weekToId);
-          setMatches([mostRecent]);
-        } else if (weekList.length > 0) {
-          // No POs exist at all yet — pre-fill both dropdowns to the
-          // newest week so the empty-state CTA proposes something
-          // sensible if the user clicks Create.
-          setWeekFromId(weekList[0].id);
-          setWeekToId(weekList[0].id);
-          setMatches([]);
-        }
+        setAllPos(pos);
+        if (pos.length > 0) setPickedPoId(pos[0].id);
       })
       .catch((e) => { if (!cancelled) setError((e as Error).message); })
       .finally(() => { if (!cancelled) setBootstrapping(false); });
     return () => { cancelled = true; };
   }, []);
 
-  // Re-fetch when either dropdown changes — but skip during bootstrap so
-  // we don't double-fetch immediately after seeding.
-  useEffect(() => {
-    if (bootstrapping) return;
-    if (weekFromId == null || weekToId == null) return;
-    let cancelled = false;
-    setSearching(true);
-    setError(null);
-    findPosByRange(weekFromId, weekToId)
-      .then((r) => { if (!cancelled) setMatches(r.matches); })
-      .catch((e) => { if (!cancelled) setError((e as Error).message); })
-      .finally(() => { if (!cancelled) setSearching(false); });
-    return () => { cancelled = true; };
-  }, [weekFromId, weekToId, bootstrapping]);
-
-  const single = matches && matches.length === 1 ? matches[0] : null;
-  const multi = matches && matches.length > 1 ? matches : null;
-  const empty = matches != null && matches.length === 0;
+  // Lookup helper — used to render the dropdown's selected option text.
+  const pickedPo = pickedPoId == null
+    ? null
+    : allPos.find(p => p.id === pickedPoId) ?? null;
 
   return (
     <div>
@@ -126,7 +95,7 @@ export default function PurchaseOrdersLandingPage() {
 
         <button
           type="button"
-          onClick={() => { setModalPreFillRange(false); setModalOpen(true); }}
+          onClick={() => setModalOpen(true)}
           style={{
             padding: "0.5rem 1rem",
             background: TEAL,
@@ -142,7 +111,7 @@ export default function PurchaseOrdersLandingPage() {
         </button>
       </header>
 
-      {/* Week-range picker — primary navigation. */}
+      {/* PO picker — primary navigation. */}
       <section style={{
         display: "flex",
         gap: "0.75rem",
@@ -155,17 +124,42 @@ export default function PurchaseOrdersLandingPage() {
         borderRadius: 4,
       }}>
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: TEXT_MUTED, fontSize: 14 }}>
-          <span style={{ color: TEXT, fontWeight: 500 }}>Week from</span>
-          <WeekSelect value={weekFromId} weeks={weeks} onChange={setWeekFromId} disabled={bootstrapping} />
+          <span style={{ color: TEXT, fontWeight: 500 }}>Purchase Order</span>
+          <select
+            value={pickedPoId ?? ""}
+            disabled={bootstrapping || allPos.length === 0}
+            onChange={(e) => setPickedPoId(e.target.value === "" ? null : Number(e.target.value))}
+            style={{
+              height: 32,
+              padding: "0 8px",
+              background: BG,
+              color: pickedPoId == null ? TEXT_MUTED : TEXT,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 4,
+              fontSize: 14,
+              fontFamily: "inherit",
+              minWidth: 280,
+            }}
+          >
+            {bootstrapping && <option value="">Loading…</option>}
+            {!bootstrapping && allPos.length === 0 && <option value="">— No POs yet —</option>}
+            {allPos.map(po => (
+              <option key={po.id} value={po.id}>
+                {po.weekRangeLabel} · {po.state} · {po.totalRecords} line item{po.totalRecords === 1 ? "" : "s"}
+              </option>
+            ))}
+          </select>
         </label>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", color: TEXT_MUTED, fontSize: 14 }}>
-          <span style={{ color: TEXT, fontWeight: 500 }}>Week to</span>
-          <WeekSelect value={weekToId} weeks={weeks} onChange={setWeekToId} disabled={bootstrapping} />
-        </label>
-        {searching && (
-          <span style={{ color: TEXT_MUTED, fontSize: 13, marginLeft: "auto" }}>
-            Looking up…
-          </span>
+        {pickedPo && (
+          <span style={{
+            padding: "0.15rem 0.6rem",
+            borderRadius: 999,
+            background: STATE_COLORS[pickedPo.state] ?? "#888",
+            color: "white",
+            fontSize: "0.75rem",
+            fontWeight: 600,
+            letterSpacing: "0.02em",
+          }}>{pickedPo.state}</span>
         )}
       </section>
 
@@ -174,12 +168,11 @@ export default function PurchaseOrdersLandingPage() {
         onClose={() => setModalOpen(false)}
         onCreated={(poId) => {
           setModalOpen(false);
-          // Navigate to the deep-link surface for the freshly-created
-          // PO; the user almost always wants to upload Excel next.
+          // Hard-navigate to the new PO's deep-link surface so the user
+          // can immediately upload Excel; the landing's dropdown gets
+          // refreshed when they navigate back.
           router.push(`/admin/auctions-data-center/purchase-orders/${poId}`);
         }}
-        defaultWeekFromId={modalPreFillRange && weekFromId != null ? weekFromId : undefined}
-        defaultWeekToId={modalPreFillRange && weekToId != null ? weekToId : undefined}
       />
 
       {error && (
@@ -198,51 +191,25 @@ export default function PurchaseOrdersLandingPage() {
 
       {bootstrapping ? (
         <div style={{ color: TEXT_MUTED }}>Loading…</div>
-      ) : multi ? (
-        <MultiMatchError matches={multi} />
-      ) : empty ? (
-        <EmptyRangeState onCreateClick={() => { setModalPreFillRange(true); setModalOpen(true); }} />
-      ) : single ? (
-        <PurchaseOrderEditor poId={single.id} hideRangeCard />
+      ) : allPos.length === 0 ? (
+        <EmptyNoPos onCreateClick={() => setModalOpen(true)} />
+      ) : pickedPo ? (
+        <PurchaseOrderEditor
+          poId={pickedPo.id}
+          // Inner range-edit card is the only way to edit the current
+          // PO's range now that the top selector is navigation-only.
+          onRangeChanged={(updated) => {
+            // Reflect the new range in the dropdown without a full
+            // refetch — splice the updated row in place.
+            setAllPos(prev => prev.map(p => p.id === updated.id ? updated : p));
+          }}
+        />
       ) : null}
     </div>
   );
 }
 
-function MultiMatchError({ matches }: { matches: PurchaseOrderRow[] }) {
-  return (
-    <div role="alert" style={{
-      background: "#fde7e7",
-      border: `1px solid #f5c2c2`,
-      borderRadius: 4,
-      padding: "1rem 1.25rem",
-      color: DANGER,
-      fontSize: 14,
-    }}>
-      <strong style={{ display: "block", marginBottom: "0.4rem", fontSize: 16 }}>
-        Multiple POs cover this week range
-      </strong>
-      <p style={{ margin: "0 0 0.75rem", color: "#6b1414" }}>
-        The schema allows duplicates but the UI shows one PO per range.
-        Open each below and merge or delete the extras to clean this up.
-      </p>
-      <ul style={{ margin: 0, paddingLeft: "1.25rem", color: "#6b1414" }}>
-        {matches.map(m => (
-          <li key={m.id}>
-            <a
-              href={`/admin/auctions-data-center/purchase-orders/${m.id}`}
-              style={{ color: DANGER, textDecoration: "underline" }}
-            >
-              PO #{m.id} ({m.totalRecords} line items, last changed {m.changedDate ? new Date(m.changedDate).toLocaleString() : "—"})
-            </a>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function EmptyRangeState({ onCreateClick }: { onCreateClick: () => void }) {
+function EmptyNoPos({ onCreateClick }: { onCreateClick: () => void }) {
   return (
     <div style={{
       background: "#fff",
@@ -253,10 +220,10 @@ function EmptyRangeState({ onCreateClick }: { onCreateClick: () => void }) {
       color: TEXT_MUTED,
     }}>
       <h3 style={{ margin: "0 0 0.5rem", color: TEXT, fontSize: 18, fontWeight: 500 }}>
-        No PO for this week range
+        No Purchase Orders yet
       </h3>
       <p style={{ margin: "0 0 1rem", fontSize: 14 }}>
-        Create a new PO covering this range, or pick a different range from the dropdowns above.
+        Create the first one to get started.
       </p>
       <button
         type="button"
@@ -272,44 +239,8 @@ function EmptyRangeState({ onCreateClick }: { onCreateClick: () => void }) {
           fontFamily: "inherit",
         }}
       >
-        + Create PO for this range
+        + New PO
       </button>
     </div>
-  );
-}
-
-function WeekSelect({
-  value, weeks, disabled, onChange,
-}: {
-  value: number | null;
-  weeks: WeekOption[];
-  disabled: boolean;
-  onChange: (id: number) => void;
-}) {
-  return (
-    <select
-      value={value ?? ""}
-      disabled={disabled}
-      onChange={(e) => {
-        const v = e.target.value;
-        if (v !== "") onChange(Number(v));
-      }}
-      style={{
-        height: 32,
-        padding: "0 8px",
-        background: BG,
-        color: value == null ? TEXT_MUTED : TEXT,
-        border: `1px solid ${BORDER}`,
-        borderRadius: 4,
-        fontSize: 14,
-        fontFamily: "inherit",
-        minWidth: 160,
-      }}
-    >
-      {value == null && <option value="">{disabled ? "Loading…" : "— Choose a week —"}</option>}
-      {weeks.map((w) => (
-        <option key={w.id} value={w.id}>{w.weekDisplay}</option>
-      ))}
-    </select>
   );
 }
