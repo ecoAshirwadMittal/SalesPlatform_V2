@@ -30,6 +30,7 @@ import {
   ColumnVisibilityMenu,
   useColumnVisibility,
 } from "@/lib/admin/dataGrid/columnVisibility";
+import UploadExcelModal from "./UploadExcelModal";
 
 type DetailColKey =
   | "productId" | "grade" | "modelName" | "buyerCode"
@@ -146,6 +147,7 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
     DETAIL_ALL_COLS, DETAIL_COL_LABELS, DETAIL_VISIBILITY_STORAGE_KEY,
   );
   const [sort, setSort] = useState<DetailSortState | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
   /*
    * PO-3 phase 2 — per-column substring filter. Client-side because
@@ -305,17 +307,35 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
         </h3>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <ColumnVisibilityMenu state={colVis} />
-          <Link
-            href={`/admin/auctions-data-center/purchase-orders/${poId}/upload`}
-            style={ghostBtnLink}
+          <button
+            type="button"
+            onClick={() => setUploadOpen(true)}
+            style={ghostBtn}
           >
             ↑ Upload Excel
-          </Link>
+          </button>
           <a href={downloadPoDetailsUrl(poId)} style={ghostBtnLink}>
             ↓ Download Excel
           </a>
         </div>
       </section>
+
+      <UploadExcelModal
+        open={uploadOpen}
+        poId={poId}
+        poLabel={po.weekRangeLabel}
+        // po.totalRecords is the authoritative count from the PO
+        // header; details.length tops out at the listPoDetails 200-row
+        // cap which would understate the deletion warning on big POs.
+        existingLineItemCount={po.totalRecords}
+        onClose={() => setUploadOpen(false)}
+        onUploaded={() => {
+          // Refresh details so the user sees the new state without
+          // needing to navigate. Modal handles its own close timing
+          // (auto-close on clean success, manual on errors).
+          reload();
+        }}
+      />
 
       {/* Line items grid — 8 columns matching QA. */}
       <div style={{
