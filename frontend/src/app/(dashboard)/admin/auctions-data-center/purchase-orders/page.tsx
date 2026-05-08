@@ -11,11 +11,30 @@ import type {
   PurchaseOrderRow,
 } from "@/lib/types/purchaseOrder";
 
+/**
+ * Local-only side fixes from the 2026-05-08 PO styling spec (S1–S6).
+ *
+ * These are quick visual cleanups that DO NOT depend on the eventual
+ * grid rebuild (Sprint A/B/C in qa-vs-local-po-walkthrough-2026-05-08.md).
+ * The full surface still needs replacement; these tightenings make the
+ * existing list page presentable in the meantime.
+ *   S1 — page heading: <h1> 16px → <h2> 42px / 500 / 54.6px
+ *   S2 — title singular: "Purchase Orders" → "Purchase Order"
+ *   S3 — pagination footer: "Showing 5 of 5.PrevNext" run-on → flex+gap
+ *   S4 — CLOSED pill #888 mid-grey → #606671 darker slate (better contrast)
+ *   S5 — Edit / Delete actions: underline + accent colors
+ *   S6 — outer wrapper padding removed; the dashboard layout's `main`
+ *        already provides 20px, so the inline 1.5rem was double-padding.
+ */
+
 const STATE_COLORS: Record<PurchaseOrderLifecycleState, string> = {
   DRAFT: "#a07f00",
   ACTIVE: "#176c4d",
-  CLOSED: "#888",
+  CLOSED: "#606671", // S4 — bumped from #888 (low contrast against page bg)
 };
+
+const PO_TEAL = "#407874"; // CLAUDE.md brand teal — used for Edit link
+const PO_DANGER = "#a31b1b"; // Delete (matches existing red affordance)
 
 export default function PurchaseOrdersPage() {
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
@@ -52,13 +71,32 @@ export default function PurchaseOrdersPage() {
   }
 
   return (
-    <div style={{ padding: "1.5rem" }}>
-      <header style={{ display: "flex", justifyContent: "space-between",
-                       alignItems: "center", marginBottom: "1rem" }}>
-        <h1 style={{ margin: 0 }}>Purchase Orders</h1>
+    /* S6 — no outer padding; dashboard <main> already provides 20px. */
+    <div>
+      <header style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: "1rem",
+      }}>
+        {/* S1 + S2 — semantic h2, 42px / 500 / 54.6px line-height, singular title. */}
+        <h2 style={{
+          margin: 0,
+          fontSize: "42px",
+          fontWeight: 500,
+          lineHeight: "54.6px",
+          color: "#3C3C3C",
+        }}>
+          Purchase Order
+        </h2>
         <Link href="/admin/auctions-data-center/purchase-orders/new"
-              style={{ padding: "0.5rem 1rem", background: "#407874",
-                       color: "white", borderRadius: 4, textDecoration: "none" }}>
+              style={{
+                padding: "0.5rem 1rem",
+                background: PO_TEAL,
+                color: "white",
+                borderRadius: 4,
+                textDecoration: "none",
+              }}>
           + New PO
         </Link>
       </header>
@@ -88,11 +126,26 @@ export default function PurchaseOrdersPage() {
               <td>{r.poRefreshTimestamp
                 ? new Date(r.poRefreshTimestamp).toLocaleString() : "—"}</td>
               <td>
-                <Link href={`/admin/auctions-data-center/purchase-orders/${r.id}`}>Edit</Link>
-                {" • "}
-                <button onClick={() => onDelete(r.id)}
-                        style={{ background: "none", color: "#c00",
-                                 border: 0, cursor: "pointer" }}>
+                {/* S5 — underlined Edit (teal) + Delete (danger red) actions. */}
+                <Link
+                  href={`/admin/auctions-data-center/purchase-orders/${r.id}`}
+                  style={{ color: PO_TEAL, textDecoration: "underline" }}
+                >
+                  Edit
+                </Link>
+                {" · "}
+                <button
+                  onClick={() => onDelete(r.id)}
+                  style={{
+                    background: "none",
+                    color: PO_DANGER,
+                    border: 0,
+                    padding: 0,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                    font: "inherit",
+                  }}
+                >
                   Delete
                 </button>
               </td>
@@ -101,8 +154,19 @@ export default function PurchaseOrdersPage() {
         </tbody>
       </table>
 
-      <footer style={{ marginTop: "1rem" }}>
-        Showing {rows.length} of {total}.
+      {/*
+       * S3 — pagination flex container with explicit gap. The previous
+       * markup rendered as one run-on string ("Showing 5 of 5.PrevNext")
+       * because the count text and the two buttons sat in the same inline
+       * flow with no whitespace between them.
+       */}
+      <footer style={{
+        marginTop: "1rem",
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+      }}>
+        <span>Showing {rows.length} of {total}</span>
         <button onClick={() => setPage(p => Math.max(0, p - 1))}
                 disabled={page === 0}>Prev</button>
         <button onClick={() => setPage(p => p + 1)}
