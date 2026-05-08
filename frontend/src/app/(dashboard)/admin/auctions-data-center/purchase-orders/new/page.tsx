@@ -44,7 +44,9 @@ export default function NewPurchaseOrderPage() {
     fetchWeeks({ excludePast: true })
       .then((list) => {
         if (cancelled) return;
-        setWeeks(list);
+        // Reverse so closest-to-today is first — same UX rationale
+        // as the modal: creation almost always targets a near week.
+        setWeeks([...list].reverse());
       })
       .catch(() => {
         if (cancelled) return;
@@ -65,13 +67,11 @@ export default function NewPurchaseOrderPage() {
       return;
     }
     // Validate ordering — backend will too, but this keeps the user out
-    // of an avoidable round-trip.
+    // of an avoidable round-trip. Weeks are now sorted closest-first
+    // (after reverse), so to-ordinal must be >= from-ordinal.
     const fromOrdinal = weeks.findIndex((w) => w.id === weekFromId);
     const toOrdinal = weeks.findIndex((w) => w.id === weekToId);
-    if (fromOrdinal !== -1 && toOrdinal !== -1 && toOrdinal > fromOrdinal) {
-      // weeks list is sorted newest-first, so a *later* ordinal = an
-      // *earlier* week. To-week must be >= from-week chronologically,
-      // i.e. ordinal <= from-ordinal in this list.
+    if (fromOrdinal !== -1 && toOrdinal !== -1 && toOrdinal < fromOrdinal) {
       setError("To Week must be the same as or later than From Week.");
       return;
     }

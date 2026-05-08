@@ -75,8 +75,12 @@ export default function NewPoModal({
     if (!open) return;
     // excludePast — a brand-new PO must not be allowed to start in the
     // past, so drop already-ended weeks from the dropdown entirely.
+    // The endpoint returns DESC (2030/Wk52 first), but creation almost
+    // always targets the current or next-few weeks — so reverse to
+    // ASC ("most recent first" in the sense of "closest to today first")
+    // so the user lands on the week they actually want at the top.
     fetchWeeks({ excludePast: true })
-      .then(setWeeks)
+      .then((list) => setWeeks([...list].reverse()))
       .catch(() => setError("Failed to load weeks"));
   }, [open]);
 
@@ -158,11 +162,12 @@ export default function NewPoModal({
       setError("Both From Week and To Week are required.");
       return;
     }
-    // Same chronological-ordering check the /new page does. Weeks list
-    // is newest-first, so a *later* ordinal = an *earlier* week.
+    // Chronological-ordering check. Weeks list is now closest-first
+    // (we reverse() in the bootstrap), so a *later* ordinal = a *later*
+    // week. To-week must be at the same or later ordinal as from-week.
     const fromOrdinal = weeks.findIndex((w) => w.id === weekFromId);
     const toOrdinal = weeks.findIndex((w) => w.id === weekToId);
-    if (fromOrdinal !== -1 && toOrdinal !== -1 && toOrdinal > fromOrdinal) {
+    if (fromOrdinal !== -1 && toOrdinal !== -1 && toOrdinal < fromOrdinal) {
       setError("To Week must be the same as or later than From Week.");
       return;
     }
