@@ -147,7 +147,7 @@ export function CreateAuctionModal({
             onClick={onSubmit}
             disabled={submitting}
           >
-            {submitting ? 'Creating…' : 'Create'}
+            {submitting ? 'Creating…' : 'Create Auction'}
           </button>
         </div>
       </div>
