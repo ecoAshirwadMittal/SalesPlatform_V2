@@ -25,7 +25,20 @@ async function req<T>(method: string, path: string, body?: unknown, init: Reques
 }
 
 export const reserveBidClient = {
-  list: (params: { productId?: string; grade?: string; page?: number; size?: number } = {}) => {
+  // Sort format matches Spring Data convention: "{column},{direction}" using
+  // SQL column names (the backend search query is native SQL — entity-property
+  // names won't bind). Backend whitelists: product_id, grade, brand, model,
+  // bid, last_update_datetime.
+  list: (params: {
+    productId?: string;
+    grade?: string;
+    minBid?: string;
+    maxBid?: string;
+    updatedSince?: string;
+    sort?: string;
+    page?: number;
+    size?: number;
+  } = {}) => {
     const q = new URLSearchParams(
       Object.entries(params).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])
     );

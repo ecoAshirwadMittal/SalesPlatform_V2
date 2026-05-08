@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -78,6 +79,23 @@ class ReserveBidRepositoryIT {
         Page<ReserveBid> p = repo.search("99800", null, null, null, null, PageRequest.of(0, 5));
         assertThat(p.getContent()).hasSize(1);
         assertThat(p.getContent().get(0).getBid()).isEqualByComparingTo("12.34");
+    }
+
+    @Test
+    void searchWithSort_appliesOrderBy() {
+        // Native-query Pageable with Sort: column names must be SQL identifiers,
+        // not entity property names. This pins the sort regression.
+        Page<ReserveBid> asc = repo.search(null, null, null, null, null,
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.ASC, "bid")));
+        Page<ReserveBid> desc = repo.search(null, null, null, null, null,
+                PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "bid")));
+        assertThat(asc.getContent()).isNotEmpty();
+        assertThat(desc.getContent()).isNotEmpty();
+        // Top of asc should be <= top of desc when both have data
+        if (!asc.getContent().isEmpty() && !desc.getContent().isEmpty()) {
+            assertThat(asc.getContent().get(0).getBid())
+                    .isLessThanOrEqualTo(desc.getContent().get(0).getBid());
+        }
     }
 
     @Test

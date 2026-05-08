@@ -10,8 +10,11 @@ import com.ecoatm.salesplatform.repository.auctions.ReserveBidSyncRepository;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Set;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -107,15 +110,41 @@ public class ReserveBidService {
                 new ReserveBidException("RESERVE_BID_NOT_FOUND", "reserve_bid not found: " + id));
     }
 
+    // Whitelist of sortable columns. Names are the SQL column names because the
+    // underlying repository uses a native query — entity property names would
+    // not match. Anything off this list is rejected to prevent SQL injection
+    // through the sort parameter.
+    private static final Set<String> SORTABLE_COLUMNS = Set.of(
+            "product_id", "grade", "brand", "model", "bid", "last_update_datetime");
+
     @Transactional(readOnly = true)
     public ReserveBidListResponse search(String productId, String grade,
                                          BigDecimal minBid, BigDecimal maxBid,
-                                         Instant updatedSince, int page, int size) {
-        Page<ReserveBid> p = repo.search(productId, grade, minBid, maxBid, updatedSince,
-                PageRequest.of(page, size));
+                                         Instant updatedSince, String sort,
+                                         int page, int size) {
+        Sort order = parseSort(sort);
+        PageRequest pageable = order == null
+                ? PageRequest.of(page, size)
+                : PageRequest.of(page, size, order);
+        Page<ReserveBid> p = repo.search(productId, grade, minBid, maxBid, updatedSince, pageable);
         return new ReserveBidListResponse(
                 p.getContent().stream().map(ReserveBidService::toDto).toList(),
                 p.getTotalElements(), page, size);
+    }
+
+    /**
+     * Parses a "field,direction" sort string. Returns null for blank input or an
+     * unrecognised field — null defers to the native query's default order.
+     * Whitelisting prevents arbitrary SQL fragments reaching the ORDER BY clause.
+     */
+    private static Sort parseSort(String sort) {
+        if (sort == null || sort.isBlank()) return null;
+        String[] parts = sort.split(",", 2);
+        String column = parts[0].trim().toLowerCase();
+        if (!SORTABLE_COLUMNS.contains(column)) return null;
+        Sort.Direction dir = parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim())
+                ? Sort.Direction.DESC : Sort.Direction.ASC;
+        return Sort.by(dir, column);
     }
 
     private static void applyRequest(ReserveBid rb, ReserveBidRequest req) {

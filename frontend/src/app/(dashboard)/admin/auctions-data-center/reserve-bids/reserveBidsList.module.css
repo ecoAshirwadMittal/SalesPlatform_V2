@@ -1,8 +1,5 @@
-/* Reserve Bids list page — Phase 0 design tokens.
-   Tokens defined in src/app/globals.css; never hardcode hex values that exist
-   as tokens. Heading + action-row + filter-row + error-alert only — table and
-   pagination are intentionally left untouched (handled in the grid-rebuild
-   sprint piece, gaps RB-6/RB-7/RB-8/RB-11/RB-12). */
+/* Reserve Bids list page — Phase 0 design tokens. Tokens defined in
+   src/app/globals.css; never hardcode hex values that exist as tokens. */
 
 .page {
   padding: clamp(20px, 2vw, 32px) clamp(24px, 3vw, 40px);
@@ -30,32 +27,7 @@
 .actions {
   display: flex;
   gap: 8px;
-}
-
-.filterRow {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.filterInput {
-  font-family: var(--font-family-primary);
-  font-size: 14px;
-  color: var(--color-text-body);
-  background: #FFFFFF;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
-  padding: 6px 10px;
-  height: 32px;
-  width: 220px;
-  box-sizing: border-box;
-}
-
-.filterInput:focus {
-  outline: 2px solid var(--color-brand-teal);
-  outline-offset: -1px;
-  border-color: var(--color-brand-teal);
+  align-items: center;
 }
 
 .errorAlert {
@@ -66,4 +38,392 @@
   border-radius: var(--radius-input);
   margin-bottom: 12px;
   font-size: 14px;
+}
+
+/* ── Grid container ────────────────────────────────────────── */
+
+.gridWrap {
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.grid thead {
+  background: var(--color-bg-body);
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr {
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.grid tbody tr:hover {
+  background: rgba(0, 150, 159, 0.04);
+}
+
+.grid th,
+.grid td {
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.grid th {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.numericCell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Sortable header label ─────────────────────────────────── */
+
+.sortButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortButton:hover {
+  color: var(--color-brand-teal);
+}
+
+.sortIcon {
+  width: 12px;
+  height: 12px;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.sortIconActive {
+  opacity: 1;
+  color: var(--color-brand-teal);
+}
+
+/* ── Per-column filter cell ────────────────────────────────── */
+
+.filterCell {
+  display: flex;
+  gap: 0;
+  margin-top: 6px;
+  align-items: stretch;
+}
+
+.comparatorSelect {
+  font-family: var(--font-family-primary);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-body);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input) 0 0 var(--radius-input);
+  border-right: 0;
+  padding: 0 4px;
+  height: 28px;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 38px;
+}
+
+.comparatorSelect:focus {
+  outline: 2px solid var(--color-brand-teal);
+  outline-offset: -1px;
+}
+
+.filterInput {
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  color: var(--color-text-body);
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  padding: 4px 8px;
+  height: 28px;
+  width: 100%;
+  min-width: 80px;
+  box-sizing: border-box;
+}
+
+.filterInput:focus {
+  outline: 2px solid var(--color-brand-teal);
+  outline-offset: -1px;
+  border-color: var(--color-brand-teal);
+}
+
+/* When a comparator sits to the left, kill the input's left radius so the
+   pair reads as one combined control. */
+.filterCell .comparatorSelect + .filterInput {
+  border-radius: 0 var(--radius-input) var(--radius-input) 0;
+}
+
+.bidRangeInputs {
+  display: flex;
+  gap: 4px;
+}
+
+.bidRangeInputs input {
+  width: 60px;
+}
+
+/* ── Row-level action buttons ──────────────────────────────── */
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.rowAction {
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  color: var(--color-brand-teal);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.rowAction:hover {
+  color: var(--color-brand-teal-dark);
+}
+
+.rowActionDanger {
+  color: #C0392B;
+}
+
+.rowActionDanger:hover {
+  color: #8e2a1f;
+}
+
+/* ── Column selector dropdown ──────────────────────────────── */
+
+.columnSelectorWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.columnSelectorButton {
+  background: var(--color-bg-body);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  padding: 6px 10px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+}
+
+.columnSelectorButton:hover {
+  border-color: var(--color-text-muted);
+}
+
+.columnSelectorMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-card);
+  padding: 8px 4px;
+  min-width: 180px;
+}
+
+.columnSelectorOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.columnSelectorOption:hover {
+  background: var(--color-bg-body);
+}
+
+/* ── Pagination footer ─────────────────────────────────────── */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  background: var(--color-bg-body);
+  border-top: 1px solid var(--color-input-border);
+  font-size: 14px;
+  color: var(--color-text-body);
+  font-family: var(--font-family-primary);
+}
+
+.paginationCount {
+  margin: 0 8px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.paginationButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  padding: 4px 8px;
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  min-width: 28px;
+  height: 28px;
+}
+
+.paginationButton:hover:not(:disabled) {
+  border-color: var(--color-input-border);
+  background: #FFFFFF;
+}
+
+.paginationButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.paginationSpacer {
+  flex: 1;
+}
+
+/* ── Empty / loading states ────────────────────────────────── */
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.loadingOverlay {
+  padding: 16px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+/* ── Audit modal ───────────────────────────────────────────── */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+
+.modalSurface {
+  background: #FFFFFF;
+  border-radius: 6px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.18);
+  width: min(760px, 100%);
+  max-height: calc(100vh - 80px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.modalTitle {
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.modalClose {
+  background: transparent;
+  border: 0;
+  font-size: 28px;
+  line-height: 1;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0 4px;
+}
+
+.modalClose:hover {
+  color: var(--color-text-body);
+}
+
+.modalBody {
+  padding: 16px 20px;
+  overflow: auto;
+}
+
+.modalFooter {
+  padding: 12px 20px;
+  border-top: 1px solid var(--color-input-border);
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.auditTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.auditTable thead {
+  background: var(--color-bg-body);
+}
+
+.auditTable th,
+.auditTable td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.auditTable tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.auditTable th {
+  font-weight: 500;
+  color: var(--color-text-body);
 }
