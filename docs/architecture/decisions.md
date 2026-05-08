@@ -19,13 +19,14 @@ ADR-style: context, decision, consequences. Newest first.
 
 3. **No breadcrumbs on either app — local stays parity, deferred** (gap RB-27). The Reserve Bids list lives at `/admin/auctions-data-center/reserve-bids` — a long URL that benefits from breadcrumbs. Neither QA nor local has them today, and adding them only on Reserve Bids would create cross-page inconsistency. Defer until a global breadcrumb pattern is decided across the admin shell.
 
+4. **Keep the `/new` manual-create route** (gap RB-3). Mendix's invariant is that reserve bids are authored exclusively via Excel upload — the Mendix UI exposes no manual-create form. Local ships an additional `/new` route with a 5-field form. We keep this divergence: SalesOps will occasionally need to seed a single (product_id, grade) row for QA-environment testing, repro a one-off issue, or correct a stuck row without round-tripping a one-line spreadsheet. The route reuses the same backend endpoint (`POST /api/v1/admin/reserve-bids`) the upload pipeline writes through, so the duplicate-key invariant on `(product_id, grade)` is enforced consistently. The route is admin-only via `@PreAuthorize` on the controller, matching the upload endpoint. If usage data later shows the form is never used, revisit and remove.
+
 **Consequences:**
 
-- Future QA-vs-local audits that walk the Reserve Bids surface should reference this ADR and skip RB-25 / RB-26 / RB-27.
+- Future QA-vs-local audits that walk the Reserve Bids surface should reference this ADR and skip RB-3 / RB-25 / RB-26 / RB-27.
 - If the admin nav is ever reshaped (e.g. flattening the four Control Centers), revisit (1).
 - If global breadcrumbs land, retrofit Reserve Bids first since its URL is among the deepest.
-
-**Out of scope:** RB-3 (whether to keep the `/new` manual-create route) is a separate decision and remains open — it ties to the Mendix invariant "EB authored only via Excel," which a future ADR or product call should resolve.
+- The `/new` form must continue to validate against the same `ReserveBidRequest` Bean Validation constraints the upload pipeline uses, so the two write paths cannot drift.
 
 **References:**
 - Walkthrough: `docs/tasks/qa-vs-local-reserve-bids-walkthrough-2026-05-08.md` §9, §10

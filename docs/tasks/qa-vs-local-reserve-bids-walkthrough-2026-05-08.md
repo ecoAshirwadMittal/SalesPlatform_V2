@@ -68,7 +68,7 @@ styled.
 |---    |---                                    |---       |---    |
 | RB-1  | Heading `H1 16px` vs QA `H2 42px`     | HIGH     | No visual page hierarchy locally; the page heading is indistinguishable from grid header text |
 | RB-2  | Top-bar buttons render as plain text  | HIGH     | Computed styles confirm `padding: 0px`, `border: 0px`, `background: transparent` on all three buttons |
-| RB-3  | Local exposes 3 actions vs QA's 2     | HIGH     | The `/new` manual-create route does not exist in QA — Reserve Bids are author-via-Excel only |
+| RB-3  | Local exposes 3 actions vs QA's 2     | RESOLVED | The `/new` manual-create route does not exist in QA. Decision 2026-05-08: keep as accepted divergence — see ADR `docs/architecture/decisions.md` "Reserve Bids: intentional divergences from QA Mendix" decision 4. |
 | RB-4  | Button copy drift                     | MEDIUM   | "Upload Excel" / "Download Excel" / "New" vs QA "Upload EB Price" / "Download". The QA copy is more specific to the business object |
 
 ---
@@ -219,7 +219,7 @@ Already covered by RB-6 (HIGH). One sub-finding worth its own line:
 
 | ID    | Item                                  | Severity | Notes |
 |---    |---                                    |---       |---    |
-| RB-21 | `/new` route exists and routes from sidebar | HIGH | Mendix model has no manual-create flow. Either: (a) remove the local route to preserve invariant "EB authored only via Excel", or (b) document the local divergence as an intentional ADR. Currently it's neither — it's an unowned addition. |
+| RB-21 | `/new` route exists and routes from sidebar | RESOLVED | Decision 2026-05-08: kept as accepted divergence — same ADR as RB-3 (intentional-divergences ADR, decision 4). |
 | RB-22 | Form inputs not rendered / 0-width    | CRITICAL | Page is non-functional. If kept, must be styled. |
 
 ---
@@ -284,7 +284,7 @@ Already covered by RB-6 (HIGH). One sub-finding worth its own line:
 **HIGH**
 - **RB-1** Heading 16px vs 42px — no visual page hierarchy
 - **RB-2** Top-bar buttons render as plain text (zero padding/border/bg)
-- **RB-3** `/new` route exists locally; QA has no manual create
+- ~~**RB-3** `/new` route exists locally; QA has no manual create~~ — **RESOLVED 2026-05-08:** kept as accepted divergence; see ADR `docs/architecture/decisions.md` "Reserve Bids: intentional divergences" decision 4
 - **RB-6** Filter row reduced from per-column + comparators to 2 plain inputs
 - **RB-7** No sort indicators on column headers
 - **RB-12** No date filter on Last Updated
@@ -327,7 +327,7 @@ Deliverable: list page renders 14k+ rows, can be filtered/sorted/paginated, audi
 | 3 | Replace dev-scaffold list page with TanStack Table or AG Grid skin                | 1.5         | RB-1, RB-2, RB-6, RB-7, RB-8, RB-9, RB-11, RB-12 |
 | 4 | Convert Audit from `/[id]/audit` route to a modal triggered from row eye icon     | 0.5         | RB-14, RB-15, RB-16, RB-17 |
 | 5 | Convert Upload from `/upload` route to a modal triggered from top-bar button      | 0.5         | RB-18, RB-19 |
-| 6 | Remove or ADR-justify the `/new` route                                            | 0.25        | RB-3, RB-21, RB-22 |
+| 6 | ~~Remove or ADR-justify the `/new` route~~ — **DONE 2026-05-08** (kept; see ADR)   | —           | RB-3, RB-21, RB-22 |
 | 7 | Remove inline edit page (or wire it as a real form)                               | 0.5         | RB-23, RB-24 |
 
 ### Sprint B — Pixel parity polish (0.5 sprint, ~2 days)
