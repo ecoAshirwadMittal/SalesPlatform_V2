@@ -40,7 +40,8 @@ export default function NewPurchaseOrderPage() {
 
   useEffect(() => {
     let cancelled = false;
-    fetchWeeks({ includeFuture: true })
+    // Same constraint as the modal: creation surfaces forbid past weeks.
+    fetchWeeks({ excludePast: true })
       .then((list) => {
         if (cancelled) return;
         setWeeks(list);

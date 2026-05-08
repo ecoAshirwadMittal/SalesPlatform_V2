@@ -59,15 +59,25 @@ public class AggregatedInventoryController {
 
     @GetMapping("/weeks")
     public ResponseEntity<List<WeekOption>> listWeeks(
-            @RequestParam(defaultValue = "false") boolean includeFuture) {
-        // Inventory page hides not-yet-started weeks (they have no Snowflake
-        // data to render), but the PO landing's week-range dropdowns need
-        // every week — POs routinely cover future weeks. The opt-in flag
-        // keeps the existing inventory call-sites untouched while letting
-        // PO callers ask for the full set.
-        List<Week> weeks = includeFuture
-                ? weekRepository.findAllByOrderByWeekStartDateTimeDesc()
-                : weekRepository.findCurrentAndPastWeeks();
+            @RequestParam(defaultValue = "false") boolean includeFuture,
+            @RequestParam(defaultValue = "false") boolean excludePast) {
+        // Three call-sites, three scopes (each with its own justification):
+        //   default          → current + past   (inventory: needs Snowflake-ready weeks)
+        //   includeFuture    → all weeks        (PO landing's editor: existing PO ranges
+        //                                        can extend into future; dropdown must
+        //                                        be able to display them)
+        //   excludePast      → current + future (PO creation modal: a fresh PO should
+        //                                        never start in the past)
+        // excludePast wins if both flags are set — creation surfaces are stricter than
+        // browse surfaces, so prefer the narrower scope when in doubt.
+        List<Week> weeks;
+        if (excludePast) {
+            weeks = weekRepository.findCurrentAndFutureWeeksDesc();
+        } else if (includeFuture) {
+            weeks = weekRepository.findAllByOrderByWeekStartDateTimeDesc();
+        } else {
+            weeks = weekRepository.findCurrentAndPastWeeks();
+        }
         List<WeekOption> options = weeks.stream()
                 .map(w -> new WeekOption(w.getId(), w.getWeekDisplay(),
                         w.getWeekStartDateTime(), w.getWeekEndDateTime()))

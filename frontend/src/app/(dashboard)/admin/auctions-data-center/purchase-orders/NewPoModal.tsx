@@ -63,7 +63,9 @@ export default function NewPoModal({
 
   useEffect(() => {
     if (!open) return;
-    fetchWeeks({ includeFuture: true })
+    // excludePast — a brand-new PO must not be allowed to start in the
+    // past, so drop already-ended weeks from the dropdown entirely.
+    fetchWeeks({ excludePast: true })
       .then(setWeeks)
       .catch(() => setError("Failed to load weeks"));
   }, [open]);

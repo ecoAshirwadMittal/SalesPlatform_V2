@@ -26,4 +26,16 @@ public interface WeekRepository extends JpaRepository<Week, Long> {
      */
     @Query("SELECT w FROM Week w WHERE w.weekStartDateTime <= CURRENT_TIMESTAMP ORDER BY w.weekStartDateTime DESC")
     List<Week> findCurrentAndPastWeeks();
+
+    /**
+     * Current + future weeks, newest first. Backs the New PO modal: a PO
+     * being created should not be allowed to start in the past, so the
+     * dropdown should only offer the present week onward.
+     *
+     * Edge of "current": the current week's end is still in the future
+     * (we haven't passed weekEndDateTime yet) → it's included. Past
+     * weeks (weekEndDateTime <= now) are excluded.
+     */
+    @Query("SELECT w FROM Week w WHERE w.weekEndDateTime > CURRENT_TIMESTAMP ORDER BY w.weekStartDateTime DESC")
+    List<Week> findCurrentAndFutureWeeksDesc();
 }
