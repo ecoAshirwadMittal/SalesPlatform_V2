@@ -23,17 +23,28 @@ public interface Round3BuyerDataReportRepository extends JpaRepository<Round3Buy
      * Reports for every auction whose {@code week_id} matches.
      *
      * <p>Why JPQL + native enum: {@link Round3BuyerDataReport} has no
-     * {@code @ManyToOne Auction}, only the FK column, so we join via the
-     * raw {@code Auction} entity and filter on its {@code weekId} field.
-     * Ordered by buyer code so the admin grid renders deterministically.
+     * {@code @ManyToOne Auction}, only FK columns, so we join via the
+     * raw {@code SchedulingAuction} + {@code Auction} entities and filter
+     * on the auction's {@code weekId} field. Ordered by company name so
+     * the admin grid renders deterministically (the legacy {@code buyerCode}
+     * column is NULL for V85+ rows — Mendix legacy populated it, the
+     * port writes {@code companyName} + {@code buyerCodes} (plural) instead).
+     *
+     * <p>The join must go through {@code scheduling_auction_id}, NOT the
+     * legacy {@code auction_id} column. {@link #bulkInsertForSchedulingAuction}
+     * (V85+) only sets {@code scheduling_auction_id}; {@code auction_id}
+     * stays NULL on every newly-inserted row, so a join on it would silently
+     * return zero rows even when reports exist for the requested week.
      */
     @Query("""
             SELECT r
               FROM Round3BuyerDataReport r,
+                   com.ecoatm.salesplatform.model.auctions.SchedulingAuction sa,
                    com.ecoatm.salesplatform.model.auctions.Auction a
-             WHERE r.auctionId = a.id
+             WHERE r.schedulingAuctionId = sa.id
+               AND sa.auctionId = a.id
                AND a.weekId = :weekId
-             ORDER BY r.buyerCode
+             ORDER BY r.companyName
             """)
     List<Round3BuyerDataReport> findByWeekId(@Param("weekId") Long weekId);
 

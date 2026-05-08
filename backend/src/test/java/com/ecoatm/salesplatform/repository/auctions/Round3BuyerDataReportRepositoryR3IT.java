@@ -77,6 +77,47 @@ class Round3BuyerDataReportRepositoryR3IT {
     }
 
     @Test
+    @DisplayName("findByWeekId returns rows whose parent SA's auction matches the week (C25 fix)")
+    void findByWeekId_joins_through_scheduling_auction() {
+        // Auction 600 has week_id=601 per r3-lifecycle-seed.sql:58. SA 6003
+        // is R3 of that auction. Insert one report row via the bulk INSERT
+        // (which only sets scheduling_auction_id — leaving the legacy
+        // auction_id NULL) and assert findByWeekId(601) finds it through
+        // the SA → Auction join.
+        jdbc.update(
+            "INSERT INTO buyer_mgmt.qualified_buyer_codes " +
+            "(scheduling_auction_id, buyer_code_id, qualification_type, included, is_special_treatment, created_date, changed_date) " +
+            "VALUES (?, 60001, 'Qualified', TRUE, FALSE, NOW(), NOW())",
+            R3_SA_ID);
+        repo.bulkInsertForSchedulingAuction(R3_SA_ID);
+
+        List<Round3BuyerDataReport> rows = repo.findByWeekId(601L);
+
+        assertThat(rows)
+            .as("findByWeekId must reach reports via scheduling_auction_id "
+                + "(the legacy auction_id column is NULL post-V85)")
+            .hasSize(1);
+        assertThat(rows.get(0).getCompanyName()).isEqualTo("Acme Corp");
+        assertThat(rows.get(0).getAuctionId()).isNull();   // legacy column unset
+        assertThat(rows.get(0).getSchedulingAuctionId()).isEqualTo(R3_SA_ID);
+    }
+
+    @Test
+    @DisplayName("findByWeekId returns empty list for week with no R3 reports")
+    void findByWeekId_unknown_week_returns_empty() {
+        // No bulkInsert call — assert empty even when reports exist for OTHER weeks.
+        jdbc.update(
+            "INSERT INTO buyer_mgmt.qualified_buyer_codes " +
+            "(scheduling_auction_id, buyer_code_id, qualification_type, included, is_special_treatment, created_date, changed_date) " +
+            "VALUES (?, 60001, 'Qualified', TRUE, FALSE, NOW(), NOW())",
+            R3_SA_ID);
+        repo.bulkInsertForSchedulingAuction(R3_SA_ID);   // populates week 601
+
+        assertThat(repo.findByWeekId(99999L))
+            .as("Unknown week_id must return empty, not all rows").isEmpty();
+    }
+
+    @Test
     @DisplayName("deleteBySchedulingAuctionId clears reports for that SA only")
     void delete_clears_only_target_sa() {
         jdbc.update(
