@@ -203,6 +203,16 @@ export default function PurchaseOrdersLandingPage() {
             // refetch — splice the updated row in place.
             setAllPos(prev => prev.map(p => p.id === updated.id ? updated : p));
           }}
+          onDeleted={(deletedId) => {
+            // Drop the row from the dropdown and re-pick the next
+            // most-recent PO. If the user deleted the last one, the
+            // empty-state card takes over on the next render.
+            setAllPos(prev => {
+              const next = prev.filter(p => p.id !== deletedId);
+              setPickedPoId(next.length > 0 ? next[0].id : null);
+              return next;
+            });
+          }}
         />
       ) : null}
     </div>

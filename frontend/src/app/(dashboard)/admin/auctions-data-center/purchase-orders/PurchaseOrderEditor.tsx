@@ -18,7 +18,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
+  deletePurchaseOrder,
   downloadPoDetailsUrl,
   getPurchaseOrder,
   listPoDetails,
@@ -132,9 +134,20 @@ interface Props {
    * card is the only edit surface.
    */
   hideRangeCard?: boolean;
+  /**
+   * Optional callback fired after the PO is successfully deleted. The
+   * landing uses this to refresh its dropdown and pick the next PO.
+   * When omitted (e.g. /[id] deep-link surface), the editor falls back
+   * to navigating to the landing route — there's no per-PO surface
+   * left to render.
+   */
+  onDeleted?: (poId: number) => void;
 }
 
-export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = false }: Props) {
+export function PurchaseOrderEditor({
+  poId, onRangeChanged, hideRangeCard = false, onDeleted,
+}: Props) {
+  const router = useRouter();
   const [po, setPo] = useState<PurchaseOrderRow | null>(null);
   const [details, setDetails] = useState<PODetailRow[]>([]);
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
@@ -148,6 +161,31 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
   );
   const [sort, setSort] = useState<DetailSortState | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function onDeletePo() {
+    if (!po) return;
+    const lineItemSummary = po.totalRecords > 0
+      ? ` This will also delete all ${po.totalRecords} line item${po.totalRecords === 1 ? "" : "s"}.`
+      : "";
+    if (!window.confirm(
+      `Delete PO #${po.id} (${po.weekRangeLabel})?${lineItemSummary} This cannot be undone.`,
+    )) return;
+    setDeleting(true);
+    try {
+      await deletePurchaseOrder(po.id);
+      if (onDeleted) {
+        onDeleted(po.id);
+      } else {
+        // No parent callback — /[id] deep-link surface. The PO is gone,
+        // so there's nothing to render here; bounce to the landing.
+        router.push("/admin/auctions-data-center/purchase-orders");
+      }
+    } catch (e) {
+      setError("Delete failed: " + (e as Error).message);
+      setDeleting(false);
+    }
+  }
 
   /*
    * PO-3 phase 2 — per-column substring filter. Client-side because
@@ -317,6 +355,17 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
           <a href={downloadPoDetailsUrl(poId)} style={ghostBtnLink}>
             ↓ Download Excel
           </a>
+          {/* Delete sits to the right with danger styling so it doesn't
+              get fat-fingered alongside the safer toolbar actions. */}
+          <button
+            type="button"
+            onClick={onDeletePo}
+            disabled={deleting}
+            style={dangerGhostBtn(deleting)}
+            title="Delete this PO"
+          >
+            {deleting ? "Deleting…" : "🗑 Delete PO"}
+          </button>
         </div>
       </section>
 
@@ -570,3 +619,17 @@ const ghostBtnLink: React.CSSProperties = {
   display: "inline-flex",
   alignItems: "center",
 };
+
+function dangerGhostBtn(disabled: boolean): React.CSSProperties {
+  return {
+    padding: "8px 14px",
+    background: BG,
+    color: DANGER,
+    border: `1px solid ${DANGER}33`, // muted danger border so the button doesn't shout until hovered
+    borderRadius: 4,
+    fontSize: 14,
+    cursor: disabled ? "default" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+    fontFamily: "inherit",
+  };
+}
