@@ -32,6 +32,8 @@ export const reserveBidClient = {
   list: (params: {
     productId?: string;
     grade?: string;
+    brand?: string;
+    model?: string;
     minBid?: string;
     maxBid?: string;
     updatedSince?: string;

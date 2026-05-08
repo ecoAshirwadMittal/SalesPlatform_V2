@@ -63,7 +63,7 @@ class ReserveBidRepositoryIT {
 
     @Test
     void searchAllNullParams_returnsPage() {
-        Page<ReserveBid> p = repo.search(null, null, null, null, null, PageRequest.of(0, 5));
+        Page<ReserveBid> p = repo.search(null, null, null, null, null, null, null, PageRequest.of(0, 5));
         assertThat(p.getTotalElements()).isGreaterThan(0);
         assertThat(p.getContent()).isNotEmpty();
     }
@@ -76,18 +76,46 @@ class ReserveBidRepositoryIT {
         rb.setBid(new BigDecimal("12.34"));
         repo.save(rb);
 
-        Page<ReserveBid> p = repo.search("99800", null, null, null, null, PageRequest.of(0, 5));
+        Page<ReserveBid> p = repo.search("99800", null, null, null, null, null, null, PageRequest.of(0, 5));
         assertThat(p.getContent()).hasSize(1);
         assertThat(p.getContent().get(0).getBid()).isEqualByComparingTo("12.34");
+    }
+
+    @Test
+    void searchByBrand_filtersContains() {
+        ReserveBid rb = new ReserveBid();
+        rb.setProductId("99810");
+        rb.setGrade("A_YYY");
+        rb.setBrand("UniqueBrandTestXYZ");
+        rb.setBid(new BigDecimal("1.00"));
+        repo.save(rb);
+
+        Page<ReserveBid> p = repo.search(null, null, "UniqueBrandTestXYZ", null,
+                null, null, null, PageRequest.of(0, 5));
+        assertThat(p.getContent()).extracting(ReserveBid::getProductId).contains("99810");
+    }
+
+    @Test
+    void searchByModel_filtersContainsCaseInsensitive() {
+        ReserveBid rb = new ReserveBid();
+        rb.setProductId("99811");
+        rb.setGrade("A_YYY");
+        rb.setModel("UniqueModelTestXYZ");
+        rb.setBid(new BigDecimal("1.00"));
+        repo.save(rb);
+
+        Page<ReserveBid> p = repo.search(null, null, null, "uniquemodeltest",
+                null, null, null, PageRequest.of(0, 5));
+        assertThat(p.getContent()).extracting(ReserveBid::getProductId).contains("99811");
     }
 
     @Test
     void searchWithSort_appliesOrderBy() {
         // Native-query Pageable with Sort: column names must be SQL identifiers,
         // not entity property names. This pins the sort regression.
-        Page<ReserveBid> asc = repo.search(null, null, null, null, null,
+        Page<ReserveBid> asc = repo.search(null, null, null, null, null, null, null,
                 PageRequest.of(0, 5, Sort.by(Sort.Direction.ASC, "bid")));
-        Page<ReserveBid> desc = repo.search(null, null, null, null, null,
+        Page<ReserveBid> desc = repo.search(null, null, null, null, null, null, null,
                 PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "bid")));
         assertThat(asc.getContent()).isNotEmpty();
         assertThat(desc.getContent()).isNotEmpty();
@@ -108,12 +136,12 @@ class ReserveBidRepositoryIT {
         repo.save(rb);
 
         Page<ReserveBid> in = repo.search(
-                null, null, new BigDecimal("40"), new BigDecimal("60"),
+                null, null, null, null, new BigDecimal("40"), new BigDecimal("60"),
                 Instant.now().minusSeconds(3600), PageRequest.of(0, 50));
         assertThat(in.getContent()).extracting(ReserveBid::getProductId).contains("99801");
 
         Page<ReserveBid> out = repo.search(
-                null, null, new BigDecimal("60"), new BigDecimal("100"),
+                null, null, null, null, new BigDecimal("60"), new BigDecimal("100"),
                 null, PageRequest.of(0, 50));
         assertThat(out.getContent()).extracting(ReserveBid::getProductId).doesNotContain("99801");
     }

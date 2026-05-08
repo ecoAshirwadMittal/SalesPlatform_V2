@@ -29,6 +29,10 @@ public interface ReserveBidRepository extends JpaRepository<ReserveBid, Long> {
         WHERE (CAST(:productId AS text) IS NULL OR rb.product_id = CAST(:productId AS text))
           AND (CAST(:grade AS text) IS NULL
                OR LOWER(rb.grade) LIKE LOWER(CONCAT('%', CAST(:grade AS text), '%')))
+          AND (CAST(:brand AS text) IS NULL
+               OR LOWER(rb.brand) LIKE LOWER(CONCAT('%', CAST(:brand AS text), '%')))
+          AND (CAST(:model AS text) IS NULL
+               OR LOWER(rb.model) LIKE LOWER(CONCAT('%', CAST(:model AS text), '%')))
           AND (CAST(:minBid AS numeric) IS NULL OR rb.bid >= CAST(:minBid AS numeric))
           AND (CAST(:maxBid AS numeric) IS NULL OR rb.bid <= CAST(:maxBid AS numeric))
           AND (CAST(:updatedSince AS timestamptz) IS NULL
@@ -39,6 +43,10 @@ public interface ReserveBidRepository extends JpaRepository<ReserveBid, Long> {
         WHERE (CAST(:productId AS text) IS NULL OR rb.product_id = CAST(:productId AS text))
           AND (CAST(:grade AS text) IS NULL
                OR LOWER(rb.grade) LIKE LOWER(CONCAT('%', CAST(:grade AS text), '%')))
+          AND (CAST(:brand AS text) IS NULL
+               OR LOWER(rb.brand) LIKE LOWER(CONCAT('%', CAST(:brand AS text), '%')))
+          AND (CAST(:model AS text) IS NULL
+               OR LOWER(rb.model) LIKE LOWER(CONCAT('%', CAST(:model AS text), '%')))
           AND (CAST(:minBid AS numeric) IS NULL OR rb.bid >= CAST(:minBid AS numeric))
           AND (CAST(:maxBid AS numeric) IS NULL OR rb.bid <= CAST(:maxBid AS numeric))
           AND (CAST(:updatedSince AS timestamptz) IS NULL
@@ -47,6 +55,8 @@ public interface ReserveBidRepository extends JpaRepository<ReserveBid, Long> {
         nativeQuery = true)
     Page<ReserveBid> search(@Param("productId") String productId,
                             @Param("grade") String grade,
+                            @Param("brand") String brand,
+                            @Param("model") String model,
                             @Param("minBid") BigDecimal minBid,
                             @Param("maxBid") BigDecimal maxBid,
                             @Param("updatedSince") Instant updatedSince,

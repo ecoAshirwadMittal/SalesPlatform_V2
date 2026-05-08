@@ -37,16 +37,18 @@ const COLUMNS: ColumnDef[] = [
 interface Filters {
   productId: string;       // exact match — backend uses rb.product_id = :productId
   grade: string;           // contains — backend uses LIKE %:grade%
-  minBid: string;          // numeric (BigDecimal serialised as string)
-  maxBid: string;
+  brand: string;           // contains — backend uses LIKE %:brand%
+  model: string;           // contains — backend uses LIKE %:model%
+  bid: string;             // exact match — sent as both minBid and maxBid
   updatedSince: string;    // YYYY-MM-DD; converted to ISO before sending
 }
 
 const EMPTY_FILTERS: Filters = {
   productId: "",
   grade: "",
-  minBid: "",
-  maxBid: "",
+  brand: "",
+  model: "",
+  bid: "",
   updatedSince: "",
 };
 
@@ -90,11 +92,16 @@ export default function ReserveBidsPage() {
         ? new Date(applied.updatedSince + "T00:00:00").toISOString()
         : undefined;
       const sortParam = sortColumn ? `${sortColumn},${sortDirection}` : undefined;
+      // Bid is exact-match: same value goes to both minBid and maxBid so the
+      // backend range predicate collapses to "rb.bid = :value".
+      const bidValue = applied.bid || undefined;
       const res = await reserveBidClient.list({
         productId: applied.productId || undefined,
         grade: applied.grade || undefined,
-        minBid: applied.minBid || undefined,
-        maxBid: applied.maxBid || undefined,
+        brand: applied.brand || undefined,
+        model: applied.model || undefined,
+        minBid: bidValue,
+        maxBid: bidValue,
         updatedSince: updatedSinceIso,
         sort: sortParam,
         page,
@@ -384,10 +391,37 @@ function SortGlyph({ active, direction }: { active: boolean; direction: SortDire
 
 // ── Per-column filter cell ─────────────────────────────────────
 //
-// Backend supports: productId (exact), grade (contains LIKE), minBid+maxBid
-// (numeric range), updatedSince (date >=). Brand/Model filters are not wired
-// to the backend today, so those headers omit a filter input rather than
-// silently doing nothing.
+// Layout matches QA's Mendix DataGrid 2: every data column gets the same
+// `[comparator-glyph] [input]` rhythm so the filter row reads as a uniform
+// strip below the labels. Glyphs are static (= / Ab / ≥) since each column
+// has a single sensible default comparator; a future enhancement could turn
+// the glyph into a real dropdown to expose ≥ / ≤ / Empty / Not empty.
+//
+// Backend mapping:
+//   Product ID  →  productId (exact)
+//   Grade       →  grade (contains, case-insensitive LIKE)
+//   Brand       →  brand (contains)
+//   Model Name  →  model (contains)
+//   Bid         →  minBid + maxBid (collapsed to exact match by the caller)
+//   Last Updated → updatedSince (>= ISO date)
+
+interface FilterSpec {
+  glyph: string;
+  inputType?: "text" | "number" | "date";
+  inputMode?: "text" | "numeric" | "decimal";
+  placeholder: string;
+  ariaLabel: string;
+  filterKey: keyof Filters;
+}
+
+const FILTER_SPECS: Record<string, FilterSpec> = {
+  productId: { glyph: "=",  inputMode: "numeric",  placeholder: "Product ID", ariaLabel: "Filter Product ID (exact)",    filterKey: "productId" },
+  grade:     { glyph: "Ab", inputMode: "text",     placeholder: "Grade",      ariaLabel: "Filter Grade (contains)",       filterKey: "grade"     },
+  brand:     { glyph: "Ab", inputMode: "text",     placeholder: "Brand",      ariaLabel: "Filter Brand (contains)",       filterKey: "brand"     },
+  model:     { glyph: "Ab", inputMode: "text",     placeholder: "Model Name", ariaLabel: "Filter Model Name (contains)",  filterKey: "model"     },
+  bid:       { glyph: "=",  inputMode: "decimal",  placeholder: "Bid",        ariaLabel: "Filter Bid (exact)",             filterKey: "bid"       },
+  updated:   { glyph: "≥",  inputType: "date",     placeholder: "",           ariaLabel: "Filter Last Updated (since)",    filterKey: "updatedSince" },
+};
 
 function FilterCell({
   column,
@@ -398,73 +432,22 @@ function FilterCell({
   input: Filters;
   setFilter: <K extends keyof Filters>(key: K, value: string) => void;
 }) {
-  if (column.key === "productId") {
-    return (
-      <div className={styles.filterCell}>
-        <span className={styles.comparatorSelect} aria-hidden="true">=</span>
-        <input
-          className={styles.filterInput}
-          value={input.productId}
-          onChange={(e) => setFilter("productId", e.target.value)}
-          placeholder="Product ID"
-          inputMode="numeric"
-          aria-label="Filter by Product ID (exact match)"
-        />
-      </div>
-    );
-  }
-  if (column.key === "grade") {
-    return (
-      <div className={styles.filterCell}>
-        <span className={styles.comparatorSelect} aria-hidden="true">Ab</span>
-        <input
-          className={styles.filterInput}
-          value={input.grade}
-          onChange={(e) => setFilter("grade", e.target.value)}
-          placeholder="Contains"
-          aria-label="Filter Grade (contains)"
-        />
-      </div>
-    );
-  }
-  if (column.key === "bid") {
-    return (
-      <div className={`${styles.filterCell} ${styles.bidRangeInputs}`}>
-        <input
-          className={styles.filterInput}
-          value={input.minBid}
-          onChange={(e) => setFilter("minBid", e.target.value)}
-          placeholder="Min"
-          inputMode="decimal"
-          aria-label="Filter Bid minimum"
-        />
-        <input
-          className={styles.filterInput}
-          value={input.maxBid}
-          onChange={(e) => setFilter("maxBid", e.target.value)}
-          placeholder="Max"
-          inputMode="decimal"
-          aria-label="Filter Bid maximum"
-        />
-      </div>
-    );
-  }
-  if (column.key === "updated") {
-    return (
-      <div className={styles.filterCell}>
-        <span className={styles.comparatorSelect} aria-hidden="true">≥</span>
-        <input
-          className={styles.filterInput}
-          type="date"
-          value={input.updatedSince}
-          onChange={(e) => setFilter("updatedSince", e.target.value)}
-          aria-label="Filter Last Updated (since)"
-        />
-      </div>
-    );
-  }
-  // Brand / Model / Actions — no filter input
-  return null;
+  const spec = FILTER_SPECS[column.key];
+  if (!spec) return null;
+  return (
+    <div className={styles.filterCell}>
+      <span className={styles.comparatorSelect} aria-hidden="true">{spec.glyph}</span>
+      <input
+        className={styles.filterInput}
+        type={spec.inputType ?? "text"}
+        inputMode={spec.inputMode}
+        value={input[spec.filterKey]}
+        onChange={(e) => setFilter(spec.filterKey, e.target.value)}
+        placeholder={spec.placeholder}
+        aria-label={spec.ariaLabel}
+      />
+    </div>
+  );
 }
 
 // ── Column visibility selector ─────────────────────────────────

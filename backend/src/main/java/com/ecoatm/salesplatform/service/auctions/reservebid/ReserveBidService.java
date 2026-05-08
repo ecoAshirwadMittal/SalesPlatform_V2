@@ -119,6 +119,7 @@ public class ReserveBidService {
 
     @Transactional(readOnly = true)
     public ReserveBidListResponse search(String productId, String grade,
+                                         String brand, String model,
                                          BigDecimal minBid, BigDecimal maxBid,
                                          Instant updatedSince, String sort,
                                          int page, int size) {
@@ -126,7 +127,8 @@ public class ReserveBidService {
         PageRequest pageable = order == null
                 ? PageRequest.of(page, size)
                 : PageRequest.of(page, size, order);
-        Page<ReserveBid> p = repo.search(productId, grade, minBid, maxBid, updatedSince, pageable);
+        Page<ReserveBid> p = repo.search(productId, grade, brand, model,
+                minBid, maxBid, updatedSince, pageable);
         return new ReserveBidListResponse(
                 p.getContent().stream().map(ReserveBidService::toDto).toList(),
                 p.getTotalElements(), page, size);

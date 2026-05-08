@@ -46,6 +46,8 @@ public class ReserveBidController {
     public ReserveBidListResponse list(
             @RequestParam(required = false) String productId,
             @RequestParam(required = false) String grade,
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) String model,
             @RequestParam(required = false) BigDecimal minBid,
             @RequestParam(required = false) BigDecimal maxBid,
             @RequestParam(required = false) Instant updatedSince,
@@ -56,7 +58,8 @@ public class ReserveBidController {
             @RequestParam(required = false) String sort,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return service.search(productId, grade, minBid, maxBid, updatedSince, sort, page, size);
+        return service.search(productId, grade, brand, model,
+                minBid, maxBid, updatedSince, sort, page, size);
     }
 
     @GetMapping("/{id}")
