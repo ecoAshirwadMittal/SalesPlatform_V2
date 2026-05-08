@@ -25,6 +25,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import styles from './schedule.module.css';
 import { ConfirmActionModal } from './ConfirmActionModal';
 import { ConfirmModal } from './ConfirmModal';
+import { InventoryPreview } from './InventoryPreview';
 import { RoundFieldset } from './RoundFieldset';
 import {
   ROUND_LABELS,
@@ -420,6 +421,11 @@ export default function AuctionSchedulePage() {
         selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/3"
         stats={detail.roundStats.find((s) => s.round === 3) ?? null}
       />
+
+      {/* Gap H7: paginated preview of the inventory the rounds operate on,
+          mirroring QA's Mendix scheduling page. weekId is guaranteed
+          present on a loaded detail. */}
+      <InventoryPreview weekId={detail.weekId} />
 
       <div className={styles.actionsRow}>
         {isAdministrator && !isReadOnly && (
