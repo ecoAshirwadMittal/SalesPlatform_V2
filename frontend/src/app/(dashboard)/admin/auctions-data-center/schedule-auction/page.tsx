@@ -14,6 +14,9 @@ import {
   type SchedulingAuctionListRow,
 } from '@/lib/auctions';
 import styles from './list.module.css';
+import { NoActiveAuctionModal } from './NoActiveAuctionModal';
+
+const INVENTORY_PATH = '/admin/auctions-data-center/inventory';
 
 const PAGE_SIZE = 20;
 const FILTER_DELAY = 500;
@@ -47,6 +50,14 @@ export default function SchedulingAuctionListPage() {
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // M11b — show "No active auction" modal once per visit when the unfiltered
+  // list is empty. We track whether the user has already dismissed it so a
+  // refresh after they cancel routing doesn't keep re-popping it. We also
+  // skip the modal when the empty result is filter-driven — no false alarms
+  // when the admin is searching.
+  const [showNoAuctionModal, setShowNoAuctionModal] = useState(false);
+  const dismissedRef = useRef(false);
+
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
@@ -79,6 +90,17 @@ export default function SchedulingAuctionListPage() {
       ignore = true;
     };
   }, [refresh]);
+
+  // Trigger the empty-state modal only when no filters are applied AND the
+  // backend returned zero rows. Filtered-empty is a legitimate no-match —
+  // not the "you have no auctions" condition QA's modal warns about.
+  useEffect(() => {
+    if (!data || dismissedRef.current) return;
+    const filtersActive = Boolean(applied.auctionId || applied.status || applied.weekDisplay);
+    if (!filtersActive && data.totalElements === 0) {
+      setShowNoAuctionModal(true);
+    }
+  }, [data, applied]);
 
   const handleTransition = async (id: number, action: 'start' | 'close') => {
     setTransitionError(null);
@@ -260,6 +282,16 @@ export default function SchedulingAuctionListPage() {
           </button>
         </div>
       </div>
+
+      {showNoAuctionModal && (
+        <NoActiveAuctionModal
+          onAcknowledge={() => {
+            dismissedRef.current = true;
+            setShowNoAuctionModal(false);
+            router.push(INVENTORY_PATH);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -459,7 +459,8 @@ export default function AuctionSchedulePage() {
             onClick={openConfirm}
             disabled={formDisabled}
           >
-            Confirm
+            Schedule Auction
+            <GavelIcon />
           </button>
         )}
       </div>
@@ -498,5 +499,34 @@ export default function AuctionSchedulePage() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * L19 — inline gavel/hammer icon on the Schedule Auction button. Mirrors
+ * QA's Mendix admin button (renders an auction-hammer SVG to the right of
+ * the label). Inlined to avoid pulling lucide-react in for one glyph;
+ * `currentColor` makes it inherit the button text color.
+ */
+function GavelIcon(): React.ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ marginLeft: '0.4rem', verticalAlign: 'middle', flexShrink: 0 }}
+    >
+      <path d="m14.5 12.5-8 8a2.119 2.119 0 1 1-3-3l8-8" />
+      <path d="m16 16 6-6" />
+      <path d="m8 8 6-6" />
+      <path d="m9 7 8 8" />
+      <path d="m21 11-8-8" />
+    </svg>
   );
 }

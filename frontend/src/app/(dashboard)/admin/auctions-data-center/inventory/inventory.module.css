@@ -40,6 +40,9 @@
   border-radius: 4px;
   font: inherit;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .button:hover { background: #356562; }
