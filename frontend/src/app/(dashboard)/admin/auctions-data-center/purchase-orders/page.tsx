@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   listPurchaseOrders,
   deletePurchaseOrder,
@@ -10,6 +11,7 @@ import type {
   PurchaseOrderLifecycleState,
   PurchaseOrderRow,
 } from "@/lib/types/purchaseOrder";
+import NewPoModal from "./NewPoModal";
 
 /**
  * Local-only side fixes from the 2026-05-08 PO styling spec (S1–S6).
@@ -37,12 +39,14 @@ const PO_TEAL = "#407874"; // CLAUDE.md brand teal — used for Edit link
 const PO_DANGER = "#a31b1b"; // Delete (matches existing red affordance)
 
 export default function PurchaseOrdersPage() {
+  const router = useRouter();
   const [rows, setRows] = useState<PurchaseOrderRow[]>([]);
   const [page, setPage] = useState(0);
   const [size] = useState(50);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   async function reload() {
     setLoading(true);
@@ -89,17 +93,38 @@ export default function PurchaseOrdersPage() {
         }}>
           Purchase Order
         </h2>
-        <Link href="/admin/auctions-data-center/purchase-orders/new"
-              style={{
-                padding: "0.5rem 1rem",
-                background: PO_TEAL,
-                color: "white",
-                borderRadius: 4,
-                textDecoration: "none",
-              }}>
+        {/*
+          PO-4: primary entry is now the modal — single step, week-range
+          + xlsx upload in one shot. The /new route still exists as a
+          fallback (deep-linkable), but is no longer linked from this
+          page.
+         */}
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          style={{
+            padding: "0.5rem 1rem",
+            background: PO_TEAL,
+            color: "white",
+            border: 0,
+            borderRadius: 4,
+            cursor: "pointer",
+            fontSize: 14,
+            fontFamily: "inherit",
+          }}
+        >
           + New PO
-        </Link>
+        </button>
       </header>
+
+      <NewPoModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onCreated={(poId) => {
+          setModalOpen(false);
+          router.push(`/admin/auctions-data-center/purchase-orders/${poId}`);
+        }}
+      />
 
       {error && <div role="alert" style={{ color: "red" }}>{error}</div>}
       {loading && <div>Loading…</div>}
