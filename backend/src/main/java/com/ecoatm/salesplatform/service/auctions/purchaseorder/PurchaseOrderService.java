@@ -55,6 +55,20 @@ public class PurchaseOrderService {
         return toRow(po);
     }
 
+    /**
+     * Backs the new landing page (PO-as-grid). Returns every PO whose stored
+     * (weekFrom, weekTo) matches the dropdown selection exactly. The frontend
+     * branches on size: 0 → empty-state CTA; 1 → render; 2+ → error banner.
+     * Sorted newest-first so the multi-match case at least picks a stable
+     * "primary" one for the admin to start cleaning up from.
+     */
+    @Transactional(readOnly = true)
+    public List<PurchaseOrderRow> findByExactWeekRange(long weekFromId, long weekToId) {
+        return poRepo.findByExactWeekRange(weekFromId, weekToId).stream()
+                .map(this::toRow)
+                .toList();
+    }
+
     @Transactional
     public PurchaseOrderRow create(PurchaseOrderRequest req) {
         var range = validator.resolveWeekRange(req.weekFromId(), req.weekToId());

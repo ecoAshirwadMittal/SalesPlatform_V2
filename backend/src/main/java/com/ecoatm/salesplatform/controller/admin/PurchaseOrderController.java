@@ -81,6 +81,22 @@ public class PurchaseOrderController {
         return poService.findById(id);
     }
 
+    /**
+     * Lookup-by-exact-range for the new landing page (PO-as-grid). Returns
+     * a {@code matches} array so the frontend can branch on cardinality
+     * (0 → empty-state, 1 → load, 2+ → error). Wrapping in an envelope
+     * rather than returning the raw list lets us add metadata later
+     * (e.g. closest-match suggestions) without changing the response shape.
+     */
+    @GetMapping("/by-range")
+    public ByRangeResponse getByRange(
+            @RequestParam Long weekFromId,
+            @RequestParam Long weekToId) {
+        return new ByRangeResponse(poService.findByExactWeekRange(weekFromId, weekToId));
+    }
+
+    public record ByRangeResponse(List<PurchaseOrderRow> matches) {}
+
     @PostMapping
     public ResponseEntity<PurchaseOrderRow> create(@Valid @RequestBody PurchaseOrderRequest req) {
         PurchaseOrderRow row = poService.create(req);
