@@ -133,6 +133,21 @@
   font-weight: 500;
 }
 
+.tzTag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0 0.4rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #112d32;
+  background: #e6f0ee;
+  border: 1px solid #cfe0dc;
+  border-radius: 3px;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
 .field input[type="date"],
 .field input[type="time"] {
   height: 34px;
