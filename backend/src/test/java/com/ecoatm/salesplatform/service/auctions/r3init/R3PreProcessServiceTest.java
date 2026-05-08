@@ -2,8 +2,11 @@ package com.ecoatm.salesplatform.service.auctions.r3init;
 
 import com.ecoatm.salesplatform.event.R3PreProcessCompletedEvent;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
+import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3BuyerQualificationRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3PreProcessSupportRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3SpecialBuyerRepository;
@@ -14,11 +17,14 @@ import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -39,6 +45,7 @@ class R3PreProcessServiceTest {
     @Mock R3BuyerQualificationRepository qualRepo;
     @Mock R3SpecialBuyerRepository       specialRepo;
     @Mock QualifiedBuyerCodeRepository   qbcRepo;
+    @Mock BidRoundRepository             bidRoundRepo;
     @Mock Round3BuyerDataReportRepository reportRepo;
     @Mock RecalcStatusUpdater            statusUpdater;
     @Mock ApplicationEventPublisher      events;
@@ -68,6 +75,12 @@ class R3PreProcessServiceTest {
         when(qualRepo.qualifiedBuyerCodes(r3)).thenReturn(Set.of(60001L, 60002L));
         when(specialRepo.specialTreatmentBuyerCodes(r3)).thenReturn(Set.of(60005L));
         when(qbcRepo.bulkInsertForRound(eq(r3), any(Long[].class), any(Long[].class))).thenReturn(8);
+        // Phase 4.5: read-back the included QBCs (3 — union of qualified + special).
+        when(saRepo.findWeekIdById(r3)).thenReturn(601L);
+        when(qbcRepo.findBySchedulingAuctionId(r3)).thenReturn(includedQbcs(
+            r3, 60001L, 60002L, 60005L));
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(eq(r3), anyLong()))
+            .thenReturn(Optional.empty());
         when(reportRepo.bulkInsertForSchedulingAuction(r3)).thenReturn(2);
 
         R3PreProcessResult result = service.run(r2, r3);
@@ -79,8 +92,38 @@ class R3PreProcessServiceTest {
         assertThat(result.deletedBidsCount()).isEqualTo(2);
         assertThat(result.skipped()).isFalse();
 
+        // Phase 4.5: bid_rounds saved for each of the 3 included QBCs.
+        ArgumentCaptor<List<BidRound>> savedRoundsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidRoundRepo).saveAll(savedRoundsCaptor.capture());
+        assertThat(savedRoundsCaptor.getValue()).hasSize(3);
+        assertThat(savedRoundsCaptor.getValue())
+            .allMatch(br -> br.getSchedulingAuctionId() != null
+                && br.getSchedulingAuctionId() == r3
+                && br.getWeekId() != null
+                && br.getWeekId() == 601L
+                && Boolean.FALSE.equals(br.getSubmitted()));
+
         verify(statusUpdater).markSuccess(r3, "R3_PREPROCESS");
         verify(events).publishEvent(any(R3PreProcessCompletedEvent.class));
+    }
+
+    /**
+     * Mirrors the helper in {@code R2BuyerAssignmentServiceTest}: builds the
+     * stand-in {@link QualifiedBuyerCode} rows that
+     * {@code qbcRepo.findBySchedulingAuctionId} returns in Phase 4.5 — the
+     * read-back of just-inserted included QBCs that the bid_round seed loop
+     * iterates.
+     */
+    private static List<QualifiedBuyerCode> includedQbcs(long saId, long... buyerCodeIds) {
+        List<QualifiedBuyerCode> out = new ArrayList<>(buyerCodeIds.length);
+        for (long id : buyerCodeIds) {
+            QualifiedBuyerCode q = new QualifiedBuyerCode();
+            q.setSchedulingAuctionId(saId);
+            q.setBuyerCodeId(id);
+            q.setIncluded(true);
+            out.add(q);
+        }
+        return out;
     }
 
     @Test

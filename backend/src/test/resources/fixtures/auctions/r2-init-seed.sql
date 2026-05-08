@@ -46,6 +46,10 @@ VALUES
 
 -- bid_round_selection_filters for round=2.
 -- Defaults the IT starts from. Individual tests UPDATE these per scenario.
+-- V86 seeds default rows for round=2 and round=3; clear them so this fixture's
+-- INSERT does not collide with the qualification CTE's scalar subquery.
+-- The DELETE rolls back with the test transaction.
+DELETE FROM auctions.bid_round_selection_filters;
 INSERT INTO auctions.bid_round_selection_filters
   (id, round, target_percent, target_value, regular_buyer_qualification, regular_buyer_inventory_options)
 VALUES

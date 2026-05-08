@@ -89,6 +89,10 @@ ON CONFLICT (id) DO NOTHING;
 --   Individual tests UPDATE these columns per scenario.
 -- Round 3: bid_percentage_variation=5, bid_amount_variation=1.00, rank_qualification_limit=3
 --   Individual tests UPDATE these to NULL to exercise all-null / single-branch paths.
+-- V86 seeds default rows; clear them so this fixture's fixed-id INSERTs do
+-- not collide with the qualification CTE's scalar subquery. DELETE rolls back
+-- with the test transaction.
+DELETE FROM auctions.bid_round_selection_filters;
 INSERT INTO auctions.bid_round_selection_filters
     (id, round, target_percent, target_value,
      regular_buyer_qualification, regular_buyer_inventory_options,

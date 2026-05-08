@@ -2,8 +2,11 @@ package com.ecoatm.salesplatform.service.auctions.r3init;
 
 import com.ecoatm.salesplatform.event.R3PreProcessCompletedEvent;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
+import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3BuyerQualificationRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3PreProcessSupportRepository;
 import com.ecoatm.salesplatform.repository.auctions.R3SpecialBuyerRepository;
@@ -18,6 +21,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -52,6 +57,7 @@ public class R3PreProcessService {
     private final R3BuyerQualificationRepository qualRepo;
     private final R3SpecialBuyerRepository       specialRepo;
     private final QualifiedBuyerCodeRepository   qbcRepo;
+    private final BidRoundRepository             bidRoundRepo;
     private final Round3BuyerDataReportRepository reportRepo;
     private final RecalcStatusUpdater            statusUpdater;
     private final ApplicationEventPublisher      events;
@@ -61,6 +67,7 @@ public class R3PreProcessService {
                                R3BuyerQualificationRepository qualRepo,
                                R3SpecialBuyerRepository specialRepo,
                                QualifiedBuyerCodeRepository qbcRepo,
+                               BidRoundRepository bidRoundRepo,
                                Round3BuyerDataReportRepository reportRepo,
                                RecalcStatusUpdater statusUpdater,
                                ApplicationEventPublisher events) {
@@ -69,6 +76,7 @@ public class R3PreProcessService {
         this.qualRepo = qualRepo;
         this.specialRepo = specialRepo;
         this.qbcRepo = qbcRepo;
+        this.bidRoundRepo = bidRoundRepo;
         this.reportRepo = reportRepo;
         this.statusUpdater = statusUpdater;
         this.events = events;
@@ -139,6 +147,33 @@ public class R3PreProcessService {
             int qualifiedCount = qualified.size() + special.size();
             int specialCount   = special.size();
             int notQualified   = totalRows - qualifiedCount;
+
+            // Phase 4.5: seed bid_rounds for every included QBC. Mirrors
+            // Round1InitializationService:98-111 + the matching Phase 4.5
+            // in R2BuyerAssignmentService — without these rows the bidder
+            // dashboard's landingRoute returns BIDROUND_MISSING for every
+            // otherwise-qualified bidder, rendering as the empty "Bidding
+            // has ended" state. Idempotent on re-run via the
+            // (sa, buyer_code) lookup.
+            Long weekId = saRepo.findWeekIdById(r3SaId);
+            List<QualifiedBuyerCode> includedQbcs = qbcRepo
+                .findBySchedulingAuctionId(r3SaId).stream()
+                .filter(QualifiedBuyerCode::isIncluded)
+                .toList();
+            List<BidRound> newBidRounds = new ArrayList<>(includedQbcs.size());
+            for (QualifiedBuyerCode q : includedQbcs) {
+                if (bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(
+                        r3SaId, q.getBuyerCodeId()).isPresent()) {
+                    continue;
+                }
+                BidRound br = new BidRound();
+                br.setSchedulingAuctionId(r3SaId);
+                br.setBuyerCodeId(q.getBuyerCodeId());
+                br.setWeekId(weekId);
+                br.setSubmitted(false);
+                newBidRounds.add(br);
+            }
+            bidRoundRepo.saveAll(newBidRounds);
 
             // Phase 5: DELETE existing reports for R3 SA, bulk-INSERT new report rows
             reportRepo.deleteBySchedulingAuctionId(r3SaId);

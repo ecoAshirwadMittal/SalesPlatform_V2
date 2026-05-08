@@ -3,10 +3,13 @@ package com.ecoatm.salesplatform.service.auctions.r2init;
 import com.ecoatm.salesplatform.event.R2BuyerAssignmentCompletedEvent;
 import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
+import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.AuctionsFeatureConfigRepository;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.R2BuyerQualificationRepository;
 import com.ecoatm.salesplatform.repository.auctions.R2SpecialBuyerRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
@@ -18,7 +21,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -63,6 +68,7 @@ public class R2BuyerAssignmentService {
     private final R2BuyerQualificationRepository qualRepo;
     private final R2SpecialBuyerRepository specialRepo;
     private final QualifiedBuyerCodeRepository qbcRepo;
+    private final BidRoundRepository bidRoundRepo;
     private final BidDataForAllAEService specialBidDataService;
     private final RecalcStatusUpdater statusUpdater;
     private final ApplicationEventPublisher events;
@@ -73,6 +79,7 @@ public class R2BuyerAssignmentService {
             R2BuyerQualificationRepository qualRepo,
             R2SpecialBuyerRepository specialRepo,
             QualifiedBuyerCodeRepository qbcRepo,
+            BidRoundRepository bidRoundRepo,
             BidDataForAllAEService specialBidDataService,
             RecalcStatusUpdater statusUpdater,
             ApplicationEventPublisher events) {
@@ -81,6 +88,7 @@ public class R2BuyerAssignmentService {
         this.qualRepo = qualRepo;
         this.specialRepo = specialRepo;
         this.qbcRepo = qbcRepo;
+        this.bidRoundRepo = bidRoundRepo;
         this.specialBidDataService = specialBidDataService;
         this.statusUpdater = statusUpdater;
         this.events = events;
@@ -158,6 +166,36 @@ public class R2BuyerAssignmentService {
             int qualifiedCount    = unioned.size();
             int specialCount      = special.size();
             int notQualifiedCount = totalRows - qualifiedCount;
+
+            // Phase 4.5: seed bid_rounds for every included QBC. Mirrors
+            // Round1InitializationService:98-111 — without these rows the
+            // bidder dashboard's landingRoute returns BIDROUND_MISSING for
+            // every otherwise-qualified bidder, rendering as the empty
+            // "Bidding has ended" state. Lazy bid_data creation in
+            // BidderDashboardController kicks in once bid_round exists.
+            // Idempotent on re-run: existing rows are skipped via the
+            // (sa, buyer_code) lookup. Special-treatment buyers also flow
+            // through here; the get-or-create in Phase 5
+            // (BidDataForAllAEService.getOrCreateBidRound) will find the
+            // row this loop just inserted.
+            List<QualifiedBuyerCode> includedQbcs = qbcRepo
+                .findBySchedulingAuctionId(schedulingAuctionId).stream()
+                .filter(QualifiedBuyerCode::isIncluded)
+                .toList();
+            List<BidRound> newBidRounds = new ArrayList<>(includedQbcs.size());
+            for (QualifiedBuyerCode q : includedQbcs) {
+                if (bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(
+                        schedulingAuctionId, q.getBuyerCodeId()).isPresent()) {
+                    continue;
+                }
+                BidRound br = new BidRound();
+                br.setSchedulingAuctionId(schedulingAuctionId);
+                br.setBuyerCodeId(q.getBuyerCodeId());
+                br.setWeekId(weekId);
+                br.setSubmitted(false);
+                newBidRounds.add(br);
+            }
+            bidRoundRepo.saveAll(newBidRounds);
 
             // Phase 5: special-buyer bid_data.
             int specialBidData = specialBidDataService.generateForSpecialBuyers(

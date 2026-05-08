@@ -3,10 +3,13 @@ package com.ecoatm.salesplatform.service.auctions.r2init;
 import com.ecoatm.salesplatform.event.R2BuyerAssignmentCompletedEvent;
 import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.exception.RecalcAlreadyRunningException;
+import com.ecoatm.salesplatform.model.auctions.BidRound;
 import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
 import com.ecoatm.salesplatform.model.buyermgmt.AuctionsFeatureConfig;
+import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.repository.AuctionsFeatureConfigRepository;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.R2BuyerQualificationRepository;
 import com.ecoatm.salesplatform.repository.auctions.R2SpecialBuyerRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
@@ -21,6 +24,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -43,6 +48,7 @@ class R2BuyerAssignmentServiceTest {
     @Mock R2BuyerQualificationRepository qualRepo;
     @Mock R2SpecialBuyerRepository specialRepo;
     @Mock QualifiedBuyerCodeRepository qbcRepo;
+    @Mock BidRoundRepository bidRoundRepo;
     @Mock BidDataForAllAEService specialBidDataService;
     @Mock RecalcStatusUpdater statusUpdater;
     @Mock ApplicationEventPublisher events;
@@ -79,6 +85,12 @@ class R2BuyerAssignmentServiceTest {
         when(qbcRepo.deleteBySchedulingAuctionId(502L)).thenReturn(0);
         when(qbcRepo.bulkInsertForRound(eq(502L), any(Long[].class), any(Long[].class)))
             .thenReturn(8);   // 4 qualified, 4 not_qualified
+        // Phase 4.5: read-back the just-inserted included QBCs (the 4-row union).
+        // bid_round seeding loop iterates these and saves a BidRound per row.
+        when(qbcRepo.findBySchedulingAuctionId(502L)).thenReturn(includedQbcs(
+            502L, 1001L, 1002L, 1003L, 1004L));
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(eq(502L), anyLong()))
+            .thenReturn(Optional.empty());
         when(specialBidDataService.generateForSpecialBuyers(eq(502L), eq(special))).thenReturn(20);
 
         R2BuyerAssignmentResult result = service.run(502L);
@@ -86,6 +98,16 @@ class R2BuyerAssignmentServiceTest {
         verify(statusUpdater).tryFlipToRunning(502L, "R2_INIT");
         verify(qbcRepo).deleteBySchedulingAuctionId(502L);
         verify(qbcRepo).bulkInsertForRound(eq(502L), any(Long[].class), any(Long[].class));
+        // Phase 4.5: bid_rounds saved for each of the 4 included QBCs.
+        ArgumentCaptor<List<BidRound>> savedRoundsCaptor = ArgumentCaptor.forClass(List.class);
+        verify(bidRoundRepo).saveAll(savedRoundsCaptor.capture());
+        assertThat(savedRoundsCaptor.getValue()).hasSize(4);
+        assertThat(savedRoundsCaptor.getValue())
+            .allMatch(br -> br.getSchedulingAuctionId() != null
+                && br.getSchedulingAuctionId() == 502L
+                && br.getWeekId() != null
+                && br.getWeekId() == 501L
+                && Boolean.FALSE.equals(br.getSubmitted()));
         verify(specialBidDataService).generateForSpecialBuyers(502L, special);
         verify(statusUpdater).markSuccess(502L, "R2_INIT");
 
@@ -127,7 +149,7 @@ class R2BuyerAssignmentServiceTest {
 
         verify(statusUpdater).markSkipped(502L, "R2_INIT");
         verify(statusUpdater, never()).tryFlipToRunning(anyLong(), anyString());
-        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, specialBidDataService, events);
+        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, bidRoundRepo, specialBidDataService, events);
         verify(statusUpdater, never()).markSuccess(anyLong(), anyString());
         verify(statusUpdater, never()).markFailed(anyLong(), anyString(), anyString());
     }
@@ -144,7 +166,7 @@ class R2BuyerAssignmentServiceTest {
 
         verify(statusUpdater, never()).tryFlipToRunning(anyLong(), anyString());
         verify(statusUpdater, never()).markSkipped(anyLong(), anyString());
-        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, specialBidDataService, events);
+        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, bidRoundRepo, specialBidDataService, events);
     }
 
     @Test
@@ -158,7 +180,7 @@ class R2BuyerAssignmentServiceTest {
 
         verify(statusUpdater, never()).tryFlipToRunning(anyLong(), anyString());
         verify(statusUpdater, never()).markSkipped(anyLong(), anyString());
-        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, specialBidDataService, events);
+        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, bidRoundRepo, specialBidDataService, events);
     }
 
     @Test
@@ -172,7 +194,7 @@ class R2BuyerAssignmentServiceTest {
         assertThatThrownBy(() -> service.run(502L))
             .isInstanceOf(RecalcAlreadyRunningException.class);
 
-        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, specialBidDataService);
+        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, bidRoundRepo, specialBidDataService);
         verify(events, never()).publishEvent(any());
         verify(statusUpdater, never()).markSuccess(anyLong(), anyString());
         verify(statusUpdater, never()).markFailed(anyLong(), anyString(), anyString());
@@ -198,6 +220,8 @@ class R2BuyerAssignmentServiceTest {
 
         verify(statusUpdater, never()).markSuccess(anyLong(), anyString());
         verify(events, never()).publishEvent(any());
+        // Phase 4.5 never reached because qualRepo (Phase 3) threw.
+        verifyNoInteractions(bidRoundRepo);
     }
 
     @Test
@@ -211,6 +235,26 @@ class R2BuyerAssignmentServiceTest {
             .hasMessageContaining("Cannot resolve week_id");
 
         verify(statusUpdater, never()).tryFlipToRunning(anyLong(), anyString());
-        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, specialBidDataService, events);
+        verifyNoInteractions(qualRepo, specialRepo, qbcRepo, bidRoundRepo, specialBidDataService, events);
+    }
+
+    /**
+     * Builds a stand-in for the QBC rows that {@code qbcRepo.bulkInsertForRound}
+     * just persisted, returned by the read-back call in Phase 4.5. All rows are
+     * marked {@code included = true} (the only ones the bid_round seed loop
+     * picks up). The bulk-INSERT also writes Not_Qualified rows with
+     * {@code included = false}; we omit them here to keep the assertion on
+     * {@code saveAll} size focused on the included subset.
+     */
+    private static List<QualifiedBuyerCode> includedQbcs(long saId, long... buyerCodeIds) {
+        List<QualifiedBuyerCode> out = new ArrayList<>(buyerCodeIds.length);
+        for (long id : buyerCodeIds) {
+            QualifiedBuyerCode q = new QualifiedBuyerCode();
+            q.setSchedulingAuctionId(saId);
+            q.setBuyerCodeId(id);
+            q.setIncluded(true);
+            out.add(q);
+        }
+        return out;
     }
 }

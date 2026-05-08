@@ -101,6 +101,9 @@ VALUES
   (999003, 1000.00, 9999999.00, 'Percentage_Factor', 2.0000);
 
 -- bid_round_selection_filters — one each for round 2 and round 3
+-- V86 seeds default rows; clear them so this fixture's fixed-id INSERTs do
+-- not collide. DELETE rolls back with the test transaction.
+DELETE FROM auctions.bid_round_selection_filters;
 INSERT INTO auctions.bid_round_selection_filters (id, round)
 VALUES
   (999002, 2),
