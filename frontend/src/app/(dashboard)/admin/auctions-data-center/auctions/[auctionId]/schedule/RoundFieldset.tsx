@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import styles from './schedule.module.css';
+import type { RoundStatsView } from '@/lib/auctions';
 import type { RoundFields } from './schedule-form';
 
 /**
@@ -45,6 +46,8 @@ interface RoundFieldsetProps {
     disabled?: boolean;
   };
   selectionRulesHref?: string;
+  /** Per-round Buyers / Total / DW-Only counts (gap H5). null when unknown. */
+  stats?: RoundStatsView | null;
 }
 
 /**
@@ -63,13 +66,38 @@ export function RoundFieldset({
   error,
   toggle,
   selectionRulesHref,
+  stats,
 }: RoundFieldsetProps) {
   const id = title.toLowerCase().replace(/\s+/g, '-');
   const tz = useTimezoneAbbrev();
   return (
     <section className={styles.roundCard} aria-labelledby={`${id}-title`}>
       <div className={styles.roundHeader}>
-        <h2 id={`${id}-title`} className={styles.roundTitle}>{title}</h2>
+        <div className={styles.roundHeaderLeft}>
+          <h2 id={`${id}-title`} className={styles.roundTitle}>{title}</h2>
+          {stats && (
+            <div className={styles.roundStats} aria-label="Round summary">
+              <span>
+                <span className={styles.roundStatsLabel}>Buyers</span>{' '}
+                <span className={styles.roundStatsValue}>
+                  {stats.buyerCount === null ? 'All' : stats.buyerCount.toLocaleString()}
+                </span>
+              </span>
+              <span>
+                <span className={styles.roundStatsLabel}>Total</span>{' '}
+                <span className={styles.roundStatsValue}>
+                  {stats.totalQuantity.toLocaleString()}
+                </span>
+              </span>
+              <span>
+                <span className={styles.roundStatsLabel}>DW Only</span>{' '}
+                <span className={styles.roundStatsValue}>
+                  {stats.dwTotalQuantity.toLocaleString()}
+                </span>
+              </span>
+            </div>
+          )}
+        </div>
         <div className={styles.roundHeaderRight}>
           {selectionRulesHref && (
             <a

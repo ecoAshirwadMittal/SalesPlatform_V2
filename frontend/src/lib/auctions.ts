@@ -27,6 +27,16 @@ export const RoundViewSchema = z.object({
 });
 export type RoundView = z.infer<typeof RoundViewSchema>;
 
+/** Per-round Buyers / Total / DW-Only counts for the schedule editor (gap H5). */
+export const RoundStatsViewSchema = z.object({
+  round: z.number().int(),
+  /** null when no QBCs exist yet for this round (pre-init) — frontend renders "All". */
+  buyerCount: z.number().int().nullable(),
+  totalQuantity: z.number().int(),
+  dwTotalQuantity: z.number().int(),
+});
+export type RoundStatsView = z.infer<typeof RoundStatsViewSchema>;
+
 export const AuctionDetailResponseSchema = z.object({
   id: z.number(),
   auctionTitle: z.string(),
@@ -34,6 +44,9 @@ export const AuctionDetailResponseSchema = z.object({
   weekId: z.number(),
   weekDisplay: z.string(),
   rounds: z.array(RoundViewSchema),
+  // Optional default to support older responses still being parsed during
+  // hot-reload windows. Empty array when the auction is Unscheduled.
+  roundStats: z.array(RoundStatsViewSchema).default([]),
 });
 export type AuctionDetailResponse = z.infer<typeof AuctionDetailResponseSchema>;
 

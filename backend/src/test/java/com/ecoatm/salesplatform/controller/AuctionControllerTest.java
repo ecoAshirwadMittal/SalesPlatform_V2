@@ -91,7 +91,7 @@ class AuctionControllerTest {
                 Instant.parse("2026-04-26T20:00:00Z"),
                 "Scheduled", true);
         return new AuctionDetailResponse(42L, "Auction 2026 / Wk17", status,
-                100L, "2026 / Wk17", List.of(r1, r2, r3));
+                100L, "2026 / Wk17", List.of(r1, r2, r3), List.of());
     }
 
     private static String validScheduleBody() {

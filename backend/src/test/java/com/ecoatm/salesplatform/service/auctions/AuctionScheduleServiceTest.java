@@ -41,7 +41,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,6 +83,7 @@ class AuctionScheduleServiceTest {
     @Mock private BidRoundRepository bidRoundRepository;
     @Mock private AuctionsFeatureConfigRepository featureConfigRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private jakarta.persistence.EntityManager em;
 
     /**
      * Pinned to 2026-04-01 — well before {@link #WEEK_START} (2026-04-20),
@@ -94,6 +98,18 @@ class AuctionScheduleServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Stub the round-stats native queries (gap H5 — toDetailResponse
+        // calls computeRoundStats, which fires two native queries). Fixed
+        // returns: totals row [0,0] and empty per-SA counts. Tests don't
+        // assert on stats values; they only need the mock chain not to NPE.
+        // `lenient()` because some scenarios (validation failures, early
+        // exits) never reach toDetailResponse.
+        jakarta.persistence.Query queryStub = mock(jakarta.persistence.Query.class);
+        lenient().when(em.createNativeQuery(anyString())).thenReturn(queryStub);
+        lenient().when(queryStub.setParameter(anyString(), any())).thenReturn(queryStub);
+        lenient().when(queryStub.getSingleResult()).thenReturn(new Object[]{0L, 0L});
+        lenient().when(queryStub.getResultList()).thenReturn(java.util.List.of());
+
         service = newService(Clock.fixed(TEST_NOW_BEFORE_WEEK, ZoneOffset.UTC));
     }
 
@@ -105,7 +121,8 @@ class AuctionScheduleServiceTest {
                 bidRoundRepository,
                 featureConfigRepository,
                 eventPublisher,
-                clock);
+                clock,
+                em);
     }
 
     // --- loadScheduleDefaults ---

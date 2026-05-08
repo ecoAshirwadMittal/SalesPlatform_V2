@@ -133,6 +133,30 @@
   font-weight: 500;
 }
 
+.roundHeaderLeft {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.roundStats {
+  display: inline-flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: #514F4E;
+}
+
+.roundStatsLabel {
+  color: #7a7a7a;
+  font-weight: 500;
+}
+
+.roundStatsValue {
+  color: #112d32;
+  font-weight: 600;
+}
+
 .tzTag {
   display: inline-block;
   margin-left: 0.35rem;

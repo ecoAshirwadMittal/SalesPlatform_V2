@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.service.auctions;
 
 import com.ecoatm.salesplatform.dto.AuctionDetailResponse;
+import com.ecoatm.salesplatform.dto.RoundStatsView;
 import com.ecoatm.salesplatform.dto.RoundView;
 import com.ecoatm.salesplatform.dto.ScheduleAuctionRequest;
 import com.ecoatm.salesplatform.dto.ScheduleDefaultsResponse;
@@ -21,6 +22,7 @@ import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
 import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -102,6 +104,7 @@ public class AuctionScheduleService {
     private final AuctionsFeatureConfigRepository featureConfigRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final Clock clock;
+    private final EntityManager em;
 
     public AuctionScheduleService(AuctionRepository auctionRepository,
                                   SchedulingAuctionRepository schedulingAuctionRepository,
@@ -109,7 +112,8 @@ public class AuctionScheduleService {
                                   BidRoundRepository bidRoundRepository,
                                   AuctionsFeatureConfigRepository featureConfigRepository,
                                   ApplicationEventPublisher eventPublisher,
-                                  Clock clock) {
+                                  Clock clock,
+                                  EntityManager em) {
         this.auctionRepository = auctionRepository;
         this.schedulingAuctionRepository = schedulingAuctionRepository;
         this.weekRepository = weekRepository;
@@ -117,6 +121,7 @@ public class AuctionScheduleService {
         this.featureConfigRepository = featureConfigRepository;
         this.eventPublisher = eventPublisher;
         this.clock = clock;
+        this.em = em;
     }
 
     // ---------------------------------------------------------------------
@@ -402,8 +407,10 @@ public class AuctionScheduleService {
     private AuctionDetailResponse toDetailResponse(Auction auction,
                                                    Week week,
                                                    List<SchedulingAuction> rounds) {
-        List<RoundView> roundViews = rounds.stream()
+        List<SchedulingAuction> sortedRounds = rounds.stream()
                 .sorted(Comparator.comparingInt(SchedulingAuction::getRound))
+                .toList();
+        List<RoundView> roundViews = sortedRounds.stream()
                 .map(r -> new RoundView(
                         r.getId(),
                         r.getRound(),
@@ -413,12 +420,83 @@ public class AuctionScheduleService {
                         r.getRoundStatus() != null ? r.getRoundStatus().name() : null,
                         r.isHasRound()))
                 .toList();
+        List<RoundStatsView> roundStats = computeRoundStats(week.getId(), sortedRounds);
         return new AuctionDetailResponse(
                 auction.getId(),
                 auction.getAuctionTitle(),
                 auction.getAuctionStatus() != null ? auction.getAuctionStatus().name() : null,
                 week.getId(),
                 week.getWeekDisplay(),
-                roundViews);
+                roundViews,
+                roundStats);
+    }
+
+    /**
+     * Computes per-round Buyers / Total / DW-Only counts for the schedule
+     * editor (gap H5). Returns an empty list when {@code rounds} is empty
+     * (Unscheduled auction). Total + DW-Only repeat across rounds because
+     * the weekly inventory snapshot is auction-wide, not per-round.
+     *
+     * <p>{@code buyerCount} is the count of {@code qualified_buyer_codes}
+     * rows for the round's SA where {@code included = true}. Returns null
+     * for rounds with no QBCs yet (pre-init), letting the frontend render
+     * "All" instead of "0".
+     */
+    @SuppressWarnings("unchecked")
+    private List<RoundStatsView> computeRoundStats(Long weekId, List<SchedulingAuction> rounds) {
+        if (rounds.isEmpty()) {
+            return List.of();
+        }
+
+        // Single query for week-scoped inventory totals (same for every round).
+        // Postgres `::bigint` cast collides with Hibernate's named-param
+        // tokenizer; use ANSI CAST(... AS bigint) instead (same workaround
+        // as BidDataCreationRepository.CTE_SQL).
+        Object[] totals = (Object[]) em.createNativeQuery("""
+                SELECT CAST(COALESCE(SUM(total_quantity),    0) AS bigint) AS total_qty,
+                       CAST(COALESCE(SUM(dw_total_quantity), 0) AS bigint) AS dw_total_qty
+                  FROM auctions.aggregated_inventory
+                 WHERE is_deprecated = false
+                   AND week_id = CAST(:weekId AS bigint)
+                """)
+                .setParameter("weekId", weekId)
+                .getSingleResult();
+        long totalQuantity = ((Number) totals[0]).longValue();
+        long dwTotalQuantity = ((Number) totals[1]).longValue();
+
+        // Single query for per-SA buyer counts (sa_id -> count). One row per
+        // SA in the rounds list; rounds with zero matching QBCs simply
+        // won't appear in the result map (lookup yields null -> render "All").
+        // Inline SA ids directly into the IN list — they are surrogate Long
+        // primary keys and never user-supplied. Hibernate's setParameter
+        // with a Collection on a native query has historically tripped on
+        // {@code IN (:saIds)} expansion, so we side-step the parameter
+        // expansion entirely.
+        List<Long> saIds = rounds.stream().map(SchedulingAuction::getId).toList();
+        java.util.Map<Long, Integer> countsBySa = new java.util.HashMap<>();
+        if (!saIds.isEmpty()) {
+            String inList = saIds.stream()
+                    .map(String::valueOf)
+                    .collect(java.util.stream.Collectors.joining(","));
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT scheduling_auction_id, CAST(COUNT(*) AS bigint)"
+                            + "  FROM buyer_mgmt.qualified_buyer_codes"
+                            + " WHERE included = true"
+                            + "   AND scheduling_auction_id IN (" + inList + ")"
+                            + " GROUP BY scheduling_auction_id")
+                    .getResultList();
+            for (Object[] row : rows) {
+                countsBySa.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+            }
+        }
+
+        return rounds.stream()
+                .map(r -> new RoundStatsView(
+                        r.getRound(),
+                        countsBySa.get(r.getId()),  // null if no QBCs yet
+                        totalQuantity,
+                        dwTotalQuantity))
+                .toList();
     }
 }
