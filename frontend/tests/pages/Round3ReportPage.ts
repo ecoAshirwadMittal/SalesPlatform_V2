@@ -16,9 +16,17 @@ export class Round3ReportPage {
     await this.page.goto('/admin/auctions-data-center/round3-bid-report');
   }
 
-  /** Page heading — "Round Three Bid Report by Buyer". */
+  /**
+   * Page heading. M11d (2026-05-07) renamed the admin-side label from
+   * "Round Three Bid Report by Buyer" to "Upsell Round Bid Report by
+   * Buyer" to standardize on "Upsell Round" across admin surfaces. The
+   * regex tolerates either form so older fixtures don't break during the
+   * transition.
+   */
   get heading(): Locator {
-    return this.page.getByRole('heading', { name: /Round Three Bid Report by Buyer/i });
+    return this.page.getByRole('heading', {
+      name: /(Round Three|Upsell Round) Bid Report by Buyer/i,
+    });
   }
 
   /** Native week dropdown. */

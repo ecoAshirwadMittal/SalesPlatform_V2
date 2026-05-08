@@ -8,7 +8,14 @@ import {
 } from '@/lib/admin/round3Report';
 
 /**
- * Round 3 Bid Report by Buyer — admin read-only view.
+ * Upsell Round Bid Report by Buyer — admin read-only view.
+ *
+ * Title copy uses the customer-facing "Upsell Round" label per M11d
+ * (2026-05-07 standardization on the R3 admin label — see
+ * `docs/tasks/qa-vs-local-implementation-plan-2026-05-07.md`). The route
+ * + identifiers stay `round3` because the underlying numeric round = 3;
+ * only the visible label changes. Bidder-facing UI continues to render
+ * "Round 3" per the 2026-04-23 ADR.
  *
  * Mendix parity: {@code RoundThreeBidReportPage}. Pure browse:
  *   1. Pick a week from the dropdown (loaded from
@@ -91,7 +98,7 @@ export default function Round3BidReportPage() {
           fontFamily: "'Brandon Grotesque', 'Open Sans', Arial, sans-serif",
         }}
       >
-        Round Three Bid Report by Buyer
+        Upsell Round Bid Report by Buyer
       </h2>
       <p
         style={{

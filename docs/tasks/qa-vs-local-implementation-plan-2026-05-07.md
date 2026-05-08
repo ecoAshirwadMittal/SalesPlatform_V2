@@ -117,7 +117,7 @@ These are show-stoppers. Any fresh `salesplatform_dev` checkout cannot run an en
 - M11a: Auction-switcher dropdown on schedule page (QA has it inline).
 - M11b: "No active auction" empty-state modal on Auction Scheduling shortcut.
 - M11c: Inflated-quantity warning copy in Create Auction modal.
-- M11d: Standardize R3 vs Upsell terminology — pick one.
+- M11d: Standardize R3 vs Upsell terminology — pick one. **(Shipped 2026-05-07 — see decision note at end of file.)**
 - M11e: Improve "BidRoundSelectionFilter not found: id=2" → "round=2" in `EntityNotFoundException` formatter.
 
 **Combined effort:** ~1 day.
@@ -279,3 +279,56 @@ pending the next cron tick.
 showing seconds until next expected transition.
 
 **Effort:** 2-3 hours.
+
+---
+
+## M11d — Decision note (shipped 2026-05-07)
+
+**Decision:** Standardize on **`Upsell Round`** for the Round 3 label
+across **all admin-facing surfaces** (schedule editor, scheduling-auctions
+list `name` column, selection-rules page, dashboard tile, R3 bid report
+title). Bidder-facing copy continues to render `Round 3` per the existing
+2026-04-23 ADR (`docs/architecture/decisions.md`, "Round 3 displays as
+Round 3" section) — that decision is preserved unchanged.
+
+**Why:** The customer-facing semantic in admin UI + outbound emails has
+always been "Upsell Round" (per the load-bearing javadoc on
+`AuctionScheduleService.ROUND_3_NAME`). The DB column
+`auctions.scheduling_auctions.name` already stores `"Upsell Round"` for
+Round 3 (written by `AuctionScheduleService.saveSchedule`), so most
+admin surfaces inherit the correct label by reading the `name` column.
+The audit found exactly one remaining admin surface that hard-coded the
+"Round Three" label: the Auctions Data Center tile + h2 on
+`/admin/auctions-data-center/round3-bid-report`. Both were renamed to
+"Upsell Round Bid Report by Buyer".
+
+**Scope (changed):**
+- `frontend/src/app/(dashboard)/admin/auctions-data-center/page.tsx` —
+  tile label.
+- `frontend/src/app/(dashboard)/admin/auctions-data-center/round3-bid-report/page.tsx` —
+  page h2 + module javadoc.
+- `frontend/tests/pages/Round3ReportPage.ts` — relaxed heading regex to
+  match either spelling so older fixtures keep passing.
+
+**Out of scope (intentionally unchanged):**
+- Backend `AuctionScheduleService.ROUND_3_NAME` constant (already
+  `"Upsell Round"`).
+- `frontend/.../auctions/[auctionId]/schedule/schedule-form.ts`
+  `ROUND_LABELS[3]` (already `"Upsell Round"`).
+- Schedule page R3 active-toggle label "Upsell round active" (already
+  correct).
+- Scheduling Auctions list `name` column (DB-backed; already
+  `"Upsell Round"`).
+- `BidderDashboardSummary` round header (`Round ${n}` per the
+  2026-04-23 ADR — bidder-facing, intentionally divergent from admin).
+- Route segments and TypeScript identifiers (`round3-bid-report`,
+  `Round3ReportResponse`, `Round3BidReportPage`) — internal names that
+  encode the numeric round; the visible label only changes.
+- JSDoc / comment references to "Round 3" — comments document the
+  numeric round, not the user-visible label.
+
+**Bug-fix bonus:** the existing `AuctionScheduleService` javadoc
+`do NOT shorten to "Round 3"` is now load-bearing across the whole admin
+tree. Any future contributor who adds a new admin-facing R3 string must
+derive the label from the SA `name` column or the `ROUND_LABELS` map,
+never hard-code `"Round 3"` / `"Round Three"`.
