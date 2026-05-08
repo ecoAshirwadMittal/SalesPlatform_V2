@@ -46,11 +46,13 @@ import {
   AuctionNotFoundError,
   RoundValidationError,
   type AuctionDetailResponse,
+  type AuctionListRow,
   type ScheduleAuctionRequest,
   type ScheduleDefaultsResponse,
   deleteAuction,
   getAuctionDetail,
   getScheduleDefaults,
+  listAuctions,
   saveSchedule,
   unscheduleAuction,
 } from '@/lib/auctions';
@@ -81,6 +83,19 @@ export default function AuctionSchedulePage() {
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [unscheduling, setUnscheduling] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  /**
+   * M11a (2026-05-07): admin-friendly auction switcher in the page
+   * header. Mirrors QA's Mendix scheduling page where the admin can
+   * pivot between auctions without backing out to the inventory list.
+   * The list is paginated server-side; we pull a single fat page so
+   * the dropdown can render the most recent ~200 auctions without
+   * paging UX. The current auctionId is always present in the list
+   * because the parent guards on `isValidId`. If the API returns
+   * fewer rows than the current id we still show the dropdown — the
+   * current auction is appended client-side as a fallback option.
+   */
+  const [auctionList, setAuctionList] = useState<AuctionListRow[]>([]);
 
   const isAdministrator = useMemo(() => {
     const roles = getAuthUser()?.roles ?? [];
@@ -117,6 +132,29 @@ export default function AuctionSchedulePage() {
   useEffect(() => {
     void loadAll();
   }, [loadAll]);
+
+  /**
+   * M11a: load the auction switcher list once. We fetch a single fat
+   * page (pageSize=200) sorted server-side by id desc. If the admin
+   * has more than 200 auctions, the most recent 200 still cover the
+   * common pivot use case; older auctions remain reachable via the
+   * inventory list. Errors are silently swallowed — the switcher is
+   * a convenience, not a load-bearing surface.
+   */
+  useEffect(() => {
+    let cancelled = false;
+    listAuctions({ page: 0, pageSize: 200 })
+      .then((res) => {
+        if (cancelled) return;
+        setAuctionList(res.content);
+      })
+      .catch(() => {
+        /* swallow — the switcher is optional polish */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Recompute R2 From whenever R1 To changes (and R2 is active). Mirrors
@@ -343,6 +381,39 @@ export default function AuctionSchedulePage() {
               {detail.auctionStatus}
             </span>
           </p>
+        </div>
+        {/* M11a: auction switcher — pivot to another auction's schedule
+            page without going through the inventory list. The list is
+            sorted newest-first server-side. We synthesise the current
+            auction into the option list as a fallback so the <select>
+            shows a value even if the listAuctions call hadn't returned
+            (or the id is older than the page-size cutoff). */}
+        <div className={styles.auctionSwitcher}>
+          <label htmlFor="auction-switcher" className={styles.auctionSwitcherLabel}>
+            Switch auction
+          </label>
+          <select
+            id="auction-switcher"
+            className={styles.auctionSwitcherSelect}
+            value={auctionId}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              if (!Number.isFinite(next) || next === auctionId) return;
+              router.push(`/admin/auctions-data-center/auctions/${next}/schedule`);
+            }}
+          >
+            {/* Ensure the current auction is selectable even if the
+                fetch hasn't landed yet or the auction is older than
+                the page-size cutoff. */}
+            {!auctionList.some((a) => a.id === auctionId) && (
+              <option value={auctionId}>{detail.auctionTitle}</option>
+            )}
+            {auctionList.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.auctionTitle}
+              </option>
+            ))}
+          </select>
         </div>
         {/* H10: deep-link to the R2 qualified-buyers result view. Visible
             once R2 init has run at least once (Started, Closed, or any
