@@ -19,12 +19,13 @@
  * shape). Keyboard: Escape closes; Enter inside the form submits.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   createPurchaseOrder,
   uploadPoDetails,
 } from "@/lib/api/purchaseOrderClient";
 import { fetchWeeks, type WeekOption } from "@/lib/aggregatedInventory";
+import type { PurchaseOrderRow } from "@/lib/types/purchaseOrder";
 
 const TEAL = "#407874";
 const TEXT = "#3C3C3C";
@@ -47,11 +48,20 @@ interface Props {
    */
   defaultWeekFromId?: number;
   defaultWeekToId?: number;
+  /**
+   * Existing POs — used to detect overlap with the picked range. The
+   * landing has them already loaded for its picker dropdown so we hand
+   * them down rather than re-fetching. Empty / undefined disables the
+   * overlap check (e.g. for the legacy /new fallback page which doesn't
+   * have the list handy).
+   */
+  existingPos?: PurchaseOrderRow[];
 }
 
 export default function NewPoModal({
   open, onClose, onCreated,
   defaultWeekFromId, defaultWeekToId,
+  existingPos,
 }: Props) {
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
   const [weekFromId, setWeekFromId] = useState<number | "">("");
@@ -100,6 +110,46 @@ export default function NewPoModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, submitting, onClose]);
 
+  /*
+   * Overlap detection. The picked range collides with an existing PO
+   * when there's any week that belongs to both.
+   *
+   * Comparison key is the weekDisplay label ("YYYY / WkNN") — lex
+   * order works because the WkNN segment is always zero-padded and
+   * year is fixed-width. This is intentional, not a hack: the modal's
+   * weeks list excludes past weeks (creation can't start in the past),
+   * so an id-based lookup would silently fail for any PO whose range
+   * already touches the past — and labels are already present on
+   * the existing PO rows without needing a second fetch.
+   */
+  const weekLabelById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const w of weeks) m.set(w.id, w.weekDisplay);
+    return m;
+  }, [weeks]);
+
+  const overlapPo = useMemo<PurchaseOrderRow | null>(() => {
+    if (!existingPos || existingPos.length === 0) return null;
+    if (typeof weekFromId !== "number" || typeof weekToId !== "number") return null;
+    const pickedFrom = weekLabelById.get(weekFromId);
+    const pickedTo = weekLabelById.get(weekToId);
+    if (!pickedFrom || !pickedTo) return null;
+    // Normalize so lo <= hi even if user picked them in reverse order
+    // (the chronological-ordering check below catches that as its own
+    // error; we just don't want overlap to mis-evaluate on the way there).
+    const lo = pickedFrom < pickedTo ? pickedFrom : pickedTo;
+    const hi = pickedFrom < pickedTo ? pickedTo : pickedFrom;
+    for (const po of existingPos) {
+      // PO rows already carry the labels — no id→label lookup needed,
+      // which sidesteps the past-week-not-in-modal-weeks issue entirely.
+      const poLo = po.weekFromLabel < po.weekToLabel ? po.weekFromLabel : po.weekToLabel;
+      const poHi = po.weekFromLabel < po.weekToLabel ? po.weekToLabel : po.weekFromLabel;
+      // [lo, hi] overlaps [poLo, poHi] iff lo <= poHi AND hi >= poLo
+      if (lo <= poHi && hi >= poLo) return po;
+    }
+    return null;
+  }, [existingPos, weekFromId, weekToId, weekLabelById]);
+
   if (!open) return null;
 
   async function onSubmit(e: React.FormEvent) {
@@ -114,6 +164,13 @@ export default function NewPoModal({
     const toOrdinal = weeks.findIndex((w) => w.id === weekToId);
     if (fromOrdinal !== -1 && toOrdinal !== -1 && toOrdinal > fromOrdinal) {
       setError("To Week must be the same as or later than From Week.");
+      return;
+    }
+    if (overlapPo) {
+      // Belt-and-braces: the inline message under the dropdowns plus
+      // the disabled submit button should already prevent this. Repeat
+      // the guard here in case the user submits via Enter before the
+      // useMemo settles.
       return;
     }
     setSubmitting(true);
@@ -220,6 +277,21 @@ export default function NewPoModal({
 
           <FormRow label="To Week">
             <WeekSelect value={weekToId} weeks={weeks} onChange={setWeekToId} />
+            {overlapPo && (
+              <small
+                role="alert"
+                style={{
+                  display: "block",
+                  marginTop: 4,
+                  color: DANGER,
+                  fontSize: 12,
+                  lineHeight: 1.4,
+                }}
+              >
+                This week is a part of another PO period
+                {" "}({overlapPo.weekRangeLabel}).
+              </small>
+            )}
           </FormRow>
 
           <FormRow label="Excel file">
@@ -284,7 +356,7 @@ export default function NewPoModal({
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || overlapPo != null}
               style={{
                 padding: "8px 22px",
                 background: TEAL,
@@ -292,8 +364,8 @@ export default function NewPoModal({
                 border: 0,
                 borderRadius: 4,
                 fontSize: 14,
-                cursor: submitting ? "default" : "pointer",
-                opacity: submitting ? 0.6 : 1,
+                cursor: submitting || overlapPo ? "default" : "pointer",
+                opacity: submitting || overlapPo ? 0.6 : 1,
               }}
             >
               {submitting ? "Creating…" : file ? "Create & Upload" : "Create"}

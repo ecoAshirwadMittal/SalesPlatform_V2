@@ -172,6 +172,7 @@ export default function PurchaseOrdersLandingPage() {
           // refreshed when they navigate back.
           router.push(`/admin/auctions-data-center/purchase-orders/${poId}`);
         }}
+        existingPos={allPos}
       />
 
       {error && (
