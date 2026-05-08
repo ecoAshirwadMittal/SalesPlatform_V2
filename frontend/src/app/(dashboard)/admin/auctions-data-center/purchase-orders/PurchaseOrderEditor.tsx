@@ -53,6 +53,31 @@ const DETAIL_VISIBILITY_STORAGE_KEY = "po-detail.visibleCols.v1";
 type DetailSortDir = "asc" | "desc";
 interface DetailSortState { col: DetailColKey; dir: DetailSortDir }
 
+function rawValue(r: PODetailRow, col: DetailColKey): string {
+  // Used by both filter (substring match) and sort (string fallback).
+  // Nulls render as "" so a filter for "x" won't match a null; sort
+  // logic in compareDetail handles its own null ordering separately.
+  switch (col) {
+    case "productId":      return r.productId ?? "";
+    case "grade":          return r.grade ?? "";
+    case "modelName":      return r.modelName ?? "";
+    case "buyerCode":      return r.buyerCode ?? "";
+    case "price":          return r.price ?? "";
+    case "qtyCap":         return r.qtyCap == null ? "" : String(r.qtyCap);
+    case "priceFulfilled": return r.priceFulfilled ?? "";
+    case "qtyFulfilled":   return r.qtyFulfilled == null ? "" : String(r.qtyFulfilled);
+  }
+}
+
+function matchesFilters(r: PODetailRow, filters: Partial<Record<DetailColKey, string>>): boolean {
+  for (const [col, needle] of Object.entries(filters)) {
+    if (!needle) continue;
+    const hay = rawValue(r, col as DetailColKey).toLowerCase();
+    if (!hay.includes(needle.toLowerCase())) return false;
+  }
+  return true;
+}
+
 function compareDetail(a: PODetailRow, b: PODetailRow, col: DetailColKey, dir: DetailSortDir): number {
   const sign = dir === "desc" ? -1 : 1;
   const get = (r: PODetailRow): number | string | null => {
@@ -122,6 +147,16 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
   );
   const [sort, setSort] = useState<DetailSortState | null>(null);
 
+  /*
+   * PO-3 phase 2 — per-column substring filter. Client-side because
+   * /details is already capped at 200 rows; round-tripping every keystroke
+   * to the backend would be wasteful at this volume. Each column's
+   * filter is treated as case-insensitive substring against the rendered
+   * value (BigDecimals stringified, nulls treated as empty so they never
+   * match a non-empty filter). Sort applies on top of filter.
+   */
+  const [filters, setFilters] = useState<Partial<Record<DetailColKey, string>>>({});
+
   function onSort(col: DetailColKey) {
     setSort(curr => {
       if (!curr || curr.col !== col) return { col, dir: "desc" };
@@ -130,9 +165,24 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
     });
   }
 
-  const sortedDetails = sort
-    ? [...details].sort((a, b) => compareDetail(a, b, sort.col, sort.dir))
-    : details;
+  function setFilter(col: DetailColKey, v: string) {
+    setFilters(prev => {
+      if (v === "") {
+        // Drop the key entirely so the matchesFilters loop short-circuits.
+        const next = { ...prev };
+        delete next[col];
+        return next;
+      }
+      return { ...prev, [col]: v };
+    });
+  }
+
+  const filteredDetails = Object.keys(filters).length === 0
+    ? details
+    : details.filter(d => matchesFilters(d, filters));
+  const visibleDetails = sort
+    ? [...filteredDetails].sort((a, b) => compareDetail(a, b, sort.col, sort.dir))
+    : filteredDetails;
 
   async function reload() {
     try {
@@ -247,7 +297,11 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
         marginBottom: "0.75rem",
       }}>
         <h3 style={{ margin: 0, fontSize: 18, color: TEXT, fontWeight: 500 }}>
-          Line items <span style={{ color: TEXT_MUTED, fontSize: 14, fontWeight: 400 }}>({details.length})</span>
+          Line items <span style={{ color: TEXT_MUTED, fontSize: 14, fontWeight: 400 }}>
+            ({visibleDetails.length === details.length
+                ? details.length
+                : `${visibleDetails.length} of ${details.length}`})
+          </span>
         </h3>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <ColumnVisibilityMenu state={colVis} />
@@ -282,6 +336,18 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
               {colVis.visible.has("priceFulfilled") && <SortTh col="priceFulfilled" sort={sort} onSort={onSort} align="right">Price Fulfilled</SortTh>}
               {colVis.visible.has("qtyFulfilled") && <SortTh col="qtyFulfilled" sort={sort} onSort={onSort} align="right">Qty Fulfilled</SortTh>}
             </tr>
+            {/* PO-3 phase 2 — filter row. Always visible (matches QA's
+                always-on filter cells). Each input is a substring match. */}
+            <tr style={{ background: BG, borderBottom: `1px solid ${BORDER}` }}>
+              {colVis.visible.has("productId") && <FilterCell col="productId" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("grade") && <FilterCell col="grade" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("modelName") && <FilterCell col="modelName" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("buyerCode") && <FilterCell col="buyerCode" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("price") && <FilterCell col="price" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("qtyCap") && <FilterCell col="qtyCap" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("priceFulfilled") && <FilterCell col="priceFulfilled" filters={filters} setFilter={setFilter} />}
+              {colVis.visible.has("qtyFulfilled") && <FilterCell col="qtyFulfilled" filters={filters} setFilter={setFilter} />}
+            </tr>
           </thead>
           <tbody>
             {details.length === 0 && (
@@ -296,7 +362,19 @@ export function PurchaseOrderEditor({ poId, onRangeChanged, hideRangeCard = fals
                 </td>
               </tr>
             )}
-            {sortedDetails.map(d => (
+            {details.length > 0 && visibleDetails.length === 0 && (
+              <tr>
+                <td colSpan={colVis.visible.size} style={{
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: TEXT_MUTED,
+                  fontStyle: "italic",
+                }}>
+                  No line items match the current filter.
+                </td>
+              </tr>
+            )}
+            {visibleDetails.map(d => (
               <tr key={d.id} style={{ borderBottom: `1px solid ${DIVIDER}` }}>
                 {colVis.visible.has("productId") && <Td>{d.productId}</Td>}
                 {colVis.visible.has("grade") && <Td>{d.grade}</Td>}
@@ -355,6 +433,48 @@ function SortTh({
         {children}
         <span aria-hidden="true" style={{ fontSize: 11, opacity: active ? 1 : 0.45 }}>{glyph}</span>
       </button>
+    </th>
+  );
+}
+
+function FilterCell({
+  col, filters, setFilter,
+}: {
+  col: DetailColKey;
+  filters: Partial<Record<DetailColKey, string>>;
+  setFilter: (col: DetailColKey, v: string) => void;
+}) {
+  const value = filters[col] ?? "";
+  return (
+    <th style={{
+      padding: "4px 8px",
+      // Filter row sits below sort row; lighter bg + thinner padding
+      // visually demotes it.
+      background: BG,
+    }}>
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setFilter(col, e.target.value)}
+        placeholder="Filter"
+        aria-label={`Filter ${DETAIL_COL_LABELS[col]}`}
+        style={{
+          width: "100%",
+          height: 26,
+          padding: "0 6px",
+          background: "#fff",
+          color: TEXT,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 3,
+          fontSize: 13,
+          fontFamily: "inherit",
+          fontWeight: 400,
+          // Active filter cell gets a subtle teal ring so it's clear
+          // which columns are constraining the result.
+          outline: value ? `1px solid ${TEAL}` : "none",
+          outlineOffset: 0,
+        }}
+      />
     </th>
   );
 }
