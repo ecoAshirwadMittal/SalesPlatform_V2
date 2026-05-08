@@ -34,7 +34,7 @@ public class BidRoundSelectionFilterService {
     public BidRoundSelectionFilterResponse get(int round) {
         validateRound(round);
         BidRoundSelectionFilter entity = repository.findByRound(round)
-                .orElseThrow(() -> new EntityNotFoundException("BidRoundSelectionFilter", round));
+                .orElseThrow(() -> new EntityNotFoundException("BidRoundSelectionFilter", "round", round));
         return BidRoundSelectionFilterResponse.from(entity);
     }
 
@@ -45,7 +45,7 @@ public class BidRoundSelectionFilterService {
             throw new IllegalArgumentException("Request body is required");
         }
         BidRoundSelectionFilter entity = repository.findByRound(round)
-                .orElseThrow(() -> new EntityNotFoundException("BidRoundSelectionFilter", round));
+                .orElseThrow(() -> new EntityNotFoundException("BidRoundSelectionFilter", "round", round));
 
         entity.setTargetPercent(req.targetPercent());
         entity.setTargetValue(req.targetValue());

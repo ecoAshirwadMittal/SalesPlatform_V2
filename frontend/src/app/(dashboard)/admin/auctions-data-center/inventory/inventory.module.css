@@ -124,13 +124,28 @@
   border-bottom: 1px solid #ddd;
 }
 
+/*
+ * Per-column filter input row (gap L22). Tightened to read as one cohesive
+ * header strip rather than a row of disparate inputs:
+ *   - background tint matches the header chrome (#f5f7f8) so empty inputs
+ *     don't strobe white against the grey thead
+ *   - subtle border (#cfd1d3) tones with the table border
+ *   - placeholder de-emphasised (#9aa1a3) so "Ab" / "=" hint without
+ *     competing with real values
+ *   - tiny font (.7rem) keeps the input visually subordinate to the column
+ *     label above it
+ */
 .filterInput {
   width: 100%;
-  padding: 2px 4px;
+  padding: 2px 6px;
   height: 24px;
-  border: 1px solid #cfcfcf;
+  border: 1px solid #cfd1d3;
   border-radius: 3px;
-  font: inherit;
+  background: #f5f7f8;
+  color: #112d32;
+  font-family: inherit;
+  font-size: .75rem;
+  line-height: 1;
 }
 
 /* Per-column filter row — comparator + textbox side-by-side (gap H4). */
@@ -161,15 +176,33 @@
   flex: 1 1 auto;
 }
 
+/* Polish — input focus + placeholder treatment (gap L22). */
+.filterInput:focus {
+  outline: none;
+  background: #fff;
+  border-color: #407874;
+}
+
+.filterInput::placeholder {
+  color: #9aa1a3;
+}
+
+/*
+ * Pagination row (gap L23). Font-size and color now match the muted-chrome
+ * scale used by `.lastSynced` (.8rem / #6b6b6b) so the "Currently showing N
+ * to N of N" caption reads as the same secondary-text register as the
+ * Last-synced timestamp above the grid, instead of competing with the row
+ * data above it.
+ */
 .pagination {
   display: flex;
   align-items: center;
   gap: .5rem;
-  padding: .75rem 1rem;
+  padding: .6rem 1rem;
   border-top: 1px solid #e5e5e5;
   background: #fafafa;
-  color: #555;
-  font-size: .85rem;
+  color: #6b6b6b;
+  font-size: .8rem;
 }
 
 .modalBackdrop {
