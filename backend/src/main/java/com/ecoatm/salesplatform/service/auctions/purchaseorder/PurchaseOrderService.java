@@ -103,11 +103,18 @@ public class PurchaseOrderService {
         // schema). Using getName() keeps the row's changedByUsername label
         // consistent with the rest of the admin surface.
         String changedBy = po.getChangedBy() == null ? null : po.getChangedBy().getName();
+        // PO-7: derive the range label from the loaded Week entities rather
+        // than the stored po.weekRangeLabel column. Older rows were written
+        // with a literal "UNKNOWN" before the create/update path stabilised,
+        // so the stored value isn't trustworthy. The Weeks themselves already
+        // carry the display string, so a fresh build avoids a backfill.
+        String rangeLabel = buildRangeLabel(po.getWeekFrom().getWeekDisplay(),
+                                            po.getWeekTo().getWeekDisplay());
         return new PurchaseOrderRow(
                 po.getId(),
                 po.getWeekFrom().getId(), po.getWeekFrom().getWeekDisplay(),
                 po.getWeekTo().getId(),   po.getWeekTo().getWeekDisplay(),
-                po.getWeekRangeLabel(),
+                rangeLabel,
                 state,
                 po.getTotalRecords(),
                 po.getPoRefreshTimestamp(),
