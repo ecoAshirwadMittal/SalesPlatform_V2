@@ -73,6 +73,9 @@ export async function fetchWeeks(): Promise<WeekOption[]> {
   return z.array(WeekOptionSchema).parse(await res.json());
 }
 
+/** Per-column comparator (gap H4). productId is always exact match. */
+export type FilterMode = 'contains' | 'equals';
+
 export interface InventorySearchParams {
   weekId: number;
   productId?: string;
@@ -81,6 +84,12 @@ export interface InventorySearchParams {
   model?: string;
   modelName?: string;
   carrier?: string;
+  // Backend defaults to "contains" when omitted; only send "equals".
+  gradesMode?: FilterMode;
+  brandMode?: FilterMode;
+  modelMode?: FilterMode;
+  modelNameMode?: FilterMode;
+  carrierMode?: FilterMode;
   page: number;
   pageSize: number;
 }
@@ -96,6 +105,13 @@ export async function fetchInventoryPage(p: InventorySearchParams): Promise<Inve
   if (p.model)      qs.set('model', p.model);
   if (p.modelName)  qs.set('modelName', p.modelName);
   if (p.carrier)    qs.set('carrier', p.carrier);
+  // Only send mode params when they would change behavior — the backend
+  // already defaults to "contains".
+  if (p.gradesMode    === 'equals') qs.set('gradesMode',    'equals');
+  if (p.brandMode     === 'equals') qs.set('brandMode',     'equals');
+  if (p.modelMode     === 'equals') qs.set('modelMode',     'equals');
+  if (p.modelNameMode === 'equals') qs.set('modelNameMode', 'equals');
+  if (p.carrierMode   === 'equals') qs.set('carrierMode',   'equals');
 
   const res = await apiFetch(`/api/v1/admin/inventory?${qs}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);

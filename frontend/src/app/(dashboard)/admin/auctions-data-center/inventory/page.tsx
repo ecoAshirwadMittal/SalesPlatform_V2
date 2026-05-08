@@ -34,6 +34,17 @@ interface Filters {
   carrier: string;
 }
 
+/** Per-column comparator mode. productId is always exact (numeric ID). */
+type FilterMode = 'contains' | 'equals';
+
+interface FilterModes {
+  grades: FilterMode;
+  brand: FilterMode;
+  model: FilterMode;
+  modelName: FilterMode;
+  carrier: FilterMode;
+}
+
 const EMPTY_FILTERS: Filters = {
   productId: '',
   grades: '',
@@ -41,6 +52,14 @@ const EMPTY_FILTERS: Filters = {
   model: '',
   modelName: '',
   carrier: '',
+};
+
+const DEFAULT_MODES: FilterModes = {
+  grades: 'contains',
+  brand: 'contains',
+  model: 'contains',
+  modelName: 'contains',
+  carrier: 'contains',
 };
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
@@ -64,6 +83,7 @@ export default function AggregatedInventoryPage() {
 
   const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
   const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
+  const [modes, setModes] = useState<FilterModes>(DEFAULT_MODES);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editRow, setEditRow] = useState<InventoryRow | null>(null);
   const [syncPending, setSyncPending] = useState(false);
@@ -112,12 +132,17 @@ export default function AggregatedInventoryPage() {
         model: applied.model || undefined,
         modelName: applied.modelName || undefined,
         carrier: applied.carrier || undefined,
+        gradesMode: modes.grades,
+        brandMode: modes.brand,
+        modelMode: modes.model,
+        modelNameMode: modes.modelName,
+        carrierMode: modes.carrier,
       }),
       fetchInventoryTotals(weekId),
     ]);
     setData(grid);
     setTotals(kpi);
-  }, [weekId, page, applied]);
+  }, [weekId, page, applied, modes]);
 
   useEffect(() => {
     let ignore = false;
@@ -270,11 +295,16 @@ export default function AggregatedInventoryPage() {
           <thead>
             <tr>
               <HeaderCell label="Product ID" filter={input.productId} onChange={v => updateFilter('productId', v)} kind="equal" />
-              <HeaderCell label="Grades" filter={input.grades} onChange={v => updateFilter('grades', v)} />
-              <HeaderCell label="Brand" filter={input.brand} onChange={v => updateFilter('brand', v)} />
-              <HeaderCell label="Model" filter={input.model} onChange={v => updateFilter('model', v)} />
-              <HeaderCell label="Model Name" filter={input.modelName} onChange={v => updateFilter('modelName', v)} />
-              <HeaderCell label="Carrier" filter={input.carrier} onChange={v => updateFilter('carrier', v)} />
+              <HeaderCell label="Grades" filter={input.grades} onChange={v => updateFilter('grades', v)}
+                mode={modes.grades} onModeChange={m => setModes(s => ({ ...s, grades: m }))} />
+              <HeaderCell label="Brand" filter={input.brand} onChange={v => updateFilter('brand', v)}
+                mode={modes.brand} onModeChange={m => setModes(s => ({ ...s, brand: m }))} />
+              <HeaderCell label="Model" filter={input.model} onChange={v => updateFilter('model', v)}
+                mode={modes.model} onModeChange={m => setModes(s => ({ ...s, model: m }))} />
+              <HeaderCell label="Model Name" filter={input.modelName} onChange={v => updateFilter('modelName', v)}
+                mode={modes.modelName} onModeChange={m => setModes(s => ({ ...s, modelName: m }))} />
+              <HeaderCell label="Carrier" filter={input.carrier} onChange={v => updateFilter('carrier', v)}
+                mode={modes.carrier} onModeChange={m => setModes(s => ({ ...s, carrier: m }))} />
               <th>DW Qty</th>
               <th>DW Target Price</th>
               <th>Total Qty</th>
@@ -394,20 +424,40 @@ interface HeaderCellProps {
   label: string;
   filter: string;
   onChange: (v: string) => void;
+  /** "equal" = exact-match-only column (productId). Text columns omit. */
   kind?: 'contains' | 'equal';
+  /** Current comparator mode for text columns (gap H4). */
+  mode?: FilterMode;
+  onModeChange?: (m: FilterMode) => void;
 }
 
-function HeaderCell({ label, filter, onChange, kind = 'contains' }: HeaderCellProps) {
+function HeaderCell({ label, filter, onChange, kind = 'contains', mode, onModeChange }: HeaderCellProps) {
+  // Show comparator dropdown only on text columns where the parent supplied
+  // mode + onModeChange. Numeric productId stays exact-match.
+  const showModeSelect = kind !== 'equal' && mode !== undefined && onModeChange !== undefined;
   return (
     <th>
       <div>{label}</div>
-      <input
-        className={styles.filterInput}
-        value={filter}
-        placeholder={kind === 'equal' ? '=' : 'Ab'}
-        onChange={e => onChange(e.target.value)}
-        inputMode={kind === 'equal' ? 'numeric' : 'text'}
-      />
+      <div className={styles.filterCell}>
+        {showModeSelect && (
+          <select
+            className={styles.filterMode}
+            value={mode}
+            onChange={e => onModeChange!(e.target.value as FilterMode)}
+            aria-label={`${label} comparator`}
+          >
+            <option value="contains">Contains</option>
+            <option value="equals">Equals</option>
+          </select>
+        )}
+        <input
+          className={styles.filterInput}
+          value={filter}
+          placeholder={kind === 'equal' ? '=' : (mode === 'equals' ? 'Exact' : 'Ab')}
+          onChange={e => onChange(e.target.value)}
+          inputMode={kind === 'equal' ? 'numeric' : 'text'}
+        />
+      </div>
     </th>
   );
 }

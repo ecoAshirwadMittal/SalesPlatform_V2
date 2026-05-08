@@ -39,8 +39,11 @@ public class AggregatedInventoryService {
         return new BigDecimal(o.toString());
     }
 
-    @Transactional(readOnly = true)
-    @SuppressWarnings("unchecked")
+    /**
+     * Backwards-compatible search overload — every text column defaults to
+     * "contains" mode (the legacy behavior). Existing callers (controller
+     * passes-through, tests) keep working without churn.
+     */
     public AggregatedInventoryPageResponse search(
             Long weekId,
             String productIdExact,
@@ -51,26 +54,62 @@ public class AggregatedInventoryService {
             String carrierContains,
             int page,
             int pageSize) {
+        return search(weekId, productIdExact,
+                gradesContains, null,
+                brandContains, null,
+                modelContains, null,
+                modelNameContains, null,
+                carrierContains, null,
+                page, pageSize);
+    }
+
+    /**
+     * Builds the SQL fragment for a text filter column with "contains" or
+     * "equals" semantics (gap H4). Returns the literal SQL — the caller
+     * is responsible for binding the {@code :param} placeholder. Both
+     * modes are case-insensitive ({@code LOWER(...)}).
+     */
+    private static String textFilterClause(String column, String paramName, String mode) {
+        boolean equals = "equals".equalsIgnoreCase(mode);
+        if (equals) {
+            return " AND (CAST(:" + paramName + " AS text) IS NULL OR LOWER(" + column
+                    + ") = LOWER(CAST(:" + paramName + " AS text)))";
+        }
+        return " AND (CAST(:" + paramName + " AS text) IS NULL OR LOWER(" + column
+                + ") LIKE LOWER(CONCAT('%', CAST(:" + paramName + " AS text), '%')))";
+    }
+
+    @Transactional(readOnly = true)
+    @SuppressWarnings("unchecked")
+    public AggregatedInventoryPageResponse search(
+            Long weekId,
+            String productIdExact,
+            String gradesValue, String gradesMode,
+            String brandValue, String brandMode,
+            String modelValue, String modelMode,
+            String modelNameValue, String modelNameMode,
+            String carrierValue, String carrierMode,
+            int page,
+            int pageSize) {
 
         String ecoid = blankToNull(productIdExact);
-        String grades = blankToNull(gradesContains);
-        String brand = blankToNull(brandContains);
-        String model = blankToNull(modelContains);
-        String name = blankToNull(modelNameContains);
-        String carrier = blankToNull(carrierContains);
+        String grades = blankToNull(gradesValue);
+        String brand = blankToNull(brandValue);
+        String model = blankToNull(modelValue);
+        String name = blankToNull(modelNameValue);
+        String carrier = blankToNull(carrierValue);
 
         int offset = page * pageSize;
 
         String where = """
                 WHERE a.is_deprecated = false
                   AND (CAST(:weekId AS bigint) IS NULL OR a.week_id = CAST(:weekId AS bigint))
-                  AND (CAST(:ecoid AS text)   IS NULL OR a.ecoid2 = CAST(:ecoid AS text))
-                  AND (CAST(:grades AS text)  IS NULL OR LOWER(a.merged_grade)   LIKE LOWER(CONCAT('%', CAST(:grades AS text), '%')))
-                  AND (CAST(:brand AS text)   IS NULL OR LOWER(a.brand)          LIKE LOWER(CONCAT('%', CAST(:brand AS text), '%')))
-                  AND (CAST(:model AS text)   IS NULL OR LOWER(a.model)          LIKE LOWER(CONCAT('%', CAST(:model AS text), '%')))
-                  AND (CAST(:name AS text)    IS NULL OR LOWER(a.name)           LIKE LOWER(CONCAT('%', CAST(:name AS text), '%')))
-                  AND (CAST(:carrier AS text) IS NULL OR LOWER(a.carrier)        LIKE LOWER(CONCAT('%', CAST(:carrier AS text), '%')))
-                """;
+                  AND (CAST(:ecoid AS text)   IS NULL OR a.ecoid2 = CAST(:ecoid AS text))"""
+                + textFilterClause("a.merged_grade", "grades", gradesMode)
+                + textFilterClause("a.brand", "brand", brandMode)
+                + textFilterClause("a.model", "model", modelMode)
+                + textFilterClause("a.name", "name", modelNameMode)
+                + textFilterClause("a.carrier", "carrier", carrierMode);
 
         // ecoid2 is VARCHAR to match Mendix, but the ecoATM codes are always
         // numeric — sort by the numeric value so Mendix parity (75, 78, 113...)

@@ -76,9 +76,23 @@ public class AggregatedInventoryController {
             @RequestParam(required = false) String model,
             @RequestParam(required = false) String modelName,
             @RequestParam(required = false) String carrier,
+            // Per-column comparator mode (gap H4). Optional; defaults to
+            // "contains" when null/blank. Accepts "contains" or "equals".
+            @RequestParam(required = false) String gradesMode,
+            @RequestParam(required = false) String brandMode,
+            @RequestParam(required = false) String modelMode,
+            @RequestParam(required = false) String modelNameMode,
+            @RequestParam(required = false) String carrierMode,
             @RequestParam(defaultValue = "0")  int page,
             @RequestParam(defaultValue = "20") int pageSize) {
-        return ResponseEntity.ok(service.search(weekId, productId, grades, brand, model, modelName, carrier, page, pageSize));
+        return ResponseEntity.ok(service.search(
+                weekId, productId,
+                grades, gradesMode,
+                brand, brandMode,
+                model, modelMode,
+                modelName, modelNameMode,
+                carrier, carrierMode,
+                page, pageSize));
     }
 
     @GetMapping("/totals")
