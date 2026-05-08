@@ -5,8 +5,6 @@ import com.ecoatm.salesplatform.dto.SchedulingAuctionListPageResponse;
 import com.ecoatm.salesplatform.service.auctions.AdminRoundTransitionService;
 import com.ecoatm.salesplatform.service.auctions.AuctionListService;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -68,10 +66,6 @@ public class SchedulingAuctionController {
     }
 
     private static String currentActor() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
-            return "system";
-        }
-        return auth.getName();
+        return com.ecoatm.salesplatform.security.CurrentPrincipal.displayName();
     }
 }

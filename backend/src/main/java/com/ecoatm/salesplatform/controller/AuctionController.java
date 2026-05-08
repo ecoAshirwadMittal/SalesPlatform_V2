@@ -19,8 +19,6 @@ import com.ecoatm.salesplatform.service.auctions.r1init.Round1InitializationServ
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -182,16 +180,13 @@ public class AuctionController {
     }
 
     /**
-     * Resolves the authenticated principal name for audit columns. Falls
-     * back to {@code "system"} when the test harness uses an anonymous
-     * principal; real requests always have an authenticated name because
-     * the filter chain rejects unauthenticated traffic on this path.
+     * Resolves the authenticated principal name for audit columns.
+     * Delegates to {@link com.ecoatm.salesplatform.security.CurrentPrincipal}
+     * so the email (credentials) is preferred over the numeric user-id
+     * principal — without that preference {@code created_by}/{@code updated_by}
+     * end up storing "9001" instead of "admin@test.com" (gap H28).
      */
     private static String currentActor() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth.getName() == null || auth.getName().isBlank()) {
-            return "system";
-        }
-        return auth.getName();
+        return com.ecoatm.salesplatform.security.CurrentPrincipal.displayName();
     }
 }

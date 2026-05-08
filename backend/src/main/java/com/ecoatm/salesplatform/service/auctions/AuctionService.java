@@ -10,8 +10,7 @@ import com.ecoatm.salesplatform.model.auctions.AuctionStatus;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import com.ecoatm.salesplatform.repository.auctions.AuctionRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import com.ecoatm.salesplatform.security.CurrentPrincipal;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,7 +63,7 @@ public class AuctionService {
         }
 
         Instant now = Instant.now();
-        String actor = currentUsername();
+        String actor = CurrentPrincipal.displayName();
 
         Auction auction = new Auction();
         auction.setAuctionTitle(title);
@@ -100,8 +99,4 @@ public class AuctionService {
         return base + " " + trimmed;
     }
 
-    private String currentUsername() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        return auth != null ? auth.getName() : "system";
-    }
 }

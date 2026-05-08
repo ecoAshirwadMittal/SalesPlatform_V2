@@ -314,7 +314,14 @@ export default function AuctionSchedulePage() {
   const isStarted =
     detail.auctionStatus === 'Started' ||
     detail.rounds.some((r) => r.roundStatus === 'Started');
-  const formDisabled = submitting || unscheduling || deleting || isStarted;
+  // Once Closed, the schedule is historical — hide every mutating control
+  // (gap H27). Mendix lets the admin still SEE the schedule, but never
+  // edit/delete/unschedule a closed auction.
+  const isClosed =
+    detail.auctionStatus === 'Closed' ||
+    (detail.rounds.length > 0 && detail.rounds.every((r) => r.roundStatus === 'Closed'));
+  const isReadOnly = isStarted || isClosed;
+  const formDisabled = submitting || unscheduling || deleting || isReadOnly;
 
   return (
     <div className={styles.page}>
@@ -338,9 +345,11 @@ export default function AuctionSchedulePage() {
         </div>
       </header>
 
-      {isStarted && (
+      {isReadOnly && (
         <div className={styles.bannerInfo} role="status">
-          This auction has already started. The schedule cannot be changed.
+          {isClosed
+            ? 'This auction has already closed. The schedule is read-only.'
+            : 'This auction has already started. The schedule cannot be changed.'}
         </div>
       )}
 
@@ -397,17 +406,17 @@ export default function AuctionSchedulePage() {
       />
 
       <div className={styles.actionsRow}>
-        {isAdministrator && (
+        {isAdministrator && !isReadOnly && (
           <button
             type="button"
             className={styles.buttonDanger}
             onClick={() => setDeleteConfirm(true)}
-            disabled={formDisabled || isStarted}
+            disabled={formDisabled}
           >
             {deleting ? 'Deleting…' : 'Delete Auction'}
           </button>
         )}
-        {isScheduled && !isStarted && (
+        {isScheduled && !isReadOnly && (
           <button
             type="button"
             className={styles.buttonGhost}
@@ -419,16 +428,18 @@ export default function AuctionSchedulePage() {
         )}
         <div className={styles.spacer} />
         <Link href={INVENTORY_PATH} className={styles.buttonGhost}>
-          Cancel
+          {isReadOnly ? 'Back' : 'Cancel'}
         </Link>
-        <button
-          type="button"
-          className={styles.button}
-          onClick={openConfirm}
-          disabled={formDisabled}
-        >
-          Confirm
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            className={styles.button}
+            onClick={openConfirm}
+            disabled={formDisabled}
+          >
+            Confirm
+          </button>
+        )}
       </div>
 
       {confirmOpen && form && (
