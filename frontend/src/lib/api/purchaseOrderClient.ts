@@ -47,6 +47,31 @@ export async function getPurchaseOrder(id: number): Promise<PurchaseOrderRow> {
   return jsonOrThrow(await fetch(`${BASE}/${id}`, { credentials: "include" }));
 }
 
+/**
+ * Lookup-by-exact-range for the new landing. Returns every PO whose
+ * (weekFromId, weekToId) matches; caller branches on cardinality:
+ * 0 → empty state; 1 → render; 2+ → config error.
+ */
+export async function findPosByRange(
+  weekFromId: number, weekToId: number,
+): Promise<{ matches: PurchaseOrderRow[] }> {
+  const qs = new URLSearchParams({
+    weekFromId: String(weekFromId),
+    weekToId: String(weekToId),
+  });
+  return jsonOrThrow(await fetch(`${BASE}/by-range?${qs}`, { credentials: "include" }));
+}
+
+/**
+ * Most recent PO globally, used as the landing's default selection
+ * when no week-range query string is present. Sorted by changedDate
+ * desc by the backend.
+ */
+export async function findMostRecentPurchaseOrder(): Promise<PurchaseOrderRow | null> {
+  const r = await listPurchaseOrders({ page: 0, size: 1, sort: "changedDate,desc" });
+  return r.items[0] ?? null;
+}
+
 export async function createPurchaseOrder(req: PurchaseOrderRequest): Promise<PurchaseOrderRow> {
   return jsonOrThrow(await fetch(BASE, {
     method: "POST",
