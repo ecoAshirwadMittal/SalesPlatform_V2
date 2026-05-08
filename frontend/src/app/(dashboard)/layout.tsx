@@ -42,11 +42,11 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    label: 'Purchase Order', href: '/purchase-order',
+    label: 'Purchase Order', href: '/admin/auctions-data-center/purchase-orders',
     icon: <span className={styles.textBadge}>PO</span>,
   },
   {
-    label: 'Reserved Bids (EB)', href: '/reserved-bids',
+    label: 'Reserved Bids (EB)', href: '/admin/auctions-data-center/reserve-bids',
     icon: <span className={styles.textBadge}>RB</span>,
   },
   {
