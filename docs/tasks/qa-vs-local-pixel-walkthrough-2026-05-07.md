@@ -244,3 +244,169 @@ which already enumerates feature-level gaps with file/line evidence.
 ## Implementation plan
 
 See [`qa-vs-local-implementation-plan-2026-05-07.md`](qa-vs-local-implementation-plan-2026-05-07.md) for the prioritized fix plan.
+
+---
+
+## Phase 4–10 — Live lifecycle walk (post Tier-1 fixes)
+
+After C1+C2+C3 shipped, a fresh auction (`625 — Live-Walk`) was created with
+3-min rounds and 1-min inter-round gaps (config singleton temporarily set to
+1 min for the walk, restored to 10 min after). Lifecycle progressed
+end-to-end: R1 → recalc → R2 init (548 QBCs) → R2 → recalc → R3 pre-process
+(548 QBCs + 17 reports) → R3 → R3 close. **All Tier-1 blockers cleared.**
+
+### 4.1 R1 bidder dashboard (works)
+- Login at `/login` as `bidder@buyerco.com` → routes to `/buyer-select`
+- Pick auction-side buyer code (AADWC, id=73) → routes to `/bidder/dashboard`
+- Page loaded once R1 transitioned to Started (~30s after scheduled start)
+- Shows: round title, "Ends in" countdown, Submit Bids + Carryover buttons,
+  Export/Import, "Minimum starting bid - $2.50" warning, paginated grid
+  with Product Id / Brand / Model / Model Name / Grade / Carrier / Added /
+  Avail. Qty / Target Price / Price (input) / Qty. Cap (input)
+- Submitted bid $5.00 / qty 1 on first row → "Your Bids have been Submitted!" ✅
+
+Screenshots: `04a-local-bidder-buyer-select.png`, `04b-local-bidder-dashboard-pre-r1.png`,
+`04d-local-bidder-r1-open-loaded.png`, `04f-local-bidder-r1-submit2.png`.
+
+### 4.2 NEW HIGH BUG — Auth session shared across tabs
+The `auth_token` cookie is `HttpOnly; SameSite=Strict` and shared across
+tabs in the same origin. Logging in as bidder in tab 2 invalidates the
+admin session in tab 1 (admin pages immediately return 403). Reverse is
+also true. Workaround: re-login on tab switch.
+
+**Impact:** Admin + bidder cannot run side-by-side in the same browser. SalesOps doing
+a live verification of a bidder-facing feature has to log out and back in
+constantly. QA's Mendix shell uses session-id cookies the same way, so this
+isn't a regression — but for the new admin-can-impersonate-bidder workflow
+("Bid as Bidder" sidebar entry) it's worth providing a true impersonation
+that doesn't trample the admin session.
+
+### 5.1 R1 close → recalc — works perfectly
+- Cron caught R1 end at 23:03:32 (32s lag past 23:03:00 — within tolerance)
+- `ranking_status` flipped Closed → RUNNING → SUCCESS within ~3 seconds
+- `target_price_status` SUCCESS shortly after
+- Admin Schedule Auctions list correctly shows R1 row Closed with "View
+  | Re-rank | Recalc TP" actions (gap-analysis #7 confirmed working)
+
+Screenshot: `05b-local-admin-schedule-list-r1-closed.png`.
+
+### 5.2 R2 init — 548 QBCs written, no errors
+- `R2BuyerAssignmentListener` fired on R2's `RoundStartedEvent` (~30s after
+  23:04:00 cron tick)
+- 548 `qualified_buyer_codes` rows inserted for the R2 SA
+- AADWC (the bidder's buyer code) confirmed `qualification_type =
+  'Qualified'`, `included = true`, `is_special_treatment = false`
+
+### 6.1 R2 bidder dashboard — NEW HIGH BUG (lazy bid_data not seeded)
+Despite AADWC being qualified for R2, the bidder dashboard rendered the
+empty-state "Bidding has ended. No scheduled auction is available."
+**Root cause:** Zero `bid_rounds` and zero `bid_data` rows existed for AADWC
+in R2. R2 init writes QBC rows but does not seed `bid_data` for regular
+qualified buyers (only for special-treatment buyers via
+`SUB_CreateBidDataForAllAE`). The bidder dashboard does not lazy-create
+`bid_data` rows on first visit either, so the round looks empty.
+
+Screenshot: `06a-local-bidder-r2-open.png`.
+
+**Impact:** R2 (and R3 — same pattern, see 9.1) is functionally unusable
+for regular Qualified buyers. Mendix presumably lazy-seeds bid_data when
+the bidder lands on the round-2/round-3 page, or the R2-init service
+seeds rows for all `included = true` QBCs regardless of special status.
+Either approach would fix this. **Tier-1.5 fix.**
+
+### 7.1 R2 close → recalc + R3 pre-process — works perfectly
+- R2 closed at 23:07:30 (30s lag past 23:07:00)
+- R2 ranking + target-price both SUCCESS
+- R3 pre-process fired automatically on R2 close: 548 QBCs + 17
+  `round3_buyer_data_reports` rows written
+
+### 8.1 Round 3 Bid Report by Buyer — NEW HIGH BUG (filter mismatch)
+- Page at `/admin/auctions-data-center/round3-bid-report` loads with
+  "Choose a week" dropdown
+- Selecting "2026 / Wk19" returns "**No data for the selected week.**"
+- DB confirms 17 `round3_buyer_data_reports` rows exist for Wk19's R3 SA
+- The query filters by something other than (or in addition to) week,
+  but the UI presents week-only as the filter — contract mismatch
+
+Screenshots: `08b-local-admin-round3-bid-report-loaded.png`,
+`08c-local-admin-round3-bid-report-wk19.png`.
+
+### 9.1 R3 bidder dashboard — same bug as R2
+Same empty-state. `qualified_buyer_codes` row exists for AADWC R3
+(`Qualified` / `included=true`); zero `bid_rounds` / `bid_data`.
+
+Screenshot: `09a-local-bidder-r3-open.png`.
+
+### 10.1 R3 close — by-design no recalc
+- R3 closed at 23:11:25 (25s lag)
+- `ranking_status` and `target_price_status` remained PENDING
+- Confirmed by gap-analysis §2 row 11: `RecalcRoundClosedListener` gates
+  on `round ∈ {1, 2}` — terminal-round design, not a gap.
+
+### 10.2 Auctions list (Auctions Data Center) — works, with deltas
+- Auction 625 shown as "Closed", Rounds = 3, Re-sync button present
+- Per-row buttons: View + Re-sync (Re-sync = gap-analysis #9 shipped)
+- "Created By" column shows raw user ID `9001` (numeric) instead of
+  username — **MEDIUM gap**
+
+Screenshot: `10a-local-admin-auctions-list-post-r3.png`.
+
+### 10.3 NEW HIGH BUG — Auction detail page 404
+- URL `/admin/auctions-data-center/auctions/{id}` returns 404
+- The "View" button on the Auctions list opens `/auctions/{id}/schedule`
+  instead — i.e., there is no dedicated auction detail/summary page
+- Closed auctions land on the schedule editor with a "Closed" badge but
+  with **Delete + Confirm + Cancel buttons still active** (potentially
+  destructive UX on a closed auction)
+
+Screenshots: `10b-local-admin-auction-625-detail.png`,
+`10d-local-admin-view-625-after-close.png`.
+
+### 10.4 Buyer Award Summary — confirmed missing (gap-analysis §2 row 14)
+No link or page exists. Walkthrough cannot exercise this feature.
+
+### 10.5 Snowflake Re-sync — present but not exercised live
+"Re-sync" button on auctions list is the gap-analysis #9 shipped feature.
+Did not click during this walk (would push to a real Snowflake endpoint).
+
+---
+
+## Phase 4-10 — New gap inventory (additive to phase 1-3 list)
+
+### Tier 1.5 — Critical for live lifecycle UX (block multi-buyer R2/R3 demos)
+24. **R2/R3 lazy bid_data not seeded for regular Qualified buyers.** Bidder
+    dashboard returns empty-state for any non-special-treatment buyer in R2 or R3.
+    Either (a) seed `bid_data` for all `included=true` QBCs at R2 init / R3
+    init time, or (b) lazy-create on first dashboard load post-init.
+25. **Round 3 Bid Report "No data" filter bug.** Page returns empty even when
+    rows exist for the selected week. Service query filter mismatches the UI's
+    filter contract.
+26. **Auction detail page 404** at `/admin/auctions-data-center/auctions/{id}`.
+    Either implement a real detail/summary page or redirect to `/schedule`.
+
+### Tier 2 — High additions
+27. **Closed auction shows active edit controls.** Delete Auction + Confirm
+    buttons should be hidden or disabled when `auction_status = Closed`.
+28. **Created By column shows raw numeric user ID** instead of email/name.
+
+### Tier 3 — Medium additions
+29. **Auth session shared across tabs.** Working as designed (HttpOnly cookie)
+    but blocks the admin+bidder side-by-side workflow used during QA. Consider
+    a true impersonation flow for "Bid as Bidder" instead of cookie-overwrite.
+30. **Cron lag transparency.** Round transitions take up to ~30s past the
+    scheduled time (one cron tick). Acceptable in production but a "next
+    transition in X seconds" indicator on the admin schedule list would help
+    SalesOps avoid clicking refresh.
+
+---
+
+## Final summary across all phases
+
+- **3 CRITICAL fixes shipped** (C1+C2+C3, commit 58f4ef7) — Tier-1 blockers
+- **3 NEW critical/high bugs surfaced in live walk** (#24 R2/R3 lazy bid_data,
+  #25 R3 report filter, #26 auction detail 404) — these block real bidder
+  usage in R2/R3 and auction-detail browsing
+- **Total gap count: 30** (was 23 after phase 1-3; added 7 from phase 4-10)
+- **Lifecycle confirmed working end-to-end** for cron + recalc + QBC writes;
+  bidder UX past R1 is the next major work area
+

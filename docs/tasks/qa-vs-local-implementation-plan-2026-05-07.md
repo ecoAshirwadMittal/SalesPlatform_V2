@@ -167,3 +167,115 @@ Single bundle: M14 — visual polish pass
 ## Risks
 - **C1 default values:** If the Mendix defaults for `target_percent` / `target_value` are wrong, the whole R2/R3 lifecycle ranks/qualifies on bad numbers. Cross-check the seed against `migration_context/database/queries/schema-AuctionUI.md` before merging.
 - **C2 datetime arithmetic:** Timezone handling around "now() + 10 min" must match the cron's clock (UTC vs local). Existing `AuctionLifecycleScheduler` runs on `@Scheduled(fixedDelayString = "${auctions.lifecycle.poll-ms:60000}")` against `Instant.now()`; the schedule defaults must produce comparable instants. Add a unit test pinning the clock.
+
+---
+
+# Tier 1.5 — Surfaced by live walk (post-Tier-1)
+
+These three were discovered after Tier-1 unblocked the lifecycle. They block the
+end-to-end bidder UX past R1.
+
+### Item C24 — Lazy bid_data for R2/R3 qualified buyers
+**Severity:** CRITICAL
+**Evidence:** Live walk on auction 625 confirmed that `qualified_buyer_codes` is
+correctly populated by R2 init and R3 pre-process (548 QBC rows each), but
+`auctions.bid_rounds` and `auctions.bid_data` remain empty for regular Qualified
+buyers. The bidder dashboard renders "Bidding has ended. No scheduled auction is
+available." even when the bidder is qualified for the open round.
+
+**Affected paths:**
+- `BidderDashboardService` — does not lazy-create `bid_round` / `bid_data` on
+  visit
+- `R2BuyerAssignmentService` — only writes `bid_data` for special-treatment
+  buyers (via `BidDataForAllAEService`), not for regular qualified buyers
+- `R3PreProcessService` — same pattern
+
+**Fix:** Either (a) extend R2 init / R3 pre-process to bulk-INSERT empty
+`bid_data` rows for every `qualified_buyer_codes` row with `included=true` and
+`is_special_treatment=false` (mirror the existing AllAE bulk INSERT pattern),
+or (b) implement lazy seeding in `BidderDashboardService` on first visit
+post-round-start. Option (a) is closer to Mendix behavior and avoids a slow
+first-visit; prefer (a).
+
+**Effort:** 4–6 hours including IT (extend `R2BuyerAssignmentEndToEndIT` to
+assert non-special qualified buyers have bid_data; same for R3).
+
+### Item C25 — Round 3 Bid Report filter mismatch
+**Severity:** HIGH
+**Evidence:** `/admin/auctions-data-center/round3-bid-report?week=2026-Wk19`
+returns "No data for the selected week." despite 17 rows in
+`auctions.round3_buyer_data_reports` keyed to that week's R3 SA.
+
+**Fix:** Inspect `Round3ReportService` query — likely missing a join through
+`auction_id → week_id` or filtering on the wrong column. Add an IT seeding 1
+report row and asserting the GET endpoint returns it.
+
+**Effort:** 2 hours.
+
+### Item C26 — Auction detail page 404
+**Severity:** HIGH
+**Evidence:** `/admin/auctions-data-center/auctions/{id}` returns 404. The
+"View" button on the auctions list opens `/auctions/{id}/schedule` instead.
+
+**Fix:** Either (a) implement a real auction detail/summary page at the
+canonical URL with cards for status, rounds, recent activity, links to bid_data
+/ ranking / reports, or (b) redirect `/auctions/{id}` →
+`/auctions/{id}/schedule` and document that the schedule editor IS the
+detail page. Recommend (a) — the schedule page conflates editing with summary.
+
+**Effort:** 4–6 hours for (a), 30 min for (b).
+
+---
+
+# Tier 2 (additions)
+
+### Item H27 — Hide edit controls on Closed auctions
+**Severity:** MEDIUM-HIGH
+**Evidence:** Closed auction's schedule page still renders Delete Auction +
+Confirm + Cancel buttons. Clicking Delete on a Closed auction with bid history
+would trigger the AuctionHasBidsException catch path, but the button shouldn't
+be there.
+
+**Fix:** Conditionally render edit controls only for `Unscheduled` /
+`Scheduled` statuses. Closed = read-only.
+
+**Effort:** 1–2 hours.
+
+### Item H28 — Created By column shows numeric user ID
+**Severity:** MEDIUM
+**Evidence:** Auctions list "Created By" column displays `9001` instead of the
+admin's email/name.
+
+**Fix:** Join through `identity.users` to display name/email. Likely a missed
+join in `AuctionListService`.
+
+**Effort:** 1–2 hours.
+
+---
+
+# Tier 3 (additions)
+
+### Item M29 — Provide a real "Bid as Bidder" impersonation flow
+**Severity:** LOW (workflow ergonomics)
+**Evidence:** The `auth_token` cookie is shared across tabs. Logging in as
+bidder in tab 2 invalidates the admin session in tab 1. Side-by-side
+admin+bidder QA workflow requires constant re-login.
+
+**Fix:** The "Bid as Bidder" sidebar link should issue a separate
+short-lived impersonation token scoped to a specific buyer code, stored in a
+different cookie or in URL state, without overwriting the primary admin
+session. Mirrors Mendix's "Bid as Bidder" admin-only flow (which preserves
+the admin's session).
+
+**Effort:** 1 day (security-sensitive).
+
+### Item M30 — Show "next transition in X seconds" indicator on schedule list
+**Severity:** LOW
+**Evidence:** Round transitions lag the scheduled time by up to one cron tick
+(~60s observed). SalesOps cannot tell whether a transition is "stuck" or just
+pending the next cron tick.
+
+**Fix:** Add a small live countdown next to each Scheduled / Started row
+showing seconds until next expected transition.
+
+**Effort:** 2-3 hours.
