@@ -50,7 +50,7 @@ const navItems: NavItem[] = [
     icon: <span className={styles.textBadge}>RB</span>,
   },
   {
-    label: 'Auction Scheduling', href: '/auction-scheduling',
+    label: 'Auction Scheduling', href: '/admin/auctions-data-center/schedule-auction',
     icon: (
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>

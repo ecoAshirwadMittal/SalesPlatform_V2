@@ -25,6 +25,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -78,6 +79,17 @@ public class AuctionScheduleService {
     private static final int DEFAULT_ROUND2_MINUTES_OFFSET = 360;
     private static final int DEFAULT_ROUND3_MINUTES_OFFSET = 180;
 
+    /**
+     * Minimum lead time between "now" and R1.From when defaulting a fresh
+     * schedule. Without this clamp, creating an auction for a past week
+     * (e.g. mid-week scheduling for the current week, or any historical
+     * week) would seed R1 windows in the past — the next cron tick would
+     * speedrun the auction through R1 → R2 → R3. The 10-minute lead matches
+     * the {@code ROUND2_MINUTES_OFFSET} / {@code ROUND3_MINUTES_OFFSET}
+     * inter-round gap convention so the admin always has time to review.
+     */
+    private static final Duration FRESH_SCHEDULE_GUARD = Duration.ofMinutes(10);
+
     private static final String ROUND_1_NAME = "Round 1";
     private static final String ROUND_2_NAME = "Round 2";
     // Customer-facing name — do NOT shorten to "Round 3"; appears in the admin UI and emails.
@@ -89,19 +101,22 @@ public class AuctionScheduleService {
     private final BidRoundRepository bidRoundRepository;
     private final AuctionsFeatureConfigRepository featureConfigRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public AuctionScheduleService(AuctionRepository auctionRepository,
                                   SchedulingAuctionRepository schedulingAuctionRepository,
                                   WeekRepository weekRepository,
                                   BidRoundRepository bidRoundRepository,
                                   AuctionsFeatureConfigRepository featureConfigRepository,
-                                  ApplicationEventPublisher eventPublisher) {
+                                  ApplicationEventPublisher eventPublisher,
+                                  Clock clock) {
         this.auctionRepository = auctionRepository;
         this.schedulingAuctionRepository = schedulingAuctionRepository;
         this.weekRepository = weekRepository;
         this.bidRoundRepository = bidRoundRepository;
         this.featureConfigRepository = featureConfigRepository;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     // ---------------------------------------------------------------------
@@ -163,6 +178,22 @@ public class AuctionScheduleService {
                 .plus(Duration.ofHours(ROUND2_END_HOURS_FROM_WEEK_START))
                 .plus(Duration.ofMinutes(r3Offset));
         Instant r3End = weekStart.plus(Duration.ofHours(ROUND3_END_HOURS_FROM_WEEK_START));
+
+        // Past-week clamp: if R1 would default into the past, slide every
+        // round forward by the same delta. Preserves Mendix-spec round
+        // durations and inter-round offsets while keeping the admin review
+        // window intact. See FRESH_SCHEDULE_GUARD javadoc.
+        Instant earliest = clock.instant().plus(FRESH_SCHEDULE_GUARD);
+        if (r1Start.isBefore(earliest)) {
+            Duration shift = Duration.between(r1Start, earliest);
+            r1Start = r1Start.plus(shift);
+            r1End = r1End.plus(shift);
+            r2Start = r2Start.plus(shift);
+            r2End = r2End.plus(shift);
+            r3Start = r3Start.plus(shift);
+            r3End = r3End.plus(shift);
+        }
+
         return new ScheduleDefaultsResponse(
                 r1Start, r1End, r2Start, r2End, r3Start, r3End,
                 true, true, r2Offset, r3Offset);

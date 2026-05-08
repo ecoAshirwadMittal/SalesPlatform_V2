@@ -30,8 +30,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
 
 import java.lang.reflect.Field;
+import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,17 +81,31 @@ class AuctionScheduleServiceTest {
     @Mock private AuctionsFeatureConfigRepository featureConfigRepository;
     @Mock private ApplicationEventPublisher eventPublisher;
 
+    /**
+     * Pinned to 2026-04-01 — well before {@link #WEEK_START} (2026-04-20),
+     * so the existing fresh/reschedule defaults tests stay anchored on the
+     * raw Mendix-spec offsets without triggering the past-week clamp.
+     * Tests that need the clamp branch construct a local clock pinned
+     * after WEEK_START + 16h.
+     */
+    private static final Instant TEST_NOW_BEFORE_WEEK = Instant.parse("2026-04-01T00:00:00Z");
+
     private AuctionScheduleService service;
 
     @BeforeEach
     void setUp() {
-        service = new AuctionScheduleService(
+        service = newService(Clock.fixed(TEST_NOW_BEFORE_WEEK, ZoneOffset.UTC));
+    }
+
+    private AuctionScheduleService newService(Clock clock) {
+        return new AuctionScheduleService(
                 auctionRepository,
                 schedulingAuctionRepository,
                 weekRepository,
                 bidRoundRepository,
                 featureConfigRepository,
-                eventPublisher);
+                eventPublisher,
+                clock);
     }
 
     // --- loadScheduleDefaults ---
@@ -155,6 +171,74 @@ class AuctionScheduleServiceTest {
         assertThat(defaults.round2Active()).isTrue();
         // Stored round 3 is Unscheduled + hasRound=false -> inactive.
         assertThat(defaults.round3Active()).isFalse();
+    }
+
+    @Test
+    @DisplayName("loadScheduleDefaults — past-week clamp shifts every round so R1.From >= now+10min")
+    void loadScheduleDefaults_pastWeek_clampsR1ToNowPlusGuard() {
+        // Pin "now" to 2 days AFTER the natural R1 start (WEEK_START + 16h).
+        // Mendix raw R1.From would be 2026-04-20T16:00:00Z; "now" is
+        // 2026-04-22T16:00:00Z, so the clamp must shift everything forward
+        // by exactly 48 hours plus the 10-minute guard.
+        Instant pinnedNow = WEEK_START.plus(Duration.ofHours(16 + 48));
+        service = newService(Clock.fixed(pinnedNow, ZoneOffset.UTC));
+
+        when(auctionRepository.findById(AUCTION_ID))
+                .thenReturn(Optional.of(auction(AUCTION_ID, AuctionStatus.Unscheduled)));
+        when(weekRepository.findById(WEEK_ID))
+                .thenReturn(Optional.of(week(WEEK_ID, WEEK_DISPLAY, WEEK_START)));
+        when(featureConfigRepository.findSingleton())
+                .thenReturn(Optional.of(config(360, 180)));
+        when(schedulingAuctionRepository.findByAuctionIdOrderByRoundAsc(AUCTION_ID))
+                .thenReturn(List.of());
+
+        ScheduleDefaultsResponse defaults = service.loadScheduleDefaults(AUCTION_ID);
+
+        Instant expectedR1Start = pinnedNow.plus(Duration.ofMinutes(10));
+        assertThat(defaults.round1Start()).isEqualTo(expectedR1Start);
+        // Round duration preserved: R1 spans 87 hours (103 - 16).
+        assertThat(defaults.round1End()).isEqualTo(expectedR1Start.plus(Duration.ofHours(87)));
+        // R2 cascade preserved: starts 360 min after R1 end.
+        assertThat(defaults.round2Start()).isEqualTo(
+                defaults.round1End().plus(Duration.ofMinutes(360)));
+        // R2 ends at WEEK_START + 128h + same shift.
+        assertThat(defaults.round2End()).isEqualTo(
+                WEEK_START.plus(Duration.ofHours(128)).plus(Duration.between(
+                        WEEK_START.plus(Duration.ofHours(16)), expectedR1Start)));
+        // R3 cascade preserved: starts 180 min after R2 end.
+        assertThat(defaults.round3Start()).isEqualTo(
+                defaults.round2End().plus(Duration.ofMinutes(180)));
+        // Sanity — every round must end strictly after it starts.
+        assertThat(defaults.round1End()).isAfter(defaults.round1Start());
+        assertThat(defaults.round2End()).isAfter(defaults.round2Start());
+        assertThat(defaults.round3End()).isAfter(defaults.round3Start());
+        // Sanity — R1.From is not in the past anymore.
+        assertThat(defaults.round1Start()).isAfterOrEqualTo(pinnedNow);
+    }
+
+    @Test
+    @DisplayName("loadScheduleDefaults — future-week leaves Mendix-spec offsets unchanged")
+    void loadScheduleDefaults_futureWeek_noClamp() {
+        // "Now" is well before the week; raw Mendix offsets are already in
+        // the future, so the clamp must NOT fire.
+        Instant pinnedNow = WEEK_START.minus(Duration.ofDays(7));
+        service = newService(Clock.fixed(pinnedNow, ZoneOffset.UTC));
+
+        when(auctionRepository.findById(AUCTION_ID))
+                .thenReturn(Optional.of(auction(AUCTION_ID, AuctionStatus.Unscheduled)));
+        when(weekRepository.findById(WEEK_ID))
+                .thenReturn(Optional.of(week(WEEK_ID, WEEK_DISPLAY, WEEK_START)));
+        when(featureConfigRepository.findSingleton())
+                .thenReturn(Optional.of(config(360, 180)));
+        when(schedulingAuctionRepository.findByAuctionIdOrderByRoundAsc(AUCTION_ID))
+                .thenReturn(List.of());
+
+        ScheduleDefaultsResponse defaults = service.loadScheduleDefaults(AUCTION_ID);
+
+        // Identical to the original Mendix-parity expectations.
+        assertThat(defaults.round1Start()).isEqualTo(WEEK_START.plus(Duration.ofHours(16)));
+        assertThat(defaults.round1End()).isEqualTo(WEEK_START.plus(Duration.ofHours(103)));
+        assertThat(defaults.round3End()).isEqualTo(WEEK_START.plus(Duration.ofHours(156)));
     }
 
     // --- saveSchedule ---
