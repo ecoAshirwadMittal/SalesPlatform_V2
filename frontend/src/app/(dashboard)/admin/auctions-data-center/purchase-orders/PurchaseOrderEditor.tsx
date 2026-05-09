@@ -284,10 +284,16 @@ export function PurchaseOrderEditor({
 
   function setFilter(col: DetailColKey, next: ColumnFilter) {
     setFilters(prev => {
-      // Drop the key entirely when the cell is empty + op is value-bearing,
-      // so the matchesFilters loop can short-circuit. Valueless ops (Empty
-      // / NotEmpty) keep their slot — the user picked them deliberately.
-      if (!isValueless(next.op) && (next.value === "" || next.value == null)) {
+      // Strip the entry only when the cell is fully back to its initial
+      // state (default op for the column kind + no value). That keeps
+      // the matchesFilters loop short-circuit when nothing is actually
+      // filtering, while preserving the user's op pick when they switch
+      // comparators before typing — picking "Starts with" then leaving
+      // the value blank should keep the comparator on Starts with, not
+      // silently reset to Contains.
+      const defaultOp = DEFAULT_OP_FOR_KIND[DETAIL_COL_KIND[col]];
+      const noValue = !isValueless(next.op) && (next.value === "" || next.value == null);
+      if (next.op === defaultOp && noValue) {
         const stripped = { ...prev };
         delete stripped[col];
         return stripped;
