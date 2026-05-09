@@ -75,14 +75,24 @@ export const DEFAULT_OP_FOR_KIND: Record<ColumnKind, FilterOp> = {
   date:    "eq",
 };
 
-/** Full op menu per kind. Pages can pass a narrower {@code availableOps}
- *  prop to restrict the dropdown to a subset (e.g. inventory ships
- *  contains/equals only since its backend hasn't migrated to FilterSpec
- *  yet). */
+/** Op menu per kind — only ops that read sensibly for the column kind.
+ *  Pages can pass a narrower {@code availableOps} prop to restrict
+ *  further (e.g. reserve-bids' Product ID hides text-only ops to
+ *  match its varchar-but-feels-numeric column).
+ *
+ *  Why text omits gt/gte/lt/lte: lexicographic comparison on free-text
+ *  values like brand names, grades, model strings is almost always
+ *  surprising for end users — "Apple > Banana" reads as a typo, not
+ *  a valid filter. Empty / Not empty stay because finding rows with
+ *  a missing brand / grade is a real workflow.
+ *
+ *  Date is a numeric-style kind because all 8 math ops apply
+ *  meaningfully to dates (before / after / on / not-on / before-or-on /
+ *  after-or-on / no value / has value). */
 export const OPS_FOR_KIND: Record<ColumnKind, FilterOp[]> = {
   numeric: ["gt", "gte", "eq", "neq", "lt", "lte", "empty", "notEmpty"],
   text:    ["contains", "startsWith", "endsWith",
-            "gt", "gte", "eq", "neq", "lt", "lte", "empty", "notEmpty"],
+            "eq", "neq", "empty", "notEmpty"],
   date:    ["gt", "gte", "eq", "neq", "lt", "lte", "empty", "notEmpty"],
 };
 
