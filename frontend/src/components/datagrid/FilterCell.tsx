@@ -1,6 +1,7 @@
 "use client";
 
 import ComparatorMenu from "./ComparatorMenu";
+import DatePopoverInput from "./DatePopoverInput";
 import {
   type ColumnFilter,
   type ColumnKind,
@@ -52,6 +53,11 @@ export default function FilterCell({
   const resolvedInputMode: Props["inputMode"] =
     inputMode ?? (kind === "numeric" ? "decimal" : "text");
 
+  // Date columns (with a value-bearing op) get the custom calendar
+  // popover so the visual matches QA's Mendix DataGrid 2 calendar
+  // trigger. Valueless ops (Empty / Not empty) still hide the input.
+  const useDatePopover = kind === "date" && !valueless;
+
   return (
     <div className={styles.filterCell}>
       <ComparatorMenu
@@ -60,16 +66,25 @@ export default function FilterCell({
         onChange={(op) => onChange({ op, value: isValueless(op) ? "" : filter.value })}
         ariaLabel={`${label} comparator`}
       />
-      <input
-        className={`${styles.filterInput} ${valueless ? styles.filterInputDisabled : ""}`}
-        type={resolvedInputType}
-        inputMode={valueless ? "none" : resolvedInputMode}
-        value={valueless ? "" : filter.value}
-        disabled={valueless}
-        placeholder={valueless ? "" : (placeholder ?? label)}
-        aria-label={`Filter ${label}`}
-        onChange={(e) => onChange({ op: filter.op, value: e.target.value })}
-      />
+      {useDatePopover ? (
+        <DatePopoverInput
+          value={filter.value}
+          onChange={(next) => onChange({ op: filter.op, value: next })}
+          ariaLabel={`Filter ${label}`}
+          placeholder={placeholder ?? "mm/dd/yyyy"}
+        />
+      ) : (
+        <input
+          className={`${styles.filterInput} ${valueless ? styles.filterInputDisabled : ""}`}
+          type={resolvedInputType}
+          inputMode={valueless ? "none" : resolvedInputMode}
+          value={valueless ? "" : filter.value}
+          disabled={valueless}
+          placeholder={valueless ? "" : (placeholder ?? label)}
+          aria-label={`Filter ${label}`}
+          onChange={(e) => onChange({ op: filter.op, value: e.target.value })}
+        />
+      )}
     </div>
   );
 }
