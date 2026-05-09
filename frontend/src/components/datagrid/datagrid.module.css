@@ -1,3 +1,217 @@
+/* ── DataGrid container + chrome ───────────────────────────── */
+
+.gridWrap {
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.grid thead {
+  background: var(--color-bg-body);
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr {
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.grid tbody tr:hover {
+  background: rgba(0, 150, 159, 0.04);
+}
+
+.grid th,
+.grid td {
+  padding: 8px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.grid th {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.numericCell {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+}
+
+.sortButton {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortButton:hover {
+  color: var(--color-brand-teal);
+}
+
+.sortIcon {
+  width: 12px;
+  height: 12px;
+  opacity: 0.45;
+  flex-shrink: 0;
+}
+
+.sortIconActive {
+  opacity: 1;
+  color: var(--color-brand-teal);
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.columnSelectorWrap {
+  position: relative;
+  display: inline-block;
+}
+
+.columnSelectorButton {
+  background: var(--color-bg-body);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  padding: 6px 10px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+}
+
+.columnSelectorButton:hover {
+  border-color: var(--color-text-muted);
+}
+
+.columnSelectorMenu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 10;
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-card);
+  padding: 8px 4px;
+  min-width: 180px;
+}
+
+.columnSelectorOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 14px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+.columnSelectorOption:hover {
+  background: var(--color-bg-body);
+}
+
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  background: var(--color-bg-body);
+  border-top: 1px solid var(--color-input-border);
+  font-size: 14px;
+  color: var(--color-text-body);
+  font-family: var(--font-family-primary);
+}
+
+.paginationCount {
+  margin: 0 8px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.paginationButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  padding: 4px 8px;
+  font-family: var(--font-family-primary);
+  font-size: 16px;
+  color: var(--color-text-body);
+  cursor: pointer;
+  min-width: 28px;
+  height: 28px;
+}
+
+.paginationButton:hover:not(:disabled) {
+  border-color: var(--color-input-border);
+  background: #FFFFFF;
+}
+
+.paginationButton:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.emptyState {
+  padding: 24px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}
+
+.loadingOverlay {
+  padding: 16px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  text-align: center;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.errorBanner {
+  border: 1px solid #C0392B;
+  background: #FDECEA;
+  color: #C0392B;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
 /* Shared admin-grid filter primitives.
    Tokens come from src/app/globals.css; never hardcode hex values that
    exist as tokens. Used by reserve-bids list page (and inventory after

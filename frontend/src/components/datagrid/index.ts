@@ -1,7 +1,18 @@
 /** Shared datagrid primitives barrel export. */
 
+export { default as DataGrid } from "./DataGrid";
+export type {
+  ColumnDef,
+  DataGridProps,
+  FetcherArgs,
+  FetcherResult,
+  FilterFieldDef,
+  SortDirection,
+  SortState,
+} from "./DataGrid";
 export { default as ComparatorMenu } from "./ComparatorMenu";
 export { default as FilterCell } from "./FilterCell";
+export { default as DatePopoverInput } from "./DatePopoverInput";
 export {
   DEFAULT_OP_FOR_KIND,
   OPS_FOR_KIND,

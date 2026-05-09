@@ -1,344 +1,169 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidRow } from "@/lib/reserveBidTypes";
 import {
-  type ColumnFilter,
-  type ColumnKind,
+  type ColumnDef,
+  type FetcherArgs,
   type FilterOp,
-  DEFAULT_OP_FOR_KIND,
-  FilterCell,
-  serializeFilter,
+  DataGrid,
 } from "@/components/datagrid";
 import styles from "./reserveBidsList.module.css";
 import ReserveBidAuditModal from "./ReserveBidAuditModal";
 import ReserveBidUploadModal from "./ReserveBidUploadModal";
 
-const PAGE_SIZE = 20;
-const FILTER_DEBOUNCE_MS = 400;
-
-// Backend whitelists these SQL column names for sort.
-type SortColumn = "product_id" | "grade" | "brand" | "model" | "bid" | "last_update_datetime";
-type SortDirection = "asc" | "desc";
-
-interface ColumnDef {
-  key: string;
-  label: string;
-  /** Wire-format key sent to the backend ({@code productId} → backend
-   *  param name). Drives where this column's filter shows up in the
-   *  query string. */
-  filterKey?: string;
-  kind?: ColumnKind;
-  sort?: SortColumn;
-  numeric?: boolean;
-  toggleable: boolean;
-}
-
-const COLUMNS: ColumnDef[] = [
-  { key: "productId", label: "Product ID",   filterKey: "productId",    kind: "text",    sort: "product_id",          numeric: true, toggleable: true  },
-  { key: "grade",     label: "Grade",        filterKey: "grade",        kind: "text",    sort: "grade",                              toggleable: true  },
-  { key: "brand",     label: "Brand",        filterKey: "brand",        kind: "text",    sort: "brand",                              toggleable: true  },
-  { key: "model",     label: "Model Name",   filterKey: "model",        kind: "text",    sort: "model",                              toggleable: true  },
-  { key: "bid",       label: "Bid",          filterKey: "bid",          kind: "numeric", sort: "bid",                  numeric: true, toggleable: true  },
-  { key: "updated",   label: "Last Updated", filterKey: "lastUpdateDatetime", kind: "date", sort: "last_update_datetime",            toggleable: true  },
-  { key: "actions",   label: "Audit",                                                                                                 toggleable: false },
+// Product ID is VARCHAR in the DB. Show only ops that don't trip
+// SalesOps' "73 < 100" lex-vs-numeric expectations.
+const PRODUCT_ID_OPS: FilterOp[] = [
+  "eq", "neq", "contains", "startsWith", "endsWith", "empty", "notEmpty",
 ];
 
-// Filter state: every filterable column gets one ColumnFilter in this
-// record. Defaults are derived from the column's kind so users see the
-// QA-default op (Equal for numeric/date, Contains for text) on first
-// render.
-type FilterState = Record<string, ColumnFilter>;
-
-function emptyFilters(): FilterState {
-  const state: FilterState = {};
-  for (const col of COLUMNS) {
-    if (col.filterKey && col.kind) {
-      state[col.filterKey] = { op: DEFAULT_OP_FOR_KIND[col.kind], value: "" };
-    }
-  }
-  return state;
-}
-
 export default function ReserveBidsPage() {
-  const [rows, setRows] = useState<ReserveBidRow[]>([]);
-  const [total, setTotal] = useState(0);
-  const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const [input, setInput] = useState<FilterState>(() => emptyFilters());
-  const [applied, setApplied] = useState<FilterState>(() => emptyFilters());
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const [sortColumn, setSortColumn] = useState<SortColumn | null>("product_id");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
-
-  const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
-  const [columnMenuOpen, setColumnMenuOpen] = useState(false);
-
   const [auditTarget, setAuditTarget] = useState<{ id: number; productId: string } | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
-  // Debounce filter input → applied filters → fetch
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setApplied(input);
-      setPage(0);
-    }, FILTER_DEBOUNCE_MS);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [input]);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const params: Record<string, string | number | undefined> = {
-        sort: sortColumn ? `${sortColumn},${sortDirection}` : undefined,
-        page,
-        size: PAGE_SIZE,
-      };
-      // Serialize each column filter to the wire format the backend's
-      // FilterSpecParser expects: "productId=eq,73", "grade=contains,A_YYY",
-      // "brand=empty" (valueless), etc. Empty filters are dropped.
-      for (const [filterKey, filter] of Object.entries(applied)) {
-        const wire = serializeFilter(filter);
-        if (wire != null) params[filterKey] = wire;
-      }
-      const res = await reserveBidClient.list(params);
-      setRows(res.rows);
-      setTotal(res.total);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Load failed");
-    } finally {
-      setLoading(false);
-    }
-  }, [applied, page, sortColumn, sortDirection]);
-
-  useEffect(() => { void load(); }, [load]);
-
-  const handleDelete = async (id: number) => {
+  const handleDelete = useCallback(async (id: number) => {
     if (!confirm("Delete this reserve bid? This will drop its audit trail.")) return;
-    try {
-      await reserveBidClient.remove(id);
-      void load();
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Delete failed");
-    }
-  };
+    await reserveBidClient.remove(id);
+    setRefreshNonce((n) => n + 1);
+  }, []);
 
-  const handleDownload = async () => {
-    try {
-      const blob = await reserveBidClient.download();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `reserve-bids-${new Date().toISOString().slice(0, 10)}.xlsx`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Download failed");
-    }
-  };
+  const handleDownload = useCallback(async () => {
+    const blob = await reserveBidClient.download();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `reserve-bids-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, []);
 
-  const toggleSort = (column: SortColumn) => {
-    if (sortColumn === column) {
-      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
-    setPage(0);
-  };
-
-  const updateFilter = (filterKey: string, next: ColumnFilter) =>
-    setInput((prev) => ({ ...prev, [filterKey]: next }));
-
-  const visibleColumns = useMemo(
-    () => COLUMNS.filter((c) => !hiddenColumns.has(c.key)),
-    [hiddenColumns],
+  // The fetcher is the only page-specific concern: serialise + send.
+  // refreshNonce is a dep so deletes / uploads re-fetch even when no
+  // grid state changed.
+  const fetcher = useCallback(
+    async ({ filters, sort, page, size, signal }: FetcherArgs) => {
+      // signal not threaded into reserveBidClient.list yet — left as a
+      // future enhancement; abort still cancels the React state update.
+      void signal;
+      const params: Record<string, string | number | undefined> = {
+        ...filters,
+        sort: sort ? `${sort.column},${sort.direction}` : undefined,
+        page,
+        size,
+      };
+      const res = await reserveBidClient.list(params);
+      return { rows: res.rows, total: res.total };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [refreshNonce],
   );
 
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const startIdx = total === 0 ? 0 : page * PAGE_SIZE + 1;
-  const endIdx = Math.min(total, (page + 1) * PAGE_SIZE);
+  const columns: ColumnDef<ReserveBidRow>[] = useMemo(() => [
+    {
+      key: "productId",
+      label: "Product ID",
+      sortKey: "product_id",
+      numeric: true,
+      accessor: (r) => r.productId,
+      filter: { kind: "text", filterKey: "productId", availableOps: PRODUCT_ID_OPS, placeholder: "Product ID" },
+    },
+    {
+      key: "grade",
+      label: "Grade",
+      sortKey: "grade",
+      accessor: (r) => r.grade,
+      filter: { kind: "text", filterKey: "grade", placeholder: "Grade" },
+    },
+    {
+      key: "brand",
+      label: "Brand",
+      sortKey: "brand",
+      accessor: (r) => r.brand ?? "—",
+      filter: { kind: "text", filterKey: "brand", placeholder: "Brand" },
+    },
+    {
+      key: "model",
+      label: "Model Name",
+      sortKey: "model",
+      accessor: (r) => r.model ?? "—",
+      filter: { kind: "text", filterKey: "model", placeholder: "Model Name" },
+    },
+    {
+      key: "bid",
+      label: "Bid",
+      sortKey: "bid",
+      numeric: true,
+      accessor: (r) => `$${formatMoney(r.bid)}`,
+      filter: { kind: "numeric", filterKey: "bid", placeholder: "Bid" },
+    },
+    {
+      key: "updated",
+      label: "Last Updated",
+      sortKey: "last_update_datetime",
+      accessor: (r) => formatDateTime(r.lastUpdateDatetime),
+      filter: { kind: "date", filterKey: "lastUpdateDatetime" },
+    },
+  ], []);
+
+  const rowActions = useCallback((r: ReserveBidRow) => (
+    <>
+      <Link
+        href={`/admin/auctions-data-center/reserve-bids/${r.id}`}
+        className={styles.rowAction}
+      >
+        Edit
+      </Link>
+      <button
+        type="button"
+        className={styles.rowAction}
+        onClick={() => setAuditTarget({ id: r.id, productId: r.productId })}
+      >
+        Audit
+      </button>
+      <button
+        type="button"
+        className={`${styles.rowAction} ${styles.rowActionDanger}`}
+        onClick={() => handleDelete(r.id)}
+      >
+        Delete
+      </button>
+    </>
+  ), [handleDelete]);
+
+  const topBar = (
+    <>
+      <button className="btn-outline" type="button" onClick={() => setUploadOpen(true)}>
+        Upload EB Price
+      </button>
+      <button className="btn-outline" type="button" onClick={handleDownload}>
+        Download
+      </button>
+      <Link href="/admin/auctions-data-center/reserve-bids/new">
+        <button className="btn-outline" type="button">New</button>
+      </Link>
+    </>
+  );
 
   return (
     <div className={styles.page}>
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Reserve Bids (EB)</h1>
-        <div className={styles.actions}>
-          <button className="btn-outline" type="button" onClick={() => setUploadOpen(true)}>
-            Upload EB Price
-          </button>
-          <button className="btn-outline" type="button" onClick={handleDownload}>
-            Download
-          </button>
-          <Link href="/admin/auctions-data-center/reserve-bids/new">
-            <button className="btn-outline" type="button">New</button>
-          </Link>
-          <ColumnSelector
-            columns={COLUMNS.filter((c) => c.toggleable)}
-            hidden={hiddenColumns}
-            onToggle={(key) => {
-              setHiddenColumns((prev) => {
-                const next = new Set(prev);
-                if (next.has(key)) next.delete(key);
-                else next.add(key);
-                return next;
-              });
-            }}
-            open={columnMenuOpen}
-            setOpen={setColumnMenuOpen}
-          />
-        </div>
       </div>
 
-      {error && <div role="alert" className={styles.errorAlert}>{error}</div>}
-
-      <div className={styles.gridWrap}>
-        <table className={styles.grid}>
-          <thead>
-            <tr>
-              {visibleColumns.map((col) => (
-                <th
-                  key={col.key}
-                  className={col.numeric ? styles.numericCell : undefined}
-                  scope="col"
-                >
-                  {col.sort ? (
-                    <button
-                      type="button"
-                      className={styles.sortButton}
-                      onClick={() => toggleSort(col.sort!)}
-                      aria-label={`Sort by ${col.label}`}
-                    >
-                      <span>{col.label}</span>
-                      <SortGlyph
-                        active={sortColumn === col.sort}
-                        direction={sortDirection}
-                      />
-                    </button>
-                  ) : (
-                    <span>{col.label}</span>
-                  )}
-                  {col.filterKey && col.kind && input[col.filterKey] && (
-                    <FilterCell
-                      label={col.label}
-                      kind={col.kind}
-                      filter={input[col.filterKey]}
-                      onChange={(next) => updateFilter(col.filterKey!, next)}
-                      availableOps={availableOpsForColumn(col)}
-                    />
-                  )}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {!loading && rows.length === 0 && (
-              <tr>
-                <td colSpan={visibleColumns.length}>
-                  <div className={styles.emptyState}>
-                    No reserve bids match the current filters.
-                  </div>
-                </td>
-              </tr>
-            )}
-            {rows.map((r) => (
-              <tr key={r.id}>
-                {!hiddenColumns.has("productId") && (
-                  <td className={styles.numericCell}>{r.productId}</td>
-                )}
-                {!hiddenColumns.has("grade") && <td>{r.grade}</td>}
-                {!hiddenColumns.has("brand") && <td>{r.brand ?? "—"}</td>}
-                {!hiddenColumns.has("model") && <td>{r.model ?? "—"}</td>}
-                {!hiddenColumns.has("bid") && (
-                  <td className={styles.numericCell}>${formatMoney(r.bid)}</td>
-                )}
-                {!hiddenColumns.has("updated") && (
-                  <td>{formatDateTime(r.lastUpdateDatetime)}</td>
-                )}
-                <td>
-                  <div className={styles.actionsCell}>
-                    <Link
-                      href={`/admin/auctions-data-center/reserve-bids/${r.id}`}
-                      className={styles.rowAction}
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      type="button"
-                      className={styles.rowAction}
-                      onClick={() => setAuditTarget({ id: r.id, productId: r.productId })}
-                    >
-                      Audit
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.rowAction} ${styles.rowActionDanger}`}
-                      onClick={() => handleDelete(r.id)}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {loading && <div className={styles.loadingOverlay}>Loading…</div>}
-
-        <div className={styles.pagination}>
-          <button
-            type="button"
-            className={styles.paginationButton}
-            onClick={() => setPage(0)}
-            disabled={page === 0}
-            aria-label="First page"
-          >
-            «
-          </button>
-          <button
-            type="button"
-            className={styles.paginationButton}
-            onClick={() => setPage((p) => Math.max(0, p - 1))}
-            disabled={page === 0}
-            aria-label="Previous page"
-          >
-            ‹
-          </button>
-          <span className={styles.paginationCount}>
-            {total === 0
-              ? "No matches"
-              : `Showing ${formatInt(startIdx)} to ${formatInt(endIdx)} of ${formatInt(total)}`}
-          </span>
-          <button
-            type="button"
-            className={styles.paginationButton}
-            onClick={() => setPage((p) => p + 1)}
-            disabled={page + 1 >= totalPages}
-            aria-label="Next page"
-          >
-            ›
-          </button>
-          <button
-            type="button"
-            className={styles.paginationButton}
-            onClick={() => setPage(totalPages - 1)}
-            disabled={page + 1 >= totalPages}
-            aria-label="Last page"
-          >
-            »
-          </button>
-        </div>
-      </div>
+      <DataGrid<ReserveBidRow>
+        columns={columns}
+        fetcher={fetcher}
+        rowKey={(r) => r.id}
+        rowActions={rowActions}
+        rowActionsLabel="Audit"
+        initialSort={{ column: "product_id", direction: "asc" }}
+        emptyMessage="No reserve bids match the current filters."
+        topBarSlot={topBar}
+      />
 
       {auditTarget && (
         <ReserveBidAuditModal
@@ -351,7 +176,7 @@ export default function ReserveBidsPage() {
       {uploadOpen && (
         <ReserveBidUploadModal
           onClose={() => setUploadOpen(false)}
-          onUploaded={() => { void load(); }}
+          onUploaded={() => setRefreshNonce((n) => n + 1)}
         />
       )}
     </div>
@@ -370,108 +195,4 @@ function formatDateTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString();
-}
-
-function formatInt(n: number): string {
-  return new Intl.NumberFormat("en-US").format(n);
-}
-
-/**
- * Op menu shown for a column. Default behaviour pulls from
- * {@link OPS_FOR_KIND} via the shared component, but Product ID needs a
- * narrower set: the column is VARCHAR in the DB, so > / >= / < / <= are
- * lexicographic and confusing for SalesOps users who think of product_id
- * as a numeric ID. Show only the safe ops.
- */
-function availableOpsForColumn(col: ColumnDef): FilterOp[] | undefined {
-  if (col.key === "productId") {
-    return ["eq", "neq", "contains", "startsWith", "endsWith", "empty", "notEmpty"];
-  }
-  return undefined; // → component falls back to OPS_FOR_KIND[col.kind]
-}
-
-// ── Sort glyph ─────────────────────────────────────────────────
-
-function SortGlyph({ active, direction }: { active: boolean; direction: SortDirection }) {
-  if (!active) {
-    return (
-      <svg viewBox="0 0 12 12" className={styles.sortIcon} aria-hidden="true">
-        <path d="M3 5l3-3 3 3M3 7l3 3 3-3" stroke="currentColor" strokeWidth="1.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      </svg>
-    );
-  }
-  return (
-    <svg viewBox="0 0 12 12" className={`${styles.sortIcon} ${styles.sortIconActive}`} aria-hidden="true">
-      {direction === "asc" ? (
-        <path d="M3 7l3-3 3 3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      ) : (
-        <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-      )}
-    </svg>
-  );
-}
-
-// ── Column visibility selector ─────────────────────────────────
-
-function ColumnSelector({
-  columns,
-  hidden,
-  onToggle,
-  open,
-  setOpen,
-}: {
-  columns: ColumnDef[];
-  hidden: Set<string>;
-  onToggle: (key: string) => void;
-  open: boolean;
-  setOpen: (v: boolean) => void;
-}) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    window.addEventListener("mousedown", onClickOutside);
-    return () => window.removeEventListener("mousedown", onClickOutside);
-  }, [open, setOpen]);
-
-  return (
-    <div className={styles.columnSelectorWrap} ref={wrapRef}>
-      <button
-        type="button"
-        className={styles.columnSelectorButton}
-        onClick={() => setOpen(!open)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Toggle column visibility"
-      >
-        <EyeIcon /> Columns
-      </button>
-      {open && (
-        <div className={styles.columnSelectorMenu} role="menu">
-          {columns.map((c) => (
-            <label key={c.key} className={styles.columnSelectorOption}>
-              <input
-                type="checkbox"
-                checked={!hidden.has(c.key)}
-                onChange={() => onToggle(c.key)}
-              />
-              <span>{c.label}</span>
-            </label>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function EyeIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
 }
