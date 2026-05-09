@@ -1,0 +1,128 @@
+/* Shared admin-grid filter primitives.
+   Tokens come from src/app/globals.css; never hardcode hex values that
+   exist as tokens. Used by reserve-bids list page (and inventory after
+   Phase 4 migration). */
+
+/* ── Filter cell (comparator + input pair) ─────────────────── */
+
+.filterCell {
+  display: flex;
+  gap: 0;
+  margin-top: 6px;
+  align-items: stretch;
+}
+
+.comparatorButton {
+  font-family: var(--font-family-primary);
+  font-size: 12px;
+  color: var(--color-text-muted);
+  background: var(--color-bg-body);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input) 0 0 var(--radius-input);
+  border-right: 0;
+  padding: 0 4px;
+  height: 28px;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.comparatorButton:hover {
+  color: var(--color-text-body);
+  background: #FFFFFF;
+}
+
+.comparatorButton:focus-visible {
+  outline: 2px solid var(--color-brand-teal);
+  outline-offset: -1px;
+}
+
+.comparatorButton[aria-expanded="true"] {
+  background: #FFFFFF;
+  color: var(--color-text-body);
+}
+
+.filterInput {
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  color: var(--color-text-body);
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: 0 var(--radius-input) var(--radius-input) 0;
+  padding: 4px 8px;
+  height: 28px;
+  width: 100%;
+  min-width: 80px;
+  box-sizing: border-box;
+}
+
+.filterInput:focus {
+  outline: 2px solid var(--color-brand-teal);
+  outline-offset: -1px;
+  border-color: var(--color-brand-teal);
+}
+
+.filterInputDisabled {
+  background: var(--color-bg-body);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* ── Comparator dropdown menu ──────────────────────────────── */
+
+.comparatorWrap {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.menu {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  z-index: 50;
+  min-width: 200px;
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-card);
+  padding: 4px 0;
+  list-style: none;
+  margin: 0;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px;
+  cursor: pointer;
+  color: var(--color-text-body);
+}
+
+.menuItem:hover {
+  background: var(--color-bg-body);
+}
+
+.menuItemSelected {
+  color: var(--color-brand-green);
+  font-weight: 500;
+}
+
+.menuGlyph {
+  display: inline-block;
+  width: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: inherit;
+  flex-shrink: 0;
+}
+
+.menuLabel {
+  flex: 1;
+}

@@ -25,25 +25,18 @@ async function req<T>(method: string, path: string, body?: unknown, init: Reques
 }
 
 export const reserveBidClient = {
-  // Sort format matches Spring Data convention: "{column},{direction}" using
-  // SQL column names (the backend search query is native SQL — entity-property
-  // names won't bind). Backend whitelists: product_id, grade, brand, model,
-  // bid, last_update_datetime.
-  list: (params: {
-    productId?: string;
-    grade?: string;
-    brand?: string;
-    model?: string;
-    minBid?: string;
-    maxBid?: string;
-    updatedSince?: string;
-    sort?: string;
-    page?: number;
-    size?: number;
-  } = {}) => {
-    const q = new URLSearchParams(
-      Object.entries(params).filter(([, v]) => v != null && v !== "").map(([k, v]) => [k, String(v)])
-    );
+  // Generic query-param surface: caller supplies a flat string→string map
+  // (typically built by serializing each column's ColumnFilter via
+  // serializeFilter() from components/datagrid/filterModel). Backend's
+  // FilterSpecParser handles both the new wire format ("productId=eq,73")
+  // and the legacy shape ("productId=73", "minBid=100", "updatedSince=...")
+  // for one release of backward compatibility.
+  list: (params: Record<string, string | number | undefined> = {}) => {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+      if (v == null || v === "") continue;
+      q.append(k, String(v));
+    }
     return req<ReserveBidListResponse>("GET", `${BASE}?${q}`);
   },
   get: (id: number) => req<ReserveBidRow>("GET", `${BASE}/${id}`),

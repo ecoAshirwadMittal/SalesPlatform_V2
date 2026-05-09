@@ -4,6 +4,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidRow } from "@/lib/reserveBidTypes";
+import {
+  type ColumnFilter,
+  type ColumnKind,
+  type FilterOp,
+  DEFAULT_OP_FOR_KIND,
+  FilterCell,
+  serializeFilter,
+} from "@/components/datagrid";
 import styles from "./reserveBidsList.module.css";
 import ReserveBidAuditModal from "./ReserveBidAuditModal";
 import ReserveBidUploadModal from "./ReserveBidUploadModal";
@@ -11,46 +19,48 @@ import ReserveBidUploadModal from "./ReserveBidUploadModal";
 const PAGE_SIZE = 20;
 const FILTER_DEBOUNCE_MS = 400;
 
-// Backend whitelists these SQL column names for sort. Mapping is also used as
-// the source of truth for which columns are sortable in the UI.
+// Backend whitelists these SQL column names for sort.
 type SortColumn = "product_id" | "grade" | "brand" | "model" | "bid" | "last_update_datetime";
 type SortDirection = "asc" | "desc";
 
 interface ColumnDef {
   key: string;
   label: string;
+  /** Wire-format key sent to the backend ({@code productId} → backend
+   *  param name). Drives where this column's filter shows up in the
+   *  query string. */
+  filterKey?: string;
+  kind?: ColumnKind;
   sort?: SortColumn;
   numeric?: boolean;
   toggleable: boolean;
 }
 
 const COLUMNS: ColumnDef[] = [
-  { key: "productId", label: "Product ID", sort: "product_id", numeric: true,  toggleable: true  },
-  { key: "grade",     label: "Grade",      sort: "grade",                       toggleable: true  },
-  { key: "brand",     label: "Brand",      sort: "brand",                       toggleable: true  },
-  { key: "model",     label: "Model Name", sort: "model",                       toggleable: true  },
-  { key: "bid",       label: "Bid",        sort: "bid",        numeric: true,  toggleable: true  },
-  { key: "updated",   label: "Last Updated", sort: "last_update_datetime",     toggleable: true  },
-  { key: "actions",   label: "Audit",                                            toggleable: false },
+  { key: "productId", label: "Product ID",   filterKey: "productId",    kind: "text",    sort: "product_id",          numeric: true, toggleable: true  },
+  { key: "grade",     label: "Grade",        filterKey: "grade",        kind: "text",    sort: "grade",                              toggleable: true  },
+  { key: "brand",     label: "Brand",        filterKey: "brand",        kind: "text",    sort: "brand",                              toggleable: true  },
+  { key: "model",     label: "Model Name",   filterKey: "model",        kind: "text",    sort: "model",                              toggleable: true  },
+  { key: "bid",       label: "Bid",          filterKey: "bid",          kind: "numeric", sort: "bid",                  numeric: true, toggleable: true  },
+  { key: "updated",   label: "Last Updated", filterKey: "lastUpdateDatetime", kind: "date", sort: "last_update_datetime",            toggleable: true  },
+  { key: "actions",   label: "Audit",                                                                                                 toggleable: false },
 ];
 
-interface Filters {
-  productId: string;       // exact match — backend uses rb.product_id = :productId
-  grade: string;           // contains — backend uses LIKE %:grade%
-  brand: string;           // contains — backend uses LIKE %:brand%
-  model: string;           // contains — backend uses LIKE %:model%
-  bid: string;             // exact match — sent as both minBid and maxBid
-  updatedSince: string;    // YYYY-MM-DD; converted to ISO before sending
-}
+// Filter state: every filterable column gets one ColumnFilter in this
+// record. Defaults are derived from the column's kind so users see the
+// QA-default op (Equal for numeric/date, Contains for text) on first
+// render.
+type FilterState = Record<string, ColumnFilter>;
 
-const EMPTY_FILTERS: Filters = {
-  productId: "",
-  grade: "",
-  brand: "",
-  model: "",
-  bid: "",
-  updatedSince: "",
-};
+function emptyFilters(): FilterState {
+  const state: FilterState = {};
+  for (const col of COLUMNS) {
+    if (col.filterKey && col.kind) {
+      state[col.filterKey] = { op: DEFAULT_OP_FOR_KIND[col.kind], value: "" };
+    }
+  }
+  return state;
+}
 
 export default function ReserveBidsPage() {
   const [rows, setRows] = useState<ReserveBidRow[]>([]);
@@ -59,8 +69,8 @@ export default function ReserveBidsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
+  const [input, setInput] = useState<FilterState>(() => emptyFilters());
+  const [applied, setApplied] = useState<FilterState>(() => emptyFilters());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [sortColumn, setSortColumn] = useState<SortColumn | null>("product_id");
@@ -88,25 +98,19 @@ export default function ReserveBidsPage() {
     setLoading(true);
     setError(null);
     try {
-      const updatedSinceIso = applied.updatedSince
-        ? new Date(applied.updatedSince + "T00:00:00").toISOString()
-        : undefined;
-      const sortParam = sortColumn ? `${sortColumn},${sortDirection}` : undefined;
-      // Bid is exact-match: same value goes to both minBid and maxBid so the
-      // backend range predicate collapses to "rb.bid = :value".
-      const bidValue = applied.bid || undefined;
-      const res = await reserveBidClient.list({
-        productId: applied.productId || undefined,
-        grade: applied.grade || undefined,
-        brand: applied.brand || undefined,
-        model: applied.model || undefined,
-        minBid: bidValue,
-        maxBid: bidValue,
-        updatedSince: updatedSinceIso,
-        sort: sortParam,
+      const params: Record<string, string | number | undefined> = {
+        sort: sortColumn ? `${sortColumn},${sortDirection}` : undefined,
         page,
         size: PAGE_SIZE,
-      });
+      };
+      // Serialize each column filter to the wire format the backend's
+      // FilterSpecParser expects: "productId=eq,73", "grade=contains,A_YYY",
+      // "brand=empty" (valueless), etc. Empty filters are dropped.
+      for (const [filterKey, filter] of Object.entries(applied)) {
+        const wire = serializeFilter(filter);
+        if (wire != null) params[filterKey] = wire;
+      }
+      const res = await reserveBidClient.list(params);
       setRows(res.rows);
       setTotal(res.total);
     } catch (e: unknown) {
@@ -152,8 +156,8 @@ export default function ReserveBidsPage() {
     setPage(0);
   };
 
-  const setFilter = <K extends keyof Filters>(key: K, value: string) =>
-    setInput((prev) => ({ ...prev, [key]: value }));
+  const updateFilter = (filterKey: string, next: ColumnFilter) =>
+    setInput((prev) => ({ ...prev, [filterKey]: next }));
 
   const visibleColumns = useMemo(
     () => COLUMNS.filter((c) => !hiddenColumns.has(c.key)),
@@ -223,11 +227,15 @@ export default function ReserveBidsPage() {
                   ) : (
                     <span>{col.label}</span>
                   )}
-                  <FilterCell
-                    column={col}
-                    input={input}
-                    setFilter={setFilter}
-                  />
+                  {col.filterKey && col.kind && input[col.filterKey] && (
+                    <FilterCell
+                      label={col.label}
+                      kind={col.kind}
+                      filter={input[col.filterKey]}
+                      onChange={(next) => updateFilter(col.filterKey!, next)}
+                      availableOps={availableOpsForColumn(col)}
+                    />
+                  )}
                 </th>
               ))}
             </tr>
@@ -368,6 +376,20 @@ function formatInt(n: number): string {
   return new Intl.NumberFormat("en-US").format(n);
 }
 
+/**
+ * Op menu shown for a column. Default behaviour pulls from
+ * {@link OPS_FOR_KIND} via the shared component, but Product ID needs a
+ * narrower set: the column is VARCHAR in the DB, so > / >= / < / <= are
+ * lexicographic and confusing for SalesOps users who think of product_id
+ * as a numeric ID. Show only the safe ops.
+ */
+function availableOpsForColumn(col: ColumnDef): FilterOp[] | undefined {
+  if (col.key === "productId") {
+    return ["eq", "neq", "contains", "startsWith", "endsWith", "empty", "notEmpty"];
+  }
+  return undefined; // → component falls back to OPS_FOR_KIND[col.kind]
+}
+
 // ── Sort glyph ─────────────────────────────────────────────────
 
 function SortGlyph({ active, direction }: { active: boolean; direction: SortDirection }) {
@@ -386,67 +408,6 @@ function SortGlyph({ active, direction }: { active: boolean; direction: SortDire
         <path d="M3 5l3 3 3-3" stroke="currentColor" strokeWidth="1.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
       )}
     </svg>
-  );
-}
-
-// ── Per-column filter cell ─────────────────────────────────────
-//
-// Layout matches QA's Mendix DataGrid 2: every data column gets the same
-// `[comparator-glyph] [input]` rhythm so the filter row reads as a uniform
-// strip below the labels. Glyphs are static (= / Ab / ≥) since each column
-// has a single sensible default comparator; a future enhancement could turn
-// the glyph into a real dropdown to expose ≥ / ≤ / Empty / Not empty.
-//
-// Backend mapping:
-//   Product ID  →  productId (exact)
-//   Grade       →  grade (contains, case-insensitive LIKE)
-//   Brand       →  brand (contains)
-//   Model Name  →  model (contains)
-//   Bid         →  minBid + maxBid (collapsed to exact match by the caller)
-//   Last Updated → updatedSince (>= ISO date)
-
-interface FilterSpec {
-  glyph: string;
-  inputType?: "text" | "number" | "date";
-  inputMode?: "text" | "numeric" | "decimal";
-  placeholder: string;
-  ariaLabel: string;
-  filterKey: keyof Filters;
-}
-
-const FILTER_SPECS: Record<string, FilterSpec> = {
-  productId: { glyph: "=",  inputMode: "numeric",  placeholder: "Product ID", ariaLabel: "Filter Product ID (exact)",    filterKey: "productId" },
-  grade:     { glyph: "Ab", inputMode: "text",     placeholder: "Grade",      ariaLabel: "Filter Grade (contains)",       filterKey: "grade"     },
-  brand:     { glyph: "Ab", inputMode: "text",     placeholder: "Brand",      ariaLabel: "Filter Brand (contains)",       filterKey: "brand"     },
-  model:     { glyph: "Ab", inputMode: "text",     placeholder: "Model Name", ariaLabel: "Filter Model Name (contains)",  filterKey: "model"     },
-  bid:       { glyph: "=",  inputMode: "decimal",  placeholder: "Bid",        ariaLabel: "Filter Bid (exact)",             filterKey: "bid"       },
-  updated:   { glyph: "≥",  inputType: "date",     placeholder: "",           ariaLabel: "Filter Last Updated (since)",    filterKey: "updatedSince" },
-};
-
-function FilterCell({
-  column,
-  input,
-  setFilter,
-}: {
-  column: ColumnDef;
-  input: Filters;
-  setFilter: <K extends keyof Filters>(key: K, value: string) => void;
-}) {
-  const spec = FILTER_SPECS[column.key];
-  if (!spec) return null;
-  return (
-    <div className={styles.filterCell}>
-      <span className={styles.comparatorSelect} aria-hidden="true">{spec.glyph}</span>
-      <input
-        className={styles.filterInput}
-        type={spec.inputType ?? "text"}
-        inputMode={spec.inputMode}
-        value={input[spec.filterKey]}
-        onChange={(e) => setFilter(spec.filterKey, e.target.value)}
-        placeholder={spec.placeholder}
-        aria-label={spec.ariaLabel}
-      />
-    </div>
   );
 }
 
