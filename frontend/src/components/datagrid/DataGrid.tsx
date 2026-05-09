@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import FilterCell from "./FilterCell";
+import Popover from "./Popover";
 import {
   type ColumnFilter,
   type ColumnKind,
@@ -451,20 +452,25 @@ function ColumnSelector<TRow>({
   open: boolean;
   setOpen: (v: boolean) => void;
 }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
-    window.addEventListener("mousedown", onClickOutside);
-    return () => window.removeEventListener("mousedown", onClickOutside);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => window.removeEventListener("pointerdown", onPointerDown);
   }, [open, setOpen]);
 
   return (
-    <div className={styles.columnSelectorWrap} ref={wrapRef}>
+    <div className={styles.columnSelectorWrap}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.columnSelectorButton}
         onClick={() => setOpen(!open)}
@@ -474,8 +480,8 @@ function ColumnSelector<TRow>({
       >
         <EyeIcon /> Columns
       </button>
-      {open && (
-        <div className={styles.columnSelectorMenu} role="menu">
+      <Popover anchorRef={triggerRef} open={open} align="right">
+        <div ref={menuRef} className={styles.columnSelectorMenu} role="menu">
           {columns.map((c) => (
             <label key={c.key} className={styles.columnSelectorOption}>
               <input
@@ -487,7 +493,7 @@ function ColumnSelector<TRow>({
             </label>
           ))}
         </div>
-      )}
+      </Popover>
     </div>
   );
 }

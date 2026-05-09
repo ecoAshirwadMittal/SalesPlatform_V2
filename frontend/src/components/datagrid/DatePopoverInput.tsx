@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CalendarIcon } from "./icons";
+import Popover from "./Popover";
 import styles from "./datagrid.module.css";
 
 interface Props {
@@ -35,19 +36,25 @@ export default function DatePopoverInput({
   const initial = parseISO(value) ?? new Date();
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const popoverId = useId();
 
   useEffect(() => {
     if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    // Calendar popover lives in document.body via Popover — check both
+    // trigger button and popover element to keep click-outside accurate.
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    window.addEventListener("mousedown", onClickOutside);
+    window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("mousedown", onClickOutside);
+      window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
@@ -81,7 +88,7 @@ export default function DatePopoverInput({
   const display = formatDisplay(value);
 
   return (
-    <div className={styles.dateWrap} ref={wrapRef}>
+    <div className={styles.dateWrap}>
       <input
         type="text"
         className={styles.filterInput}
@@ -91,6 +98,7 @@ export default function DatePopoverInput({
         onChange={(e) => onChange(parseDisplay(e.target.value))}
       />
       <button
+        ref={triggerRef}
         type="button"
         className={styles.dateTrigger}
         aria-haspopup="dialog"
@@ -101,8 +109,8 @@ export default function DatePopoverInput({
       >
         <CalendarIcon />
       </button>
-      {open && (
-        <div className={styles.calendarPopover} role="dialog" aria-modal="false" id={popoverId}>
+      <Popover anchorRef={triggerRef} open={open} align="right">
+        <div ref={popoverRef} className={styles.calendarPopover} role="dialog" aria-modal="false" id={popoverId}>
           <div className={styles.calendarHeader}>
             <button type="button" className={styles.calendarNav} aria-label="Previous month" onClick={() => shiftMonth(-1)}>‹</button>
             <span className={styles.calendarTitle}>
@@ -144,7 +152,7 @@ export default function DatePopoverInput({
             </button>
           </div>
         </div>
-      )}
+      </Popover>
     </div>
   );
 }

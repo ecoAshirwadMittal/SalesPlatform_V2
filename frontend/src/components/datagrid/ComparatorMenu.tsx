@@ -6,6 +6,7 @@ import {
   OP_LABEL,
 } from "./filterModel";
 import { COMPARATOR_ICON } from "./icons";
+import Popover from "./Popover";
 import styles from "./datagrid.module.css";
 
 interface Props {
@@ -21,6 +22,10 @@ interface Props {
  * trigger renders the current op's glyph; clicking opens a small listbox
  * of legal ops for the column. Keyboard / outside-click / Esc close.
  *
+ * The listbox is rendered via {@link Popover} so it portals into
+ * {@code document.body} and escapes ancestor {@code overflow: hidden}
+ * (datagrid wrappers clip on the no-rows / "No matches" state).
+ *
  * Selecting an op calls onChange immediately and closes the menu — same
  * commit shape as a `<select>`. The host owns op state.
  */
@@ -31,27 +36,35 @@ export default function ComparatorMenu({
   ariaLabel,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLUListElement>(null);
   const menuId = useId();
 
   useEffect(() => {
     if (!open) return;
-    const onClickOutside = (e: MouseEvent) => {
-      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    // The menu lives in document.body via the portal — the trigger
+    // wrapper alone can't gate click-outside any more. Check both the
+    // trigger button and the menu element for inclusion.
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node;
+      if (triggerRef.current?.contains(target)) return;
+      if (menuRef.current?.contains(target)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false); };
-    window.addEventListener("mousedown", onClickOutside);
+    window.addEventListener("pointerdown", onPointerDown);
     window.addEventListener("keydown", onKey);
     return () => {
-      window.removeEventListener("mousedown", onClickOutside);
+      window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("keydown", onKey);
     };
   }, [open]);
 
   const SelectedIcon = COMPARATOR_ICON[selected];
   return (
-    <div className={styles.comparatorWrap} ref={wrapRef}>
+    <div className={styles.comparatorWrap}>
       <button
+        ref={triggerRef}
         type="button"
         className={styles.comparatorButton}
         aria-haspopup="listbox"
@@ -62,8 +75,9 @@ export default function ComparatorMenu({
       >
         <SelectedIcon />
       </button>
-      {open && (
+      <Popover anchorRef={triggerRef} open={open}>
         <ul
+          ref={menuRef}
           id={menuId}
           className={styles.menu}
           role="listbox"
@@ -88,7 +102,7 @@ export default function ComparatorMenu({
             );
           })}
         </ul>
-      )}
+      </Popover>
     </div>
   );
 }
