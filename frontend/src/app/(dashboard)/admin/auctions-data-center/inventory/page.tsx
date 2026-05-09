@@ -15,6 +15,11 @@ import {
   type InventoryTotals,
   type InventoryRow,
 } from '@/lib/aggregatedInventory';
+import {
+  type ColumnFilter,
+  type FilterOp,
+  FilterCell,
+} from '@/components/datagrid';
 import { CreateAuctionModal } from './CreateAuctionModal';
 
 const PAGE_SIZE = 20;
@@ -25,42 +30,38 @@ const SYNC_POLL_INTERVAL_MS = 3_000;
 const SYNC_POLL_MAX_TICKS = 30;
 const SYNC_PENDING_STATUSES = new Set(['STARTED']);
 
-interface Filters {
-  productId: string;
-  grades: string;
-  brand: string;
-  model: string;
-  modelName: string;
-  carrier: string;
+/** Inventory filter state. The backend supports a 2-op model
+ *  (contains / equals) for text columns and exact-match-only for the
+ *  numeric productId, so the shared FilterCell is constrained via
+ *  availableOps below. The page-state shape uses the shared
+ *  {@link ColumnFilter} record so the migration to a richer backend
+ *  (parity with reserve-bids) is a backend-only change later. */
+type InventoryFilterKey =
+  | 'productId' | 'grades' | 'brand' | 'model' | 'modelName' | 'carrier';
+
+type InventoryFilterState = Record<InventoryFilterKey, ColumnFilter>;
+
+const TEXT_OPS_INVENTORY: FilterOp[] = ['contains', 'eq'];
+const NUMERIC_OPS_INVENTORY: FilterOp[] = ['eq'];
+
+function emptyInventoryFilters(): InventoryFilterState {
+  return {
+    productId: { op: 'eq',       value: '' },
+    grades:    { op: 'contains', value: '' },
+    brand:     { op: 'contains', value: '' },
+    model:     { op: 'contains', value: '' },
+    modelName: { op: 'contains', value: '' },
+    carrier:   { op: 'contains', value: '' },
+  };
 }
 
-/** Per-column comparator mode. productId is always exact (numeric ID). */
-type FilterMode = 'contains' | 'equals';
-
-interface FilterModes {
-  grades: FilterMode;
-  brand: FilterMode;
-  model: FilterMode;
-  modelName: FilterMode;
-  carrier: FilterMode;
+/** Translate a {@link ColumnFilter} op to the legacy
+ *  {@code gradesMode}/{@code brandMode}/etc. wire token the inventory
+ *  backend currently expects. The shared FilterCell speaks
+ *  contains/eq; the legacy wire speaks contains/equals. */
+function modeForOp(op: FilterOp): 'contains' | 'equals' {
+  return op === 'eq' ? 'equals' : 'contains';
 }
-
-const EMPTY_FILTERS: Filters = {
-  productId: '',
-  grades: '',
-  brand: '',
-  model: '',
-  modelName: '',
-  carrier: '',
-};
-
-const DEFAULT_MODES: FilterModes = {
-  grades: 'contains',
-  brand: 'contains',
-  model: 'contains',
-  modelName: 'contains',
-  carrier: 'contains',
-};
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -91,9 +92,8 @@ export default function AggregatedInventoryPage() {
   const [totals, setTotals] = useState<InventoryTotals | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [input, setInput] = useState<Filters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
-  const [modes, setModes] = useState<FilterModes>(DEFAULT_MODES);
+  const [input, setInput] = useState<InventoryFilterState>(() => emptyInventoryFilters());
+  const [applied, setApplied] = useState<InventoryFilterState>(() => emptyInventoryFilters());
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editRow, setEditRow] = useState<InventoryRow | null>(null);
   const [syncPending, setSyncPending] = useState(false);
@@ -136,23 +136,23 @@ export default function AggregatedInventoryPage() {
         weekId,
         page,
         pageSize: PAGE_SIZE,
-        productId: applied.productId || undefined,
-        grades: applied.grades || undefined,
-        brand: applied.brand || undefined,
-        model: applied.model || undefined,
-        modelName: applied.modelName || undefined,
-        carrier: applied.carrier || undefined,
-        gradesMode: modes.grades,
-        brandMode: modes.brand,
-        modelMode: modes.model,
-        modelNameMode: modes.modelName,
-        carrierMode: modes.carrier,
+        productId: applied.productId.value || undefined,
+        grades:    applied.grades.value    || undefined,
+        brand:     applied.brand.value     || undefined,
+        model:     applied.model.value     || undefined,
+        modelName: applied.modelName.value || undefined,
+        carrier:   applied.carrier.value   || undefined,
+        gradesMode:    modeForOp(applied.grades.op),
+        brandMode:     modeForOp(applied.brand.op),
+        modelMode:     modeForOp(applied.model.op),
+        modelNameMode: modeForOp(applied.modelName.op),
+        carrierMode:   modeForOp(applied.carrier.op),
       }),
       fetchInventoryTotals(weekId),
     ]);
     setData(grid);
     setTotals(kpi);
-  }, [weekId, page, applied, modes]);
+  }, [weekId, page, applied]);
 
   useEffect(() => {
     let ignore = false;
@@ -228,8 +228,8 @@ export default function AggregatedInventoryPage() {
     };
   }, [weekId, refresh]);
 
-  const updateFilter = <K extends keyof Filters>(k: K, v: string) =>
-    setInput(prev => ({ ...prev, [k]: v }));
+  const updateFilter = (key: InventoryFilterKey, next: ColumnFilter) =>
+    setInput(prev => ({ ...prev, [key]: next }));
 
   const total = data?.totalElements ?? 0;
   const startIdx = total === 0 ? 0 : page * PAGE_SIZE + 1;
@@ -305,17 +305,50 @@ export default function AggregatedInventoryPage() {
         <table className={styles.grid}>
           <thead>
             <tr>
-              <HeaderCell label="Product ID" filter={input.productId} onChange={v => updateFilter('productId', v)} kind="equal" />
-              <HeaderCell label="Grades" filter={input.grades} onChange={v => updateFilter('grades', v)}
-                mode={modes.grades} onModeChange={m => setModes(s => ({ ...s, grades: m }))} />
-              <HeaderCell label="Brand" filter={input.brand} onChange={v => updateFilter('brand', v)}
-                mode={modes.brand} onModeChange={m => setModes(s => ({ ...s, brand: m }))} />
-              <HeaderCell label="Model" filter={input.model} onChange={v => updateFilter('model', v)}
-                mode={modes.model} onModeChange={m => setModes(s => ({ ...s, model: m }))} />
-              <HeaderCell label="Model Name" filter={input.modelName} onChange={v => updateFilter('modelName', v)}
-                mode={modes.modelName} onModeChange={m => setModes(s => ({ ...s, modelName: m }))} />
-              <HeaderCell label="Carrier" filter={input.carrier} onChange={v => updateFilter('carrier', v)}
-                mode={modes.carrier} onModeChange={m => setModes(s => ({ ...s, carrier: m }))} />
+              <th>
+                <div>Product ID</div>
+                <FilterCell label="Product ID" kind="numeric"
+                  filter={input.productId}
+                  onChange={(next) => updateFilter('productId', next)}
+                  availableOps={NUMERIC_OPS_INVENTORY}
+                  inputType="text"
+                  inputMode="numeric" />
+              </th>
+              <th>
+                <div>Grades</div>
+                <FilterCell label="Grades" kind="text"
+                  filter={input.grades}
+                  onChange={(next) => updateFilter('grades', next)}
+                  availableOps={TEXT_OPS_INVENTORY} />
+              </th>
+              <th>
+                <div>Brand</div>
+                <FilterCell label="Brand" kind="text"
+                  filter={input.brand}
+                  onChange={(next) => updateFilter('brand', next)}
+                  availableOps={TEXT_OPS_INVENTORY} />
+              </th>
+              <th>
+                <div>Model</div>
+                <FilterCell label="Model" kind="text"
+                  filter={input.model}
+                  onChange={(next) => updateFilter('model', next)}
+                  availableOps={TEXT_OPS_INVENTORY} />
+              </th>
+              <th>
+                <div>Model Name</div>
+                <FilterCell label="Model Name" kind="text"
+                  filter={input.modelName}
+                  onChange={(next) => updateFilter('modelName', next)}
+                  availableOps={TEXT_OPS_INVENTORY} />
+              </th>
+              <th>
+                <div>Carrier</div>
+                <FilterCell label="Carrier" kind="text"
+                  filter={input.carrier}
+                  onChange={(next) => updateFilter('carrier', next)}
+                  availableOps={TEXT_OPS_INVENTORY} />
+              </th>
               <th>DW Qty</th>
               <th>DW Target Price</th>
               <th>Total Qty</th>
@@ -379,12 +412,12 @@ export default function AggregatedInventoryPage() {
             onClick={() => {
               if (!weekId) return;
               const qs = new URLSearchParams({ weekId: String(weekId) });
-              if (applied.productId) qs.set('productId', applied.productId);
-              if (applied.grades)    qs.set('grades', applied.grades);
-              if (applied.brand)     qs.set('brand', applied.brand);
-              if (applied.model)     qs.set('model', applied.model);
-              if (applied.modelName) qs.set('modelName', applied.modelName);
-              if (applied.carrier)   qs.set('carrier', applied.carrier);
+              if (applied.productId.value) qs.set('productId', applied.productId.value);
+              if (applied.grades.value)    qs.set('grades', applied.grades.value);
+              if (applied.brand.value)     qs.set('brand', applied.brand.value);
+              if (applied.model.value)     qs.set('model', applied.model.value);
+              if (applied.modelName.value) qs.set('modelName', applied.modelName.value);
+              if (applied.carrier.value)   qs.set('carrier', applied.carrier.value);
               window.location.href = `/api/v1/admin/inventory/export?${qs}`;
             }}
           >
@@ -458,48 +491,6 @@ function GavelIcon(): React.ReactElement {
       <path d="m9 7 8 8" />
       <path d="m21 11-8-8" />
     </svg>
-  );
-}
-
-interface HeaderCellProps {
-  label: string;
-  filter: string;
-  onChange: (v: string) => void;
-  /** "equal" = exact-match-only column (productId). Text columns omit. */
-  kind?: 'contains' | 'equal';
-  /** Current comparator mode for text columns (gap H4). */
-  mode?: FilterMode;
-  onModeChange?: (m: FilterMode) => void;
-}
-
-function HeaderCell({ label, filter, onChange, kind = 'contains', mode, onModeChange }: HeaderCellProps) {
-  // Show comparator dropdown only on text columns where the parent supplied
-  // mode + onModeChange. Numeric productId stays exact-match.
-  const showModeSelect = kind !== 'equal' && mode !== undefined && onModeChange !== undefined;
-  return (
-    <th>
-      <div>{label}</div>
-      <div className={styles.filterCell}>
-        {showModeSelect && (
-          <select
-            className={styles.filterMode}
-            value={mode}
-            onChange={e => onModeChange!(e.target.value as FilterMode)}
-            aria-label={`${label} comparator`}
-          >
-            <option value="contains">Contains</option>
-            <option value="equals">Equals</option>
-          </select>
-        )}
-        <input
-          className={styles.filterInput}
-          value={filter}
-          placeholder={kind === 'equal' ? '=' : (mode === 'equals' ? 'Exact' : 'Ab')}
-          onChange={e => onChange(e.target.value)}
-          inputMode={kind === 'equal' ? 'numeric' : 'text'}
-        />
-      </div>
-    </th>
   );
 }
 
