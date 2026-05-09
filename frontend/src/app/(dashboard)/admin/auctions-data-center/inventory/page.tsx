@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './inventory.module.css';
 import {
   fetchWeeks,
@@ -10,58 +10,28 @@ import {
   fetchSyncStatus,
   triggerWeekSync,
   updateInventoryRow,
+  type FilterMode,
   type WeekOption,
-  type InventoryPageResponse,
   type InventoryTotals,
   type InventoryRow,
 } from '@/lib/aggregatedInventory';
 import {
-  type ColumnFilter,
+  type ColumnDef,
+  type FetcherArgs,
   type FilterOp,
-  FilterCell,
+  DataGrid,
 } from '@/components/datagrid';
 import { CreateAuctionModal } from './CreateAuctionModal';
 
 const PAGE_SIZE = 20;
-const FILTER_DELAY = 500;
 // Snowflake sync poll cadence: 30 ticks × 3s = 90s ceiling, matching Phase 8
 // plan. Anything longer is a silent failure we surface only via the log row.
 const SYNC_POLL_INTERVAL_MS = 3_000;
 const SYNC_POLL_MAX_TICKS = 30;
 const SYNC_PENDING_STATUSES = new Set(['STARTED']);
 
-/** Inventory filter state. The backend supports a 2-op model
- *  (contains / equals) for text columns and exact-match-only for the
- *  numeric productId, so the shared FilterCell is constrained via
- *  availableOps below. The page-state shape uses the shared
- *  {@link ColumnFilter} record so the migration to a richer backend
- *  (parity with reserve-bids) is a backend-only change later. */
-type InventoryFilterKey =
-  | 'productId' | 'grades' | 'brand' | 'model' | 'modelName' | 'carrier';
-
-type InventoryFilterState = Record<InventoryFilterKey, ColumnFilter>;
-
 const TEXT_OPS_INVENTORY: FilterOp[] = ['contains', 'eq'];
 const NUMERIC_OPS_INVENTORY: FilterOp[] = ['eq'];
-
-function emptyInventoryFilters(): InventoryFilterState {
-  return {
-    productId: { op: 'eq',       value: '' },
-    grades:    { op: 'contains', value: '' },
-    brand:     { op: 'contains', value: '' },
-    model:     { op: 'contains', value: '' },
-    modelName: { op: 'contains', value: '' },
-    carrier:   { op: 'contains', value: '' },
-  };
-}
-
-/** Translate a {@link ColumnFilter} op to the legacy
- *  {@code gradesMode}/{@code brandMode}/etc. wire token the inventory
- *  backend currently expects. The shared FilterCell speaks
- *  contains/eq; the legacy wire speaks contains/equals. */
-function modeForOp(op: FilterOp): 'contains' | 'equals' {
-  return op === 'eq' ? 'equals' : 'contains';
-}
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -83,22 +53,44 @@ const formatUsd = (n: number) => usdFormatter.format(n);
 const formatUsdInteger = (n: number) => usdIntegerFormatter.format(n);
 const formatInt = (n: number) => intFormatter.format(n);
 
+/** Parse the DataGrid wire-format filter ("eq,73", "contains,A_YYY",
+ *  "empty") into the legacy {@link InventorySearchParams} shape the
+ *  inventory backend speaks. The shared FilterCell ships
+ *  contains/eq, but the backend predates that and uses bare values
+ *  with a sibling `*Mode` token of "contains" or "equals". */
+function parseInventoryFilter(wire: string | undefined): {
+  value: string | undefined;
+  mode: FilterMode;
+} {
+  if (!wire) return { value: undefined, mode: 'contains' };
+  const commaIdx = wire.indexOf(',');
+  if (commaIdx < 0) {
+    // Either the whole token is a bare op (empty / notEmpty) or a bare
+    // value (legacy clients). Inventory backend can't express
+    // empty/notEmpty, so treat unrecognised as a contains-noop.
+    return { value: undefined, mode: 'contains' };
+  }
+  const op = wire.slice(0, commaIdx);
+  const value = wire.slice(commaIdx + 1) || undefined;
+  return { value, mode: op === 'eq' ? 'equals' : 'contains' };
+}
+
 export default function AggregatedInventoryPage() {
   const router = useRouter();
   const [weeks, setWeeks] = useState<WeekOption[]>([]);
   const [weekId, setWeekId] = useState<number | null>(null);
-  const [page, setPage] = useState(0);
-  const [data, setData] = useState<InventoryPageResponse | null>(null);
   const [totals, setTotals] = useState<InventoryTotals | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const [input, setInput] = useState<InventoryFilterState>(() => emptyInventoryFilters());
-  const [applied, setApplied] = useState<InventoryFilterState>(() => emptyInventoryFilters());
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [editRow, setEditRow] = useState<InventoryRow | null>(null);
   const [syncPending, setSyncPending] = useState(false);
   const [showCreateAuction, setShowCreateAuction] = useState(false);
+  const [refreshNonce, setRefreshNonce] = useState(0);
 
+  // Mirror of the DataGrid's applied filter wire-format. Cached so the
+  // Download button URL can include the same filters the user sees.
+  const [appliedFilters, setAppliedFilters] = useState<Record<string, string>>({});
+
+  // Bootstrap weeks
   useEffect(() => {
     let ignore = false;
     fetchWeeks()
@@ -109,75 +101,33 @@ export default function AggregatedInventoryPage() {
         const current = list.find(w => new Date(w.weekEndDateTime).getTime() > now);
         setWeekId((current ?? list[0])?.id ?? null);
       })
-      .catch(() => {
-        if (ignore) return;
-        setError('Failed to load weeks');
-      });
-    return () => {
-      ignore = true;
-    };
+      .catch(() => { if (!ignore) setError('Failed to load weeks'); });
+    return () => { ignore = true; };
   }, []);
 
+  // Fetch totals (KPIs) for the selected week. Independent of the grid's
+  // filter state — totals are week-scoped only. Re-runs on refreshNonce
+  // so the post-sync auto-refresh + the manual Refresh button both pick
+  // up new numbers.
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setApplied(input);
-      setPage(0);
-    }, FILTER_DELAY);
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [input]);
-
-  const refresh = useCallback(async () => {
     if (!weekId) return;
-    const [grid, kpi] = await Promise.all([
-      fetchInventoryPage({
-        weekId,
-        page,
-        pageSize: PAGE_SIZE,
-        productId: applied.productId.value || undefined,
-        grades:    applied.grades.value    || undefined,
-        brand:     applied.brand.value     || undefined,
-        model:     applied.model.value     || undefined,
-        modelName: applied.modelName.value || undefined,
-        carrier:   applied.carrier.value   || undefined,
-        gradesMode:    modeForOp(applied.grades.op),
-        brandMode:     modeForOp(applied.brand.op),
-        modelMode:     modeForOp(applied.model.op),
-        modelNameMode: modeForOp(applied.modelName.op),
-        carrierMode:   modeForOp(applied.carrier.op),
-      }),
-      fetchInventoryTotals(weekId),
-    ]);
-    setData(grid);
-    setTotals(kpi);
-  }, [weekId, page, applied]);
-
-  useEffect(() => {
     let ignore = false;
-    refresh().catch(() => {
-      if (ignore) return;
-      setError('Failed to load inventory');
-    });
-    return () => {
-      ignore = true;
-    };
-  }, [refresh]);
+    fetchInventoryTotals(weekId)
+      .then(t => { if (!ignore) setTotals(t); })
+      .catch(() => { if (!ignore) setError('Failed to load inventory totals'); });
+    return () => { ignore = true; };
+  }, [weekId, refreshNonce]);
 
-  // Fire-and-forget Snowflake sync when the selected week changes. The backend
-  // gates Administrator/SalesOps via @PreAuthorize and returns 403 for Bidders
-  // — intentionally swallow the rejection so the read-only view still renders.
+  // Fire-and-forget Snowflake sync trigger when the selected week changes.
+  // Backend gates Administrator/SalesOps via @PreAuthorize and 403s for
+  // Bidders — swallow so the read-only view still renders.
   useEffect(() => {
     if (!weekId) return;
-    triggerWeekSync(weekId).catch(() => {
-      /* fire-and-forget; backend enforces role + feature flag */
-    });
+    triggerWeekSync(weekId).catch(() => { /* fire-and-forget */ });
   }, [weekId]);
 
   // Poll sync status for up to 90s while the latest log row is STARTED.
-  // On completion, do a single final grid refetch so KPIs and rows reflect
-  // the freshly upserted numbers.
+  // On completion, bump refreshNonce so the grid + totals re-fetch.
   useEffect(() => {
     if (!weekId) return;
     let cancelled = false;
@@ -198,23 +148,14 @@ export default function AggregatedInventoryPage() {
         const isPending = SYNC_PENDING_STATUSES.has(status.status);
         setSyncPending(isPending);
         if (!isPending) {
-          refresh().catch(() => {
-            if (!cancelled) setError('Failed to load inventory');
-          });
+          setRefreshNonce(n => n + 1);
           return;
         }
-        if (ticks >= SYNC_POLL_MAX_TICKS) {
-          setSyncPending(false);
-          return;
-        }
+        if (ticks >= SYNC_POLL_MAX_TICKS) { setSyncPending(false); return; }
         scheduleNext();
       } catch {
-        // Transient network error — keep polling until ticks run out.
         if (cancelled) return;
-        if (ticks >= SYNC_POLL_MAX_TICKS) {
-          setSyncPending(false);
-          return;
-        }
+        if (ticks >= SYNC_POLL_MAX_TICKS) { setSyncPending(false); return; }
         scheduleNext();
       }
     };
@@ -226,19 +167,111 @@ export default function AggregatedInventoryPage() {
       if (handle) clearTimeout(handle);
       setSyncPending(false);
     };
-  }, [weekId, refresh]);
+  }, [weekId]);
 
-  const updateFilter = (key: InventoryFilterKey, next: ColumnFilter) =>
-    setInput(prev => ({ ...prev, [key]: next }));
+  // Fetcher closes over weekId + refreshNonce so the grid re-fetches when
+  // either changes. Translates the new wire format back to the legacy
+  // InventorySearchParams the backend speaks.
+  const fetcher = useCallback(
+    async ({ filters, page, size, signal }: FetcherArgs) => {
+      void signal;
+      if (!weekId) return { rows: [], total: 0 };
+      const productIdF = parseInventoryFilter(filters.productId);
+      const gradesF    = parseInventoryFilter(filters.grades);
+      const brandF     = parseInventoryFilter(filters.brand);
+      const modelF     = parseInventoryFilter(filters.model);
+      const modelNameF = parseInventoryFilter(filters.modelName);
+      const carrierF   = parseInventoryFilter(filters.carrier);
+      const res = await fetchInventoryPage({
+        weekId,
+        page,
+        pageSize: size,
+        productId: productIdF.value,
+        grades:    gradesF.value,
+        brand:     brandF.value,
+        model:     modelF.value,
+        modelName: modelNameF.value,
+        carrier:   carrierF.value,
+        gradesMode:    gradesF.mode,
+        brandMode:     brandF.mode,
+        modelMode:     modelF.mode,
+        modelNameMode: modelNameF.mode,
+        carrierMode:   carrierF.mode,
+      });
+      return { rows: res.content, total: res.totalElements };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [weekId, refreshNonce],
+  );
 
-  const total = data?.totalElements ?? 0;
-  const startIdx = total === 0 ? 0 : page * PAGE_SIZE + 1;
-  const endIdx = Math.min(total, (page + 1) * PAGE_SIZE);
+  const columns = useMemo<ColumnDef<InventoryRow>[]>(() => [
+    {
+      key: 'productId', label: 'Product ID', accessor: r => r.ecoid2,
+      filter: { kind: 'numeric', filterKey: 'productId', availableOps: NUMERIC_OPS_INVENTORY, placeholder: 'Product ID' },
+    },
+    {
+      key: 'grades', label: 'Grades', accessor: r => r.mergedGrade ?? '—',
+      filter: { kind: 'text', filterKey: 'grades', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Grades' },
+    },
+    {
+      key: 'brand', label: 'Brand', accessor: r => r.brand ?? '—',
+      filter: { kind: 'text', filterKey: 'brand', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Brand' },
+    },
+    {
+      key: 'model', label: 'Model', accessor: r => r.model ?? '—',
+      filter: { kind: 'text', filterKey: 'model', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Model' },
+    },
+    {
+      key: 'modelName', label: 'Model Name', accessor: r => r.name ?? '—',
+      filter: { kind: 'text', filterKey: 'modelName', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Model Name' },
+    },
+    {
+      key: 'carrier', label: 'Carrier', accessor: r => r.carrier ?? '—',
+      filter: { kind: 'text', filterKey: 'carrier', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Carrier' },
+    },
+    { key: 'dwQty',    label: 'DW Qty',          numeric: true, accessor: r => formatInt(r.dwTotalQuantity) },
+    { key: 'dwTp',     label: 'DW Target Price', numeric: true, accessor: r => formatUsd(Number(r.dwAvgTargetPrice)) },
+    { key: 'totalQty', label: 'Total Qty',       numeric: true, accessor: r => formatInt(r.totalQuantity) },
+    { key: 'tp',       label: 'Target Price',    numeric: true, accessor: r => formatUsd(Number(r.avgTargetPrice)) },
+  ], []);
+
+  const rowActions = useCallback(
+    (r: InventoryRow) => (
+      <button
+        type="button"
+        className={styles.editLink}
+        aria-label={`Edit ${r.ecoid2} ${r.mergedGrade ?? ''}`.trim()}
+        onClick={() => setEditRow(r)}
+      >
+        Edit
+      </button>
+    ),
+    [],
+  );
 
   const selectedWeek = weeks.find(w => w.id === weekId) ?? null;
   const canCreateAuction = Boolean(
     totals?.hasInventory && totals?.isCurrentWeek && !totals?.hasAuction,
   );
+
+  const downloadHref = useMemo(() => {
+    if (!weekId) return null;
+    const qs = new URLSearchParams({ weekId: String(weekId) });
+    // Reuse the value parser so the Export URL matches the visible grid.
+    const product = parseInventoryFilter(appliedFilters.productId).value;
+    const grades = parseInventoryFilter(appliedFilters.grades).value;
+    const brand = parseInventoryFilter(appliedFilters.brand).value;
+    const model = parseInventoryFilter(appliedFilters.model).value;
+    const modelName = parseInventoryFilter(appliedFilters.modelName).value;
+    const carrier = parseInventoryFilter(appliedFilters.carrier).value;
+    if (product) qs.set('productId', product);
+    if (grades) qs.set('grades', grades);
+    if (brand) qs.set('brand', brand);
+    if (model) qs.set('model', model);
+    if (modelName) qs.set('modelName', modelName);
+    if (carrier) qs.set('carrier', carrier);
+    return `/api/v1/admin/inventory/export?${qs}`;
+  }, [weekId, appliedFilters]);
 
   return (
     <div className={styles.page}>
@@ -249,15 +282,10 @@ export default function AggregatedInventoryPage() {
           id="week-select"
           className={styles.weekSelect}
           value={weekId ?? ''}
-          onChange={e => {
-            setWeekId(Number(e.target.value));
-            setPage(0);
-          }}
+          onChange={e => setWeekId(Number(e.target.value))}
         >
           {weeks.map(w => (
-            <option key={w.id} value={w.id}>
-              {w.weekDisplay}
-            </option>
+            <option key={w.id} value={w.id}>{w.weekDisplay}</option>
           ))}
         </select>
         {canCreateAuction && (
@@ -275,7 +303,7 @@ export default function AggregatedInventoryPage() {
           type="button"
           onClick={() => {
             setError(null);
-            refresh().catch(() => setError('Failed to load inventory'));
+            setRefreshNonce(n => n + 1);
           }}
         >
           Refresh
@@ -301,130 +329,33 @@ export default function AggregatedInventoryPage() {
         </div>
       )}
 
-      <div className={styles.gridWrap}>
-        <table className={styles.grid}>
-          <thead>
-            <tr>
-              <th>
-                <div>Product ID</div>
-                <FilterCell label="Product ID" kind="numeric"
-                  filter={input.productId}
-                  onChange={(next) => updateFilter('productId', next)}
-                  availableOps={NUMERIC_OPS_INVENTORY}
-                  inputType="text"
-                  inputMode="numeric" />
-              </th>
-              <th>
-                <div>Grades</div>
-                <FilterCell label="Grades" kind="text"
-                  filter={input.grades}
-                  onChange={(next) => updateFilter('grades', next)}
-                  availableOps={TEXT_OPS_INVENTORY} />
-              </th>
-              <th>
-                <div>Brand</div>
-                <FilterCell label="Brand" kind="text"
-                  filter={input.brand}
-                  onChange={(next) => updateFilter('brand', next)}
-                  availableOps={TEXT_OPS_INVENTORY} />
-              </th>
-              <th>
-                <div>Model</div>
-                <FilterCell label="Model" kind="text"
-                  filter={input.model}
-                  onChange={(next) => updateFilter('model', next)}
-                  availableOps={TEXT_OPS_INVENTORY} />
-              </th>
-              <th>
-                <div>Model Name</div>
-                <FilterCell label="Model Name" kind="text"
-                  filter={input.modelName}
-                  onChange={(next) => updateFilter('modelName', next)}
-                  availableOps={TEXT_OPS_INVENTORY} />
-              </th>
-              <th>
-                <div>Carrier</div>
-                <FilterCell label="Carrier" kind="text"
-                  filter={input.carrier}
-                  onChange={(next) => updateFilter('carrier', next)}
-                  availableOps={TEXT_OPS_INVENTORY} />
-              </th>
-              <th>DW Qty</th>
-              <th>DW Target Price</th>
-              <th>Total Qty</th>
-              <th>Target Price</th>
-              <th aria-label="actions" />
-            </tr>
-          </thead>
-          <tbody>
-            {(data?.content ?? []).map(r => (
-              <tr key={r.id}>
-                <td>{r.ecoid2}</td>
-                <td>{r.mergedGrade}</td>
-                <td>{r.brand}</td>
-                <td>{r.model}</td>
-                <td>{r.name}</td>
-                <td>{r.carrier}</td>
-                <td>{formatInt(r.dwTotalQuantity)}</td>
-                <td>{formatUsd(Number(r.dwAvgTargetPrice))}</td>
-                <td>{formatInt(r.totalQuantity)}</td>
-                <td>{formatUsd(Number(r.avgTargetPrice))}</td>
-                <td>
-                  <button
-                    type="button"
-                    className={styles.editLink}
-                    aria-label={`Edit ${r.ecoid2} ${r.mergedGrade ?? ''}`.trim()}
-                    onClick={() => setEditRow(r)}
-                  >
-                    Edit
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <DataGrid<InventoryRow>
+        columns={columns}
+        fetcher={fetcher}
+        rowKey={r => r.id}
+        rowActions={rowActions}
+        rowActionsLabel="Actions"
+        pageSize={PAGE_SIZE}
+        emptyMessage="No inventory rows match the current filters."
+        topBarSlot={
+          <a
+            href={downloadHref ?? '#'}
+            aria-disabled={!downloadHref}
+            tabIndex={downloadHref ? 0 : -1}
+            onClick={e => { if (!downloadHref) e.preventDefault(); }}
+          >
+            <button
+              type="button"
+              className={styles.button}
+              disabled={!weekId}
+            >
+              Download
+            </button>
+          </a>
+        }
+        onAppliedFiltersChange={setAppliedFilters}
+      />
 
-        <div className={styles.pagination}>
-          <button type="button" onClick={() => setPage(0)} disabled={page === 0}>«</button>
-          <button type="button" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>‹</button>
-          <span>Currently showing {startIdx} to {endIdx} of {total}</span>
-          <button
-            type="button"
-            onClick={() => setPage(p => p + 1)}
-            disabled={data ? page + 1 >= data.totalPages : true}
-          >
-            ›
-          </button>
-          <button
-            type="button"
-            onClick={() => data && setPage(data.totalPages - 1)}
-            disabled={data ? page + 1 >= data.totalPages : true}
-          >
-            »
-          </button>
-        </div>
-
-        <div className={styles.downloadBar}>
-          <button
-            type="button"
-            className={styles.button}
-            disabled={!weekId}
-            onClick={() => {
-              if (!weekId) return;
-              const qs = new URLSearchParams({ weekId: String(weekId) });
-              if (applied.productId.value) qs.set('productId', applied.productId.value);
-              if (applied.grades.value)    qs.set('grades', applied.grades.value);
-              if (applied.brand.value)     qs.set('brand', applied.brand.value);
-              if (applied.model.value)     qs.set('model', applied.model.value);
-              if (applied.modelName.value) qs.set('modelName', applied.modelName.value);
-              if (applied.carrier.value)   qs.set('carrier', applied.carrier.value);
-              window.location.href = `/api/v1/admin/inventory/export?${qs}`;
-            }}
-          >
-            Download
-          </button>
-        </div>
-      </div>
       {editRow && (
         <EditModal
           row={editRow}
@@ -432,7 +363,7 @@ export default function AggregatedInventoryPage() {
           onSaved={() => {
             setEditRow(null);
             setError(null);
-            refresh().catch(() => setError('Failed to load inventory'));
+            setRefreshNonce(n => n + 1);
           }}
         />
       )}

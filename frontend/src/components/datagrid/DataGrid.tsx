@@ -108,6 +108,10 @@ export interface DataGridProps<TRow> {
   emptyMessage?: string;
   /** Apply to the outermost wrapper div. */
   className?: string;
+  /** Fires when the debounced applied filter state changes. Lets pages
+   *  surface the active filters externally — typical use case is wiring
+   *  an Export / Download button URL that mirrors the visible grid. */
+  onAppliedFiltersChange?: (wire: Record<string, string>) => void;
 }
 
 // ── Component ──────────────────────────────────────────────────
@@ -142,6 +146,7 @@ export default function DataGrid<TRow>({
   topBarSlot,
   emptyMessage = "No rows match the current filters.",
   className,
+  onAppliedFiltersChange,
 }: DataGridProps<TRow>) {
   // Filter state — input is what the user is typing; applied is what the
   // fetcher saw last. The debounce promotes input → applied so we don't
@@ -190,6 +195,7 @@ export default function DataGrid<TRow>({
       const wire = serializeFilter(filter);
       if (wire != null) filterParams[filterKey] = wire;
     }
+    onAppliedFiltersChange?.(filterParams);
     fetcher({ filters: filterParams, sort, page, size: pageSize, signal: ctrl.signal })
       .then((res) => {
         if (ctrl.signal.aborted) return;
@@ -204,6 +210,10 @@ export default function DataGrid<TRow>({
         if (!ctrl.signal.aborted) setLoading(false);
       });
     return () => ctrl.abort();
+    // onAppliedFiltersChange intentionally omitted — it fires as a side
+    // effect of state we already depend on; including it would cause a
+    // re-fetch loop when the host's callback identity changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [applied, sort, page, pageSize, fetcher]);
 
   const updateFilter = useCallback((filterKey: string, next: ColumnFilter) => {
