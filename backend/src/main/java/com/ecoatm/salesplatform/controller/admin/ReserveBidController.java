@@ -9,6 +9,8 @@ import com.ecoatm.salesplatform.dto.ReserveBidUploadResult;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidException;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidService;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidValidationException;
+import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterSpec;
+import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterSpecParser;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,8 +30,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -42,24 +44,28 @@ public class ReserveBidController {
         this.service = service;
     }
 
+    /**
+     * Filter row endpoint. Accepts both the modern wire format
+     * ({@code productId=eq,73}, {@code grade=contains,A_YYY}) and the legacy
+     * shape ({@code productId=73}, {@code minBid=100}, {@code updatedSince=...})
+     * — see {@link FilterSpecParser} for the disambiguation rule.
+     *
+     * <p>Sort: {@code sort=column,direction} where direction defaults to ASC
+     * and column may be either snake_case or camelCase.
+     */
     @GetMapping
-    public ReserveBidListResponse list(
-            @RequestParam(required = false) String productId,
-            @RequestParam(required = false) String grade,
-            @RequestParam(required = false) String brand,
-            @RequestParam(required = false) String model,
-            @RequestParam(required = false) BigDecimal minBid,
-            @RequestParam(required = false) BigDecimal maxBid,
-            @RequestParam(required = false) Instant updatedSince,
-            // Format: "field,direction" — e.g. "product_id,asc". Null = default
-            // (insertion order, which the native query exposes as id ASC). Field
-            // names are the SQL column names since the underlying repository uses
-            // a native query and would otherwise reject entity-property names.
-            @RequestParam(required = false) String sort,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return service.search(productId, grade, brand, model,
-                minBid, maxBid, updatedSince, sort, page, size);
+    public ReserveBidListResponse list(@RequestParam Map<String, String> all) {
+        List<FilterSpec> filters = FilterSpecParser.parse(all);
+        String sort = all.get("sort");
+        int page = parseIntOrDefault(all.get("page"), 0);
+        int size = parseIntOrDefault(all.get("size"), 20);
+        return service.search(filters, sort, page, size);
+    }
+
+    private static int parseIntOrDefault(String raw, int fallback) {
+        if (raw == null || raw.isBlank()) return fallback;
+        try { return Integer.parseInt(raw.trim()); }
+        catch (NumberFormatException ex) { return fallback; }
     }
 
     @GetMapping("/{id}")

@@ -7,6 +7,8 @@ import com.ecoatm.salesplatform.model.auctions.ReserveBidAudit;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidAuditRepository;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidRepository;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidSyncRepository;
+import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterColumn;
+import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterSpec;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.Set;
 
 import java.math.BigDecimal;
@@ -110,40 +113,39 @@ public class ReserveBidService {
                 new ReserveBidException("RESERVE_BID_NOT_FOUND", "reserve_bid not found: " + id));
     }
 
-    // Whitelist of sortable columns. Names are the SQL column names because the
-    // underlying repository uses a native query — entity property names would
-    // not match. Anything off this list is rejected to prevent SQL injection
-    // through the sort parameter.
+    // Whitelist of sortable columns. Sort property names match the SQL column
+    // names because the underlying repository's dynamic SQL builder uses them
+    // directly. Parser is lenient — both snake_case (product_id) and
+    // camelCase (productId) are accepted via FilterColumn.parse().
     private static final Set<String> SORTABLE_COLUMNS = Set.of(
-            "product_id", "grade", "brand", "model", "bid", "last_update_datetime");
+            "product_id", "grade", "brand", "model", "bid", "last_update_datetime",
+            "productId", "lastUpdateDatetime");
 
     @Transactional(readOnly = true)
-    public ReserveBidListResponse search(String productId, String grade,
-                                         String brand, String model,
-                                         BigDecimal minBid, BigDecimal maxBid,
-                                         Instant updatedSince, String sort,
+    public ReserveBidListResponse search(List<FilterSpec> filters, String sort,
                                          int page, int size) {
         Sort order = parseSort(sort);
         PageRequest pageable = order == null
                 ? PageRequest.of(page, size)
                 : PageRequest.of(page, size, order);
-        Page<ReserveBid> p = repo.search(productId, grade, brand, model,
-                minBid, maxBid, updatedSince, pageable);
+        List<FilterSpec> safe = filters == null ? Collections.emptyList() : filters;
+        Page<ReserveBid> p = repo.searchDynamic(safe, pageable);
         return new ReserveBidListResponse(
                 p.getContent().stream().map(ReserveBidService::toDto).toList(),
                 p.getTotalElements(), page, size);
     }
 
     /**
-     * Parses a "field,direction" sort string. Returns null for blank input or an
-     * unrecognised field — null defers to the native query's default order.
-     * Whitelisting prevents arbitrary SQL fragments reaching the ORDER BY clause.
+     * Parses a "field,direction" sort string. Returns null for blank input or
+     * an unrecognised field — null defers to the dynamic SQL builder's default
+     * order (insertion id ASC). Whitelisting prevents arbitrary SQL fragments
+     * reaching the ORDER BY clause.
      */
     private static Sort parseSort(String sort) {
         if (sort == null || sort.isBlank()) return null;
         String[] parts = sort.split(",", 2);
-        String column = parts[0].trim().toLowerCase();
-        if (!SORTABLE_COLUMNS.contains(column)) return null;
+        String column = parts[0].trim();
+        if (!SORTABLE_COLUMNS.contains(column) && FilterColumn.parse(column).isEmpty()) return null;
         Sort.Direction dir = parts.length > 1 && "desc".equalsIgnoreCase(parts[1].trim())
                 ? Sort.Direction.DESC : Sort.Direction.ASC;
         return Sort.by(dir, column);

@@ -53,7 +53,7 @@ class ReserveBidControllerIT {
     @Test
     @WithMockUser(roles = "Administrator")
     void list_returnsPayload() throws Exception {
-        when(service.search(isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), isNull(), eq(0), eq(10)))
+        when(service.search(any(), isNull(), eq(0), eq(10)))
                 .thenReturn(new ReserveBidListResponse(List.of(), 0L, 0, 10));
 
         mvc.perform(get("/api/v1/admin/reserve-bids?page=0&size=10"))
