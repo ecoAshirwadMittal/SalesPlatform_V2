@@ -32,6 +32,14 @@ import {
   ColumnVisibilityMenu,
   useColumnVisibility,
 } from "@/lib/admin/dataGrid/columnVisibility";
+import {
+  type ColumnFilter,
+  type ColumnKind,
+  type FilterOp,
+  DEFAULT_OP_FOR_KIND,
+  FilterCell as DataGridFilterCell,
+  isValueless,
+} from "@/components/datagrid";
 import UploadExcelModal from "./UploadExcelModal";
 
 type DetailColKey =
@@ -53,6 +61,25 @@ const DETAIL_ALL_COLS = [
 ] as const satisfies readonly DetailColKey[];
 const DETAIL_VISIBILITY_STORAGE_KEY = "po-detail.visibleCols.v1";
 
+/** Per-column filter kind. Text columns (productId, grade, modelName,
+ *  buyerCode) get the full 11-op text menu (Contains / Starts with /
+ *  Ends with / Equal / etc.). Numeric columns (price, qtyCap,
+ *  priceFulfilled, qtyFulfilled) get the 8-op numeric menu. */
+const DETAIL_COL_KIND: Record<DetailColKey, ColumnKind> = {
+  productId: "text",
+  grade: "text",
+  modelName: "text",
+  buyerCode: "text",
+  price: "numeric",
+  qtyCap: "numeric",
+  priceFulfilled: "numeric",
+  qtyFulfilled: "numeric",
+};
+
+function emptyDetailFilter(col: DetailColKey): ColumnFilter {
+  return { op: DEFAULT_OP_FOR_KIND[DETAIL_COL_KIND[col]], value: "" };
+}
+
 type DetailSortDir = "asc" | "desc";
 interface DetailSortState { col: DetailColKey; dir: DetailSortDir }
 
@@ -72,13 +99,63 @@ function rawValue(r: PODetailRow, col: DetailColKey): string {
   }
 }
 
-function matchesFilters(r: PODetailRow, filters: Partial<Record<DetailColKey, string>>): boolean {
-  for (const [col, needle] of Object.entries(filters)) {
-    if (!needle) continue;
-    const hay = rawValue(r, col as DetailColKey).toLowerCase();
-    if (!hay.includes(needle.toLowerCase())) return false;
+function matchesFilters(
+  r: PODetailRow,
+  filters: Partial<Record<DetailColKey, ColumnFilter>>,
+): boolean {
+  for (const [colKey, filter] of Object.entries(filters)) {
+    if (!filter) continue;
+    const col = colKey as DetailColKey;
+    const valueless = isValueless(filter.op);
+    if (!valueless && (filter.value === "" || filter.value == null)) continue;
+    if (!evalFilterOp(r, col, filter)) return false;
   }
   return true;
+}
+
+/** Evaluate one ColumnFilter against a PO detail row. Mirrors the
+ *  backend's ReserveBidRepositoryImpl op semantics so the same filter
+ *  spec acts identically client-side and server-side. Text comparisons
+ *  are case-insensitive; numeric comparisons coerce both sides via
+ *  Number(). */
+function evalFilterOp(r: PODetailRow, col: DetailColKey, f: ColumnFilter): boolean {
+  const kind = DETAIL_COL_KIND[col];
+  const raw = rawValue(r, col);
+  // Empty / NotEmpty are kind-agnostic.
+  if (f.op === "empty") return raw === "";
+  if (f.op === "notEmpty") return raw !== "";
+  if (kind === "numeric") {
+    const lhs = raw === "" ? null : Number(raw);
+    const rhs = Number(f.value);
+    if (Number.isNaN(rhs)) return true; // unparseable rhs → no-op
+    if (lhs == null || Number.isNaN(lhs)) return false;
+    switch (f.op) {
+      case "eq":  return lhs === rhs;
+      case "neq": return lhs !== rhs;
+      case "gt":  return lhs >  rhs;
+      case "gte": return lhs >= rhs;
+      case "lt":  return lhs <  rhs;
+      case "lte": return lhs <= rhs;
+      // contains/startsWith/endsWith on numeric kind is illegal upstream;
+      // bail truthy so the row renders rather than disappearing silently.
+      default: return true;
+    }
+  }
+  // Text comparisons — case-insensitive.
+  const a = raw.toLowerCase();
+  const b = f.value.toLowerCase();
+  switch (f.op) {
+    case "eq":         return a === b;
+    case "neq":        return a !== b;
+    case "contains":   return a.includes(b);
+    case "startsWith": return a.startsWith(b);
+    case "endsWith":   return a.endsWith(b);
+    case "gt":         return a >  b;
+    case "gte":        return a >= b;
+    case "lt":         return a <  b;
+    case "lte":        return a <= b;
+    default: return true;
+  }
 }
 
 function compareDetail(a: PODetailRow, b: PODetailRow, col: DetailColKey, dir: DetailSortDir): number {
@@ -195,7 +272,7 @@ export function PurchaseOrderEditor({
    * value (BigDecimals stringified, nulls treated as empty so they never
    * match a non-empty filter). Sort applies on top of filter.
    */
-  const [filters, setFilters] = useState<Partial<Record<DetailColKey, string>>>({});
+  const [filters, setFilters] = useState<Partial<Record<DetailColKey, ColumnFilter>>>({});
 
   function onSort(col: DetailColKey) {
     setSort(curr => {
@@ -205,15 +282,17 @@ export function PurchaseOrderEditor({
     });
   }
 
-  function setFilter(col: DetailColKey, v: string) {
+  function setFilter(col: DetailColKey, next: ColumnFilter) {
     setFilters(prev => {
-      if (v === "") {
-        // Drop the key entirely so the matchesFilters loop short-circuits.
-        const next = { ...prev };
-        delete next[col];
-        return next;
+      // Drop the key entirely when the cell is empty + op is value-bearing,
+      // so the matchesFilters loop can short-circuit. Valueless ops (Empty
+      // / NotEmpty) keep their slot — the user picked them deliberately.
+      if (!isValueless(next.op) && (next.value === "" || next.value == null)) {
+        const stripped = { ...prev };
+        delete stripped[col];
+        return stripped;
       }
-      return { ...prev, [col]: v };
+      return { ...prev, [col]: next };
     });
   }
 
@@ -506,14 +585,24 @@ function SortTh({
   );
 }
 
+/**
+ * Per-column filter cell. Wraps the shared
+ * {@link DataGridFilterCell} (comparator dropdown + input) in a `<th>`
+ * so the existing PO header layout stays intact. The dropdown exposes
+ * the full 11-op text menu (Contains / Starts with / Ends with /
+ * Equal / Not equal / Greater than / Greater than or equal / Smaller
+ * than / Smaller than or equal / Empty / Not empty) on text columns
+ * and the 8-op numeric menu on Price / Qty Cap / Price Fulfilled /
+ * Qty Fulfilled.
+ */
 function FilterCell({
   col, filters, setFilter,
 }: {
   col: DetailColKey;
-  filters: Partial<Record<DetailColKey, string>>;
-  setFilter: (col: DetailColKey, v: string) => void;
+  filters: Partial<Record<DetailColKey, ColumnFilter>>;
+  setFilter: (col: DetailColKey, next: ColumnFilter) => void;
 }) {
-  const value = filters[col] ?? "";
+  const filter = filters[col] ?? emptyDetailFilter(col);
   return (
     <th style={{
       padding: "4px 8px",
@@ -521,28 +610,11 @@ function FilterCell({
       // visually demotes it.
       background: BG,
     }}>
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => setFilter(col, e.target.value)}
-        placeholder="Filter"
-        aria-label={`Filter ${DETAIL_COL_LABELS[col]}`}
-        style={{
-          width: "100%",
-          height: 26,
-          padding: "0 6px",
-          background: "#fff",
-          color: TEXT,
-          border: `1px solid ${BORDER}`,
-          borderRadius: 3,
-          fontSize: 13,
-          fontFamily: "inherit",
-          fontWeight: 400,
-          // Active filter cell gets a subtle teal ring so it's clear
-          // which columns are constraining the result.
-          outline: value ? `1px solid ${TEAL}` : "none",
-          outlineOffset: 0,
-        }}
+      <DataGridFilterCell
+        label={DETAIL_COL_LABELS[col]}
+        kind={DETAIL_COL_KIND[col]}
+        filter={filter}
+        onChange={(next) => setFilter(col, next)}
       />
     </th>
   );
