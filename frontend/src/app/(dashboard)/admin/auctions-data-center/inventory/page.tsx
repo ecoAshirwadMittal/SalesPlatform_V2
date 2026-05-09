@@ -10,7 +10,6 @@ import {
   fetchSyncStatus,
   triggerWeekSync,
   updateInventoryRow,
-  type FilterMode,
   type WeekOption,
   type InventoryTotals,
   type InventoryRow,
@@ -18,7 +17,6 @@ import {
 import {
   type ColumnDef,
   type FetcherArgs,
-  type FilterOp,
   DataGrid,
 } from '@/components/datagrid';
 import { CreateAuctionModal } from './CreateAuctionModal';
@@ -29,9 +27,6 @@ const PAGE_SIZE = 20;
 const SYNC_POLL_INTERVAL_MS = 3_000;
 const SYNC_POLL_MAX_TICKS = 30;
 const SYNC_PENDING_STATUSES = new Set(['STARTED']);
-
-const TEXT_OPS_INVENTORY: FilterOp[] = ['contains', 'eq'];
-const NUMERIC_OPS_INVENTORY: FilterOp[] = ['eq'];
 
 const usdFormatter = new Intl.NumberFormat('en-US', {
   style: 'currency',
@@ -53,27 +48,9 @@ const formatUsd = (n: number) => usdFormatter.format(n);
 const formatUsdInteger = (n: number) => usdIntegerFormatter.format(n);
 const formatInt = (n: number) => intFormatter.format(n);
 
-/** Parse the DataGrid wire-format filter ("eq,73", "contains,A_YYY",
- *  "empty") into the legacy {@link InventorySearchParams} shape the
- *  inventory backend speaks. The shared FilterCell ships
- *  contains/eq, but the backend predates that and uses bare values
- *  with a sibling `*Mode` token of "contains" or "equals". */
-function parseInventoryFilter(wire: string | undefined): {
-  value: string | undefined;
-  mode: FilterMode;
-} {
-  if (!wire) return { value: undefined, mode: 'contains' };
-  const commaIdx = wire.indexOf(',');
-  if (commaIdx < 0) {
-    // Either the whole token is a bare op (empty / notEmpty) or a bare
-    // value (legacy clients). Inventory backend can't express
-    // empty/notEmpty, so treat unrecognised as a contains-noop.
-    return { value: undefined, mode: 'contains' };
-  }
-  const op = wire.slice(0, commaIdx);
-  const value = wire.slice(commaIdx + 1) || undefined;
-  return { value, mode: op === 'eq' ? 'equals' : 'contains' };
-}
+/** Inventory backend now speaks the new wire format directly (see
+ *  InventoryFilterRequest.parse on the backend). The frontend forwards
+ *  each column's filter value as-is — no client-side translation. */
 
 export default function AggregatedInventoryPage() {
   const router = useRouter();
@@ -170,33 +147,23 @@ export default function AggregatedInventoryPage() {
   }, [weekId]);
 
   // Fetcher closes over weekId + refreshNonce so the grid re-fetches when
-  // either changes. Translates the new wire format back to the legacy
-  // InventorySearchParams the backend speaks.
+  // either changes. Filter values flow through to the backend as-is —
+  // InventoryFilterRequest.parse on the backend handles both the new
+  // "op,value" wire format and the legacy bare-value shape.
   const fetcher = useCallback(
     async ({ filters, page, size, signal }: FetcherArgs) => {
       void signal;
       if (!weekId) return { rows: [], total: 0 };
-      const productIdF = parseInventoryFilter(filters.productId);
-      const gradesF    = parseInventoryFilter(filters.grades);
-      const brandF     = parseInventoryFilter(filters.brand);
-      const modelF     = parseInventoryFilter(filters.model);
-      const modelNameF = parseInventoryFilter(filters.modelName);
-      const carrierF   = parseInventoryFilter(filters.carrier);
       const res = await fetchInventoryPage({
         weekId,
         page,
         pageSize: size,
-        productId: productIdF.value,
-        grades:    gradesF.value,
-        brand:     brandF.value,
-        model:     modelF.value,
-        modelName: modelNameF.value,
-        carrier:   carrierF.value,
-        gradesMode:    gradesF.mode,
-        brandMode:     brandF.mode,
-        modelMode:     modelF.mode,
-        modelNameMode: modelNameF.mode,
-        carrierMode:   carrierF.mode,
+        productId: filters.productId,
+        grades:    filters.grades,
+        brand:     filters.brand,
+        model:     filters.model,
+        modelName: filters.modelName,
+        carrier:   filters.carrier,
       });
       return { rows: res.content, total: res.totalElements };
     },
@@ -205,29 +172,39 @@ export default function AggregatedInventoryPage() {
   );
 
   const columns = useMemo<ColumnDef<InventoryRow>[]>(() => [
+    // ecoid2 is VARCHAR(64) on the backend; backend now exposes the full
+    // 11-op text comparator menu so the dropdown matches every other
+    // admin grid. Numeric ops on this column do lexicographic
+    // comparison (10 < 9), but the column is rendered + thought of as
+    // numeric — keep the kind=text so case-insensitive ops apply, and
+    // surface only the safe ops to keep the menu honest.
     {
       key: 'productId', label: 'Product ID', accessor: r => r.ecoid2,
-      filter: { kind: 'numeric', filterKey: 'productId', availableOps: NUMERIC_OPS_INVENTORY, placeholder: 'Product ID' },
+      filter: {
+        kind: 'text', filterKey: 'productId',
+        availableOps: ['eq', 'neq', 'contains', 'startsWith', 'endsWith', 'empty', 'notEmpty'],
+        placeholder: 'Product ID',
+      },
     },
     {
       key: 'grades', label: 'Grades', accessor: r => r.mergedGrade ?? '—',
-      filter: { kind: 'text', filterKey: 'grades', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Grades' },
+      filter: { kind: 'text', filterKey: 'grades', placeholder: 'Grades' },
     },
     {
       key: 'brand', label: 'Brand', accessor: r => r.brand ?? '—',
-      filter: { kind: 'text', filterKey: 'brand', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Brand' },
+      filter: { kind: 'text', filterKey: 'brand', placeholder: 'Brand' },
     },
     {
       key: 'model', label: 'Model', accessor: r => r.model ?? '—',
-      filter: { kind: 'text', filterKey: 'model', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Model' },
+      filter: { kind: 'text', filterKey: 'model', placeholder: 'Model' },
     },
     {
       key: 'modelName', label: 'Model Name', accessor: r => r.name ?? '—',
-      filter: { kind: 'text', filterKey: 'modelName', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Model Name' },
+      filter: { kind: 'text', filterKey: 'modelName', placeholder: 'Model Name' },
     },
     {
       key: 'carrier', label: 'Carrier', accessor: r => r.carrier ?? '—',
-      filter: { kind: 'text', filterKey: 'carrier', availableOps: TEXT_OPS_INVENTORY, placeholder: 'Carrier' },
+      filter: { kind: 'text', filterKey: 'carrier', placeholder: 'Carrier' },
     },
     { key: 'dwQty',    label: 'DW Qty',          numeric: true, accessor: r => formatInt(r.dwTotalQuantity) },
     { key: 'dwTp',     label: 'DW Target Price', numeric: true, accessor: r => formatUsd(Number(r.dwAvgTargetPrice)) },
@@ -257,19 +234,14 @@ export default function AggregatedInventoryPage() {
   const downloadHref = useMemo(() => {
     if (!weekId) return null;
     const qs = new URLSearchParams({ weekId: String(weekId) });
-    // Reuse the value parser so the Export URL matches the visible grid.
-    const product = parseInventoryFilter(appliedFilters.productId).value;
-    const grades = parseInventoryFilter(appliedFilters.grades).value;
-    const brand = parseInventoryFilter(appliedFilters.brand).value;
-    const model = parseInventoryFilter(appliedFilters.model).value;
-    const modelName = parseInventoryFilter(appliedFilters.modelName).value;
-    const carrier = parseInventoryFilter(appliedFilters.carrier).value;
-    if (product) qs.set('productId', product);
-    if (grades) qs.set('grades', grades);
-    if (brand) qs.set('brand', brand);
-    if (model) qs.set('model', model);
-    if (modelName) qs.set('modelName', modelName);
-    if (carrier) qs.set('carrier', carrier);
+    // Pass each filter wire-format value straight through; the export
+    // endpoint understands both the new "op,value" shape and the
+    // legacy bare-value shape via the same InventoryFilterRequest
+    // parser used by the list endpoint.
+    for (const key of ['productId', 'grades', 'brand', 'model', 'modelName', 'carrier'] as const) {
+      const wire = appliedFilters[key];
+      if (wire) qs.set(key, wire);
+    }
     return `/api/v1/admin/inventory/export?${qs}`;
   }, [weekId, appliedFilters]);
 

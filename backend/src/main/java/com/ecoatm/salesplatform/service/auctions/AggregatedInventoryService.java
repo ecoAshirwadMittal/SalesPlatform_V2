@@ -9,13 +9,18 @@ import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.auctions.AggregatedInventory;
 import com.ecoatm.salesplatform.model.integration.SnowflakeSyncLog;
 import com.ecoatm.salesplatform.repository.integration.SnowflakeSyncLogRepository;
+import com.ecoatm.salesplatform.service.auctions.inventory.InventoryFilterRequest;
+import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterOp;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class AggregatedInventoryService {
@@ -64,19 +69,56 @@ public class AggregatedInventoryService {
     }
 
     /**
-     * Builds the SQL fragment for a text filter column with "contains" or
-     * "equals" semantics (gap H4). Returns the literal SQL — the caller
-     * is responsible for binding the {@code :param} placeholder. Both
-     * modes are case-insensitive ({@code LOWER(...)}).
+     * Render an op-aware SQL fragment for a text filter column using
+     * named bind parameters. Mirrors the {@code FilterOp} semantics from
+     * the reservebid filter package so the inventory search now supports
+     * the full 11-op comparator menu (Contains / Starts with / Ends
+     * with / Equal / Not equal / Greater than / Greater than or equal /
+     * Smaller than / Smaller than or equal / Empty / Not empty) — same
+     * set every other admin grid surfaces.
+     *
+     * <p>Numeric ops on these text columns use lexicographic comparison
+     * because the underlying schema is VARCHAR (ecoid2 / merged_grade /
+     * brand / model / name / carrier all varchar). Frontend can
+     * constrain the visible op menu via {@code availableOps} when lex
+     * comparison would confuse users (e.g. ecoid2 displayed as numeric).
+     *
+     * @param sqlColumn fully-qualified SQL column name
+     * @param paramName bind name to use for the value when the op is
+     *                  value-bearing
+     * @param req       parsed filter; no fragment emitted when inactive
+     * @param params    out-map: caller appends the value→bind-name entry
+     *                  here and {@code setParameter}s them all on the
+     *                  prepared query in order
+     * @return SQL fragment to AND into the WHERE clause, or empty
+     *         string when the request is inactive
      */
-    private static String textFilterClause(String column, String paramName, String mode) {
-        boolean equals = "equals".equalsIgnoreCase(mode);
-        if (equals) {
-            return " AND (CAST(:" + paramName + " AS text) IS NULL OR LOWER(" + column
-                    + ") = LOWER(CAST(:" + paramName + " AS text)))";
+    private static String renderTextFilterFragment(String sqlColumn,
+                                                   String paramName,
+                                                   InventoryFilterRequest req,
+                                                   Map<String, Object> params) {
+        if (!req.active()) return "";
+        FilterOp op = req.op();
+        if (op == FilterOp.EMPTY) {
+            return " AND (" + sqlColumn + " IS NULL OR " + sqlColumn + " = '')";
         }
-        return " AND (CAST(:" + paramName + " AS text) IS NULL OR LOWER(" + column
-                + ") LIKE LOWER(CONCAT('%', CAST(:" + paramName + " AS text), '%')))";
+        if (op == FilterOp.NOT_EMPTY) {
+            return " AND (" + sqlColumn + " IS NOT NULL AND " + sqlColumn + " <> '')";
+        }
+        params.put(paramName, req.value());
+        String castedParam = "CAST(:" + paramName + " AS text)";
+        return " AND " + switch (op) {
+            case EQ          -> "LOWER(" + sqlColumn + ") = LOWER("        + castedParam + ")";
+            case NEQ         -> "LOWER(" + sqlColumn + ") <> LOWER("       + castedParam + ")";
+            case GT          -> "LOWER(" + sqlColumn + ") > LOWER("        + castedParam + ")";
+            case GTE         -> "LOWER(" + sqlColumn + ") >= LOWER("       + castedParam + ")";
+            case LT          -> "LOWER(" + sqlColumn + ") < LOWER("        + castedParam + ")";
+            case LTE         -> "LOWER(" + sqlColumn + ") <= LOWER("       + castedParam + ")";
+            case CONTAINS    -> "LOWER(" + sqlColumn + ") LIKE LOWER(CONCAT('%', " + castedParam + ", '%'))";
+            case STARTS_WITH -> "LOWER(" + sqlColumn + ") LIKE LOWER(CONCAT(" + castedParam + ", '%'))";
+            case ENDS_WITH   -> "LOWER(" + sqlColumn + ") LIKE LOWER(CONCAT('%', " + castedParam + "))";
+            case EMPTY, NOT_EMPTY -> throw new IllegalStateException("valueless op leaked past guard");
+        };
     }
 
     @Transactional(readOnly = true)
@@ -92,64 +134,55 @@ public class AggregatedInventoryService {
             int page,
             int pageSize) {
 
-        String ecoid = blankToNull(productIdExact);
-        String grades = blankToNull(gradesValue);
-        String brand = blankToNull(brandValue);
-        String model = blankToNull(modelValue);
-        String name = blankToNull(modelNameValue);
-        String carrier = blankToNull(carrierValue);
+        // Parse each column value into op + value, supporting both the
+        // new "op,value" wire format and the legacy bare-value shape
+        // with sibling xxxMode params.
+        InventoryFilterRequest productReq  = InventoryFilterRequest.parse(productIdExact, "equals"); // legacy: productId is exact
+        InventoryFilterRequest gradesReq   = InventoryFilterRequest.parse(gradesValue, gradesMode);
+        InventoryFilterRequest brandReq    = InventoryFilterRequest.parse(brandValue, brandMode);
+        InventoryFilterRequest modelReq    = InventoryFilterRequest.parse(modelValue, modelMode);
+        InventoryFilterRequest modelNameReq= InventoryFilterRequest.parse(modelNameValue, modelNameMode);
+        InventoryFilterRequest carrierReq  = InventoryFilterRequest.parse(carrierValue, carrierMode);
+
+        // Build the WHERE clause iteratively so each filter fragment binds
+        // exactly the params it needs to a shared map. LinkedHashMap so the
+        // iteration order is deterministic for tests that assert query
+        // shape via Mockito argument captors.
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("weekId", weekId);
+        StringBuilder where = new StringBuilder("WHERE a.is_deprecated = false")
+                .append(" AND (CAST(:weekId AS bigint) IS NULL OR a.week_id = CAST(:weekId AS bigint))")
+                .append(renderTextFilterFragment("a.ecoid2",       "ecoid",   productReq,   params))
+                .append(renderTextFilterFragment("a.merged_grade", "grades",  gradesReq,    params))
+                .append(renderTextFilterFragment("a.brand",        "brand",   brandReq,     params))
+                .append(renderTextFilterFragment("a.model",        "model",   modelReq,     params))
+                .append(renderTextFilterFragment("a.name",         "name",    modelNameReq, params))
+                .append(renderTextFilterFragment("a.carrier",      "carrier", carrierReq,   params));
 
         int offset = page * pageSize;
-
-        String where = """
-                WHERE a.is_deprecated = false
-                  AND (CAST(:weekId AS bigint) IS NULL OR a.week_id = CAST(:weekId AS bigint))
-                  AND (CAST(:ecoid AS text)   IS NULL OR a.ecoid2 = CAST(:ecoid AS text))"""
-                + textFilterClause("a.merged_grade", "grades", gradesMode)
-                + textFilterClause("a.brand", "brand", brandMode)
-                + textFilterClause("a.model", "model", modelMode)
-                + textFilterClause("a.name", "name", modelNameMode)
-                + textFilterClause("a.carrier", "carrier", carrierMode);
 
         // ecoid2 is VARCHAR to match Mendix, but the ecoATM codes are always
         // numeric — sort by the numeric value so Mendix parity (75, 78, 113...)
         // holds instead of falling into lexicographic order (10003, 1005...).
-        String sql = """
-                SELECT a.id, a.ecoid2, a.merged_grade, a.brand, a.model, a.name, a.carrier,
-                       a.dw_total_quantity, a.dw_avg_target_price,
-                       a.total_quantity, a.avg_target_price, a.datawipe
-                FROM auctions.aggregated_inventory a
-                %s
-                ORDER BY CAST(a.ecoid2 AS bigint) ASC, a.merged_grade ASC
-                LIMIT :limit OFFSET :offset
-                """.formatted(where);
+        String sql = "SELECT a.id, a.ecoid2, a.merged_grade, a.brand, a.model, a.name, a.carrier,"
+                + " a.dw_total_quantity, a.dw_avg_target_price,"
+                + " a.total_quantity, a.avg_target_price, a.datawipe"
+                + " FROM auctions.aggregated_inventory a "
+                + where
+                + " ORDER BY CAST(a.ecoid2 AS bigint) ASC, a.merged_grade ASC"
+                + " LIMIT :limit OFFSET :offset";
 
-        List<Object[]> rows = em.createNativeQuery(sql)
-                .setParameter("weekId", weekId)
-                .setParameter("ecoid", ecoid)
-                .setParameter("grades", grades)
-                .setParameter("brand", brand)
-                .setParameter("model", model)
-                .setParameter("name", name)
-                .setParameter("carrier", carrier)
-                .setParameter("limit", pageSize)
-                .setParameter("offset", offset)
-                .getResultList();
+        Query dataQ = em.createNativeQuery(sql);
+        params.forEach(dataQ::setParameter);
+        dataQ.setParameter("limit", pageSize);
+        dataQ.setParameter("offset", offset);
 
-        String countSql = """
-                SELECT COUNT(*) FROM auctions.aggregated_inventory a
-                %s
-                """.formatted(where);
+        List<Object[]> rows = (List<Object[]>) dataQ.getResultList();
 
-        long total = ((Number) em.createNativeQuery(countSql)
-                .setParameter("weekId", weekId)
-                .setParameter("ecoid", ecoid)
-                .setParameter("grades", grades)
-                .setParameter("brand", brand)
-                .setParameter("model", model)
-                .setParameter("name", name)
-                .setParameter("carrier", carrier)
-                .getSingleResult()).longValue();
+        String countSql = "SELECT COUNT(*) FROM auctions.aggregated_inventory a " + where;
+        Query countQ = em.createNativeQuery(countSql);
+        params.forEach(countQ::setParameter);
+        long total = ((Number) countQ.getSingleResult()).longValue();
 
         List<AggregatedInventoryRow> content = rows.stream()
                 .map(r -> new AggregatedInventoryRow(

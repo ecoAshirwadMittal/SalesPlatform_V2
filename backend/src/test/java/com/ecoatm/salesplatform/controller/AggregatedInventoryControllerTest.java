@@ -81,7 +81,12 @@ class AggregatedInventoryControllerTest {
                 "IPHONE 3G 8GB A1241/A1324", "AT&T",
                 0, java.math.BigDecimal.ZERO, 7, new java.math.BigDecimal("2.0700"),
                 false);
-        when(service.search(100L, null, null, null, null, null, null, 0, 20))
+        // Controller calls the 14-arg overload (productId + 5 text-column
+        // value/mode pairs + page + size). The 9-arg overload is only used
+        // by the export endpoint.
+        when(service.search(100L, null,
+                null, null, null, null, null, null, null, null, null, null,
+                0, 20))
                 .thenReturn(new com.ecoatm.salesplatform.dto.AggregatedInventoryPageResponse(
                         List.of(row), 0, 20, 1L, 1));
 
