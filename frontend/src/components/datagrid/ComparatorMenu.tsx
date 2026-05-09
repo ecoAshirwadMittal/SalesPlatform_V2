@@ -3,9 +3,9 @@
 import { useEffect, useId, useRef, useState } from "react";
 import {
   type FilterOp,
-  OP_GLYPH,
   OP_LABEL,
 } from "./filterModel";
+import { COMPARATOR_ICON } from "./icons";
 import styles from "./datagrid.module.css";
 
 interface Props {
@@ -48,6 +48,7 @@ export default function ComparatorMenu({
     };
   }, [open]);
 
+  const SelectedIcon = COMPARATOR_ICON[selected];
   return (
     <div className={styles.comparatorWrap} ref={wrapRef}>
       <button
@@ -59,7 +60,7 @@ export default function ComparatorMenu({
         aria-label={ariaLabel}
         onClick={() => setOpen((v) => !v)}
       >
-        {OP_GLYPH[selected]}
+        <SelectedIcon />
       </button>
       {open && (
         <ul
@@ -68,21 +69,24 @@ export default function ComparatorMenu({
           role="listbox"
           aria-label={ariaLabel}
         >
-          {available.map((op) => (
-            <li
-              key={op}
-              role="option"
-              aria-selected={op === selected}
-              className={`${styles.menuItem} ${op === selected ? styles.menuItemSelected : ""}`}
-              onClick={() => {
-                onChange(op);
-                setOpen(false);
-              }}
-            >
-              <span className={styles.menuGlyph}>{OP_GLYPH[op]}</span>
-              <span className={styles.menuLabel}>{OP_LABEL[op]}</span>
-            </li>
-          ))}
+          {available.map((op) => {
+            const Icon = COMPARATOR_ICON[op];
+            return (
+              <li
+                key={op}
+                role="option"
+                aria-selected={op === selected}
+                className={`${styles.menuItem} ${op === selected ? styles.menuItemSelected : ""}`}
+                onClick={() => {
+                  onChange(op);
+                  setOpen(false);
+                }}
+              >
+                <span className={styles.menuGlyph}><Icon /></span>
+                <span className={styles.menuLabel}>{OP_LABEL[op]}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

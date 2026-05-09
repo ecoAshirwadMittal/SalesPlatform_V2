@@ -115,12 +115,18 @@
 }
 
 .menuGlyph {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
-  text-align: center;
-  font-size: 13px;
+  height: 16px;
   color: inherit;
   flex-shrink: 0;
+}
+
+.menuGlyph svg {
+  width: 14px;
+  height: 14px;
 }
 
 .menuLabel {
