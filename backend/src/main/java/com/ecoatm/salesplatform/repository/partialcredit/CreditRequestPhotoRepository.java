@@ -1,6 +1,7 @@
 package com.ecoatm.salesplatform.repository.partialcredit;
 
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
+import com.ecoatm.salesplatform.model.partialcredit.enums.PhotoKind;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,4 +12,6 @@ public interface CreditRequestPhotoRepository extends JpaRepository<CreditReques
     List<CreditRequestPhoto> findByCreditRequestIdOrderById(Long creditRequestId);
 
     List<CreditRequestPhoto> findByWrongDeviceLineIdOrderById(Long wrongDeviceLineId);
+
+    long countByCreditRequestIdAndKind(Long creditRequestId, PhotoKind kind);
 }
