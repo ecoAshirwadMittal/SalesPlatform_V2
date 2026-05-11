@@ -507,12 +507,15 @@ class AuctionScheduleServiceTest {
         // Unscheduled auction has no scheduling_auctions rows yet. QA still
         // renders the per-round Buyers/Total/DW-Only line, so the service
         // returns three placeholder RoundStatsView entries (buyerCount=null)
-        // with the weekly inventory totals.
-        long fakeTotalQty = 12_127L;
+        // with global active-buyer-code counts (mirroring Mendix
+        // ACT_LoadBuyerTotals).
+        long fakeTotalQty = 638L;
         long fakeDwQty = 116L;
+        // The new query has no named parameters (buyer-code totals are
+        // global), so we don't stub setParameter — Mockito would flag it
+        // as unnecessary under strict-stubs.
         jakarta.persistence.Query queryStub = mock(jakarta.persistence.Query.class);
         when(em.createNativeQuery(anyString())).thenReturn(queryStub);
-        when(queryStub.setParameter(anyString(), any())).thenReturn(queryStub);
         when(queryStub.getSingleResult()).thenReturn(new Object[]{fakeTotalQty, fakeDwQty});
 
         when(auctionRepository.findById(AUCTION_ID))

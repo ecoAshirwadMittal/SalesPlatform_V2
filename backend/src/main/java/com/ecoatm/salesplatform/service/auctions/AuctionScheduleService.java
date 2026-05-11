@@ -433,33 +433,43 @@ public class AuctionScheduleService {
 
     /**
      * Computes per-round Buyers / Total / DW-Only counts for the schedule
-     * editor (gap H5). Total + DW-Only repeat across rounds because the
-     * weekly inventory snapshot is auction-wide, not per-round.
+     * editor (gap H5).
      *
-     * <p>{@code buyerCount} is the count of {@code qualified_buyer_codes}
-     * rows for the round's SA where {@code included = true}. Returns null
-     * for rounds with no QBCs yet (pre-init), letting the frontend render
-     * "All" instead of "0".
+     * <p>Total + DW-Only mirror Mendix's {@code ACT_LoadBuyerTotals}
+     * microflow: count of distinct {@code BuyerCode} rows whose linked
+     * {@code Buyer} has {@code Status = 'Active'}, plus the subset where
+     * {@code buyer_code_type = 'Data_Wipe'}. The numbers are global (not
+     * week- or auction-scoped) so they repeat across the three rows.
+     *
+     * <p>{@code buyerCount} is per-round: count of
+     * {@code qualified_buyer_codes} rows for the round's SA where
+     * {@code included = true}. Returns null for rounds with no QBCs yet
+     * (pre-init), letting the frontend render "All" instead of "0".
      *
      * <p>For Unscheduled auctions ({@code rounds.isEmpty()}) we synthesize
      * three placeholder rows (R1, R2, R3) so the QA-parity stats line
      * still renders alongside each round card. Buyer count stays null in
      * that case because no QBCs exist yet — frontend shows "All".
+     *
+     * <p>The {@code weekId} parameter is retained for signature stability
+     * but unused — the buyer-code counts are global to the platform, not
+     * tied to a specific weekly inventory snapshot.
      */
     @SuppressWarnings("unchecked")
     private List<RoundStatsView> computeRoundStats(Long weekId, List<SchedulingAuction> rounds) {
-        // Single query for week-scoped inventory totals (same for every round).
-        // Postgres `::bigint` cast collides with Hibernate's named-param
-        // tokenizer; use ANSI CAST(... AS bigint) instead (same workaround
-        // as BidDataCreationRepository.CTE_SQL).
+        // Single query for global active-buyer-code totals (same for every
+        // round; mirrors Mendix `ACT_LoadBuyerTotals`).
         Object[] totals = (Object[]) em.createNativeQuery("""
-                SELECT CAST(COALESCE(SUM(total_quantity),    0) AS bigint) AS total_qty,
-                       CAST(COALESCE(SUM(dw_total_quantity), 0) AS bigint) AS dw_total_qty
-                  FROM auctions.aggregated_inventory
-                 WHERE is_deprecated = false
-                   AND week_id = CAST(:weekId AS bigint)
+                SELECT CAST(COUNT(DISTINCT bc.id) AS bigint) AS total_codes,
+                       CAST(COUNT(DISTINCT bc.id)
+                            FILTER (WHERE bc.buyer_code_type = 'Data_Wipe')
+                            AS bigint) AS dw_codes
+                  FROM buyer_mgmt.buyer_codes bc
+                  JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_code_id = bc.id
+                  JOIN buyer_mgmt.buyers b ON b.id = bcb.buyer_id
+                 WHERE b.status = 'Active'
+                   AND bc.soft_delete = false
                 """)
-                .setParameter("weekId", weekId)
                 .getSingleResult();
         long totalQuantity = ((Number) totals[0]).longValue();
         long dwTotalQuantity = ((Number) totals[1]).longValue();
