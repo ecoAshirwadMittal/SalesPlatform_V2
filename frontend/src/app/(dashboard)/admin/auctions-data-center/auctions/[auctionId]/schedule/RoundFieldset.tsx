@@ -51,11 +51,34 @@ interface RoundFieldsetProps {
 }
 
 /**
- * Per-round form section: From Date/Time + To Date/Time. When
- * {@code fromReadOnly} is set (R2/R3), the From inputs are greyed and
- * disabled because they are derived from the previous round's End on the
- * parent. Optional {@code toggle} renders the active checkbox in the
- * section header.
+ * Inline chat-bubble glyph that prefixes the "Selection Rules" link
+ * (lucide MessageCircle path). Inlined to avoid pulling lucide-react
+ * for one icon; `currentColor` makes it inherit the link color.
+ */
+function ChatBubbleIcon(): React.ReactElement {
+  return (
+    <svg
+      aria-hidden="true"
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z" />
+    </svg>
+  );
+}
+
+/**
+ * Per-round form section: From Date/Time + To Date/Time rendered as two
+ * horizontal rows (QA visual parity). When {@code fromReadOnly} is set
+ * (R2/R3), the From row is greyed and disabled because it is derived
+ * from the previous round's End on the parent. Optional {@code toggle}
+ * renders the active checkbox in the section header.
  */
 export function RoundFieldset({
   title,
@@ -106,6 +129,7 @@ export function RoundFieldset({
               rel="noopener noreferrer"
               className={styles.selectionRulesLink}
             >
+              <ChatBubbleIcon />
               Selection Rules
             </a>
           )}
@@ -122,53 +146,49 @@ export function RoundFieldset({
           )}
         </div>
       </div>
-      <div className={styles.fieldGrid}>
-        <div className={`${styles.field} ${fromReadOnly ? styles.fieldReadOnly : ''}`}>
-          <label htmlFor={`${id}-from-date`}>From Date</label>
-          <input
-            id={`${id}-from-date`}
-            type="date"
-            value={fields.fromDate}
-            onChange={(e) => onChange('fromDate', e.target.value)}
-            disabled={disabled || fromReadOnly}
-            aria-readonly={fromReadOnly}
-          />
-        </div>
-        <div className={`${styles.field} ${fromReadOnly ? styles.fieldReadOnly : ''}`}>
-          <label htmlFor={`${id}-from-time`}>
-            From Time {tz && <span className={styles.tzTag}>{tz}</span>}
-          </label>
-          <input
-            id={`${id}-from-time`}
-            type="time"
-            value={fields.fromTime}
-            onChange={(e) => onChange('fromTime', e.target.value)}
-            disabled={disabled || fromReadOnly}
-            aria-readonly={fromReadOnly}
-          />
-        </div>
-        <div className={styles.field}>
-          <label htmlFor={`${id}-to-date`}>To Date</label>
-          <input
-            id={`${id}-to-date`}
-            type="date"
-            value={fields.toDate}
-            onChange={(e) => onChange('toDate', e.target.value)}
-            disabled={disabled}
-          />
-        </div>
-        <div className={styles.field}>
-          <label htmlFor={`${id}-to-time`}>
-            To Time {tz && <span className={styles.tzTag}>{tz}</span>}
-          </label>
-          <input
-            id={`${id}-to-time`}
-            type="time"
-            value={fields.toTime}
-            onChange={(e) => onChange('toTime', e.target.value)}
-            disabled={disabled}
-          />
-        </div>
+      <div
+        className={`${styles.timeRow} ${fromReadOnly ? styles.timeRowReadOnly : ''}`}
+      >
+        <span className={styles.timeRowLabel}>From:</span>
+        <input
+          id={`${id}-from-date`}
+          type="date"
+          aria-label={`${title} from date`}
+          value={fields.fromDate}
+          onChange={(e) => onChange('fromDate', e.target.value)}
+          disabled={disabled || fromReadOnly}
+          aria-readonly={fromReadOnly}
+        />
+        <input
+          id={`${id}-from-time`}
+          type="time"
+          aria-label={`${title} from time`}
+          value={fields.fromTime}
+          onChange={(e) => onChange('fromTime', e.target.value)}
+          disabled={disabled || fromReadOnly}
+          aria-readonly={fromReadOnly}
+        />
+        {tz && <span className={styles.tzTag}>{tz}</span>}
+      </div>
+      <div className={styles.timeRow}>
+        <span className={styles.timeRowLabel}>To:</span>
+        <input
+          id={`${id}-to-date`}
+          type="date"
+          aria-label={`${title} to date`}
+          value={fields.toDate}
+          onChange={(e) => onChange('toDate', e.target.value)}
+          disabled={disabled}
+        />
+        <input
+          id={`${id}-to-time`}
+          type="time"
+          aria-label={`${title} to time`}
+          value={fields.toTime}
+          onChange={(e) => onChange('toTime', e.target.value)}
+          disabled={disabled}
+        />
+        {tz && <span className={styles.tzTag}>{tz}</span>}
       </div>
       {error && <span className={styles.inlineError}>{error}</span>}
     </section>

@@ -194,7 +194,10 @@
 }
 
 .selectionRulesLink {
-  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.85rem;
   color: #407874;
   text-decoration: none;
 }
@@ -219,6 +222,55 @@
   font-size: 0.75rem;
   color: #514F4E;
   font-weight: 500;
+}
+
+/* QA renders each round body as two horizontal rows — "From: [date]
+ * [time]  EST" and "To: [date] [time]  EST" — sitting on a soft greige
+ * surface. Replaces the prior 4-cell grid (separate date/time/date/time
+ * cells with stacked labels). */
+.timeRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  background: #F7F7F7;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  margin-bottom: 0.5rem;
+}
+
+.timeRowLabel {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #514F4E;
+  min-width: 3.5rem;
+}
+
+.timeRow input[type="date"],
+.timeRow input[type="time"] {
+  height: 32px;
+  padding: 0 0.5rem;
+  border: 1px solid #B7B5B5;
+  border-radius: 4px;
+  background: #fff;
+  color: #112d32;
+  font: inherit;
+}
+
+.timeRow input:disabled {
+  background: #f3f3f3;
+  color: #8a8a8a;
+  cursor: not-allowed;
+}
+
+.timeRowReadOnly input[type="date"],
+.timeRowReadOnly input[type="time"] {
+  background: #f0eeec;
+  color: #514F4E;
+}
+
+.timeRow .tzTag {
+  margin-left: auto;
 }
 
 .roundHeaderLeft {
