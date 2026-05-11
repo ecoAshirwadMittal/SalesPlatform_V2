@@ -85,6 +85,12 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")
+                // Partial Credit Requests — buyer-facing surface. Class-level
+                // @PreAuthorize on the controller narrows further to the new
+                // PartialCredit_Buyer role (when SPKB-3659 wires it) plus
+                // Bidder/Administrator for today's accounts.
+                .requestMatchers("/api/v1/buyer/partial-credit/**")
+                    .hasAnyRole("PartialCredit_Buyer", "Bidder", "Administrator")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
