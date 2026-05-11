@@ -1,8 +1,36 @@
 # Purchase Order — QA vs Local Walkthrough (2026-05-08)
 
+> ### Status update — 2026-05-11
+>
+> Sprint A from §10 has shipped: the landing page now defaults to a PO picker
+> (week-range combobox), the editor is a real DataGrid via the shared
+> `PurchaseOrderEditor` component, and the new-PO + edit-PO pages have real
+> inputs and persist. The `Week range = UNKNOWN` data bug is fixed at the
+> service layer.
+>
+> | Gap | Status | Where |
+> |---|---|---|
+> | PO-1 Edit page dev scaffold | DONE | `[id]/page.tsx` is now a 54-line shell over `<PurchaseOrderEditor>` |
+> | PO-2 New PO page dev scaffold | DONE | `new/page.tsx` rebuilt (247 lines, real inputs) |
+> | PO-3 no filter row | DONE | DataGrid migration (`7e9e5f4` 11-op + `c397b45` PO scoping) |
+> | PO-4 week-range selector + Create modal idiom | DONE | `page.tsx:127-150` PO picker combobox |
+> | PO-7 `Week range = UNKNOWN` on every list row | DONE | `PurchaseOrderService.toRow()` derives label from joined `mdm.week` entities; stored column ignored. Live probe confirms `"2025 / Wk15 - 2025 / Wk15"`, `"2026 / Wk01 - 2026 / Wk08"`, etc. |
+> | PO-8 comparator surface limited | DONE | 11-op backend + kind-scoped UI |
+> | PO-9 column visibility selector | DONE | DataGrid eye-icon dropdown |
+> | PO-12 title pluralization | DONE | `page.tsx:92` heading reads "Purchase Order" (singular) |
+> | PO-13 pagination run-on string | DONE | DataGrid pagination component |
+> | **PO-5** top-bar Export / Refresh Packout / Import | **OPEN** | not built — needs port of Mendix `RefreshPackout` microflow + Export endpoint surfacing |
+> | **PO-6** `PriceFulfilled` / `QtyFulfilled` columns | **OPEN** | DTO + grid column not yet added; depends on PO-5 backend work |
+> | **PO-10** "Fulfilled as of" timestamp indicator | **OPEN** | `po_refresh_timestamp` is present on the API row; surface it in the UI |
+> | PO-11 browser tab title generic | DONE | `purchase-orders/layout.tsx` server-component sets `metadata.title = "Purchase Order — ecoATM Sales Platform"`; verified via live browser tab |
+>
+> The bulk of §1-§8 below is preserved as historical baseline — screenshots
+> (`po/local-01-list.png`, `po/local-02-edit-po.png`, `po/local-03-new-po.png`)
+> predate the PO rebuild and no longer reflect the live surface.
+
 **Trigger:** User flagged "huge difference in UX" on the Purchase Order page. Walkthrough captures every clickable element on QA and the local equivalent (or absence).
 
-**Conclusion up front:** The two implementations express **fundamentally different mental models**. QA's PO page is a single line-item editor scoped by week-range with a polished MxDataGrid 2 grid; local's is a list-of-PO-headers UX with a dev-scaffold Edit page that's missing essentially every grid affordance QA ships. Closing this gap is a feature-class rewrite, not polish.
+**Conclusion up front (historical, 2026-05-08):** The two implementations expressed **fundamentally different mental models**. QA's PO page is a single line-item editor scoped by week-range with a polished MxDataGrid 2 grid; local's was a list-of-PO-headers UX with a dev-scaffold Edit page missing essentially every grid affordance QA shipped. Closing this gap was feature-class work, not polish.
 
 ---
 
