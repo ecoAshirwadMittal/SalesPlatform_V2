@@ -458,7 +458,7 @@ export default function AuctionSchedulePage() {
           fromReadOnly
           error={roundErrors.round2}
           toggle={{
-            label: 'Round 2 active',
+            label: 'Active',
             checked: form.round2Active,
             onChange: (v) => setActive('round2', v),
             disabled: formDisabled,
@@ -477,7 +477,7 @@ export default function AuctionSchedulePage() {
           fromReadOnly
           error={roundErrors.round3}
           toggle={{
-            label: 'Round 3 active',
+            label: 'Active',
             checked: form.round3Active,
             onChange: (v) => setActive('round3', v),
             disabled: formDisabled,
