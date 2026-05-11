@@ -30,11 +30,10 @@ export interface RoundErrors {
   round3?: string;
 }
 
-// Mendix parity: customer-facing display names. Round 3 is "Upsell Round".
 export const ROUND_LABELS = {
   1: 'Round 1',
   2: 'Round 2',
-  3: 'Upsell Round',
+  3: 'Round 3',
 } as const;
 
 /**

@@ -400,8 +400,6 @@ export default function AuctionSchedulePage() {
             ← Back to Inventory
           </Link>
           <span className={styles.metaSeparator}>·</span>
-          <span>{detail.weekDisplay}</span>
-          <span className={styles.metaSeparator}>·</span>
           <span
             className={`${styles.statusPill} ${
               detail.auctionStatus === 'Unscheduled' ? styles.statusPillMuted : ''
@@ -480,7 +478,7 @@ export default function AuctionSchedulePage() {
           fromReadOnly
           error={roundErrors.round3}
           toggle={{
-            label: 'Upsell round active',
+            label: 'Round 3 active',
             checked: form.round3Active,
             onChange: (v) => setActive('round3', v),
             disabled: formDisabled,
