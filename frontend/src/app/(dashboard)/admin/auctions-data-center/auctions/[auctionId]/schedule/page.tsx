@@ -439,54 +439,56 @@ export default function AuctionSchedulePage() {
         </div>
       )}
 
-      <RoundFieldset
-        title={ROUND_LABELS[1]}
-        fields={form.round1}
-        onChange={(field, value) => updateRoundField('round1', field, value)}
-        disabled={formDisabled}
-        error={roundErrors.round1}
-        stats={detail.roundStats.find((s) => s.round === 1) ?? null}
-      />
+      <div className={styles.roundsGrid}>
+        <RoundFieldset
+          title={ROUND_LABELS[1]}
+          fields={form.round1}
+          onChange={(field, value) => updateRoundField('round1', field, value)}
+          disabled={formDisabled}
+          error={roundErrors.round1}
+          stats={detail.roundStats.find((s) => s.round === 1) ?? null}
+        />
 
-      <RoundFieldset
-        title={ROUND_LABELS[2]}
-        fields={form.round2}
-        onChange={(field, value) => {
-          if (field === 'fromDate' || field === 'fromTime') return;
-          updateRoundField('round2', field, value);
-        }}
-        disabled={formDisabled || !form.round2Active}
-        fromReadOnly
-        error={roundErrors.round2}
-        toggle={{
-          label: 'Round 2 active',
-          checked: form.round2Active,
-          onChange: (v) => setActive('round2', v),
-          disabled: formDisabled,
-        }}
-        selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/2"
-        stats={detail.roundStats.find((s) => s.round === 2) ?? null}
-      />
+        <RoundFieldset
+          title={ROUND_LABELS[2]}
+          fields={form.round2}
+          onChange={(field, value) => {
+            if (field === 'fromDate' || field === 'fromTime') return;
+            updateRoundField('round2', field, value);
+          }}
+          disabled={formDisabled || !form.round2Active}
+          fromReadOnly
+          error={roundErrors.round2}
+          toggle={{
+            label: 'Round 2 active',
+            checked: form.round2Active,
+            onChange: (v) => setActive('round2', v),
+            disabled: formDisabled,
+          }}
+          selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/2"
+          stats={detail.roundStats.find((s) => s.round === 2) ?? null}
+        />
 
-      <RoundFieldset
-        title={ROUND_LABELS[3]}
-        fields={form.round3}
-        onChange={(field, value) => {
-          if (field === 'fromDate' || field === 'fromTime') return;
-          updateRoundField('round3', field, value);
-        }}
-        disabled={formDisabled || !form.round3Active}
-        fromReadOnly
-        error={roundErrors.round3}
-        toggle={{
-          label: 'Upsell round active',
-          checked: form.round3Active,
-          onChange: (v) => setActive('round3', v),
-          disabled: formDisabled,
-        }}
-        selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/3"
-        stats={detail.roundStats.find((s) => s.round === 3) ?? null}
-      />
+        <RoundFieldset
+          title={ROUND_LABELS[3]}
+          fields={form.round3}
+          onChange={(field, value) => {
+            if (field === 'fromDate' || field === 'fromTime') return;
+            updateRoundField('round3', field, value);
+          }}
+          disabled={formDisabled || !form.round3Active}
+          fromReadOnly
+          error={roundErrors.round3}
+          toggle={{
+            label: 'Upsell round active',
+            checked: form.round3Active,
+            onChange: (v) => setActive('round3', v),
+            disabled: formDisabled,
+          }}
+          selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/3"
+          stats={detail.roundStats.find((s) => s.round === 3) ?? null}
+        />
+      </div>
 
       {/* Gap H7: paginated preview of the inventory the rounds operate on,
           mirroring QA's Mendix scheduling page. weekId is guaranteed

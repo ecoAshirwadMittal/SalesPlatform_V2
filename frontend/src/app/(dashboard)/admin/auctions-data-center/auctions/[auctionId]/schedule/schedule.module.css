@@ -126,13 +126,40 @@
   max-width: 820px;
 }
 
+/* Two-column grid driving R1/R2 side-by-side with R3 spanning a single
+ * column underneath. The third-child override caps R3 to one column's
+ * worth of width so it doesn't stretch across both halves of the page.
+ * Below 960px every round stacks single-column. */
+.roundsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 1rem;
+  row-gap: 0.75rem;
+  max-width: 1280px;
+  margin-bottom: 1rem;
+}
+
+.roundsGrid > :nth-child(3) {
+  grid-column: 1 / -1;
+  max-width: calc(50% - 0.5rem);
+}
+
+@media (max-width: 960px) {
+  .roundsGrid {
+    grid-template-columns: 1fr;
+  }
+  .roundsGrid > :nth-child(3) {
+    max-width: none;
+  }
+}
+
 .roundCard {
   background: #fff;
   border: 1px solid #e5e5e5;
-  border-radius: 4px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 0.75rem;
-  max-width: 820px;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0;
+  max-width: none;
 }
 
 .roundHeader {
@@ -142,11 +169,14 @@
   margin-bottom: 0.75rem;
 }
 
+/* QA renders round headings in the sienna/brown family used by
+ * `.usericon_edit` and `.usericon_dashboard` accents (#713800). */
 .roundTitle {
   margin: 0;
-  font-size: 1rem;
+  font-size: 1.35rem;
   font-weight: 600;
-  color: #112d32;
+  letter-spacing: 0.01em;
+  color: #713800;
 }
 
 .activeToggle {
