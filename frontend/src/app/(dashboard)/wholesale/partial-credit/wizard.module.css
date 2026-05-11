@@ -1,0 +1,332 @@
+/* Shared wizard styles for the partial-credit submission flow.
+   Tokens lifted from the Figma source: Founders Grotesk typography,
+   #14AC36 primary CTA, #1C1B1C body text. */
+
+.page {
+  background: #F7F7F7;
+  min-height: calc(100vh - 80px);
+  padding: 24px 32px 80px;
+}
+
+.breadcrumb {
+  font-size: 14px;
+  color: #3C3C3C;
+  margin-bottom: 16px;
+}
+
+.breadcrumb a {
+  color: #3C3C3C;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+.heading {
+  font-size: 40px;
+  font-weight: 500;
+  color: #1C1B1C;
+  letter-spacing: -0.01em;
+  margin: 0 0 32px;
+}
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.stepNode {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepCircle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1.5px solid #A8A7A6;
+  color: #7D7B7A;
+  background: #FFFFFF;
+}
+
+.stepCircleActive {
+  background: #14AC36;
+  border-color: #14AC36;
+  color: #FFFFFF;
+}
+
+.stepCircleDone {
+  background: #14AC36;
+  border-color: #14AC36;
+  color: #FFFFFF;
+}
+
+.stepLabel {
+  font-size: 14px;
+  color: #3C3C3C;
+}
+
+.stepLabelActive {
+  color: #1C1B1C;
+  font-weight: 500;
+}
+
+.stepDivider {
+  width: 32px;
+  height: 1px;
+  background: #A8A7A6;
+}
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 12px;
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  max-width: 880px;
+}
+
+.cardHeading {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1C1B1C;
+  margin: 0 0 16px;
+}
+
+.cardSubheading {
+  font-size: 14px;
+  color: #534F4C;
+  margin: 0 0 16px;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1C1B1C;
+  margin-bottom: 6px;
+}
+
+.helperText {
+  font-size: 13px;
+  color: #534F4C;
+  margin-top: 6px;
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1px solid #A8A7A6;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 16px;
+  color: #1C1B1C;
+  font-family: inherit;
+  background: #FFFFFF;
+}
+
+.textarea {
+  min-height: 140px;
+  resize: vertical;
+}
+
+.input:focus,
+.textarea:focus {
+  outline: none;
+  border-color: #14AC36;
+  box-shadow: 0 0 0 3px rgba(20, 172, 54, 0.15);
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.checkboxRow input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  accent-color: #14AC36;
+}
+
+.checkboxLabel {
+  font-size: 16px;
+  color: #1C1B1C;
+}
+
+.radioGroup {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.radioGroup label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  color: #1C1B1C;
+  cursor: pointer;
+}
+
+.radioGroup input[type='radio'] {
+  accent-color: #14AC36;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 32px;
+  max-width: 880px;
+}
+
+.buttonSecondary {
+  background: #FFFFFF;
+  color: #1C1B1C;
+  border: 1px solid #A8A7A6;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonSecondary:hover {
+  background: #F7F5F1;
+}
+
+.buttonPrimary {
+  background: #14AC36;
+  color: #FFFFFF;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background: #0F9C2E;
+}
+
+.errorText {
+  color: #EB3300;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.warningBanner {
+  background: #FFF3EC;
+  border: 1px solid #F26B21;
+  color: #1C1B1C;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.statusPending  { background: #FFF3EC; color: #B85B1D; }
+.statusApproved { background: #E6F6EB; color: #0E7A26; }
+.statusDeclined { background: #FCE6E1; color: #B12D00; }
+.statusDraft    { background: #EFEFEF; color: #534F4C; }
+
+.list {
+  margin: 16px 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: #1C1B1C;
+}
+
+.list li { margin-bottom: 4px; }
+
+.gridTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #1C1B1C;
+}
+
+.gridTable th,
+.gridTable td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid #E6E5E4;
+}
+
+.gridTable th {
+  background: #F7F7F7;
+  font-weight: 500;
+  color: #3C3C3C;
+}
+
+.summarySection {
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  max-width: 880px;
+}
+
+.summarySection h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.confirmModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 27, 28, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.confirmCard {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 32px 40px;
+  max-width: 440px;
+  text-align: center;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.confirmCard h2 {
+  margin: 16px 0 8px;
+  font-size: 24px;
+}
+
+.confirmCard p {
+  margin: 0 0 24px;
+  color: #534F4C;
+}
