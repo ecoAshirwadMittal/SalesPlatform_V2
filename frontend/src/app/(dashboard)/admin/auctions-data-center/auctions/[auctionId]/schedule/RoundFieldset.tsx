@@ -1,36 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import styles from './schedule.module.css';
 import type { RoundStatsView } from '@/lib/auctions';
 import type { RoundFields } from './schedule-form';
 
 /**
- * Browser-detected timezone abbreviation (EST, CST, PST, etc.).
- * Mendix QA always rendered "EST" because the legacy app assumed the
- * eco team operated in Eastern; we surface the actual browser TZ
- * because the date/time inputs operate in browser-local time and a
- * fixed "EST" label would lie when the user is elsewhere.
- *
- * Empty string during SSR + first paint to avoid hydration mismatch
- * (server has no `Intl` timezone context). Renders nothing in that
- * window; the TZ tag pops in on hydrate, which is fine for a passive
- * label.
+ * QA's Mendix page hard-codes "EST" because the eco team operates in
+ * Eastern. We match the label for visual parity even though
+ * `<input type="time">` records browser-local wall-clock — true
+ * Eastern-zone conversion on submit is a separate effort. See
+ * `docs/tasks/auction-scheduling-final-three-plan.md`.
  */
-function useTimezoneAbbrev(): string {
-  const [tz, setTz] = useState('');
-  useEffect(() => {
-    try {
-      const parts = new Intl.DateTimeFormat('en-US', {
-        timeZoneName: 'short',
-      }).formatToParts(new Date());
-      setTz(parts.find((p) => p.type === 'timeZoneName')?.value ?? '');
-    } catch {
-      setTz('');
-    }
-  }, []);
-  return tz;
-}
+const TIMEZONE_LABEL = 'EST';
 
 interface RoundFieldsetProps {
   title: string;
@@ -92,7 +73,6 @@ export function RoundFieldset({
   stats,
 }: RoundFieldsetProps) {
   const id = title.toLowerCase().replace(/\s+/g, '-');
-  const tz = useTimezoneAbbrev();
   return (
     <section className={styles.roundCard} aria-labelledby={`${id}-title`}>
       <div className={styles.roundHeader}>
@@ -168,7 +148,7 @@ export function RoundFieldset({
           disabled={disabled || fromReadOnly}
           aria-readonly={fromReadOnly}
         />
-        {tz && <span className={styles.tzTag}>{tz}</span>}
+        <span className={styles.tzTag}>{TIMEZONE_LABEL}</span>
       </div>
       <div className={styles.timeRow}>
         <span className={styles.timeRowLabel}>To:</span>
@@ -188,7 +168,7 @@ export function RoundFieldset({
           onChange={(e) => onChange('toTime', e.target.value)}
           disabled={disabled}
         />
-        {tz && <span className={styles.tzTag}>{tz}</span>}
+        <span className={styles.tzTag}>{TIMEZONE_LABEL}</span>
       </div>
       {error && <span className={styles.inlineError}>{error}</span>}
     </section>
