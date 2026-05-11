@@ -230,6 +230,16 @@
   cursor: not-allowed;
 }
 
+/* QA's older Mendix datepicker is visually lighter than Chrome's
+ * default `::-webkit-calendar-picker-indicator`. Softening the glyph
+ * keeps the click-target (admin can still click to open the native
+ * picker) but lets the value text dominate. */
+.timeRow input[type="date"]::-webkit-calendar-picker-indicator,
+.timeRow input[type="time"]::-webkit-calendar-picker-indicator {
+  opacity: 0.45;
+  cursor: pointer;
+}
+
 .timeRowReadOnly input[type="date"],
 .timeRowReadOnly input[type="time"] {
   background: #f0eeec;
