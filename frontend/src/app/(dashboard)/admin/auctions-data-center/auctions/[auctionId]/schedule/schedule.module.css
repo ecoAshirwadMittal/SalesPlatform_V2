@@ -61,12 +61,6 @@
   color: #B7B5B5;
 }
 
-.subtitle {
-  font-size: 0.9rem;
-  color: #514F4E;
-  margin: 0;
-}
-
 .statusPill {
   display: inline-block;
   padding: 0.2rem 0.55rem;
@@ -115,15 +109,6 @@
 .titleSwitcher:focus {
   outline: 2px solid #407874;
   outline-offset: 0;
-}
-
-.card {
-  background: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
-  padding: 1.5rem;
-  margin-bottom: 1rem;
-  max-width: 820px;
 }
 
 /* Two-column grid driving R1/R2 side-by-side with R3 spanning a single
@@ -204,24 +189,6 @@
 
 .selectionRulesLink:hover {
   text-decoration: underline;
-}
-
-.fieldGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.75rem;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.field label {
-  font-size: 0.75rem;
-  color: #514F4E;
-  font-weight: 500;
 }
 
 /* QA renders each round body as two horizontal rows — "From: [date]
@@ -310,29 +277,6 @@
   letter-spacing: 0.02em;
   line-height: 1.4;
   vertical-align: middle;
-}
-
-.field input[type="date"],
-.field input[type="time"] {
-  height: 34px;
-  padding: 0 0.5rem;
-  border: 1px solid #B7B5B5;
-  border-radius: 4px;
-  font: inherit;
-  background: #fff;
-  color: #112d32;
-}
-
-.field input:disabled {
-  background: #f3f3f3;
-  color: #8a8a8a;
-  cursor: not-allowed;
-}
-
-.fieldReadOnly input[type="date"],
-.fieldReadOnly input[type="time"] {
-  background: #f7f7f7;
-  color: #514F4E;
 }
 
 .inlineError {
@@ -526,10 +470,4 @@
   border-radius: 4px;
   color: #b3261e;
   font-size: 0.85rem;
-}
-
-@media (max-width: 720px) {
-  .fieldGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
 }
