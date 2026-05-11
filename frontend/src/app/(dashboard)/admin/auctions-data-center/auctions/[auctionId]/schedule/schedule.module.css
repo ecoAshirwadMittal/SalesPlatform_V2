@@ -111,6 +111,17 @@
   outline-offset: 0;
 }
 
+/* Primary actions (Cancel / Schedule Auction) sit on the far right of
+ * the title row. `margin-left: auto` pushes them away from the title
+ * + switcher cluster so the layout reads "title / switcher .... actions"
+ * on wide screens and wraps cleanly on narrow ones. */
+.titleActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+}
+
 /* Three-column inline grid for R1/R2/R3. `minmax(0, 1fr)` is critical:
  * without the 0 min, the grid honors each column's min-content (the
  * From/To row's intrinsic width) and ends up wider than the container,

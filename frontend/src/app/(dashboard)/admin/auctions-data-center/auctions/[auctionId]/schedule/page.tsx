@@ -393,6 +393,22 @@ export default function AuctionSchedulePage() {
               </option>
             ))}
           </select>
+          <div className={styles.titleActions}>
+            <Link href={INVENTORY_PATH} className={styles.buttonGhost}>
+              {isReadOnly ? 'Back' : 'Cancel'}
+            </Link>
+            {!isReadOnly && (
+              <button
+                type="button"
+                className={styles.button}
+                onClick={openConfirm}
+                disabled={formDisabled}
+              >
+                Schedule Auction
+                <GavelIcon />
+              </button>
+            )}
+          </div>
         </div>
         <hr className={styles.headerRule} />
         <div className={styles.metaRow}>
@@ -491,43 +507,34 @@ export default function AuctionSchedulePage() {
           present on a loaded detail. */}
       <InventoryPreview weekId={detail.weekId} />
 
-      <div className={styles.actionsRow}>
-        {isAdministrator && !isReadOnly && (
-          <button
-            type="button"
-            className={styles.buttonDanger}
-            onClick={() => setDeleteConfirm(true)}
-            disabled={formDisabled}
-          >
-            {deleting ? 'Deleting…' : 'Delete Auction'}
-          </button>
-        )}
-        {isScheduled && !isReadOnly && (
-          <button
-            type="button"
-            className={styles.buttonGhost}
-            onClick={() => setUnscheduleConfirm(true)}
-            disabled={formDisabled}
-          >
-            {unscheduling ? 'Unscheduling…' : 'Unschedule'}
-          </button>
-        )}
-        <div className={styles.spacer} />
-        <Link href={INVENTORY_PATH} className={styles.buttonGhost}>
-          {isReadOnly ? 'Back' : 'Cancel'}
-        </Link>
-        {!isReadOnly && (
-          <button
-            type="button"
-            className={styles.button}
-            onClick={openConfirm}
-            disabled={formDisabled}
-          >
-            Schedule Auction
-            <GavelIcon />
-          </button>
-        )}
-      </div>
+      {/* Bottom row keeps the destructive actions (Delete / Unschedule);
+       * the primary Schedule Auction + Cancel pair now sits on the top
+       * right of the title row. We render the bottom row only when one
+       * of the destructive actions is reachable. */}
+      {((isAdministrator && !isReadOnly) || (isScheduled && !isReadOnly)) && (
+        <div className={styles.actionsRow}>
+          {isAdministrator && !isReadOnly && (
+            <button
+              type="button"
+              className={styles.buttonDanger}
+              onClick={() => setDeleteConfirm(true)}
+              disabled={formDisabled}
+            >
+              {deleting ? 'Deleting…' : 'Delete Auction'}
+            </button>
+          )}
+          {isScheduled && !isReadOnly && (
+            <button
+              type="button"
+              className={styles.buttonGhost}
+              onClick={() => setUnscheduleConfirm(true)}
+              disabled={formDisabled}
+            >
+              {unscheduling ? 'Unscheduling…' : 'Unschedule'}
+            </button>
+          )}
+        </div>
+      )}
 
       {confirmOpen && form && (
         <ConfirmModal
