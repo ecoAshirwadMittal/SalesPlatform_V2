@@ -501,6 +501,38 @@ class AuctionScheduleServiceTest {
                 .isInstanceOf(EntityNotFoundException.class);
     }
 
+    @Test
+    @DisplayName("getAuctionDetail — Unscheduled auction synthesizes R1/R2/R3 stats placeholders")
+    void getAuctionDetail_unscheduledAuction_returnsThreePlaceholderStats() {
+        // Unscheduled auction has no scheduling_auctions rows yet. QA still
+        // renders the per-round Buyers/Total/DW-Only line, so the service
+        // returns three placeholder RoundStatsView entries (buyerCount=null)
+        // with the weekly inventory totals.
+        long fakeTotalQty = 12_127L;
+        long fakeDwQty = 116L;
+        jakarta.persistence.Query queryStub = mock(jakarta.persistence.Query.class);
+        when(em.createNativeQuery(anyString())).thenReturn(queryStub);
+        when(queryStub.setParameter(anyString(), any())).thenReturn(queryStub);
+        when(queryStub.getSingleResult()).thenReturn(new Object[]{fakeTotalQty, fakeDwQty});
+
+        when(auctionRepository.findById(AUCTION_ID))
+                .thenReturn(Optional.of(auction(AUCTION_ID, AuctionStatus.Unscheduled)));
+        when(weekRepository.findById(WEEK_ID))
+                .thenReturn(Optional.of(week(WEEK_ID, WEEK_DISPLAY, WEEK_START)));
+        when(schedulingAuctionRepository.findByAuctionIdOrderByRoundAsc(AUCTION_ID))
+                .thenReturn(List.of());
+
+        AuctionDetailResponse detail = service.getAuctionDetail(AUCTION_ID);
+
+        assertThat(detail.roundStats()).hasSize(3);
+        assertThat(detail.roundStats()).extracting("round").containsExactly(1, 2, 3);
+        assertThat(detail.roundStats()).allSatisfy(stats -> {
+            assertThat(stats.buyerCount()).isNull();
+            assertThat(stats.totalQuantity()).isEqualTo(fakeTotalQty);
+            assertThat(stats.dwTotalQuantity()).isEqualTo(fakeDwQty);
+        });
+    }
+
     // ---------------- helpers ----------------
 
     private static ScheduleAuctionRequest validRequest() {

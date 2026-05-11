@@ -433,21 +433,21 @@ public class AuctionScheduleService {
 
     /**
      * Computes per-round Buyers / Total / DW-Only counts for the schedule
-     * editor (gap H5). Returns an empty list when {@code rounds} is empty
-     * (Unscheduled auction). Total + DW-Only repeat across rounds because
-     * the weekly inventory snapshot is auction-wide, not per-round.
+     * editor (gap H5). Total + DW-Only repeat across rounds because the
+     * weekly inventory snapshot is auction-wide, not per-round.
      *
      * <p>{@code buyerCount} is the count of {@code qualified_buyer_codes}
      * rows for the round's SA where {@code included = true}. Returns null
      * for rounds with no QBCs yet (pre-init), letting the frontend render
      * "All" instead of "0".
+     *
+     * <p>For Unscheduled auctions ({@code rounds.isEmpty()}) we synthesize
+     * three placeholder rows (R1, R2, R3) so the QA-parity stats line
+     * still renders alongside each round card. Buyer count stays null in
+     * that case because no QBCs exist yet — frontend shows "All".
      */
     @SuppressWarnings("unchecked")
     private List<RoundStatsView> computeRoundStats(Long weekId, List<SchedulingAuction> rounds) {
-        if (rounds.isEmpty()) {
-            return List.of();
-        }
-
         // Single query for week-scoped inventory totals (same for every round).
         // Postgres `::bigint` cast collides with Hibernate's named-param
         // tokenizer; use ANSI CAST(... AS bigint) instead (same workaround
@@ -463,6 +463,13 @@ public class AuctionScheduleService {
                 .getSingleResult();
         long totalQuantity = ((Number) totals[0]).longValue();
         long dwTotalQuantity = ((Number) totals[1]).longValue();
+
+        if (rounds.isEmpty()) {
+            return List.of(
+                    new RoundStatsView(1, null, totalQuantity, dwTotalQuantity),
+                    new RoundStatsView(2, null, totalQuantity, dwTotalQuantity),
+                    new RoundStatsView(3, null, totalQuantity, dwTotalQuantity));
+        }
 
         // Single query for per-SA buyer counts (sa_id -> count). One row per
         // SA in the rounds list; rounds with zero matching QBCs simply

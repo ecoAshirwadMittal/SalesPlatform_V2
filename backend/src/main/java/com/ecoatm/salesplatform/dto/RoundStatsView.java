@@ -9,7 +9,8 @@ package com.ecoatm.salesplatform.dto;
  * repeat across the three RoundStatsView rows. {@code buyerCount} is
  * per-round: count of {@code qualified_buyer_codes} rows for the SA
  * with {@code included = true}, or {@code null} when no QBCs exist
- * for that round yet (pre-R2-init / pre-R3-pre-process). Frontend
+ * for that round yet (pre-R2-init / pre-R3-pre-process, or any time
+ * the auction is still Unscheduled and no SA rows exist). Frontend
  * renders "All" for null.
  */
 public record RoundStatsView(
