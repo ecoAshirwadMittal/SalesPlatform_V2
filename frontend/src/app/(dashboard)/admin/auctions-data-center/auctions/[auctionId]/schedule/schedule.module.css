@@ -357,6 +357,10 @@
   border-radius: 4px;
   font: inherit;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .buttonGhost:hover {
