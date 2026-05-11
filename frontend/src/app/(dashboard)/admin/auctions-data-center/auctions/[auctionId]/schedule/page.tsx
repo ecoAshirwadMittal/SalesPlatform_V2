@@ -464,7 +464,6 @@ export default function AuctionSchedulePage() {
             disabled: formDisabled,
           }}
           selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/2"
-          stats={detail.roundStats.find((s) => s.round === 2) ?? null}
         />
 
         <RoundFieldset
@@ -484,7 +483,6 @@ export default function AuctionSchedulePage() {
             disabled: formDisabled,
           }}
           selectionRulesHref="/admin/auctions-data-center/auctions/round-filters/3"
-          stats={detail.roundStats.find((s) => s.round === 3) ?? null}
         />
       </div>
 
