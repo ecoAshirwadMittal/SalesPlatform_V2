@@ -314,3 +314,13 @@ recalc:
   snowflake:
     bid-ranking-writer: logging      # logging | jdbc
     target-price-writer: logging     # logging | jdbc
+
+# ─────────────────────────────────────
+# Partial Credit Requests — Snowflake reader selection
+# Default 'logging' returns empty results, so unit/IT tests don't need a
+# live Snowflake DataSource. Flip to 'jdbc' in prod to wire
+# AUCTIONS.VW_SALE_ORDER_SHIPMENT reads.
+# ─────────────────────────────────────
+partial-credit:
+  snowflake:
+    reader: logging                  # logging | jdbc
