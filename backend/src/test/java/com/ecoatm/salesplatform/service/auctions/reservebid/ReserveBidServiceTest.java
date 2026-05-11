@@ -39,13 +39,14 @@ class ReserveBidServiceTest {
     @Mock ReserveBidRepository repo;
     @Mock ReserveBidAuditRepository auditRepo;
     @Mock ReserveBidSyncRepository syncRepo;
+    @Mock com.ecoatm.salesplatform.repository.UserRepository userRepo;
     @Mock ApplicationEventPublisher publisher;
 
     ReserveBidService service;
 
     @BeforeEach
     void setUp() {
-        service = new ReserveBidService(repo, auditRepo, syncRepo, publisher, null, null, null);
+        service = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher, null, null, null);
     }
 
     @Test
@@ -150,7 +151,7 @@ class ReserveBidServiceTest {
             return r;
         });
 
-        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
+        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher,
                 null, new ReserveBidExcelParser(), null);
 
         byte[] bytes = java.nio.file.Files.readAllBytes(
@@ -174,7 +175,7 @@ class ReserveBidServiceTest {
             return r;
         });
 
-        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, publisher,
+        ReserveBidService real = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher,
                 null, new ReserveBidExcelParser(), null);
 
         byte[] bytes = java.nio.file.Files.readAllBytes(
@@ -210,7 +211,7 @@ class ReserveBidServiceTest {
     }
 
     @Test
-    void findAudit_returnsPagedTrail() {
+    void findAudit_returnsPagedTrailWithChangedByUsername() {
         ReserveBid rb = existing("55001", "A_YYY", "10");
         when(repo.findById(55001L)).thenReturn(Optional.of(rb));
 
@@ -220,12 +221,42 @@ class ReserveBidServiceTest {
         a.setOldPrice(new BigDecimal("10"));
         a.setNewPrice(new BigDecimal("12"));
         a.setCreatedDate(Instant.now());
+        a.setChangedById(9001L);
         when(auditRepo.findByReserveBidIdOrderByCreatedDateDesc(eq(55001L), any()))
                 .thenReturn(new PageImpl<>(java.util.List.of(a), PageRequest.of(0, 20), 1));
+
+        com.ecoatm.salesplatform.model.User editor = new com.ecoatm.salesplatform.model.User();
+        editor.setId(9001L);
+        editor.setName("admin@test.com");
+        when(userRepo.findAllById(java.util.Set.of(9001L)))
+                .thenReturn(java.util.List.of(editor));
 
         var resp = service.findAudit(55001L, 0, 20);
         assertThat(resp.rows()).hasSize(1);
         assertThat(resp.rows().get(0).newPrice()).isEqualByComparingTo("12");
+        assertThat(resp.rows().get(0).changedByUsername()).isEqualTo("admin@test.com");
+    }
+
+    @Test
+    void findAudit_nullChangedByRendersNullUsername() {
+        // Legacy/Snowflake-pull audit rows have no user attribution. The
+        // service must tolerate the null FK and skip the user lookup.
+        ReserveBid rb = existing("55002", "A_YYY", "10");
+        when(repo.findById(55002L)).thenReturn(Optional.of(rb));
+
+        ReserveBidAudit a = new ReserveBidAudit();
+        a.setId(2L);
+        a.setReserveBidId(55002L);
+        a.setOldPrice(new BigDecimal("10"));
+        a.setNewPrice(new BigDecimal("12"));
+        a.setCreatedDate(Instant.now());
+        a.setChangedById(null);
+        when(auditRepo.findByReserveBidIdOrderByCreatedDateDesc(eq(55002L), any()))
+                .thenReturn(new PageImpl<>(java.util.List.of(a), PageRequest.of(0, 20), 1));
+
+        var resp = service.findAudit(55002L, 0, 20);
+        assertThat(resp.rows().get(0).changedByUsername()).isNull();
+        verify(userRepo, never()).findAllById(any());
     }
 
     @Test
@@ -237,7 +268,7 @@ class ReserveBidServiceTest {
         ReserveBidSnowflakeReader reader = mock(ReserveBidSnowflakeReader.class);
         when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-01T00:00:00Z")));
 
-        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher, reader, null, null);
         var status = svc.syncStatus();
         assertThat(status.state()).isEqualTo(ReserveBidSyncStatus.NEVER_SYNCED);
     }
@@ -251,7 +282,7 @@ class ReserveBidServiceTest {
         ReserveBidSnowflakeReader reader = mock(ReserveBidSnowflakeReader.class);
         when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-10T00:00:00Z")));
 
-        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher, reader, null, null);
         int n = svc.runScheduledSync();
 
         assertThat(n).isZero();
@@ -270,7 +301,7 @@ class ReserveBidServiceTest {
         when(reader.fetchMaxUploadTime()).thenReturn(Optional.of(Instant.parse("2026-04-15T00:00:00Z")));
         when(reader.fetchAll()).thenReturn(java.util.List.of(existing("1", "G", "1"), existing("2", "G", "2")));
 
-        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, publisher, reader, null, null);
+        ReserveBidService svc = new ReserveBidService(repo, auditRepo, syncRepo, userRepo, publisher, reader, null, null);
         int n = svc.runScheduledSync();
 
         assertThat(n).isEqualTo(2);

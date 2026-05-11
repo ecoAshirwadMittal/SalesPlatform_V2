@@ -4,6 +4,8 @@ import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.event.ReserveBidChangedEvent;
 import com.ecoatm.salesplatform.model.auctions.ReserveBid;
 import com.ecoatm.salesplatform.model.auctions.ReserveBidAudit;
+import com.ecoatm.salesplatform.model.User;
+import com.ecoatm.salesplatform.repository.UserRepository;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidAuditRepository;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidRepository;
 import com.ecoatm.salesplatform.repository.auctions.ReserveBidSyncRepository;
@@ -17,7 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -29,6 +35,7 @@ public class ReserveBidService {
     private final ReserveBidRepository repo;
     private final ReserveBidAuditRepository auditRepo;
     private final ReserveBidSyncRepository syncRepo;
+    private final UserRepository userRepo;
     private final ApplicationEventPublisher publisher;
     private final com.ecoatm.salesplatform.service.auctions.snowflake.ReserveBidSnowflakeReader snowflakeReader;
     private final ReserveBidExcelParser excelParser;
@@ -37,6 +44,7 @@ public class ReserveBidService {
     public ReserveBidService(ReserveBidRepository repo,
                              ReserveBidAuditRepository auditRepo,
                              ReserveBidSyncRepository syncRepo,
+                             UserRepository userRepo,
                              ApplicationEventPublisher publisher,
                              com.ecoatm.salesplatform.service.auctions.snowflake.ReserveBidSnowflakeReader snowflakeReader,
                              ReserveBidExcelParser excelParser,
@@ -44,6 +52,7 @@ public class ReserveBidService {
         this.repo = repo;
         this.auditRepo = auditRepo;
         this.syncRepo = syncRepo;
+        this.userRepo = userRepo;
         this.publisher = publisher;
         this.snowflakeReader = snowflakeReader;
         this.excelParser = excelParser;
@@ -263,17 +272,31 @@ public class ReserveBidService {
 
     @Transactional(readOnly = true)
     public com.ecoatm.salesplatform.dto.ReserveBidAuditResponse findAudit(long reserveBidId, int page, int size) {
-        repo.findById(reserveBidId).orElseThrow(() ->
+        ReserveBid rb = repo.findById(reserveBidId).orElseThrow(() ->
                 new ReserveBidException("RESERVE_BID_NOT_FOUND", "reserve_bid not found: " + reserveBidId));
 
         org.springframework.data.domain.Page<ReserveBidAudit> p =
                 auditRepo.findByReserveBidIdOrderByCreatedDateDesc(reserveBidId,
                         org.springframework.data.domain.PageRequest.of(page, size));
 
-        ReserveBid rb = repo.findById(reserveBidId).get();
+        // Bulk-resolve changed_by_id -> identity.users.name so the modal can
+        // render "Changed by" instead of a blank column. Older audits and
+        // Snowflake-pull rows may have a null changed_by_id; we render those
+        // as null on the wire and let the FE show a placeholder.
+        Set<Long> userIds = new HashSet<>();
+        for (ReserveBidAudit a : p.getContent()) {
+            if (a.getChangedById() != null) userIds.add(a.getChangedById());
+        }
+        Map<Long, String> nameById = userIds.isEmpty()
+                ? Map.of()
+                : userRepo.findAllById(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, User::getName));
+
         var rows = p.getContent().stream().map(a -> new com.ecoatm.salesplatform.dto.ReserveBidAuditRow(
                 a.getId(), a.getReserveBidId(), rb.getProductId(), rb.getGrade(),
-                a.getOldPrice(), a.getNewPrice(), a.getCreatedDate(), null)).toList();
+                a.getOldPrice(), a.getNewPrice(), a.getCreatedDate(),
+                a.getChangedById() == null ? null : nameById.get(a.getChangedById())
+        )).toList();
         return new com.ecoatm.salesplatform.dto.ReserveBidAuditResponse(rows, p.getTotalElements(), page, size);
     }
 
