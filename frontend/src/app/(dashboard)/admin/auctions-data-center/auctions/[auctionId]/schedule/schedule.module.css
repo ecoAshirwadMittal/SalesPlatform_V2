@@ -15,17 +15,50 @@
 
 .header {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0;
   margin-bottom: 1rem;
 }
 
+/* Inline title + auction switcher row — switcher sits to the right of
+ * the <h1> rather than stacking below a "SWITCH AUCTION" caption.
+ * Baseline alignment keeps the dropdown sitting on the title's baseline
+ * so it doesn't look like a header subtitle of its own. */
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .title {
-  font-size: 1.75rem;
+  font-size: clamp(2.25rem, 1.5rem + 2vw, 3rem);
   font-weight: 600;
+  line-height: 1.1;
   color: #112d32;
   margin: 0;
-  margin-right: auto;
+}
+
+/* Sienna/brown HR matches QA's `.HeaderBar` rule. */
+.headerRule {
+  border: 0;
+  border-top: 1px solid #C5C1C1;
+  margin: 0.35rem 0 1rem;
+}
+
+/* Compressed meta strip beneath the title — back link, week, status pill,
+ * R2-qualified-buyers deep link. Replaces the old stacked subtitle. */
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: #514F4E;
+}
+
+.metaSeparator {
+  color: #B7B5B5;
 }
 
 .subtitle {
@@ -60,43 +93,26 @@
 }
 
 /*
- * M11a (2026-05-07): auction-switcher dropdown in the page header.
- * Mirrors QA's Mendix scheduling page — the admin can pivot between
- * auctions without going back to the inventory list. The label is
- * stacked above the select so the control reads naturally on both
- * desktop and the ≤720px breakpoint where the round fields collapse
- * to two columns.
+ * Inline auction switcher (M11a). QA renders the switcher beside the
+ * title with no caption, so we drop the old stacked label block and
+ * rely on a brief visual association: title + switcher share a row,
+ * the title carries the meaning, the switcher offers the pivot.
  */
-.auctionSwitcher {
-  display: inline-flex;
-  flex-direction: column;
-  align-self: flex-end;
-  gap: 0.2rem;
-}
-
-.auctionSwitcherLabel {
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: #514F4E;
-  font-weight: 500;
-}
-
-.auctionSwitcherSelect {
-  height: 30px;
+.titleSwitcher {
+  height: 32px;
   padding: 0 0.5rem;
   border: 1px solid #B7B5B5;
   border-radius: 4px;
   background: #fff;
   color: #112d32;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   min-width: 220px;
-  max-width: 320px;
+  max-width: 280px;
   cursor: pointer;
 }
 
-.auctionSwitcherSelect:focus {
+.titleSwitcher:focus {
   outline: 2px solid #407874;
   outline-offset: 0;
 }

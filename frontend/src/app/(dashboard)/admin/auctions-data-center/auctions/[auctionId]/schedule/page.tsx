@@ -365,36 +365,18 @@ export default function AuctionSchedulePage() {
   return (
     <div className={styles.page}>
       <header className={styles.header}>
-        <div style={{ marginRight: 'auto' }}>
-          <Link href={INVENTORY_PATH} className={styles.backLink}>
-            ← Back to Inventory
-          </Link>
+        <div className={styles.titleRow}>
           <h1 className={styles.title}>{detail.auctionTitle}</h1>
-          <p className={styles.subtitle}>
-            {detail.weekDisplay}
-            {' · '}
-            <span
-              className={`${styles.statusPill} ${
-                detail.auctionStatus === 'Unscheduled' ? styles.statusPillMuted : ''
-              }`}
-            >
-              {detail.auctionStatus}
-            </span>
-          </p>
-        </div>
-        {/* M11a: auction switcher — pivot to another auction's schedule
-            page without going through the inventory list. The list is
-            sorted newest-first server-side. We synthesise the current
-            auction into the option list as a fallback so the <select>
-            shows a value even if the listAuctions call hadn't returned
-            (or the id is older than the page-size cutoff). */}
-        <div className={styles.auctionSwitcher}>
-          <label htmlFor="auction-switcher" className={styles.auctionSwitcherLabel}>
-            Switch auction
-          </label>
+          {/* M11a: auction switcher — pivot to another auction's schedule
+              page without going through the inventory list. The list is
+              sorted newest-first server-side. We synthesise the current
+              auction into the option list as a fallback so the <select>
+              shows a value even if the listAuctions call hadn't returned
+              (or the id is older than the page-size cutoff). */}
           <select
             id="auction-switcher"
-            className={styles.auctionSwitcherSelect}
+            aria-label="Switch auction"
+            className={styles.titleSwitcher}
             value={auctionId}
             onChange={(e) => {
               const next = Number(e.target.value);
@@ -402,9 +384,6 @@ export default function AuctionSchedulePage() {
               router.push(`/admin/auctions-data-center/auctions/${next}/schedule`);
             }}
           >
-            {/* Ensure the current auction is selectable even if the
-                fetch hasn't landed yet or the auction is older than
-                the page-size cutoff. */}
             {!auctionList.some((a) => a.id === auctionId) && (
               <option value={auctionId}>{detail.auctionTitle}</option>
             )}
@@ -415,19 +394,35 @@ export default function AuctionSchedulePage() {
             ))}
           </select>
         </div>
-        {/* H10: deep-link to the R2 qualified-buyers result view. Visible
-            once R2 init has run at least once (Started, Closed, or any
-            non-Unscheduled status). Pre-R2-init the page would show an
-            empty grid, so we hide the link rather than confuse SalesOps. */}
-        {detail.auctionStatus !== 'Unscheduled' && (
-          <Link
-            href={`/admin/auctions-data-center/auctions/${auctionId}/r2-qualified-buyers`}
-            className={styles.backLink}
-            style={{ alignSelf: 'flex-end' }}
-          >
-            View R2 qualified buyers →
+        <hr className={styles.headerRule} />
+        <div className={styles.metaRow}>
+          <Link href={INVENTORY_PATH} className={styles.backLink}>
+            ← Back to Inventory
           </Link>
-        )}
+          <span className={styles.metaSeparator}>·</span>
+          <span>{detail.weekDisplay}</span>
+          <span className={styles.metaSeparator}>·</span>
+          <span
+            className={`${styles.statusPill} ${
+              detail.auctionStatus === 'Unscheduled' ? styles.statusPillMuted : ''
+            }`}
+          >
+            {detail.auctionStatus}
+          </span>
+          {/* H10: deep-link to the R2 qualified-buyers result view. Pre-R2
+              there is nothing to show, so we hide rather than dead-end. */}
+          {detail.auctionStatus !== 'Unscheduled' && (
+            <>
+              <span className={styles.metaSeparator}>·</span>
+              <Link
+                href={`/admin/auctions-data-center/auctions/${auctionId}/r2-qualified-buyers`}
+                className={styles.backLink}
+              >
+                View R2 qualified buyers →
+              </Link>
+            </>
+          )}
+        </div>
       </header>
 
       {isReadOnly && (
