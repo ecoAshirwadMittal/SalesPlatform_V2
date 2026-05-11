@@ -1,16 +1,54 @@
 # Reserve Bids (EB) — QA vs Local Walkthrough (2026-05-08)
 
+> ### Status update — 2026-05-11
+>
+> Sprints A + B from §11 are essentially complete. The dev-scaffold state described
+> below is **no longer current**; the surface has been rebuilt around the reusable
+> `DataGrid` component (kind-scoped comparators, column selector, portal popovers,
+> 11-op backend) plus an audit modal and an upload modal that match QA's mental model.
+>
+> | Gap | Status | Where |
+> |---|---|---|
+> | RB-1 heading sizing | DONE | DataGrid migration in `a444f14`-era |
+> | RB-2 unstyled top-bar buttons | DONE | top-bar uses `btn-primary-green` / `btn-outline` |
+> | RB-3 `/new` route divergence | ACCEPTED | ADR in `docs/architecture/decisions.md` |
+> | RB-4 / RB-20 upload-button copy | DONE | `page.tsx:140` reads "Upload EB Price" |
+> | RB-5 list 500 | DONE | data loads — verified via live probe |
+> | RB-6 filter row | DONE | 11-op backend (`7e9e5f4`) + kind-scoped UI |
+> | RB-7 sort indicators | DONE | DataGrid handles per-column sort |
+> | RB-8 column selector | DONE | DataGrid eye-icon dropdown |
+> | RB-9 column header "Audit" | DONE | `page.tsx:162` `rowActionsLabel="Audit"` |
+> | RB-10 "Model Name" | DONE | `page.tsx:90` `label: "Model Name"` |
+> | RB-11 pagination First/Last + total | DONE | DataGrid pagination component |
+> | RB-12 date filter on Last Updated | DONE | column declares `filter: { kind: "date" }` — DataGrid's date comparator drives the popover |
+> | RB-13 audit data missing | DONE | `cb81b3c` — `changedByUsername` populated from `identity.users.name` |
+> | RB-14 audit modal vs route | DONE | `ReserveBidAuditModal.tsx` |
+> | RB-15 redundant Product/Grade cols | DONE | modal scoped via trigger — 4 cols only |
+> | RB-16 "Old" / "New" | DONE | modal headers say "Old price" / "New price" |
+> | RB-17 "When" vs "Changed On" | DONE | modal header says "Changed On" |
+> | RB-18 upload as route vs modal | DONE | `ReserveBidUploadModal.tsx` |
+> | RB-19 upload page dev scaffold | DONE | shared `ReserveBidUploadForm` used by both modal and `/upload` deep-link |
+> | RB-21 / RB-22 `/new` form | DONE | `new/page.tsx` has real inputs + create call |
+> | RB-23 internal PK in heading | DONE | `[id]/page.tsx:65` heading reads `Product #${productId}`, internal id demoted to a muted line |
+> | RB-24 detail page non-functional | DONE | `[id]/page.tsx` has editable inputs + save |
+> | RB-25 / RB-26 / RB-27 divergences | ACCEPTED | as noted in the doc |
+>
+> Everything below the §10 gap inventory is preserved as the historical baseline. If
+> you need to re-audit the page, run the playbook fresh — the screenshots referenced
+> here (`local-12-audit-page.png`, `local-11-detail-edit.png`, etc.) predate the
+> DataGrid migration and no longer reflect the live surface.
+
 **Trigger:** User flagged a "huge UX difference" on the Reserve Bids page and asked for the
 [QA-vs-local audit playbook](qa-vs-local-page-audit-playbook.md) to be run against it.
 
-**Conclusion up front:** The local Reserve Bids surface is in **dev-scaffold state** across
-all five routes (`/`, `/upload`, `/new`, `/[id]`, `/[id]/audit`) — the list endpoint
-returns HTTP 500, every page renders as plain unstyled text (heading `H1 16px` vs QA's
-`H2 42px`, buttons computed `0px padding, transparent background`), and the architectural
-model diverges from QA in three structural ways: (1) Audit is a separate route locally
-but a modal in QA, (2) local exposes a `/new` manual-create route QA does not have, (3)
-local collapses 6 per-column filters + 11 comparators + date-picker into 2 plain text
-inputs above the grid. This is feature-class work, not pixel polish.
+**Conclusion up front (historical, 2026-05-08):** The local Reserve Bids surface was in
+**dev-scaffold state** across all five routes (`/`, `/upload`, `/new`, `/[id]`, `/[id]/audit`)
+— the list endpoint returned HTTP 500, every page rendered as plain unstyled text (heading
+`H1 16px` vs QA's `H2 42px`, buttons computed `0px padding, transparent background`), and the
+architectural model diverged from QA in three structural ways: (1) Audit was a separate route
+locally but a modal in QA, (2) local exposed a `/new` manual-create route QA did not have, (3)
+local collapsed 6 per-column filters + 11 comparators + date-picker into 2 plain text inputs
+above the grid. This was feature-class work, not pixel polish.
 
 ---
 
