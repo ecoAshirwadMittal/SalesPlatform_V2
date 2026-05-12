@@ -1,0 +1,637 @@
+/* Admin Partial Credit surface — landing list + review detail.
+   Tokens are lifted from `partial-credit-sprint3-design-notes.md` §6:
+     #14AC36  primary green (Complete Review, Approve All)
+     #1C1B1C  primary text
+     #6F6F6F  header-strip field labels
+     #A8A7A6  table cell border
+     #B7B5B5  counter chip border / summary panel border
+     #D8E5D9  sticky Action / Amount-to-Credit column tint
+     #EFECE4  counter chip unselected fill
+     #F7F5F1  reason card cream background
+     #FEF48F  counter chip SELECTED fill
+   Status pill colours come live from the DB (§11.Q5) — never hardcode. */
+
+.page {
+  background: #F7F7F7;
+  min-height: calc(100vh - 80px);
+  padding: 24px 32px 80px;
+}
+
+.heading {
+  font-size: 40px;
+  font-weight: 500;
+  color: #1C1B1C;
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.headingRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.headingRowEnd {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.breadcrumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #3C3C3C;
+  margin-bottom: 12px;
+}
+
+.breadcrumb a {
+  color: #3C3C3C;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Status counter chips (landing) ---------- */
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #EFECE4;
+  border: 1px solid #B7B5B5;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1C1B1C;
+  cursor: pointer;
+  transition: background 120ms ease-out;
+}
+
+.chip:hover {
+  background: #E5E2DA;
+}
+
+.chipActive {
+  background: #FEF48F;
+  border-width: 2px;
+  /* Account for the extra 1px of border so the chip doesn't jiggle on
+     toggle. */
+  padding: 5px 11px;
+}
+
+.chipCount {
+  font-weight: 500;
+}
+
+/* ---------- Filter chip row ---------- */
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 24px;
+  padding: 16px;
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 8px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  color: #6F6F6F;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.filterInput {
+  font-size: 14px;
+  padding: 6px 10px;
+  border: 1px solid #B7B5B5;
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: #1C1B1C;
+  min-width: 140px;
+}
+
+.filterInput:focus {
+  outline: 2px solid #14AC36;
+  outline-offset: -1px;
+}
+
+.filterDate {
+  /* Slightly tighter than free-text — date is fixed-width. */
+  min-width: 130px;
+}
+
+.filterClear {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #534F4C;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ---------- Landing table ---------- */
+
+.tableCard {
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.gridTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #1C1B1C;
+}
+
+.gridTable th,
+.gridTable td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 1px solid #E6E5E4;
+}
+
+.gridTable th {
+  background: #F7F5F1;
+  font-weight: 500;
+  color: #1C1B1C;
+  font-size: 13px;
+}
+
+.gridTable tr:last-child td {
+  border-bottom: none;
+}
+
+.iconActionCell {
+  width: 48px;
+  text-align: center;
+}
+
+.eyeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #534F4C;
+  font-size: 18px;
+  padding: 4px 6px;
+  border-radius: 4px;
+}
+
+.eyeButton:hover {
+  background: #F0EBE3;
+}
+
+/* Status pill — colour comes from the inline style. Pill chrome only. */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+
+/* ---------- Empty state ---------- */
+
+.emptyState {
+  padding: 48px 24px;
+  text-align: center;
+  font-size: 16px;
+  color: #1C1B1C;
+}
+
+/* ---------- Pagination ---------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #534F4C;
+}
+
+.pageButton {
+  background: #FFFFFF;
+  border: 1px solid #B7B5B5;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #1C1B1C;
+  cursor: pointer;
+}
+
+.pageButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Detail page chrome ---------- */
+
+.detailPage {
+  background: #F7F7F7;
+  min-height: calc(100vh - 80px);
+  padding: 24px 32px 80px;
+}
+
+.headerStrip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px;
+  padding: 24px 32px;
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.headerField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 140px;
+}
+
+.headerLabel {
+  font-size: 13px;
+  color: #6F6F6F;
+  line-height: 1;
+}
+
+.headerValue {
+  font-size: 18px;
+  color: #1C1B1C;
+  line-height: 1.2;
+}
+
+.detailActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- Summary panels (Requested / Total Credit) ---------- */
+
+.summaryRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.summaryPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summaryPanelLabel {
+  font-size: 18px;
+  font-weight: 500;
+  color: #1C1B1C;
+}
+
+.summaryPanelTable {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(60px, 1fr));
+  column-gap: 24px;
+  row-gap: 6px;
+  background: #FFFFFF;
+  border: 1px solid #B7B5B5;
+  border-radius: 6px;
+  padding: 12px 16px;
+  min-width: 220px;
+}
+
+.summaryCellHeader {
+  font-size: 11px;
+  color: #1C1B1C;
+  line-height: 1;
+}
+
+.summaryCellValue {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1C1B1C;
+  line-height: 1;
+}
+
+.summaryDivider {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: #B7B5B5;
+}
+
+/* ---------- Reason section card ---------- */
+
+.sectionCard {
+  background: #FFFFFF;
+  border: 1px solid #E6E5E4;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  box-shadow:
+    0 1px 2px -1px rgba(0, 0, 0, 0.1),
+    0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 32px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.sectionTitle {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1C1B1C;
+  margin: 0;
+}
+
+.sectionCount {
+  font-size: 13px;
+  color: #534F4C;
+  padding: 2px 10px;
+  background: #F7F5F1;
+  border-radius: 999px;
+}
+
+.sectionActions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionBody {
+  padding: 0 8px 8px;
+  overflow-x: auto;
+}
+
+.chevron {
+  font-size: 16px;
+  color: #534F4C;
+  transition: transform 200ms ease-out;
+}
+
+.chevronOpen {
+  transform: rotate(180deg);
+}
+
+/* ---------- Per-section table ---------- */
+
+.lineTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  color: #1C1B1C;
+}
+
+.lineTable th {
+  background: #F7F5F1;
+  font-weight: 500;
+  color: #1C1B1C;
+  font-size: 13px;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 0.81px solid #A8A7A6;
+}
+
+.lineTable td {
+  padding: 10px 12px;
+  border-bottom: 0.81px solid #A8A7A6;
+  vertical-align: middle;
+}
+
+.lineTable tr:last-child td {
+  border-bottom: none;
+}
+
+/* Sticky-look green-tint columns: Action + Amount-to-Credit. */
+.actionCell,
+.amountCreditCell {
+  background: #D8E5D9;
+}
+
+/* ---------- Dropdowns + inputs inside line rows ---------- */
+
+.lineDropdown {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #A8A7A6;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #1C1B1C;
+  min-width: 110px;
+}
+
+.actualValueInput {
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid #A8A7A6;
+  border-radius: 4px;
+  background: #FFFFFF;
+  color: #1C1B1C;
+  width: 100px;
+}
+
+/* Per §11.Q3 — empty Actual Value gets a green-tinted background so the
+   reviewer can spot the column at a glance. */
+.actualValueInputEmpty {
+  background: #ECF4ED;
+}
+
+/* ---------- Buttons ---------- */
+
+.buttonPrimary {
+  background: #14AC36;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonPrimary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.buttonDanger {
+  background: #B3261E;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonGhost {
+  background: #FFFFFF;
+  color: #1C1B1C;
+  border: 1px solid #B7B5B5;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonAcceptSmall {
+  background: #14AC36;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonAcceptSmall:disabled,
+.buttonDanger:disabled,
+.buttonGhost:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ---------- Bulk action banner ---------- */
+
+.bulkBanner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 32px;
+  background: #F0EBE3;
+  border: 1px solid #E6E5E4;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.bulkBannerLabel {
+  font-size: 14px;
+  color: #1C1B1C;
+  font-weight: 500;
+}
+
+/* ---------- Complete Review modal ---------- */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 27, 28, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.modalCard {
+  background: #FFFFFF;
+  border-radius: 12px;
+  padding: 28px 32px;
+  width: 480px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modalHeading {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 500;
+  color: #1C1B1C;
+}
+
+.modalBody {
+  margin: 0;
+  font-size: 14px;
+  color: #3C3C3C;
+  line-height: 1.5;
+}
+
+.modalErrorBanner {
+  background: #FCE6E1;
+  color: #B12D00;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+.modalOutcomeGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.modalOutcomeOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #1C1B1C;
+  cursor: pointer;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* ---------- Error / loading banners ---------- */
+
+.warningBanner {
+  background: #FFF3EC;
+  border: 1px solid #F5C49C;
+  color: #B85B1D;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.errorBanner {
+  background: #FCE6E1;
+  border: 1px solid #F0A89C;
+  color: #B12D00;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
