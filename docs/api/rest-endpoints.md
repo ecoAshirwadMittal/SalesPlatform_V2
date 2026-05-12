@@ -1229,5 +1229,142 @@ buyer landing rendering and admin business logic. Create / delete are
 |---|---|
 | `400` | Invalid `colorHex` or oversize text. |
 | `401` | No JWT / unauthenticated. |
-| `403` | Caller lacks the SalesOps/Administrator/PartialCredit_* role. |
+| `403` | Caller lacks the SalesOps/SalesRep/Administrator/CoAdministrator role. |
 | `404` | Unknown `id`. |
+
+---
+
+## Partial Credit — Buyer + Admin + Sales-Rep (Sprint 4 complete)
+
+Phase 1 endpoint inventory. Three controllers under three role-gated
+prefixes:
+
+- `/api/v1/buyer/partial-credit/**` — `hasAnyRole('Bidder','SalesRep','Administrator')`
+- `/api/v1/admin/partial-credit/**` — `hasAnyRole('SalesOps','SalesRep','Administrator','CoAdministrator')`
+- `/api/v1/salesrep/partial-credit/**` — `hasAnyRole('SalesRep','Administrator')`
+
+V89-seeded `PartialCredit_*` role names are intentionally **not** in any
+allowlist (rows 1101-1104 stay orphaned per Sprint 4 §7). Phase 2 can
+re-introduce them with a future `role_assignments` seed.
+
+### Buyer surface — wizard
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/buyer/partial-credit/draft` | Create a draft. Body: `{orderNumber, buyerCodeId}`. Returns full `CreditRequestDetail` |
+| `PATCH` | `/api/v1/buyer/partial-credit/{id}` | Update reason flags + ship-damaged Q&A |
+| `POST` | `/api/v1/buyer/partial-credit/{id}/missing-lines` | Replace the missing-device line set; runs Snowflake reconciliation |
+| `POST` | `/api/v1/buyer/partial-credit/{id}/wrong-lines` | Replace the wrong-device line set |
+| `POST` | `/api/v1/buyer/partial-credit/{id}/encumbered-lines` | Replace the encumbered-device line set |
+| `POST` | `/api/v1/buyer/partial-credit/{id}/submit` | Validate + flip status `DRAFT → PENDING_APPROVAL`. Returns 400 with `VALIDATION_FAILED` + `issues[]` on policy violations |
+| `GET` | `/api/v1/buyer/partial-credit/{id}` | Detail — header + line lists + `reviewCompletedOn` + `approvedTotal` |
+| `GET` | `/api/v1/buyer/partial-credit?buyerCodeId=X&status=Y&page=&size=` | Buyer's own request list |
+
+### Buyer surface — photos (Sprint 4 chunk 4)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/buyer/partial-credit/{id}/photos` | Multipart upload. Form fields: `file` (image), optional `wrongDeviceLineId`. Returns 201 with `PhotoMetadataView` |
+| `GET` | `/api/v1/buyer/partial-credit/{id}/photos` | Metadata-only list (no bytea) |
+| `GET` | `/api/v1/buyer/partial-credit/photos/{photoId}/blob` | Streams `image/*` bytes with `Content-Disposition: inline` |
+| `DELETE` | `/api/v1/buyer/partial-credit/photos/{photoId}` | Own-photos only for buyers; admins can delete any |
+
+**Limits** (overridable via config):
+- `partial-credit.photo.max-size-mb` (default 5)
+- `partial-credit.photo.max-per-line` (default 5)
+- `partial-credit.photo.allowed-content-types`
+  (default `image/jpeg,image/png,image/heic,image/webp`)
+
+**Errors:** `413` (TOO_LARGE), `415` (UNSUPPORTED_TYPE), `409`
+(TOO_MANY_PER_LINE / REQUEST_FINALIZED — once `APPROVED`/`DECLINED`,
+neither upload nor delete is allowed). Body shape:
+`{"error":"<Reason>", "message":"..."}`.
+
+### Buyer surface — file-drop parser (Sprint 4 chunk 8)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/buyer/partial-credit/parse-barcodes` | Multipart upload of xlsx / csv / docx. Returns `{barcodes:[], warnings:[]}` |
+
+Keep-rules:
+- Pure-digit runs of ≥ 8 chars → kept
+- Strings with both letters and digits → kept verbatim
+- Everything else → dropped with a `warnings[]` count
+
+**Errors:** `415` with `error: "UNSUPPORTED_FILE_TYPE"` for non-xlsx/csv/docx
+uploads.
+
+### Admin surface — review workflow
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/partial-credit` | Landing list + status counters; same query params as buyer list plus `reason`, `dateFrom`, `dateTo` |
+| `GET` | `/api/v1/admin/partial-credit/{id}` | Read-only detail (no state mutation) |
+| `POST` | `/api/v1/admin/partial-credit/{id}/open-for-review` | Flips `PENDING_APPROVAL → UNDER_REVIEW`. Idempotent |
+| `POST` | `/api/v1/admin/partial-credit/{id}/lines/{lineId}/decision` | Per-line accept/decline. Body: `{kind:"MISSING\|WRONG\|ENCUMBERED", decision:"ACCEPTED\|DECLINED"}` |
+| `POST` | `/api/v1/admin/partial-credit/{id}/sections/{kind}/decision` | Bulk per-section. Body: `{decision}` |
+| `POST` | `/api/v1/admin/partial-credit/{id}/decision` | Global bulk across all three sections |
+| `POST` | `/api/v1/admin/partial-credit/{id}/lines/{lineId}/encumbered` | Set encumbered-line Prolog Result + Actual Value |
+| `POST` | `/api/v1/admin/partial-credit/{id}/complete-review` | Finalise `UNDER_REVIEW → APPROVED \| DECLINED`. Body: `{outcome:"APPROVED\|DECLINED"}`. Fires `ReviewCompletedEvent` for the email listener. Returns 400 + `LINES_PENDING_DECISION` if any line lacks a decision |
+
+### Admin surface — xlsx export (Sprint 4 chunk 7)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/partial-credit/export.xlsx` | Streams the filtered landing list as a two-sheet xlsx (Requests + Lines). Same query params as the landing GET. `Content-Disposition: attachment; filename="partial-credit-YYYY-MM-DD.xlsx"` |
+
+**Cap:** 5,000 requests. Over-cap returns `413` with
+`{"error":"too_many_rows","limit":5000,"matched":<count>}` so the UI can
+render a "narrow your filters" toast.
+
+### Admin surface — email templates (Sprint 4 chunk 3)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/partial-credit/email-templates` | List every row (enabled + disabled) |
+| `PATCH` | `/api/v1/admin/partial-credit/email-templates/{id}` | Update `subject` / `bodyHtml` / `bodyText` / `enabled` / `description`. `templateKey` is **NOT** patchable |
+| `POST` | `/api/v1/admin/partial-credit/email-templates/{id}/preview` | Render the (possibly disabled) template against supplied stub variables for the editor's Preview tab. Body: `{variables: {key: value, ...}}` |
+
+3 seeded keys: `ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
+`PhotoUploadRequested`. Bodies use `{{varName}}` substitution; HTML body
+escapes by default, `{{!varName}}` opts out for admin-trusted raw HTML.
+
+### Admin surface — status configuration
+
+Already covered above ("Partial Credit — Status Configuration").
+
+### Sales-rep on-behalf surface (Sprint 4 chunk 6)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/salesrep/partial-credit/buyer-codes` | List eligible buyer codes. Phase 1 permissive — any `SalesRep` sees every active code |
+| `GET` | `/api/v1/salesrep/partial-credit/buyer-codes/{codeId}/users` | List buyer users associated with the code via `user_buyers → buyer_code_buyers` |
+| `POST` | `/api/v1/salesrep/partial-credit/drafts` | Single-shot: validate user belongs to code, create draft, stamp `is_on_behalf=TRUE` + both FKs. Body: `{orderNumber, buyerCodeId, onBehalfOfUserId}`. Returns 201 with `CreditRequestDetail` |
+
+**Errors:** `403` when the picked user is not associated with the code,
+`400` for blank `orderNumber` / null FK fields.
+
+After the draft is created the modal redirects to
+`/wholesale/partial-credit/new?draftId=X` — the wizard step 1 reads the
+param and resumes the existing draft instead of creating a new one.
+
+### Email + audit (operational)
+
+`ReviewCompletedEvent` fires from `completeReview` → handled by
+`ReviewCompletedEmailListener` (`AFTER_COMMIT` + `@Async`). Listener:
+1. Reloads the `CreditRequest` in `REQUIRES_NEW`.
+2. Resolves recipients via `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId`.
+3. Renders the right template (`ReviewCompleted_Approved` /
+   `_Declined`) via `EmailTemplateService`.
+4. Dispatches through `EmailSender` (gated by
+   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED`, default `true`).
+5. Writes one `partial_credit.email_audit` row per recipient via
+   `EmailAuditService` — both success and sender-throws paths.
+
+Verify post-flow with:
+```sql
+SELECT template_key, recipient_email, success, sent_at
+FROM   partial_credit.email_audit
+ORDER  BY sent_at DESC
+LIMIT  10;
+```

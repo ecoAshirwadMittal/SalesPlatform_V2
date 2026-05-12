@@ -69,3 +69,31 @@ runs 2 cases (landing renders + status-config colour edit round-trip) and
 keeps 1 happy-path test `.skip`'d until the JDBC Snowflake reader lands
 in staging. Frontend webServer config auto-starts `npm run dev`; the
 spec skips when `isBackendAvailable()` returns false.
+
+---
+
+## partialcredit.sprint4 (new 2026-05-12)
+Target 85%+. Sprint 4 closes out Phase 1 with 8 additive chunks; the
+test sweep covers each surface end-to-end.
+
+| Surface | Key tests |
+|---|---|
+| V90 migration (email_templates + email_audit + on-behalf cols) | `V90MigrationIT` (5 cases) — table set, seed presence, audit indexes, on-behalf columns + default, PartialCredit_* roles remain orphaned |
+| EmailTemplateService — render / cache / update / preview | `EmailTemplateServiceTest` (11) — HTML escape default, `{{!varName}}` raw opt-out, missing-variable warn-log, `$`-in-substitution regression guard for `Matcher.appendReplacement` |
+| ReviewCompletedEmailListener flipped to DB templates | `ReviewCompletedEmailListenerTest` (7) — mocks `EmailTemplateService`, asserts variable map shape + audit row writes on both success + sender-throws paths |
+| EmailAuditService | `EmailAuditServiceIT` (3) — success / failure / batch persistence on real Postgres |
+| Admin email-templates REST | `AdminPartialCreditControllerIT` extension (+6) — list / patch / preview happy paths plus 401 + 404 |
+| CreditRequestPhotoService — upload / list / download / delete | `CreditRequestPhotoServiceTest` (14) — oversize, unsupported MIME, empty upload, finalized-parent freeze, per-line cap, DAMAGE-bypasses-cap, buyer-vs-admin delete authorization, byte-snapshot regression for `MultipartFile.getBytes()` |
+| Photo REST endpoints | `BuyerPartialCreditControllerIT` extension (+6) — 201 multipart, 413 body shape, list, inline-disposition download, 204 delete, 403 foreign-delete |
+| Buyer detail page components | RTL: `BuyerLineSection.test.tsx` (5) + `PhotoUploadDropzone.test.tsx` (4) + `PhotoGallery.test.tsx` (6) |
+| OnBehalfSubmissionService | `OnBehalfSubmissionServiceTest` (9) — listings pass-through, createDraftOnBehalf happy path, user-not-associated-with-code 403, validation negatives |
+| OnBehalfPartialCreditController | `OnBehalfPartialCreditControllerIT` (10) — 200/403 matrix across the three endpoints |
+| OnBehalfModal (frontend) | `OnBehalfModal.test.tsx` (7) — 3-step picker walk-through, Create disabled until order# non-blank, server-error inline render, Back button retains user-picker state |
+| PartialCreditExcelExportService | `PartialCreditExcelExportServiceTest` (7) — two-sheet structure, empty result, Requests body, mixed-reason Lines sheet (Wrong row uses `expected_ecoatm_code`), null reviewDecision renders `"PENDING"`, over-cap throws with `matched` count, exactly-at-cap allowed |
+| xlsx endpoint | `AdminPartialCreditControllerIT` extension (+3) — 200 with attachment header, 413 body shape, 401 unauth |
+| CreditRequestFileDropParser | `CreditRequestFileDropParserTest` (11) — csv first-column, xlsx first-sheet, docx whitespace split, short-digit-run drop, dedupe, quoted-cells, empty file warning, unsupported MIME, keep-rule unit |
+| parse-barcodes endpoint | `BuyerPartialCreditControllerIT` extension (+2) — 200 with warnings, 415 unsupported type |
+| End-to-end smoke | `partial-credit-sprint4.spec.ts` (Playwright, 6 cases) gated on `isBackendAvailable()` — covers the five Sprint 4 entry points + bidder-can't-reach-admin |
+
+Full backend partial-credit sweep: **124/124 green** (was 41 pre-Sprint-4).
+Frontend RTL: 30 new component cases across the four Sprint 4 test files.

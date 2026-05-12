@@ -11,3 +11,4 @@ Overview of business domain documentation for SalesPlatform Modern.
 - [Bid ranking + target-price recalc](bid-ranking-and-target-price.md)
 - [R2 Buyer Assignment](r2-buyer-assignment.md)
 - [R3 Init + Pre-process](r3-init-and-preprocess.md)
+- [Partial credit — full flow](partial-credit.md)

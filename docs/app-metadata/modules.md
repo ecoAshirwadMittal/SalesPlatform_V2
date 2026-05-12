@@ -39,15 +39,46 @@ Inventory of major modules and their primary entities.
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
 - Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)
 
-## Partial Credit Review-Completed Email (Sprint 3 chunk 8)
-- Source modules: AdminCreditRequestService.completeReview publishes
-  `ReviewCompletedEvent(requestId, outcome, reviewerUserId, occurredAt)`
+## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12)
+- Source module: `ecoatm_partialcredit` (Mendix)
+- Schema: `partial_credit` (V89 + V90)
+- Primary tables: `credit_requests` (header), `missing_device_lines` /
+  `wrong_device_lines` / `encumbered_device_lines` (3 line kinds with
+  reason-specific columns), `credit_request_photos` (bytea + kind),
+  `credit_request_uploads` (xlsx/csv/docx evidence files),
+  `credit_request_statuses` (5 seeded rows — DB-driven pill colour +
+  external label), `email_templates` (3 seeded rows — DB-backed
+  subject + body), `email_audit` (one row per send attempt)
+- Purpose: lets a buyer file a partial credit claim against a recently
+  shipped order with reasons of MISSING / WRONG / ENCUMBERED; sales
+  ops reviews per-line, sets a decision, and the system fires a
+  buyer-facing email
+- Buyer surface: `/wholesale/partial-credit/**` — landing, 5-step
+  wizard, read-only detail with post-submit photo upload + gallery
+- Admin surface: `/admin/auctions-data-center/partial-credit/**` —
+  landing with filters + status counters + xlsx export, review
+  detail with per-line / per-section / global decisions, Complete
+  Review modal, status configuration page, email-template editor
+- Sales-rep surface: `/api/v1/salesrep/partial-credit/**` — Submit
+  on behalf modal + endpoints (`SalesRep` role; permissive scoping
+  in Phase 1)
+- Status lifecycle: `DRAFT → PENDING_APPROVAL → UNDER_REVIEW →
+  APPROVED | DECLINED`; photos + edits freeze at the terminal state
+- Event: `AdminCreditRequestService.completeReview` publishes
+  `ReviewCompletedEvent(requestId, outcome, reviewerUserId,
+  occurredAt)`
 - Listener: `listener/partialcredit/ReviewCompletedEmailListener` —
   `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`;
-  reloads `CreditRequest` in `REQUIRES_NEW` then dispatches via existing
-  `EmailSender` (`LoggingEmailSender` dev / `SmtpEmailSender` prod). Hard-coded
-  subject + body (Sprint 4 may swap to admin-editable templates).
-- Gated by `partial-credit.review-completed-email.enabled` (default `false` —
-  log-only). Recipient resolution reuses
-  `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId` so the recipient
-  list matches PWS notifications.
+  renders via `EmailTemplateService` from DB-backed templates, writes
+  one `email_audit` row per recipient
+- Gated by `partial-credit.review-completed-email.enabled` (default
+  `true` from Sprint 4 chunk 8; env override
+  `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED` remains for dev/staging)
+- Snowflake sync: read-only — `VW_SALE_ORDER_SHIPMENT` denormalises the
+  order manifest into `credit_requests.party_name` /
+  `order_created_date` / `order_shipped_date` at draft creation
+- Business-logic guide: `docs/business-logic/partial-credit.md`
+- Phase 2 deferred items: automated Prolog encumbrance check, RMA
+  auto-creation for accepted encumbered lines, Oracle write-back,
+  S3-backed photos, `PartialCredit_*` role-tier promotion, email
+  template versioning
