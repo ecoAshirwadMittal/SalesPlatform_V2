@@ -66,7 +66,7 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping("/api/v1/buyer/partial-credit")
-@PreAuthorize("hasAnyRole('PartialCredit_Buyer','Bidder','Administrator')")
+@PreAuthorize("hasAnyRole('PartialCredit_Buyer','Bidder','SalesRep','Administrator')")
 public class BuyerPartialCreditController {
 
     private final CreditRequestService service;
@@ -289,8 +289,14 @@ public class BuyerPartialCreditController {
     }
 
     private static boolean isAdmin(Authentication auth) {
+        // Sprint 4 chunk 6 (SPKB-3659) — SalesReps act as admin for the
+        // buyer surface. The OnBehalfSubmissionService validates they
+        // can act for the buyer code; once the draft exists, the wizard
+        // endpoints trust submitted_by_id ownership at the service
+        // layer instead of the buyer-code junction check.
         for (GrantedAuthority a : auth.getAuthorities()) {
-            if ("ROLE_Administrator".equals(a.getAuthority())) {
+            String authority = a.getAuthority();
+            if ("ROLE_Administrator".equals(authority) || "ROLE_SalesRep".equals(authority)) {
                 return true;
             }
         }

@@ -1,0 +1,238 @@
+/* Sales-rep "Submit on behalf" modal — Sprint 4 chunk 6 (SPKB-3659). */
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: var(--radius-input);
+  width: min(520px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.heading {
+  font-family: var(--font-family-primary);
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: var(--color-text-muted, #6b6b6b);
+}
+
+.steps {
+  display: flex;
+  gap: 8px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius-input);
+}
+
+.stepNum {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.stepPending {
+  background: var(--color-surface-2, #f6f6f6);
+  color: var(--color-text-muted, #6b6b6b);
+}
+
+.stepPending .stepNum {
+  background: #d6d6d6;
+  color: white;
+}
+
+.stepCurrent {
+  background: #e6f4ec;
+  color: #1f5a38;
+  font-weight: 600;
+}
+
+.stepCurrent .stepNum {
+  background: var(--color-brand-green, #407874);
+  color: white;
+}
+
+.stepDone {
+  background: #e6f4ec;
+  color: #1f5a38;
+}
+
+.stepDone .stepNum {
+  background: #1f5a38;
+  color: white;
+}
+
+.error {
+  border: 1px solid #c0392b;
+  background: #fdecea;
+  color: #c0392b;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  font-size: 13px;
+}
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pickerLabel {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.notice {
+  font-size: 13px;
+  color: var(--color-text-muted, #6b6b6b);
+  padding: 12px;
+  border: 1px dashed var(--color-input-border);
+  border-radius: var(--radius-input);
+  text-align: center;
+}
+
+.pickerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.pickerItem {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  text-align: left;
+}
+
+.pickerItem:hover {
+  background: var(--color-surface-2, #f6f6f6);
+  border-color: var(--color-brand-green, #407874);
+}
+
+.itemPrimary {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.itemSecondary {
+  font-size: 13px;
+  color: var(--color-text-muted, #6b6b6b);
+}
+
+.orderStep {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.orderSummary {
+  margin: 0;
+  font-size: 13px;
+  background: #fff8d0;
+  border: 1px solid #ead17a;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+}
+
+.orderField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.orderInput {
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.buttonGhost,
+.buttonPrimary {
+  padding: 8px 16px;
+  font-size: 14px;
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  border: 1px solid var(--color-input-border);
+}
+
+.buttonGhost {
+  background: white;
+  color: var(--color-text-body);
+}
+
+.buttonPrimary {
+  background: var(--color-brand-green, #407874);
+  color: white;
+  border-color: var(--color-brand-green, #407874);
+}
+
+.buttonPrimary:disabled,
+.buttonGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

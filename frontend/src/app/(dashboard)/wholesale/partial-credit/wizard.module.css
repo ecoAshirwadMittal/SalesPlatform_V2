@@ -228,6 +228,23 @@
   background: #0F9C2E;
 }
 
+/* Secondary outlined button — used by the SalesRep-only "Submit on
+   behalf" trigger on the landing chrome (Sprint 4 chunk 6). */
+.buttonGhost {
+  background: white;
+  color: #14AC36;
+  border: 1px solid #14AC36;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.buttonGhost:hover:not(:disabled) {
+  background: #F0FAF1;
+}
+
 .errorText {
   color: #EB3300;
   font-size: 13px;

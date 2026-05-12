@@ -9,6 +9,8 @@ import {
   listRequests,
   type SystemStatus,
 } from '@/lib/partialCreditClient';
+import { getAuthUser } from '@/lib/session';
+import { OnBehalfModal } from './OnBehalfModal';
 import styles from './wizard.module.css';
 
 /**
@@ -25,8 +27,12 @@ export default function PartialCreditLandingPage() {
   const [rows, setRows] = useState<CreditRequestSummary[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [buyerCodeId, setBuyerCodeId] = useState<number | null>(null);
+  const [isSalesRep, setIsSalesRep] = useState(false);
+  const [onBehalfOpen, setOnBehalfOpen] = useState(false);
 
   useEffect(() => {
+    const user = getAuthUser();
+    setIsSalesRep((user?.roles ?? []).includes('SalesRep'));
     const active = getActiveBuyerCode();
     if (!active) {
       router.replace('/buyer-select');
@@ -51,6 +57,16 @@ export default function PartialCreditLandingPage() {
           <Link href="/wholesale/partial-credit/policy" className={styles.landingPolicyLink}>
             Credit Request Policy
           </Link>
+          {isSalesRep && (
+            <button
+              type="button"
+              className={styles.buttonGhost}
+              onClick={() => setOnBehalfOpen(true)}
+              data-testid="on-behalf-trigger"
+            >
+              Submit on behalf
+            </button>
+          )}
           <button
             type="button"
             className={styles.buttonPrimary}
@@ -106,6 +122,16 @@ export default function PartialCreditLandingPage() {
           </table>
         </div>
       )}
+      <OnBehalfModal
+        open={onBehalfOpen}
+        onClose={() => setOnBehalfOpen(false)}
+        onDraftCreated={(draftId) => {
+          // Chunk 8 will teach the wizard to resume from a pre-existing
+          // draft via ?draftId=X — until then the rep lands on the
+          // detail page where the draft is visible.
+          router.push(`/wholesale/partial-credit/${draftId}`);
+        }}
+      />
     </div>
   );
 }

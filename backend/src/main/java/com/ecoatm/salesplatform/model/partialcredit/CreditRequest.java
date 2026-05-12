@@ -59,6 +59,14 @@ public class CreditRequest {
     @Column(name = "buyer_code_id", nullable = false) private Long buyerCodeId;
     @Column(name = "buyer_id") private Long buyerId;
 
+    // Sprint 4 / V90 — sales-rep on-behalf submission (SPKB-3659).
+    // is_on_behalf NOT NULL DEFAULT FALSE at the column level; default to
+    // FALSE here too so test fixtures and new drafts produce expected
+    // shapes without callers having to set it explicitly.
+    @Column(name = "is_on_behalf", nullable = false) private Boolean isOnBehalf = Boolean.FALSE;
+    @Column(name = "on_behalf_of_id") private Long onBehalfOfId;
+    @Column(name = "on_behalf_buyer_code_id") private Long onBehalfBuyerCodeId;
+
     @Column(name = "created_date", nullable = false) private Instant createdDate = Instant.now();
     @Column(name = "changed_date", nullable = false) private Instant changedDate = Instant.now();
     @Column(name = "created_by_id") private Long createdById;
@@ -122,4 +130,11 @@ public class CreditRequest {
     public void setCreatedById(Long v) { this.createdById = v; }
     public Long getChangedById() { return changedById; }
     public void setChangedById(Long v) { this.changedById = v; }
+
+    public Boolean getIsOnBehalf() { return isOnBehalf; }
+    public void setIsOnBehalf(Boolean v) { this.isOnBehalf = v; }
+    public Long getOnBehalfOfId() { return onBehalfOfId; }
+    public void setOnBehalfOfId(Long v) { this.onBehalfOfId = v; }
+    public Long getOnBehalfBuyerCodeId() { return onBehalfBuyerCodeId; }
+    public void setOnBehalfBuyerCodeId(Long v) { this.onBehalfBuyerCodeId = v; }
 }
