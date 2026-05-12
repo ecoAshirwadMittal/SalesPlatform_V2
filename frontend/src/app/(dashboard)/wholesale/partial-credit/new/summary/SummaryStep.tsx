@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   type CreditRequestDetail,
   CreditRequestValidationError,
@@ -12,6 +12,29 @@ import {
 } from '@/lib/partialCreditClient';
 import { StepIndicator } from '../../StepIndicator';
 import styles from '../../wizard.module.css';
+
+/**
+ * Inline SVG circle-check icon — matches the Figma "circle-check" Font
+ * Awesome solid glyph at 32px in `#14AC36`. Inline avoids dragging the
+ * @fortawesome dependency into the bundle just for one icon.
+ */
+function CircleCheckIcon() {
+  return (
+    <svg
+      width={32}
+      height={32}
+      viewBox="0 0 512 512"
+      aria-hidden="true"
+      focusable="false"
+      role="img"
+    >
+      <path
+        fill="#14AC36"
+        d="M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"
+      />
+    </svg>
+  );
+}
 
 /**
  * Wizard Step 5 — Summary + Submit. Figma frame "Request Credit -
@@ -60,6 +83,27 @@ export function SummaryStep() {
       setSubmitting(false);
     }
   }
+
+  /**
+   * The Figma confirmation modal renders no explicit dismiss control
+   * (the design assumes auto-dismiss). Pure auto-dismiss is hostile for
+   * keyboard / screen-reader users, so we route back on Escape and on
+   * scrim click in addition to the visible button. See design notes §4.
+   */
+  const dismissConfirmation = useCallback(() => {
+    router.push('/wholesale/partial-credit');
+  }, [router]);
+
+  useEffect(() => {
+    if (!submitted) return;
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        dismissConfirmation();
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [submitted, dismissConfirmation]);
 
   if (!detail) {
     return <div className={styles.page}>{error ?? 'Loading…'}</div>;
@@ -153,33 +197,25 @@ export function SummaryStep() {
       </div>
 
       {submitted && (
-        <div className={styles.confirmModal} role="dialog" aria-modal="true">
-          <div className={styles.confirmCard}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: '#E6F6EB',
-                color: '#0E7A26',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 28,
-                margin: '0 auto',
-              }}
-            >
-              ✓
-            </div>
-            <h2>Request submitted!</h2>
-            <p>
-              We have received your credit request. You can track its status on the Credit
-              Requests page.
-            </p>
+        <div
+          className={styles.confirmModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pc-confirm-heading"
+          onClick={dismissConfirmation}
+        >
+          <div
+            className={styles.confirmCard}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <CircleCheckIcon />
+            <h2 id="pc-confirm-heading" className={styles.confirmHeading}>
+              Request submitted!
+            </h2>
             <button
               type="button"
               className={styles.buttonPrimary}
-              onClick={() => router.push('/wholesale/partial-credit')}
+              onClick={dismissConfirmation}
             >
               Back to Credit Requests
             </button>

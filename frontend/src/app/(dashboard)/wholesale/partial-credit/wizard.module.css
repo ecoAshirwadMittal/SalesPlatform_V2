@@ -312,21 +312,74 @@
   z-index: 50;
 }
 
+/* Submit confirmation modal — Figma frame line 11097 / design notes §2.5.5.
+   Width 520px, panel fill #F0F6EF, 12px halo border #F7F5F1, centered
+   stack of circle-check icon + "Request submitted!" heading. */
 .confirmCard {
-  background: #FFFFFF;
+  background: #F0F6EF;
+  border: 12px solid #F7F5F1;
   border-radius: 16px;
   padding: 32px 40px;
-  max-width: 440px;
+  width: 520px;
+  max-width: calc(100vw - 32px);
   text-align: center;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
 }
 
-.confirmCard h2 {
-  margin: 16px 0 8px;
-  font-size: 24px;
+/* "Request submitted!" — Founders Grotesk Medium 26 per typography table. */
+.confirmHeading {
+  margin: 0;
+  font-family: inherit;
+  font-weight: 500;
+  font-size: 26px;
+  color: #1C1B1C;
 }
 
 .confirmCard p {
-  margin: 0 0 24px;
+  margin: 0;
   color: #534F4C;
+}
+
+/* Landing page heading-row chrome: heading + policy link + primary CTA. */
+.landingHeadingRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.landingHeadingActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Subdued helper link to the (Sprint 4) Credit Request Policy page —
+   Text/sm at #3C3C3C per the secondary-text token. */
+.landingPolicyLink {
+  font-size: 14px;
+  color: #3C3C3C;
+  text-decoration: underline;
+}
+
+.landingPolicyLink:hover {
+  color: #1C1B1C;
+}
+
+/* Landing R-2 / RMA explainer banner — verbatim copy from design notes
+   line 855. Neutral light-gray surface so it doesn't read as an error. */
+.landingBanner {
+  background: #FBFAF8;
+  border: 1px solid #E6E5E4;
+  color: #1C1B1C;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  max-width: 1024px;
 }
