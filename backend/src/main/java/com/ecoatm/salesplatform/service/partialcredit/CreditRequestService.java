@@ -94,6 +94,34 @@ public class CreditRequestService {
         CreditRequestStatus draftStatus = statusRepository.findBySystemStatus(SystemStatus.DRAFT)
                 .orElseThrow(() -> new IllegalStateException("DRAFT status row missing — V89 seed not applied"));
 
+        // Step 1 pre-validate: surface order-on-manifest + 30-day-window
+        // failures on the wizard's "Next" click instead of waiting until
+        // Step 5 submit. Confluence §155 lists both as Step 1 rules.
+        //
+        // The Snowflake header is the source of truth for both checks.
+        // If it's absent we treat this as the "no Snowflake configured"
+        // dev/test path (LOGGING reader returns Optional.empty for every
+        // order) and skip the gate — preserving today's local-dev
+        // contract where the wizard works without a live Snowflake.
+        Optional<OrderHeader> header = snowflakeReader.getOrderHeader(orderNumber, buyerCode.getCode());
+        if (header.isPresent()) {
+            OrderHeader h = header.get();
+            List<ValidationIssue> issues = new java.util.ArrayList<>();
+            if (!snowflakeReader.validateOrderForBuyer(orderNumber, buyerCode.getCode())) {
+                issues.add(ValidationIssue.orderNotFound(orderNumber));
+            }
+            Instant shipped = h.orderShippedDate();
+            if (shipped != null) {
+                long ageDays = java.time.Duration.between(shipped, Instant.now()).toDays();
+                if (ageDays > CreditRequestValidator.CREDIT_WINDOW_DAYS) {
+                    issues.add(ValidationIssue.orderOutsideWindow(CreditRequestValidator.CREDIT_WINDOW_DAYS));
+                }
+            }
+            if (!issues.isEmpty()) {
+                throw new CreditRequestValidationException(issues);
+            }
+        }
+
         CreditRequest cr = new CreditRequest();
         cr.setRequestNumber(generateRequestNumber());
         cr.setRequestDate(Instant.now());
@@ -104,11 +132,10 @@ public class CreditRequestService {
         cr.setCreatedById(userId);
         cr.setChangedById(userId);
 
-        // Best-effort enrichment from Snowflake. If the reader is in
-        // 'logging' mode the call returns empty and the row is created
-        // without party_name/dates — the wizard renders fine and submit
-        // re-fetches when the JDBC reader is wired in prod.
-        Optional<OrderHeader> header = snowflakeReader.getOrderHeader(orderNumber, buyerCode.getCode());
+        // Enrich from the header we already pulled above (avoids a second
+        // Snowflake round-trip). When the header is absent the row is
+        // created without party_name/dates — submit re-fetches when the
+        // JDBC reader is wired in prod.
         header.ifPresent(h -> {
             cr.setPartyName(h.partyName());
             cr.setOrderCreatedDate(h.orderCreatedDate());

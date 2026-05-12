@@ -80,11 +80,16 @@ class CreditRequestServiceTest {
         primeBuyerCodeOwnership(true);
         primeBuyerCodeLookup();
         primeStatus(SystemStatus.DRAFT, 1L);
+        // Use a recent shipped date (5 days ago) so the Step 1 30-day
+        // window check passes, and validateOrderForBuyer must be primed
+        // to true now that the gate runs upfront.
+        Instant recentShipped = Instant.now().minusSeconds(60L * 60 * 24 * 5);
         when(snowflakeReader.getOrderHeader(ORDER, BUYER_CODE))
                 .thenReturn(Optional.of(new OrderHeader(
                         ORDER, BUYER_CODE, "Acme Corp",
-                        Instant.parse("2026-04-01T00:00:00Z"),
-                        Instant.parse("2026-04-05T00:00:00Z"))));
+                        recentShipped.minusSeconds(60L * 60 * 24 * 2),
+                        recentShipped)));
+        when(snowflakeReader.validateOrderForBuyer(ORDER, BUYER_CODE)).thenReturn(true);
         when(creditRequestRepository.save(any(CreditRequest.class)))
                 .thenAnswer(inv -> { CreditRequest c = inv.getArgument(0); c.setId(50L); return c; });
 
@@ -92,7 +97,7 @@ class CreditRequestServiceTest {
 
         assertThat(cr.getOrderNumber()).isEqualTo(ORDER);
         assertThat(cr.getPartyName()).isEqualTo("Acme Corp");
-        assertThat(cr.getOrderShippedDate()).isEqualTo(Instant.parse("2026-04-05T00:00:00Z"));
+        assertThat(cr.getOrderShippedDate()).isEqualTo(recentShipped);
         assertThat(cr.getStatusId()).isEqualTo(1L);
         assertThat(cr.getShipmentDamaged()).isEqualTo(ShipmentDamaged.NOT_ANSWERED);
     }
@@ -121,6 +126,80 @@ class CreditRequestServiceTest {
         assertThatThrownBy(() -> service.createDraft(ORDER, BUYER_CODE_ID, USER_ID, false))
                 .isInstanceOf(SecurityException.class)
                 .hasMessageContaining("does not own buyer_code_id=100");
+    }
+
+    @Test
+    @DisplayName("createDraft surfaces ORDER_NOT_FOUND on Step 1 when manifest header exists but order is not on the manifest")
+    void createDraft_orderNotOnManifest_throwsValidation() {
+        primeBuyerCodeOwnership(true);
+        primeBuyerCodeLookup();
+        primeStatus(SystemStatus.DRAFT, 1L);
+
+        // Header present (fresh-enough order known to Snowflake) but
+        // validateOrderForBuyer returns false → not on the manifest for
+        // this buyer code.
+        when(snowflakeReader.getOrderHeader(ORDER, BUYER_CODE))
+                .thenReturn(Optional.of(new OrderHeader(
+                        ORDER, BUYER_CODE, "Acme Corp",
+                        Instant.parse("2026-04-01T00:00:00Z"),
+                        Instant.now().minusSeconds(60 * 60 * 24))));
+        when(snowflakeReader.validateOrderForBuyer(ORDER, BUYER_CODE)).thenReturn(false);
+
+        assertThatThrownBy(() -> service.createDraft(ORDER, BUYER_CODE_ID, USER_ID, false))
+                .isInstanceOf(CreditRequestValidationException.class)
+                .satisfies(ex -> assertThat(((CreditRequestValidationException) ex).getIssues())
+                        .extracting(ValidationIssue::code)
+                        .containsExactly("ORDER_NOT_FOUND"));
+
+        org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
+                .save(any(CreditRequest.class));
+    }
+
+    @Test
+    @DisplayName("createDraft surfaces ORDER_OUTSIDE_WINDOW on Step 1 when shipment is older than 30 days")
+    void createDraft_shipmentOlderThan30Days_throwsValidation() {
+        primeBuyerCodeOwnership(true);
+        primeBuyerCodeLookup();
+        primeStatus(SystemStatus.DRAFT, 1L);
+
+        when(snowflakeReader.getOrderHeader(ORDER, BUYER_CODE))
+                .thenReturn(Optional.of(new OrderHeader(
+                        ORDER, BUYER_CODE, "Acme Corp",
+                        Instant.now().minusSeconds(60L * 60 * 24 * 40),
+                        Instant.now().minusSeconds(60L * 60 * 24 * 31))));
+        when(snowflakeReader.validateOrderForBuyer(ORDER, BUYER_CODE)).thenReturn(true);
+
+        assertThatThrownBy(() -> service.createDraft(ORDER, BUYER_CODE_ID, USER_ID, false))
+                .isInstanceOf(CreditRequestValidationException.class)
+                .satisfies(ex -> assertThat(((CreditRequestValidationException) ex).getIssues())
+                        .extracting(ValidationIssue::code)
+                        .containsExactly("ORDER_OUTSIDE_WINDOW"));
+
+        org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
+                .save(any(CreditRequest.class));
+    }
+
+    @Test
+    @DisplayName("createDraft with LOGGING reader (empty header) skips Step 1 gate and persists the draft")
+    void createDraft_loggingReaderEmptyHeader_skipsGate() {
+        // Same primed mocks as createDraft_emptyHeader_persistsBareRow,
+        // but explicitly asserts the gate did NOT fire even though
+        // validateOrderForBuyer would return false for the LOGGING reader.
+        primeBuyerCodeOwnership(true);
+        primeBuyerCodeLookup();
+        primeStatus(SystemStatus.DRAFT, 1L);
+        when(snowflakeReader.getOrderHeader(ORDER, BUYER_CODE)).thenReturn(Optional.empty());
+        when(creditRequestRepository.save(any(CreditRequest.class)))
+                .thenAnswer(inv -> { CreditRequest c = inv.getArgument(0); c.setId(60L); return c; });
+
+        CreditRequest cr = service.createDraft(ORDER, BUYER_CODE_ID, USER_ID, false);
+
+        assertThat(cr.getId()).isEqualTo(60L);
+        // Defensive: the validateOrderForBuyer path must NOT be reached
+        // when the header is empty (otherwise dev/test environments would
+        // fail to create drafts).
+        org.mockito.Mockito.verify(snowflakeReader, org.mockito.Mockito.never())
+                .validateOrderForBuyer(anyString(), anyString());
     }
 
     // ─── update ────────────────────────────────────────────────────────

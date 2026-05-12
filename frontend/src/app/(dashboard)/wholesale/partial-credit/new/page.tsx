@@ -4,7 +4,11 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getActiveBuyerCode } from '@/lib/activeBuyerCode';
-import { createDraft, updateDraft } from '@/lib/partialCreditClient';
+import {
+  createDraft,
+  CreditRequestValidationError,
+  updateDraft,
+} from '@/lib/partialCreditClient';
 import { StepIndicator } from '../StepIndicator';
 import styles from '../wizard.module.css';
 
@@ -53,7 +57,15 @@ export default function StartCreditRequestPage() {
       const next = hasMissing ? 'missing' : hasWrong ? 'wrong' : 'encumbered';
       router.push(`/wholesale/partial-credit/new/${next}?id=${draft.id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to create draft');
+      // Step 1 pre-validate failures (ORDER_NOT_FOUND /
+      // ORDER_OUTSIDE_WINDOW) arrive as a typed validation error from
+      // the backend — surface the human-readable message of the first
+      // issue inline rather than the raw HTTP error string.
+      if (e instanceof CreditRequestValidationError && e.issues.length > 0) {
+        setError(e.issues[0].message);
+      } else {
+        setError(e instanceof Error ? e.message : 'Failed to create draft');
+      }
       setSubmitting(false);
     }
   }

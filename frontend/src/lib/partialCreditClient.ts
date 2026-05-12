@@ -168,6 +168,15 @@ export async function createDraft(body: CreateDraftBody): Promise<CreditRequestD
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
+  // Step 1 pre-validate (chunk 3): the backend now throws
+  // CreditRequestValidationException on createDraft when the order is
+  // not on the manifest or is shipped > 30 days ago. Surface the same
+  // typed error the submit endpoint uses so the wizard can render the
+  // first issue message inline (Step 1's existing error banner).
+  if (r.status === 400) {
+    const errorBody = (await r.json()) as { issues?: ValidationIssue[] };
+    throw new CreditRequestValidationError(errorBody.issues ?? []);
+  }
   if (!r.ok) throw new Error(`createDraft failed: HTTP ${r.status}`);
   return CreditRequestDetailSchema.parse(await r.json());
 }
