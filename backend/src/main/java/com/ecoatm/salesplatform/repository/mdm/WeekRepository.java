@@ -3,11 +3,25 @@ package com.ecoatm.salesplatform.repository.mdm;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
 public interface WeekRepository extends JpaRepository<Week, Long> {
+
+    /**
+     * Resolves a date to the auction Week containing it
+     * ({@code weekStartDateTime <= date < weekEndDateTime}).
+     *
+     * <p>Backs the partial-credit calc engine — given a
+     * {@code CreditRequest.orderCreatedDate}, the engine needs the week
+     * the order was placed in so it can query {@code auctions.bid_data}
+     * for the max submitted bid on the received device.
+     */
+    @Query("SELECT w FROM Week w WHERE w.weekStartDateTime <= :date AND w.weekEndDateTime > :date")
+    Optional<Week> findByDate(@Param("date") Instant date);
 
     /**
      * Mendix parity: SUB_NavigateToAggregatedInventoryPage retrieves the week
