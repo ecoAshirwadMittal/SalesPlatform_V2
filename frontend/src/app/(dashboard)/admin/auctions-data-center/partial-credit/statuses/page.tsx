@@ -142,7 +142,11 @@ export default function StatusConfigPage() {
         fields can change.
       </p>
 
-      {toast && <div className={styles.toast}>{toast}</div>}
+      {toast && (
+        <div className={styles.toast} role="status">
+          {toast}
+        </div>
+      )}
       {loadError && <div className={styles.errorAlert}>{loadError}</div>}
 
       <div className={styles.gridWrap}>

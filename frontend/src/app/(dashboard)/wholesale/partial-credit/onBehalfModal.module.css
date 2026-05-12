@@ -1,3 +1,4 @@
+/* Design-coherence pass — no Figma frame exists; tokens-only parity. */
 /* Sales-rep "Submit on behalf" modal — Sprint 4 chunk 6 (SPKB-3659). */
 
 .backdrop {
@@ -8,18 +9,22 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  font-family: var(--font-family-partial-credit);
 }
 
 .modal {
   background: white;
   border-radius: var(--radius-input);
-  width: min(520px, 92vw);
+  min-width: 640px;
+  width: min(640px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
+  flex-wrap: wrap;
   gap: 16px;
   padding: 20px;
+  font-family: var(--font-family-partial-credit);
 }
 
 .header {
@@ -29,8 +34,8 @@
 }
 
 .heading {
-  font-family: var(--font-family-primary);
-  font-size: 20px;
+  font-family: var(--font-family-partial-credit);
+  font-size: 24px;
   font-weight: 600;
   margin: 0;
 }
@@ -45,7 +50,7 @@
 
 .steps {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   list-style: none;
   margin: 0;
   padding: 0;
@@ -56,9 +61,10 @@
   align-items: center;
   gap: 6px;
   flex: 1 1 0;
-  font-size: 12px;
-  padding: 6px 8px;
-  border-radius: var(--radius-input);
+  font-size: 13px;
+  padding: 6px 0;
+  background: transparent;
+  border-radius: 0;
 }
 
 .stepNum {
@@ -73,7 +79,6 @@
 }
 
 .stepPending {
-  background: var(--color-surface-2, #f6f6f6);
   color: var(--color-text-muted, #6b6b6b);
 }
 
@@ -83,23 +88,22 @@
 }
 
 .stepCurrent {
-  background: #e6f4ec;
-  color: #1f5a38;
+  color: var(--color-pc-green, #1F8B3D);
   font-weight: 600;
+  border-bottom: 2px solid var(--color-pc-green, #1F8B3D);
 }
 
 .stepCurrent .stepNum {
-  background: var(--color-brand-green, #407874);
+  background: var(--color-pc-green, #1F8B3D);
   color: white;
 }
 
 .stepDone {
-  background: #e6f4ec;
-  color: #1f5a38;
+  color: var(--color-pc-green, #1F8B3D);
 }
 
 .stepDone .stepNum {
-  background: #1f5a38;
+  background: var(--color-pc-green, #1F8B3D);
   color: white;
 }
 
@@ -159,7 +163,7 @@
 
 .pickerItem:hover {
   background: var(--color-surface-2, #f6f6f6);
-  border-color: var(--color-brand-green, #407874);
+  border-color: var(--color-pc-green, #1F8B3D);
 }
 
 .itemPrimary {
@@ -170,6 +174,13 @@
 .itemSecondary {
   font-size: 13px;
   color: var(--color-text-muted, #6b6b6b);
+}
+
+.pickerActions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  margin-top: 4px;
 }
 
 .orderStep {
@@ -226,9 +237,14 @@
 }
 
 .buttonPrimary {
-  background: var(--color-brand-green, #407874);
+  background: var(--color-pc-green, #1F8B3D);
   color: white;
-  border-color: var(--color-brand-green, #407874);
+  border-color: var(--color-pc-green, #1F8B3D);
+}
+
+.buttonPrimary:hover {
+  background: var(--color-pc-green-hover, #176E30);
+  border-color: var(--color-pc-green-hover, #176E30);
 }
 
 .buttonPrimary:disabled,

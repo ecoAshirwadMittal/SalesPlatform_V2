@@ -151,19 +151,36 @@ export function OnBehalfModal({ open, onClose, onDraftCreated }: OnBehalfModalPr
         )}
 
         {step === 'USER' && (
-          <Picker
-            label={`Pick a buyer user (code ${selectedCode?.code ?? ''})`}
-            loading={loading}
-            items={users ?? []}
-            renderItem={(u) => (
-              <>
-                <span className={styles.itemPrimary}>{u.displayName}</span>
-                <span className={styles.itemSecondary}>{u.email ?? ''}</span>
-              </>
-            )}
-            onSelect={pickUser}
-            emptyMessage="No buyer users associated with this code."
-          />
+          <>
+            <Picker
+              label={`Pick a buyer contact (code ${selectedCode?.code ?? ''})`}
+              loading={loading}
+              items={users ?? []}
+              renderItem={(u) => (
+                <>
+                  <span className={styles.itemPrimary}>{u.displayName}</span>
+                  <span className={styles.itemSecondary}>{u.email ?? ''}</span>
+                </>
+              )}
+              onSelect={pickUser}
+              emptyMessage="No buyer contacts associated with this code."
+            />
+            <div className={styles.pickerActions}>
+              <button
+                type="button"
+                className={styles.buttonGhost}
+                /* Preserve the users cache so re-picking the same code
+                 * does not refetch. Only step + selectedUser reset. */
+                onClick={() => {
+                  setSelectedUser(null);
+                  setStep('CODE');
+                }}
+                disabled={submitting}
+              >
+                Back
+              </button>
+            </div>
+          </>
         )}
 
         {step === 'ORDER' && (
@@ -241,8 +258,10 @@ function Picker<T>({
                 type="button"
                 className={styles.pickerItem}
                 onClick={() => onSelect(item)}
+                /* Click-to-advance listbox: picking an item moves to the
+                 * next wizard step rather than persisting a selection,
+                 * so no aria-selected state is exposed. */
                 role="option"
-                aria-selected={false}
               >
                 {renderItem(item)}
               </button>
@@ -263,7 +282,7 @@ function Steps({ current }: StepsProps) {
   const idx = order.indexOf(current);
   const labels: Record<Step, string> = {
     CODE: 'Buyer code',
-    USER: 'Buyer user',
+    USER: 'Buyer contact',
     ORDER: 'Order number',
   };
   return (

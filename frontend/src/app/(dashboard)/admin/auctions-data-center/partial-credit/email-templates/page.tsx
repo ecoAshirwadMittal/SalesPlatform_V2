@@ -71,7 +71,7 @@ export default function EmailTemplatesPage() {
         </div>
       )}
       {toast && (
-        <div className={styles.toast} role="status">
+        <div className={styles.toast} role="status" aria-live="polite">
           {toast}
         </div>
       )}
@@ -108,7 +108,11 @@ export default function EmailTemplatesPage() {
                         {row.enabled ? 'On' : 'Off'}
                       </span>
                     </td>
-                    <td>{row.changedDate ?? '—'}</td>
+                    <td>
+                      {row.changedDate
+                        ? new Date(row.changedDate).toLocaleDateString()
+                        : '—'}
+                    </td>
                     <td>
                       <button
                         type="button"

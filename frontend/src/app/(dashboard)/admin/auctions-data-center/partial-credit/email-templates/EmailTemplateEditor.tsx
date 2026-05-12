@@ -38,6 +38,44 @@ const PREVIEW_VARIABLES: Record<string, string> = {
   photoUploadDeadline: 'by Friday',
 };
 
+/**
+ * Per-template variable contract. Static map sourced from Sprint 4 §6.1.
+ * Surfaced as a collapsible hint above the body-html textarea so admins
+ * don't have to flip between code and the editor to remember which
+ * tokens each template accepts.
+ */
+const TEMPLATE_VARIABLES: Record<string, string[]> = {
+  ReviewCompleted_Approved: [
+    'requestNumber',
+    'orderNumber',
+    'approvedTotalDisplay',
+    'buyerName',
+    'reviewerName',
+    'reviewCompletedDate',
+    'detailUrl',
+  ],
+  ReviewCompleted_Declined: [
+    'requestNumber',
+    'orderNumber',
+    'buyerName',
+    'reviewerName',
+    'reviewCompletedDate',
+    'detailUrl',
+  ],
+  PhotosRequired_WrongDevices: [
+    'requestNumber',
+    'orderNumber',
+    'buyerName',
+    'wrongDeviceLineDescription',
+    'photoUploadDeadline',
+    'detailUrl',
+  ],
+};
+
+function variablesForTemplate(templateKey: string): string[] {
+  return TEMPLATE_VARIABLES[templateKey] ?? Object.keys(PREVIEW_VARIABLES);
+}
+
 interface EditorDraft {
   subject: string;
   bodyHtml: string;
@@ -164,6 +202,16 @@ export function EmailTemplateEditor({ row, onSave, onClose }: EmailTemplateEdito
               maxLength={255}
             />
           </label>
+          <details className={styles.variablesHint}>
+            <summary>Available variables</summary>
+            <ul>
+              {variablesForTemplate(row.templateKey).map((name) => (
+                <li key={name}>
+                  <code>{`{{${name}}}`}</code>
+                </li>
+              ))}
+            </ul>
+          </details>
           <label className={styles.field}>
             <span className={styles.fieldLabel}>Body (HTML)</span>
             <textarea
