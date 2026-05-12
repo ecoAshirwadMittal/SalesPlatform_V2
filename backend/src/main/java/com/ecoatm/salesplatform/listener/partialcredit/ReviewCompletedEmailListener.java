@@ -8,8 +8,13 @@ import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestRepository;
 import com.ecoatm.salesplatform.service.email.EmailMessage;
 import com.ecoatm.salesplatform.service.email.EmailSender;
+import com.ecoatm.salesplatform.service.partialcredit.EmailAuditService;
+import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService;
+import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -34,44 +39,53 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * the {@code @Async} executor thread has a self-contained, fully
  * initialised aggregate to render.
  *
- * <p><b>Sprint 3 scope:</b> rendering uses the existing
- * {@link EmailSender} infrastructure ({@code LoggingEmailSender} in dev,
- * {@code SmtpEmailSender} in prod via {@code pws.email.enabled=true}).
- * Subject + body are hardcoded text per the §6 plan decision — Sprint 4
- * may introduce admin-editable email templates. The whole listener is
- * gated by {@code partial-credit.review-completed-email.enabled} so the
- * feature can be flipped off without redeploy if the dev-realistic copy
- * needs revision.
+ * <p><b>Sprint 4 / Chunk 2:</b> subject + body now come from
+ * {@code partial_credit.email_templates} via {@link EmailTemplateService}.
+ * Every send attempt records a row in {@code partial_credit.email_audit}
+ * via {@link EmailAuditService} so the "did the buyer get the email?"
+ * question is answerable without mining stdout. The listener is still
+ * gated by {@code partial-credit.review-completed-email.enabled} so it
+ * can be flipped off without redeploy.
  */
 @Component
 public class ReviewCompletedEmailListener {
 
     private static final Logger log = LoggerFactory.getLogger(ReviewCompletedEmailListener.class);
 
+    static final String TEMPLATE_APPROVED = "ReviewCompleted_Approved";
+    static final String TEMPLATE_DECLINED = "ReviewCompleted_Declined";
+
     private final CreditRequestRepository creditRequestRepository;
     private final EcoATMDirectUserRepository directUserRepository;
     private final EmailSender emailSender;
+    private final EmailTemplateService emailTemplateService;
+    private final EmailAuditService emailAuditService;
     private final boolean enabled;
 
     public ReviewCompletedEmailListener(
             CreditRequestRepository creditRequestRepository,
             EcoATMDirectUserRepository directUserRepository,
             EmailSender emailSender,
+            EmailTemplateService emailTemplateService,
+            EmailAuditService emailAuditService,
             @Value("${partial-credit.review-completed-email.enabled:false}") boolean enabled) {
         this.creditRequestRepository = creditRequestRepository;
         this.directUserRepository = directUserRepository;
         this.emailSender = emailSender;
+        this.emailTemplateService = emailTemplateService;
+        this.emailAuditService = emailAuditService;
         this.enabled = enabled;
     }
 
     /**
-     * Reload the credit request, resolve buyer recipients, and dispatch
-     * the rendered email. Runs on the {@link AsyncConfig#EMAIL_EXECUTOR}
-     * pool so the admin completion call returns immediately.
+     * Reload the credit request, resolve buyer recipients, render the
+     * outcome-specific template, and dispatch the rendered email. Runs
+     * on the {@link AsyncConfig#EMAIL_EXECUTOR} pool so the admin
+     * completion call returns immediately.
      *
-     * <p>All exceptions are caught and logged — a failure here must never
-     * affect the originating completion transaction or surface to the
-     * admin user (the review is already final once the event fires).
+     * <p>All exceptions are caught and logged — a failure here must
+     * never affect the originating completion transaction or surface to
+     * the admin user (the review is already final once the event fires).
      */
     @Async(AsyncConfig.EMAIL_EXECUTOR)
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
@@ -80,9 +94,6 @@ public class ReviewCompletedEmailListener {
         try {
             handle(event);
         } catch (Exception ex) {
-            // Defensive — anything that escapes handle() (including
-            // RuntimeException from a malformed CreditRequest row) must
-            // not blow up the async worker.
             log.error(
                     "ReviewCompleted email delivery failed for creditRequestId={}: {}",
                     event.requestId(),
@@ -93,9 +104,6 @@ public class ReviewCompletedEmailListener {
 
     private void handle(ReviewCompletedEvent event) {
         if (!enabled) {
-            // Sprint 3 default — log the intent only. Flipping the flag
-            // wires the real send through the same EmailSender pipeline
-            // that PWS uses.
             log.info(
                     "[ReviewCompletedEmailListener] (disabled) would send {} email for creditRequestId={} reviewerUserId={}",
                     event.outcome(),
@@ -125,19 +133,62 @@ public class ReviewCompletedEmailListener {
             return;
         }
 
+        String templateKey = event.outcome() == SystemStatus.APPROVED
+                ? TEMPLATE_APPROVED
+                : TEMPLATE_DECLINED;
+        RenderedEmail rendered = emailTemplateService.render(templateKey, variablesFor(cr, event.outcome()));
+
         EmailMessage message = new EmailMessage(
                 recipients,
                 List.of(),
-                buildSubject(cr, event.outcome()),
-                buildHtmlBody(cr, event.outcome()),
-                buildTextBody(cr, event.outcome()));
-        emailSender.send(message);
-        log.info(
-                "ReviewCompleted email dispatched: creditRequestId={} requestNumber={} outcome={} recipients={}",
-                requestId,
-                cr.getRequestNumber(),
-                event.outcome(),
-                recipients.size());
+                rendered.subject(),
+                rendered.bodyHtml(),
+                rendered.bodyText());
+        try {
+            emailSender.send(message);
+            recordAudit(templateKey, recipients, requestId, true, null);
+            log.info(
+                    "ReviewCompleted email dispatched: creditRequestId={} requestNumber={} outcome={} recipients={}",
+                    requestId,
+                    cr.getRequestNumber(),
+                    event.outcome(),
+                    recipients.size());
+        } catch (RuntimeException sendFailure) {
+            recordAudit(templateKey, recipients, requestId, false, sendFailure.getMessage());
+            throw sendFailure;
+        }
+    }
+
+    /**
+     * Builds the variable map for the Approved/Declined templates. Keeps
+     * the rendering layer free of currency/null-format concerns:
+     * {@code approvedTotalDisplay} carries the literal dollar sign so
+     * the V90 seed could be written without colliding with Flyway's own
+     * placeholder syntax.
+     */
+    static Map<String, Object> variablesFor(CreditRequest cr, SystemStatus outcome) {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("requestNumber", cr.getRequestNumber() != null ? cr.getRequestNumber() : String.valueOf(cr.getId()));
+        vars.put("orderNumber", cr.getOrderNumber() != null ? cr.getOrderNumber() : "");
+        if (outcome == SystemStatus.APPROVED) {
+            BigDecimal approvedTotal = cr.getApprovedTotal() != null ? cr.getApprovedTotal() : BigDecimal.ZERO;
+            vars.put("approvedTotalDisplay", "$" + approvedTotal.toPlainString());
+        }
+        return vars;
+    }
+
+    private void recordAudit(
+            String templateKey, List<String> recipients, Long requestId, boolean success, String errorMessage) {
+        try {
+            emailAuditService.recordBatch(templateKey, recipients, requestId, success, errorMessage);
+        } catch (RuntimeException auditFailure) {
+            log.error(
+                    "Failed to record email_audit rows for creditRequestId={} templateKey={}: {}",
+                    requestId,
+                    templateKey,
+                    auditFailure.getMessage(),
+                    auditFailure);
+        }
     }
 
     /**
@@ -153,68 +204,5 @@ public class ReviewCompletedEmailListener {
                 .map(row -> row.length > 0 ? (String) row[0] : null)
                 .filter(email -> email != null && !email.isBlank())
                 .toList();
-    }
-
-    static String buildSubject(CreditRequest cr, SystemStatus outcome) {
-        String requestNumber = cr.getRequestNumber() != null ? cr.getRequestNumber() : String.valueOf(cr.getId());
-        return outcome == SystemStatus.APPROVED
-                ? "Your partial credit request " + requestNumber + " has been approved"
-                : "Your partial credit request " + requestNumber + " has been declined";
-    }
-
-    static String buildHtmlBody(CreditRequest cr, SystemStatus outcome) {
-        String requestNumber = cr.getRequestNumber() != null ? cr.getRequestNumber() : String.valueOf(cr.getId());
-        String orderNumber = cr.getOrderNumber() != null ? cr.getOrderNumber() : "";
-        BigDecimal approvedTotal = cr.getApprovedTotal() != null ? cr.getApprovedTotal() : BigDecimal.ZERO;
-        String outcomeText = outcome == SystemStatus.APPROVED ? "approved" : "declined";
-
-        StringBuilder html = new StringBuilder(512);
-        html.append("<p>Hello,</p>");
-        html.append("<p>Your partial credit request <strong>")
-                .append(escapeHtml(requestNumber))
-                .append("</strong> for order ")
-                .append(escapeHtml(orderNumber))
-                .append(" has been <strong>")
-                .append(outcomeText)
-                .append("</strong>.</p>");
-        if (outcome == SystemStatus.APPROVED) {
-            html.append("<p>Approved credit total: <strong>$")
-                    .append(approvedTotal.toPlainString())
-                    .append("</strong></p>");
-        }
-        html.append("<p>You can view the full review breakdown in your buyer portal.</p>");
-        html.append("<p>Thank you,<br/>ecoATM Direct</p>");
-        return html.toString();
-    }
-
-    static String buildTextBody(CreditRequest cr, SystemStatus outcome) {
-        String requestNumber = cr.getRequestNumber() != null ? cr.getRequestNumber() : String.valueOf(cr.getId());
-        String orderNumber = cr.getOrderNumber() != null ? cr.getOrderNumber() : "";
-        BigDecimal approvedTotal = cr.getApprovedTotal() != null ? cr.getApprovedTotal() : BigDecimal.ZERO;
-        String outcomeText = outcome == SystemStatus.APPROVED ? "approved" : "declined";
-
-        StringBuilder text = new StringBuilder(256);
-        text.append("Hello,\n\n");
-        text.append("Your partial credit request ")
-                .append(requestNumber)
-                .append(" for order ")
-                .append(orderNumber)
-                .append(" has been ")
-                .append(outcomeText)
-                .append(".\n\n");
-        if (outcome == SystemStatus.APPROVED) {
-            text.append("Approved credit total: $").append(approvedTotal.toPlainString()).append("\n\n");
-        }
-        text.append("You can view the full review breakdown in your buyer portal.\n\n");
-        text.append("Thank you,\necoATM Direct\n");
-        return text.toString();
-    }
-
-    private static String escapeHtml(String s) {
-        if (s == null) return "";
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;");
     }
 }
