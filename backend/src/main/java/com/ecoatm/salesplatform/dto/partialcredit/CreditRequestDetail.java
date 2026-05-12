@@ -30,6 +30,12 @@ public record CreditRequestDetail(
         boolean hasEncumberedDevice,
         Integer totalDevices,
         BigDecimal requestedTotal,
+        BigDecimal approvedTotal,
+        // Sprint 4 chunk 5 — buyer detail surfaces both fields so it can
+        // render the "Reviewed on …" panel only after the request is
+        // finalised. Both are null until completeReview() runs.
+        Long reviewedById,
+        Instant reviewCompletedOn,
         List<MissingDeviceLineDto> missingLines,
         List<WrongDeviceLineDto> wrongLines,
         List<EncumberedDeviceLineDto> encumberedLines) {
@@ -56,6 +62,9 @@ public record CreditRequestDetail(
                 Boolean.TRUE.equals(cr.getHasEncumberedDevice()),
                 cr.getTotalDevices(),
                 cr.getRequestedTotal(),
+                cr.getApprovedTotal(),
+                cr.getReviewedById(),
+                cr.getReviewCompletedOn(),
                 missingLines.stream().map(MissingDeviceLineDto::from).toList(),
                 wrongLines.stream().map(WrongDeviceLineDto::from).toList(),
                 encumberedLines.stream().map(EncumberedDeviceLineDto::from).toList());

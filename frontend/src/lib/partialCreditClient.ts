@@ -86,6 +86,13 @@ export const CreditRequestDetailSchema = z.object({
   hasEncumberedDevice: z.boolean(),
   totalDevices: z.number().nullable(),
   requestedTotal: z.number().nullable(),
+  // Sprint 4 chunk 5 — buyer detail page renders the approved total
+  // alongside the requested total once the review is final.
+  approvedTotal: z.number().nullable(),
+  // Both null until the admin clicks Complete Review; consumed by the
+  // buyer detail page's ReviewSummaryPanel.
+  reviewedById: z.number().nullable(),
+  reviewCompletedOn: z.string().nullable(),
   missingLines: z.array(MissingLineSchema),
   wrongLines: z.array(WrongLineSchema),
   encumberedLines: z.array(EncumberedLineSchema),
@@ -261,4 +268,92 @@ export function parseBarcodeBlob(blob: string): string[] {
     .split(/[\s,]+/)
     .map((b) => b.trim())
     .filter((b) => b.length > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Photo endpoints (Sprint 4 chunk 4) — buyer detail page consumes all four
+// ---------------------------------------------------------------------------
+
+const PhotoKindSchema = z.enum(['DAMAGE', 'WRONG_DEVICE']);
+export type PhotoKind = z.infer<typeof PhotoKindSchema>;
+
+export const PhotoMetadataSchema = z.object({
+  id: z.number(),
+  creditRequestId: z.number(),
+  wrongDeviceLineId: z.number().nullable(),
+  kind: PhotoKindSchema,
+  originalFilename: z.string(),
+  contentType: z.string(),
+  sizeBytes: z.number(),
+  uploadedDate: z.string().nullable(),
+  uploadedByUserId: z.number().nullable(),
+});
+export type PhotoMetadata = z.infer<typeof PhotoMetadataSchema>;
+
+/**
+ * Server returns {error, message} where `error` is one of TOO_LARGE,
+ * UNSUPPORTED_TYPE, TOO_MANY_PER_LINE, REQUEST_FINALIZED with the
+ * matching HTTP status (413/415/409). We surface the reason verbatim
+ * so the dropzone can render inline guidance.
+ */
+export class PhotoUploadError extends Error {
+  readonly reason: string;
+  readonly status: number;
+
+  constructor(reason: string, message: string, status: number) {
+    super(message);
+    this.reason = reason;
+    this.status = status;
+  }
+}
+
+export async function listPhotos(requestId: number): Promise<PhotoMetadata[]> {
+  const r = await apiFetch(`${BASE}/${requestId}/photos`);
+  if (!r.ok) throw new Error(`listPhotos failed: HTTP ${r.status}`);
+  return z.array(PhotoMetadataSchema).parse(await r.json());
+}
+
+export async function uploadPhoto(
+  requestId: number,
+  file: File,
+  wrongDeviceLineId: number | null,
+): Promise<PhotoMetadata> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (wrongDeviceLineId !== null) {
+    formData.append('wrongDeviceLineId', String(wrongDeviceLineId));
+  }
+  // Note: do NOT set Content-Type — the browser appends the multipart
+  // boundary automatically when the body is a FormData instance.
+  const r = await apiFetch(`${BASE}/${requestId}/photos`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!r.ok) {
+    const body = (await r.json().catch(() => null)) as
+      | { error?: string; message?: string }
+      | null;
+    throw new PhotoUploadError(
+      body?.error ?? 'UPLOAD_FAILED',
+      body?.message ?? `uploadPhoto failed: HTTP ${r.status}`,
+      r.status,
+    );
+  }
+  return PhotoMetadataSchema.parse(await r.json());
+}
+
+export async function deletePhoto(photoId: number): Promise<void> {
+  const r = await apiFetch(`${BASE}/photos/${photoId}`, { method: 'DELETE' });
+  if (!r.ok && r.status !== 204) {
+    throw new Error(`deletePhoto failed: HTTP ${r.status}`);
+  }
+}
+
+/**
+ * URL for an <img src> — the backend streams the blob with
+ * Content-Disposition: inline. Browsers honour the auth cookie
+ * automatically for same-origin GETs so no extra header juggling needed.
+ */
+export function photoBlobUrl(photoId: number): string {
+  return `${BASE}/photos/${photoId}/blob`;
 }
