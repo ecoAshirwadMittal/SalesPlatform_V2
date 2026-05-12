@@ -1,17 +1,21 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
+import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.MissingDeviceLine;
+import com.ecoatm.salesplatform.model.partialcredit.enums.PhotoKind;
 import com.ecoatm.salesplatform.model.partialcredit.enums.ShipmentDamaged;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.service.partialcredit.BarcodeReconciliationResult;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService.LineReplacementOutcome;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
+import com.ecoatm.salesplatform.service.partialcredit.PhotoUploadException;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,12 +40,18 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.mock.web.MockMultipartFile;
 
 @WebMvcTest(BuyerPartialCreditController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
@@ -54,6 +64,7 @@ class BuyerPartialCreditControllerIT {
 
     @Autowired MockMvc mvc;
     @MockBean CreditRequestService service;
+    @MockBean CreditRequestPhotoService photoService;
 
     @BeforeEach
     void primeDefaultStatusRow() {
@@ -190,6 +201,91 @@ class BuyerPartialCreditControllerIT {
            .andExpect(status().isUnauthorized());
     }
 
+    // ─── photo endpoints (Chunk 4 — SPKB-3662) ─────────────────────────
+
+    @Test
+    void uploadPhoto_multipart_returns201_withMetadata() throws Exception {
+        CreditRequestPhoto saved = photoRow(42L, 100L, 500L, "shot.jpg", "image/jpeg", 1024, 1L);
+        when(photoService.uploadPhoto(eq(100L), eq(500L), any(), eq(1L), anyBoolean()))
+                .thenReturn(saved);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "shot.jpg", "image/jpeg", new byte[1024]);
+
+        mvc.perform(multipart("/api/v1/buyer/partial-credit/100/photos")
+                .file(file)
+                .param("wrongDeviceLineId", "500")
+                .with(bidder()))
+           .andExpect(status().isCreated())
+           .andExpect(jsonPath("$.id").value(42))
+           .andExpect(jsonPath("$.creditRequestId").value(100))
+           .andExpect(jsonPath("$.wrongDeviceLineId").value(500))
+           .andExpect(jsonPath("$.contentType").value("image/jpeg"))
+           .andExpect(jsonPath("$.kind").value("WRONG_DEVICE"));
+    }
+
+    @Test
+    void uploadPhoto_oversize_returns413WithReasonBody() throws Exception {
+        doThrow(new PhotoUploadException(
+                PhotoUploadException.Reason.TOO_LARGE,
+                "File exceeds 5 MB limit"))
+            .when(photoService).uploadPhoto(anyLong(), any(), any(), anyLong(), anyBoolean());
+
+        MockMultipartFile bigFile = new MockMultipartFile(
+                "file", "big.jpg", "image/jpeg", new byte[6 * 1024 * 1024]);
+
+        mvc.perform(multipart("/api/v1/buyer/partial-credit/100/photos")
+                .file(bigFile)
+                .with(bidder()))
+           .andExpect(status().isPayloadTooLarge())
+           .andExpect(jsonPath("$.error").value("TOO_LARGE"))
+           .andExpect(jsonPath("$.message").value("File exceeds 5 MB limit"));
+    }
+
+    @Test
+    void listPhotos_returns200_withMetadataArray() throws Exception {
+        when(photoService.listPhotos(eq(100L), eq(1L), anyBoolean()))
+                .thenReturn(List.of(
+                        photoRow(10L, 100L, 500L, "a.jpg", "image/jpeg", 100, 1L),
+                        photoRow(11L, 100L, null, "damage.png", "image/png", 200, 1L)));
+
+        mvc.perform(get("/api/v1/buyer/partial-credit/100/photos").with(bidder()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.length()").value(2))
+           .andExpect(jsonPath("$[0].id").value(10))
+           .andExpect(jsonPath("$[0].kind").value("WRONG_DEVICE"))
+           .andExpect(jsonPath("$[1].kind").value("DAMAGE"));
+    }
+
+    @Test
+    void downloadPhoto_streamsBytes_withInlineDispositionAndContentType() throws Exception {
+        CreditRequestPhoto photo = photoRow(10L, 100L, 500L, "shot.jpg", "image/jpeg", 4, 1L);
+        photo.setBlob(new byte[]{0x4F, 0x4B, 0x21, 0x21});
+        when(photoService.downloadPhoto(eq(10L), eq(1L), anyBoolean())).thenReturn(photo);
+
+        mvc.perform(get("/api/v1/buyer/partial-credit/photos/10/blob").with(bidder()))
+           .andExpect(status().isOk())
+           .andExpect(header().string("Content-Type", "image/jpeg"))
+           .andExpect(header().string("Content-Disposition", "inline; filename=\"shot.jpg\""))
+           .andExpect(content().bytes(new byte[]{0x4F, 0x4B, 0x21, 0x21}));
+    }
+
+    @Test
+    void deletePhoto_returns204_onSuccess() throws Exception {
+        mvc.perform(delete("/api/v1/buyer/partial-credit/photos/10").with(bidder()))
+           .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void deletePhoto_foreignOwnership_returns403() throws Exception {
+        doThrow(new SecurityException("Not your photo"))
+                .when(photoService).deletePhoto(eq(10L), eq(1L), anyBoolean());
+
+        mvc.perform(delete("/api/v1/buyer/partial-credit/photos/10").with(bidder()))
+           .andExpect(status().isForbidden())
+           .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
     // ─── helpers ───────────────────────────────────────────────────────
 
     /** Authenticated bidder with Long principal — matches what
@@ -219,5 +315,21 @@ class BuyerPartialCreditControllerIT {
         cr.setHasWrongDevice(false);
         cr.setHasEncumberedDevice(false);
         return cr;
+    }
+
+    private static CreditRequestPhoto photoRow(
+            long id, long creditRequestId, Long wrongLineId,
+            String filename, String contentType, int size, long uploaderId) {
+        CreditRequestPhoto p = new CreditRequestPhoto();
+        p.setId(id);
+        p.setCreditRequestId(creditRequestId);
+        p.setWrongDeviceLineId(wrongLineId);
+        p.setKind(wrongLineId == null ? PhotoKind.DAMAGE : PhotoKind.WRONG_DEVICE);
+        p.setOriginalFilename(filename);
+        p.setContentType(contentType);
+        p.setSizeBytes(size);
+        p.setCreatedDate(Instant.parse("2026-05-12T00:00:00Z"));
+        p.setCreatedById(uploaderId);
+        return p;
     }
 }

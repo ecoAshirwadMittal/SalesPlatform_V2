@@ -15,6 +15,19 @@ spring:
     import: optional:file:../.env[.properties]
 
   # ─────────────────────────────────────
+  # Multipart uploads — covers the Sprint 4 buyer photo-upload endpoint
+  # (partial_credit.credit_request_photos). The 10MB cap is the parser
+  # ceiling; the partial-credit-specific 5MB cap is enforced inside
+  # CreditRequestPhotoService so file rejection produces our typed
+  # PhotoUploadException response body (not Spring's generic 500).
+  # ─────────────────────────────────────
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 30MB
+
+  # ─────────────────────────────────────
   # Local PostgreSQL (already running)
   # ─────────────────────────────────────
   datasource:
@@ -335,3 +348,14 @@ partial-credit:
   # ─────────────────────────────────────
   review-completed-email:
     enabled: ${PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED:false}
+  # ─────────────────────────────────────
+  # Buyer photo-upload limits (Sprint 4 chunk 4). The service enforces
+  # these on every POST /photos request — they shadow the global
+  # spring.servlet.multipart.max-file-size ceiling but produce typed
+  # PhotoUploadException responses instead of Spring's generic 500.
+  # ─────────────────────────────────────
+  photo:
+    max-size-mb: 5
+    max-per-line: 5
+    # Comma-separated MIME types. HEIC is included for iOS uploads.
+    allowed-content-types: image/jpeg,image/png,image/heic,image/webp

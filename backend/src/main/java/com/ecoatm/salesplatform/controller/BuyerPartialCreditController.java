@@ -4,13 +4,17 @@ import com.ecoatm.salesplatform.dto.partialcredit.CreateDraftRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.CreditRequestDetail;
 import com.ecoatm.salesplatform.dto.partialcredit.CreditRequestSummary;
 import com.ecoatm.salesplatform.dto.partialcredit.LineReplacementResponse;
+import com.ecoatm.salesplatform.dto.partialcredit.PhotoMetadataView;
 import com.ecoatm.salesplatform.dto.partialcredit.SetLinesRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.UpdateDraftRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
+import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
+import com.ecoatm.salesplatform.service.partialcredit.PhotoUploadException;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.List;
@@ -18,11 +22,14 @@ import java.util.Map;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -31,7 +38,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Buyer-facing REST surface for the Sprint-2 wizard. Five verbs:
@@ -61,9 +70,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class BuyerPartialCreditController {
 
     private final CreditRequestService service;
+    private final CreditRequestPhotoService photoService;
 
-    public BuyerPartialCreditController(CreditRequestService service) {
+    public BuyerPartialCreditController(
+            CreditRequestService service,
+            CreditRequestPhotoService photoService) {
         this.service = service;
+        this.photoService = photoService;
     }
 
     @PostMapping("/draft")
@@ -162,6 +175,71 @@ public class BuyerPartialCreditController {
         return ResponseEntity.ok(body);
     }
 
+    // ─── photo upload / list / download / delete (Sprint 4 chunk 4) ────
+
+    /**
+     * Multipart upload of one photo. {@code wrongDeviceLineId} is
+     * optional — when null, the row is stored as DAMAGE (request-scoped
+     * evidence); when present, as WRONG_DEVICE (per-line evidence).
+     *
+     * <p>Spring rejects 10 MB+ requests at the multipart-parser layer
+     * (per application.yml); the service enforces a stricter 5 MB
+     * cap inside the request body via {@link PhotoUploadException}.
+     */
+    @PostMapping(value = "/{id}/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<PhotoMetadataView> uploadPhoto(
+            @PathVariable Long id,
+            @RequestPart("file") MultipartFile file,
+            @RequestParam(value = "wrongDeviceLineId", required = false) Long wrongDeviceLineId,
+            Authentication auth) {
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        CreditRequestPhoto saved = photoService.uploadPhoto(id, wrongDeviceLineId, file, userId, admin);
+        return ResponseEntity.status(HttpStatus.CREATED).body(PhotoMetadataView.from(saved));
+    }
+
+    /** List metadata for every photo on the request. The bytea blobs
+     *  are fetched separately via the {@code /photos/{photoId}/blob}
+     *  endpoint so the gallery can stream them lazily. */
+    @GetMapping("/{id}/photos")
+    public ResponseEntity<List<PhotoMetadataView>> listPhotos(
+            @PathVariable Long id, Authentication auth) {
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        List<PhotoMetadataView> photos = photoService.listPhotos(id, userId, admin).stream()
+                .map(PhotoMetadataView::from)
+                .toList();
+        return ResponseEntity.ok(photos);
+    }
+
+    /** Stream a photo blob. {@code Content-Disposition: inline} lets
+     *  the browser render the image in-place; the gallery component
+     *  uses this URL as the {@code <img src>}. */
+    @GetMapping("/photos/{photoId}/blob")
+    public ResponseEntity<byte[]> downloadPhoto(
+            @PathVariable Long photoId, Authentication auth) {
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        CreditRequestPhoto photo = photoService.downloadPhoto(photoId, userId, admin);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "inline; filename=\"" + photo.getOriginalFilename() + "\"")
+                .body(photo.getBlob());
+    }
+
+    /** Delete a photo. Buyers can only delete their own uploads; admins
+     *  can delete any. Both are blocked once the parent request is
+     *  APPROVED / DECLINED — the evidence trail freezes with review. */
+    @DeleteMapping("/photos/{photoId}")
+    public ResponseEntity<Void> deletePhoto(
+            @PathVariable Long photoId, Authentication auth) {
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        photoService.deletePhoto(photoId, userId, admin);
+        return ResponseEntity.noContent().build();
+    }
+
     // ─── exception handlers ────────────────────────────────────────────
 
     @ExceptionHandler(CreditRequestValidationException.class)
@@ -185,6 +263,13 @@ public class BuyerPartialCreditController {
         // Don't leak buyer_code_id collisions across tenants in the body.
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 "error", "FORBIDDEN"));
+    }
+
+    @ExceptionHandler(PhotoUploadException.class)
+    public ResponseEntity<Map<String, Object>> onPhotoUploadRejected(PhotoUploadException ex) {
+        return ResponseEntity.status(ex.reason().status()).body(Map.of(
+                "error", ex.reason().name(),
+                "message", ex.getMessage() == null ? "Upload rejected" : ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)
