@@ -20,7 +20,9 @@ import com.ecoatm.salesplatform.service.partialcredit.snowflake.CreditRequestSno
 import com.ecoatm.salesplatform.service.partialcredit.snowflake.CreditRequestSnowflakeReader.OrderHeader;
 import jakarta.persistence.EntityNotFoundException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -184,66 +186,176 @@ public class CreditRequestService {
     }
 
     @Transactional
-    public List<MissingDeviceLine> replaceMissingLines(
+    public LineReplacementOutcome<MissingDeviceLine> replaceMissingLines(
             Long id, Long userId, boolean isAdmin, List<String> barcodes) {
         CreditRequest cr = loadForUser(id, userId, isAdmin);
         ensureDraft(cr);
+        BuyerCode buyerCode = buyerCodeRepository.findById(cr.getBuyerCodeId())
+                .orElseThrow(() -> new EntityNotFoundException("BuyerCode " + cr.getBuyerCodeId()));
+
+        // Reconcile the pasted barcodes against the Snowflake manifest
+        // before persisting so duplicates + non-manifest entries never
+        // hit the line table. The banner is surfaced back to the wizard
+        // verbatim (controller wraps this outcome in LineReplacementResponse).
+        ReplacementPlan plan = planReplacement(cr, buyerCode.getCode(), barcodes);
+
         missingDeviceLineRepository.deleteAll(
                 missingDeviceLineRepository.findByCreditRequestIdOrderById(cr.getId()));
-        List<MissingDeviceLine> rows = new java.util.ArrayList<>();
-        for (String b : barcodes) {
-            if (b == null || b.isBlank()) continue;
+        List<MissingDeviceLine> rows = new ArrayList<>();
+        for (ManifestLine ml : plan.persistable()) {
             MissingDeviceLine row = new MissingDeviceLine();
             row.setCreditRequestId(cr.getId());
-            row.setBarcodeSubmitted(b.trim());
+            row.setBarcodeSubmitted(ml.barcode());
             row.setCreatedById(userId);
             row.setChangedById(userId);
             rows.add(missingDeviceLineRepository.save(row));
         }
-        return rows;
+        return new LineReplacementOutcome<>(rows, plan.reconciliation());
     }
 
     @Transactional
-    public List<WrongDeviceLine> replaceWrongLines(
+    public LineReplacementOutcome<WrongDeviceLine> replaceWrongLines(
             Long id, Long userId, boolean isAdmin,
             List<com.ecoatm.salesplatform.dto.partialcredit.SetLinesRequest.WrongLineInput> wrongLines) {
         CreditRequest cr = loadForUser(id, userId, isAdmin);
         ensureDraft(cr);
+        BuyerCode buyerCode = buyerCodeRepository.findById(cr.getBuyerCodeId())
+                .orElseThrow(() -> new EntityNotFoundException("BuyerCode " + cr.getBuyerCodeId()));
+
+        // Reconcile only the expected barcodes — the user-supplied
+        // actualImeiOrModel hangs off each row and is preserved verbatim
+        // for the surviving expectedBarcode entries.
+        List<String> expectedBarcodes = new ArrayList<>();
+        Map<String, String> actualByExpected = new LinkedHashMap<>();
+        if (wrongLines != null) {
+            for (var input : wrongLines) {
+                if (input == null || input.expectedBarcode() == null || input.expectedBarcode().isBlank()) continue;
+                String trimmedExpected = input.expectedBarcode().trim();
+                String trimmedActual = input.actualImeiOrModel() == null ? null : input.actualImeiOrModel().trim();
+                expectedBarcodes.add(trimmedExpected);
+                // First-occurrence wins for actualImeiOrModel — duplicates
+                // are dropped by reconciliation, so the surviving entry
+                // keeps the buyer's first-typed answer.
+                actualByExpected.putIfAbsent(trimmedExpected, trimmedActual);
+            }
+        }
+
+        ReplacementPlan plan = planReplacement(cr, buyerCode.getCode(), expectedBarcodes);
+
         wrongDeviceLineRepository.deleteAll(
                 wrongDeviceLineRepository.findByCreditRequestIdOrderById(cr.getId()));
-        List<WrongDeviceLine> rows = new java.util.ArrayList<>();
-        for (var input : wrongLines) {
-            if (input == null || input.expectedBarcode() == null || input.expectedBarcode().isBlank()) continue;
+        List<WrongDeviceLine> rows = new ArrayList<>();
+        for (ManifestLine ml : plan.persistable()) {
             WrongDeviceLine row = new WrongDeviceLine();
             row.setCreditRequestId(cr.getId());
-            row.setExpectedBarcode(input.expectedBarcode().trim());
-            row.setActualImeiOrModel(input.actualImeiOrModel() == null ? null : input.actualImeiOrModel().trim());
+            row.setExpectedBarcode(ml.barcode());
+            row.setActualImeiOrModel(actualByExpected.get(ml.barcode()));
             row.setCreatedById(userId);
             row.setChangedById(userId);
             rows.add(wrongDeviceLineRepository.save(row));
         }
-        return rows;
+        return new LineReplacementOutcome<>(rows, plan.reconciliation());
     }
 
     @Transactional
-    public List<EncumberedDeviceLine> replaceEncumberedLines(
+    public LineReplacementOutcome<EncumberedDeviceLine> replaceEncumberedLines(
             Long id, Long userId, boolean isAdmin, List<String> barcodes) {
         CreditRequest cr = loadForUser(id, userId, isAdmin);
         ensureDraft(cr);
+        BuyerCode buyerCode = buyerCodeRepository.findById(cr.getBuyerCodeId())
+                .orElseThrow(() -> new EntityNotFoundException("BuyerCode " + cr.getBuyerCodeId()));
+
+        ReplacementPlan plan = planReplacement(cr, buyerCode.getCode(), barcodes);
+
         encumberedDeviceLineRepository.deleteAll(
                 encumberedDeviceLineRepository.findByCreditRequestIdOrderById(cr.getId()));
-        List<EncumberedDeviceLine> rows = new java.util.ArrayList<>();
-        for (String b : barcodes) {
-            if (b == null || b.isBlank()) continue;
+        List<EncumberedDeviceLine> rows = new ArrayList<>();
+        for (ManifestLine ml : plan.persistable()) {
             EncumberedDeviceLine row = new EncumberedDeviceLine();
             row.setCreditRequestId(cr.getId());
-            row.setBarcodeSubmitted(b.trim());
+            row.setBarcodeSubmitted(ml.barcode());
             row.setCreatedById(userId);
             row.setChangedById(userId);
             rows.add(encumberedDeviceLineRepository.save(row));
         }
-        return rows;
+        return new LineReplacementOutcome<>(rows, plan.reconciliation());
     }
+
+    /**
+     * Runs reconciliation against the Snowflake manifest and produces the
+     * pair (lines-to-persist, reconciliation-result-for-wizard).
+     *
+     * <p>Two paths:
+     * <ol>
+     *   <li><b>Manifest present</b> — reconcile, persist only
+     *       {@code validLines}, return the reconciliation verbatim so the
+     *       wizard banner reflects true dedup + not-in-order counts.</li>
+     *   <li><b>Manifest empty</b> (LOGGING reader OR unknown order in
+     *       prod) — treat as "no Snowflake configured / no manifest to
+     *       compare against": persist the deduped raw input as synthetic
+     *       {@link ManifestLine} rows so the wizard stays usable in
+     *       dev/test, and rebuild the reconciliation so the banner only
+     *       reports actual duplicates (rather than flagging every input
+     *       as "not in order").</li>
+     * </ol>
+     *
+     * <p>The pre-check uses {@code snowflakeReader.getOrderLines}
+     * directly (rather than parsing the reconciler output) so the two
+     * modes stay unambiguous regardless of whether inputs happen to
+     * match the manifest.
+     */
+    private ReplacementPlan planReplacement(
+            CreditRequest cr, String buyerCode, List<String> rawBarcodes) {
+        boolean manifestPopulated =
+                !snowflakeReader.getOrderLines(cr.getOrderNumber(), buyerCode).isEmpty();
+
+        if (manifestPopulated) {
+            BarcodeReconciliationResult reconciliation =
+                    validator.reconcileBarcodes(cr.getOrderNumber(), buyerCode, rawBarcodes);
+            return new ReplacementPlan(reconciliation.validLines(), reconciliation);
+        }
+
+        java.util.Set<String> seen = new java.util.LinkedHashSet<>();
+        List<ManifestLine> fallback = new ArrayList<>();
+        List<String> duplicates = new ArrayList<>();
+        if (rawBarcodes != null) {
+            for (String b : rawBarcodes) {
+                if (b == null) continue;
+                String trimmed = b.trim();
+                if (trimmed.isEmpty()) continue;
+                if (seen.add(trimmed)) {
+                    fallback.add(new ManifestLine(trimmed, null, null, null, null, null, null, null, null));
+                } else {
+                    duplicates.add(trimmed);
+                }
+            }
+        }
+        String banner = duplicates.isEmpty()
+                ? ""
+                : "Removed " + duplicates.size() + (duplicates.size() == 1 ? " duplicate" : " duplicates")
+                        + " and 0 not in order.";
+        BarcodeReconciliationResult fallbackReconciliation = new BarcodeReconciliationResult(
+                List.copyOf(fallback), List.copyOf(duplicates), List.of(), banner);
+        return new ReplacementPlan(fallback, fallbackReconciliation);
+    }
+
+    /**
+     * Internal pair returned by {@link #planReplacement} — the manifest
+     * lines to persist, plus the (possibly rewritten) reconciliation
+     * result to ship back to the wizard.
+     */
+    private record ReplacementPlan(
+            List<ManifestLine> persistable,
+            BarcodeReconciliationResult reconciliation) {}
+
+    /**
+     * Returned by the three {@code replaceXxxLines} entry points so the
+     * controller can hand back the persisted lines + the reconciliation
+     * banner in a single response without re-running reconciliation.
+     */
+    public record LineReplacementOutcome<T>(
+            List<T> persistedLines,
+            BarcodeReconciliationResult reconciliation) {}
 
     @Transactional(readOnly = true)
     public Page<CreditRequest> listForBuyerCode(Long buyerCodeId, Long userId, boolean isAdmin, Pageable pageable) {

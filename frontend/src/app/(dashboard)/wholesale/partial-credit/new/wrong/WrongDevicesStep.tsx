@@ -31,6 +31,7 @@ export function WrongDevicesStep() {
 
   const [detail, setDetail] = useState<CreditRequestDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconciliationBanner, setReconciliationBanner] = useState<string | null>(null);
   const [stage, setStage] = useState<'enter' | 'details'>('enter');
   const [blob, setBlob] = useState('');
   const [rows, setRows] = useState<WrongRow[]>([]);
@@ -71,7 +72,13 @@ export function WrongDevicesStep() {
     setSubmitting(true);
     setError(null);
     try {
-      await setWrongLines(detail.id, rows);
+      const response = await setWrongLines(detail.id, rows);
+      // Surface the reconciliation banner so the buyer sees when the
+      // server dropped duplicates or non-manifest expected barcodes
+      // (Figma "Removed N duplicate and M not in order").
+      if (response.reconciliation.banner) {
+        setReconciliationBanner(response.reconciliation.banner);
+      }
       const next = detail.hasEncumberedDevice ? 'encumbered' : 'summary';
       router.push(`/wholesale/partial-credit/new/${next}?id=${detail.id}`);
     } catch (e) {
@@ -106,6 +113,9 @@ export function WrongDevicesStep() {
           <p className={styles.cardSubheading}>
             Copy and paste the expected barcodes into the text field below.
           </p>
+          {reconciliationBanner && (
+            <div className={styles.warningBanner}>{reconciliationBanner}</div>
+          )}
           <label className={styles.fieldLabel} htmlFor="wrong-barcodes">
             Barcodes
           </label>
@@ -120,6 +130,9 @@ export function WrongDevicesStep() {
         </div>
       ) : (
         <div className={styles.card} style={{ padding: 0 }}>
+          {reconciliationBanner && (
+            <div className={styles.warningBanner}>{reconciliationBanner}</div>
+          )}
           <table className={styles.gridTable}>
             <thead>
               <tr>

@@ -112,6 +112,31 @@ const ValidationIssueSchema = z.object({ code: z.string(), message: z.string() }
 export type ValidationIssue = z.infer<typeof ValidationIssueSchema>;
 
 /**
+ * Mirror of the backend `BarcodeReconciliationResult` record. The wizard
+ * surfaces {@link banner} verbatim above the textarea (Figma "Removed N
+ * duplicate and M not in order"). The dropped buckets are kept in case
+ * the wizard wants to render them per-barcode in a future iteration.
+ */
+export const BarcodeReconciliationSchema = z.object({
+  validLines: z.array(z.unknown()),
+  duplicates: z.array(z.string()),
+  notInOrder: z.array(z.string()),
+  banner: z.string(),
+});
+export type BarcodeReconciliation = z.infer<typeof BarcodeReconciliationSchema>;
+
+/**
+ * Response shape for the three line-replace endpoints: the up-to-date
+ * detail plus the reconciliation block so the wizard can render the
+ * Figma dedup/not-in-order banner without a second request.
+ */
+export const LineReplacementResponseSchema = z.object({
+  detail: CreditRequestDetailSchema,
+  reconciliation: BarcodeReconciliationSchema,
+});
+export type LineReplacementResponse = z.infer<typeof LineReplacementResponseSchema>;
+
+/**
  * Thrown when the submit endpoint returns 400 with a list of validation
  * issues. Wizard pages can switch on {@code issues[i].code} to highlight
  * the matching field.
@@ -160,32 +185,35 @@ export async function updateDraft(
   return CreditRequestDetailSchema.parse(await r.json());
 }
 
-export async function setMissingLines(id: number, barcodes: string[]): Promise<CreditRequestDetail> {
+export async function setMissingLines(
+  id: number,
+  barcodes: string[],
+): Promise<LineReplacementResponse> {
   return postLines(`${BASE}/${id}/missing-lines`, { barcodes });
 }
 
 export async function setEncumberedLines(
   id: number,
   barcodes: string[],
-): Promise<CreditRequestDetail> {
+): Promise<LineReplacementResponse> {
   return postLines(`${BASE}/${id}/encumbered-lines`, { barcodes });
 }
 
 export async function setWrongLines(
   id: number,
   wrongLines: { expectedBarcode: string; actualImeiOrModel: string }[],
-): Promise<CreditRequestDetail> {
+): Promise<LineReplacementResponse> {
   return postLines(`${BASE}/${id}/wrong-lines`, { wrongLines });
 }
 
-async function postLines(url: string, body: unknown): Promise<CreditRequestDetail> {
+async function postLines(url: string, body: unknown): Promise<LineReplacementResponse> {
   const r = await apiFetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!r.ok) throw new Error(`postLines failed: HTTP ${r.status}`);
-  return CreditRequestDetailSchema.parse(await r.json());
+  return LineReplacementResponseSchema.parse(await r.json());
 }
 
 export async function submitRequest(id: number): Promise<CreditRequestDetail> {

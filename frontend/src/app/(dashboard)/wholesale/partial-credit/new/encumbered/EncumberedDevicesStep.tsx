@@ -24,6 +24,7 @@ export function EncumberedDevicesStep() {
 
   const [detail, setDetail] = useState<CreditRequestDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconciliationBanner, setReconciliationBanner] = useState<string | null>(null);
   const [blob, setBlob] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -48,7 +49,13 @@ export function EncumberedDevicesStep() {
     setSubmitting(true);
     setError(null);
     try {
-      await setEncumberedLines(detail.id, barcodes);
+      const response = await setEncumberedLines(detail.id, barcodes);
+      // Surface the reconciliation banner so the buyer sees when the
+      // server dropped duplicates or non-manifest barcodes (Figma
+      // "Removed N duplicate and M not in order").
+      if (response.reconciliation.banner) {
+        setReconciliationBanner(response.reconciliation.banner);
+      }
       router.push(`/wholesale/partial-credit/new/summary?id=${detail.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save');
@@ -79,6 +86,9 @@ export function EncumberedDevicesStep() {
         <p className={styles.cardSubheading}>
           Copy and paste the barcodes into the text field below.
         </p>
+        {reconciliationBanner && (
+          <div className={styles.warningBanner}>{reconciliationBanner}</div>
+        )}
         <label className={styles.fieldLabel} htmlFor="encumbered-barcodes">
           Barcodes
         </label>

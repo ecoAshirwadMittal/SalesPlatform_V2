@@ -28,6 +28,7 @@ export function MissingDevicesStep() {
 
   const [detail, setDetail] = useState<CreditRequestDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reconciliationBanner, setReconciliationBanner] = useState<string | null>(null);
   const [blob, setBlob] = useState('');
   const [damage, setDamage] = useState<'YES' | 'NO' | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -54,8 +55,19 @@ export function MissingDevicesStep() {
     setSubmitting(true);
     setError(null);
     try {
-      await setMissingLines(detail.id, barcodes);
+      const response = await setMissingLines(detail.id, barcodes);
       await updateDraft(detail.id, { shipmentDamaged: damage! });
+
+      // Surface the reconciliation banner before navigating away — when
+      // the server dropped duplicates or non-manifest barcodes the wizard
+      // should signal that to the buyer (Figma "Removed N duplicate and
+      // M not in order"). The next-step navigation happens immediately
+      // after; the banner is preserved in component state so a back-nav
+      // returns to it.
+      if (response.reconciliation.banner) {
+        setReconciliationBanner(response.reconciliation.banner);
+      }
+
       const next = detail.hasWrongDevice
         ? 'wrong'
         : detail.hasEncumberedDevice
@@ -91,6 +103,9 @@ export function MissingDevicesStep() {
         <p className={styles.cardSubheading}>
           Copy and paste the barcodes into the text field below.
         </p>
+        {reconciliationBanner && (
+          <div className={styles.warningBanner}>{reconciliationBanner}</div>
+        )}
         <label className={styles.fieldLabel} htmlFor="missing-barcodes">
           Barcodes
         </label>

@@ -2,12 +2,15 @@ package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
+import com.ecoatm.salesplatform.model.partialcredit.MissingDeviceLine;
 import com.ecoatm.salesplatform.model.partialcredit.enums.ShipmentDamaged;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.service.partialcredit.BarcodeReconciliationResult;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService.LineReplacementOutcome;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import org.junit.jupiter.api.BeforeEach;
@@ -121,6 +124,38 @@ class BuyerPartialCreditControllerIT {
            .andExpect(jsonPath("$.error").value("VALIDATION_FAILED"))
            .andExpect(jsonPath("$.issues[0].code").value("NO_REASON_SELECTED"))
            .andExpect(jsonPath("$.issues[1].code").value("DAMAGE_NOT_ANSWERED"));
+    }
+
+    @Test
+    void setMissingLines_returnsDetailAndReconciliationBanner() throws Exception {
+        CreditRequest cr = newRequest(17L, "PCR-X7", "SO-7");
+        // Service returns the up-to-date detail via getById; missing lines
+        // come from getMissingLines. Prime the line list to reflect that
+        // only the valid (manifest-matched) barcode survived.
+        MissingDeviceLine surviving = new MissingDeviceLine();
+        surviving.setId(900L);
+        surviving.setBarcodeSubmitted("BC-1");
+        when(service.getById(eq(17L), any(), anyBoolean())).thenReturn(cr);
+        when(service.getMissingLines(eq(17L))).thenReturn(List.of(surviving));
+
+        BarcodeReconciliationResult reconciliation = new BarcodeReconciliationResult(
+                List.of(), List.of("BC-1"), List.of("BC-NOPE"),
+                "Removed 1 duplicate and 1 not in order.");
+        when(service.replaceMissingLines(eq(17L), any(), anyBoolean(), any()))
+                .thenReturn(new LineReplacementOutcome<>(List.of(surviving), reconciliation));
+
+        mvc.perform(post("/api/v1/buyer/partial-credit/17/missing-lines")
+                .with(bidder())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"barcodes\":[\"BC-1\",\"BC-1\",\"BC-NOPE\"]}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.detail.id").value(17))
+           .andExpect(jsonPath("$.detail.missingLines.length()").value(1))
+           .andExpect(jsonPath("$.detail.missingLines[0].barcodeSubmitted").value("BC-1"))
+           .andExpect(jsonPath("$.reconciliation.banner")
+                   .value("Removed 1 duplicate and 1 not in order."))
+           .andExpect(jsonPath("$.reconciliation.duplicates[0]").value("BC-1"))
+           .andExpect(jsonPath("$.reconciliation.notInOrder[0]").value("BC-NOPE"));
     }
 
     @Test

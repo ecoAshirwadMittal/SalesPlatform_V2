@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.controller;
 import com.ecoatm.salesplatform.dto.partialcredit.CreateDraftRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.CreditRequestDetail;
 import com.ecoatm.salesplatform.dto.partialcredit.CreditRequestSummary;
+import com.ecoatm.salesplatform.dto.partialcredit.LineReplacementResponse;
 import com.ecoatm.salesplatform.dto.partialcredit.SetLinesRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.UpdateDraftRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
@@ -89,27 +90,39 @@ public class BuyerPartialCreditController {
     }
 
     @PostMapping("/{id}/missing-lines")
-    public ResponseEntity<CreditRequestDetail> setMissingLines(
+    public ResponseEntity<LineReplacementResponse> setMissingLines(
             @PathVariable Long id, @RequestBody SetLinesRequest body, Authentication auth) {
-        service.replaceMissingLines(id, principalUserId(auth), isAdmin(auth),
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        var outcome = service.replaceMissingLines(id, userId, admin,
                 body.barcodes() == null ? List.of() : body.barcodes());
-        return ResponseEntity.ok(toDetail(service.getById(id, principalUserId(auth), isAdmin(auth))));
+        return ResponseEntity.ok(new LineReplacementResponse(
+                toDetail(service.getById(id, userId, admin)),
+                outcome.reconciliation()));
     }
 
     @PostMapping("/{id}/wrong-lines")
-    public ResponseEntity<CreditRequestDetail> setWrongLines(
+    public ResponseEntity<LineReplacementResponse> setWrongLines(
             @PathVariable Long id, @RequestBody SetLinesRequest body, Authentication auth) {
-        service.replaceWrongLines(id, principalUserId(auth), isAdmin(auth),
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        var outcome = service.replaceWrongLines(id, userId, admin,
                 body.wrongLines() == null ? List.of() : body.wrongLines());
-        return ResponseEntity.ok(toDetail(service.getById(id, principalUserId(auth), isAdmin(auth))));
+        return ResponseEntity.ok(new LineReplacementResponse(
+                toDetail(service.getById(id, userId, admin)),
+                outcome.reconciliation()));
     }
 
     @PostMapping("/{id}/encumbered-lines")
-    public ResponseEntity<CreditRequestDetail> setEncumberedLines(
+    public ResponseEntity<LineReplacementResponse> setEncumberedLines(
             @PathVariable Long id, @RequestBody SetLinesRequest body, Authentication auth) {
-        service.replaceEncumberedLines(id, principalUserId(auth), isAdmin(auth),
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        var outcome = service.replaceEncumberedLines(id, userId, admin,
                 body.barcodes() == null ? List.of() : body.barcodes());
-        return ResponseEntity.ok(toDetail(service.getById(id, principalUserId(auth), isAdmin(auth))));
+        return ResponseEntity.ok(new LineReplacementResponse(
+                toDetail(service.getById(id, userId, admin)),
+                outcome.reconciliation()));
     }
 
     @PostMapping("/{id}/submit")

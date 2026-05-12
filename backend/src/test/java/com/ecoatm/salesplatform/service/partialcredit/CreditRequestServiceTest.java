@@ -15,6 +15,7 @@ import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestStatusRepo
 import com.ecoatm.salesplatform.repository.partialcredit.EncumberedDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.MissingDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.WrongDeviceLineRepository;
+import com.ecoatm.salesplatform.service.partialcredit.BarcodeReconciliationResult;
 import com.ecoatm.salesplatform.service.partialcredit.snowflake.CreditRequestSnowflakeReader;
 import com.ecoatm.salesplatform.service.partialcredit.snowflake.CreditRequestSnowflakeReader.ManifestLine;
 import com.ecoatm.salesplatform.service.partialcredit.snowflake.CreditRequestSnowflakeReader.OrderHeader;
@@ -35,6 +36,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -284,6 +286,145 @@ class CreditRequestServiceTest {
         // No save call after the validator throws.
         org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
                 .save(any(CreditRequest.class));
+    }
+
+    // ─── replaceXxxLines + reconciliation banner (Chunk 2) ────────────
+
+    @Test
+    @DisplayName("replaceMissingLines runs reconciliation and persists only validLines (deduped + manifest-matched)")
+    void replaceMissingLines_reconciles_persistsValidOnly() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+        primeBuyerCodeLookup();
+
+        // Manifest contains BC-1 and BC-2 only (BC-NOPE is not on the order).
+        ManifestLine ml1 = new ManifestLine("BC-1", null, "Apple", "iPhone 13", "A_YYY",
+                "EC-1", "BOX-1", new BigDecimal("450.00"), "TRK-1");
+        ManifestLine ml2 = new ManifestLine("BC-2", null, "Samsung", "Galaxy S22", "A_NNN",
+                "EC-2", "BOX-1", new BigDecimal("600.00"), "TRK-2");
+        when(snowflakeReader.getOrderLines(ORDER, BUYER_CODE)).thenReturn(List.of(ml1, ml2));
+
+        // Buyer pastes: BC-1, BC-1 (duplicate), BC-2, BC-NOPE-1, BC-NOPE-2 (two not in order).
+        BarcodeReconciliationResult reconciliation = new BarcodeReconciliationResult(
+                List.of(ml1, ml2),
+                List.of("BC-1"),
+                List.of("BC-NOPE-1", "BC-NOPE-2"),
+                "Removed 1 duplicate and 2 not in order.");
+        when(validator.reconcileBarcodes(eq(ORDER), eq(BUYER_CODE), anyList()))
+                .thenReturn(reconciliation);
+
+        when(missingDeviceLineRepository.findByCreditRequestIdOrderById(draft.getId()))
+                .thenReturn(List.of());
+        when(missingDeviceLineRepository.save(any(MissingDeviceLine.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        CreditRequestService.LineReplacementOutcome<MissingDeviceLine> outcome =
+                service.replaceMissingLines(draft.getId(), USER_ID, false,
+                        List.of("BC-1", "BC-1", "BC-2", "BC-NOPE-1", "BC-NOPE-2"));
+
+        assertThat(outcome.persistedLines()).hasSize(2);
+        assertThat(outcome.persistedLines())
+                .extracting(MissingDeviceLine::getBarcodeSubmitted)
+                .containsExactly("BC-1", "BC-2");
+        assertThat(outcome.reconciliation().banner()).isEqualTo("Removed 1 duplicate and 2 not in order.");
+        assertThat(outcome.reconciliation().duplicates()).containsExactly("BC-1");
+        assertThat(outcome.reconciliation().notInOrder()).containsExactly("BC-NOPE-1", "BC-NOPE-2");
+    }
+
+    @Test
+    @DisplayName("replaceWrongLines preserves actualImeiOrModel for surviving expected barcodes")
+    void replaceWrongLines_preservesActualForValidExpected() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+        primeBuyerCodeLookup();
+
+        ManifestLine ml1 = new ManifestLine("BC-A", null, "Apple", "iPhone 13", "A_YYY",
+                "EC-1", "BOX-1", new BigDecimal("450.00"), "TRK-1");
+        when(snowflakeReader.getOrderLines(ORDER, BUYER_CODE)).thenReturn(List.of(ml1));
+
+        when(validator.reconcileBarcodes(eq(ORDER), eq(BUYER_CODE), anyList()))
+                .thenReturn(new BarcodeReconciliationResult(
+                        List.of(ml1), List.of(), List.of("BC-NOPE"),
+                        "Removed 0 duplicates and 1 not in order."));
+
+        when(wrongDeviceLineRepository.findByCreditRequestIdOrderById(draft.getId()))
+                .thenReturn(List.of());
+        when(wrongDeviceLineRepository.save(any(WrongDeviceLine.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        var outcome = service.replaceWrongLines(draft.getId(), USER_ID, false, List.of(
+                new com.ecoatm.salesplatform.dto.partialcredit.SetLinesRequest.WrongLineInput(
+                        "BC-A", "IMEI-FOR-A"),
+                new com.ecoatm.salesplatform.dto.partialcredit.SetLinesRequest.WrongLineInput(
+                        "BC-NOPE", "IMEI-FOR-NOPE")));
+
+        assertThat(outcome.persistedLines()).hasSize(1);
+        WrongDeviceLine surv = outcome.persistedLines().get(0);
+        assertThat(surv.getExpectedBarcode()).isEqualTo("BC-A");
+        assertThat(surv.getActualImeiOrModel()).isEqualTo("IMEI-FOR-A");
+    }
+
+    @Test
+    @DisplayName("replaceEncumberedLines surfaces the reconciliation banner verbatim")
+    void replaceEncumberedLines_surfacesBanner() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+        primeBuyerCodeLookup();
+
+        ManifestLine ml1 = new ManifestLine("EB-1", null, "Apple", "iPhone 12", "B_YYY",
+                "EC-1", "BOX-1", new BigDecimal("250.00"), "TRK-9");
+        when(snowflakeReader.getOrderLines(ORDER, BUYER_CODE)).thenReturn(List.of(ml1));
+
+        when(validator.reconcileBarcodes(eq(ORDER), eq(BUYER_CODE), anyList()))
+                .thenReturn(new BarcodeReconciliationResult(
+                        List.of(ml1), List.of(), List.of(),
+                        ""));
+
+        when(encumberedDeviceLineRepository.findByCreditRequestIdOrderById(draft.getId()))
+                .thenReturn(List.of());
+        when(encumberedDeviceLineRepository.save(any(EncumberedDeviceLine.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        var outcome = service.replaceEncumberedLines(
+                draft.getId(), USER_ID, false, List.of("EB-1"));
+
+        assertThat(outcome.persistedLines()).hasSize(1);
+        assertThat(outcome.reconciliation().banner()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("replaceMissingLines with LOGGING reader (empty manifest) falls back to deduped pass-through")
+    void replaceMissingLines_emptyManifest_fallback() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+        primeBuyerCodeLookup();
+
+        // LOGGING reader → empty manifest
+        when(snowflakeReader.getOrderLines(ORDER, BUYER_CODE)).thenReturn(List.of());
+
+        when(missingDeviceLineRepository.findByCreditRequestIdOrderById(draft.getId()))
+                .thenReturn(List.of());
+        when(missingDeviceLineRepository.save(any(MissingDeviceLine.class)))
+                .thenAnswer(inv -> inv.getArgument(0));
+
+        var outcome = service.replaceMissingLines(
+                draft.getId(), USER_ID, false, List.of("BC-1", "BC-1", "BC-2"));
+
+        // Deduped pass-through: 2 lines persisted, banner reports duplicates only.
+        assertThat(outcome.persistedLines())
+                .extracting(MissingDeviceLine::getBarcodeSubmitted)
+                .containsExactly("BC-1", "BC-2");
+        assertThat(outcome.reconciliation().duplicates()).containsExactly("BC-1");
+        assertThat(outcome.reconciliation().notInOrder()).isEmpty();
+        assertThat(outcome.reconciliation().banner()).isEqualTo("Removed 1 duplicate and 0 not in order.");
     }
 
     // ─── helpers ───────────────────────────────────────────────────────
