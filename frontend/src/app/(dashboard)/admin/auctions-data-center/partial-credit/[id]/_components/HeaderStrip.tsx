@@ -4,7 +4,11 @@ import { StatusPill } from './StatusPill';
 
 interface HeaderStripProps {
   detail: CreditRequestDetail;
-  /** Live colour for the status pill — sourced from the landing response. */
+  /**
+   * Live colour for the status pill — preferred source is
+   * `detail.statusColorHex` (DTO blocker — see TODO below). The caller
+   * passes a fallback grey while the DTO field is still missing.
+   */
   statusColorHex: string;
   /**
    * Whether the request is currently locked to this reviewer
@@ -18,10 +22,25 @@ interface HeaderStripProps {
 }
 
 /**
- * Top-of-detail header with two columns of metadata + the Complete
- * Review button. Per §11.Q2 the admin detail surfaces the INTERNAL
- * status text (`Under Review`) so the reviewer knows someone has the
- * request open — landing rows continue to render the external label.
+ * Top-of-detail header with metadata + the Complete Review button.
+ *
+ * Per Figma §3.2 (design notes), the "Buyer" field is the human contact
+ * name (e.g. `Jonathan Wildermeyer`) and the "Company" field is the
+ * legal entity (e.g. `Acme Inc.`). The current `CreditRequestDetail`
+ * DTO only carries `partyName`; until the backend exposes a contact
+ * name field (`buyerName` / `requestedByName`), Buyer falls back to
+ * `partyName` with a TODO marker (blocker surfaced in Group 3 output).
+ *
+ * Per §11.Q2 the admin detail should surface the INTERNAL status text
+ * (`Under Review`) so the reviewer can distinguish their own lock from
+ * the external label (`Pending Approval`). The detail DTO does not yet
+ * carry `internalStatusText` — fall back to `displayStatus` and flag
+ * the dependency as a blocker.
+ *
+ * Per §11.Q5 the status pill colour is server-driven from
+ * `credit_request_statuses.color_hex`. The detail DTO does not yet
+ * carry `statusColorHex` (the landing DTO does); fall back to the grey
+ * passed by the caller and flag the dependency.
  */
 export function HeaderStrip({
   detail,
@@ -29,23 +48,39 @@ export function HeaderStrip({
   onCompleteReview,
   completeDisabled,
 }: HeaderStripProps) {
+  // TODO(DTO): consume `detail.buyerName` once backend ships it.
+  // Falls back to partyName so the cell isn't empty while we wait.
+  const buyerName = detail.partyName ?? '—';
+  const companyName = detail.partyName ?? '—';
+
+  // TODO(DTO): consume `detail.internalStatusText` once backend ships
+  // it (see §11.Q2). For now `displayStatus` is the closest source.
+  const statusLabel = detail.displayStatus;
+
+  // TODO(DTO): consume `detail.statusColorHex` once backend ships it
+  // (see §11.Q5). For now use the fallback passed by the caller.
+  const pillColor = statusColorHex;
+
   return (
     <div className={styles.headerStrip}>
       <Field label="Request Date" value={formatDate(detail.orderCreatedDate)} />
-      <Field label="Buyer" value={detail.partyName ?? '—'} />
-      <Field label="Company" value={detail.partyName ?? '—'} />
+      <Field label="Buyer" value={buyerName} />
+      <Field label="Company" value={companyName} />
       <Field label="Order Number" value={detail.orderNumber} />
       <Field label="Request Reason" value={formatReasons(detail)} />
       <Field
         label="Status"
         value={
           <StatusPill
-            colorHex={statusColorHex}
-            label={detail.displayStatus}
+            colorHex={pillColor}
+            label={statusLabel}
             systemStatus={detail.systemStatus}
           />
         }
       />
+      {detail.reviewCompletedOn && (
+        <Field label="Approved Date" value={formatDate(detail.reviewCompletedOn)} />
+      )}
       <div className={styles.detailActions}>
         <button
           type="button"

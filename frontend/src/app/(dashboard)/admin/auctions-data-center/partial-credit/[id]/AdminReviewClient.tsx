@@ -12,7 +12,6 @@ import {
   completeReview,
   openForReview,
   setEncumberedFields as apiSetEncumberedFields,
-  setGlobalDecision,
   setLineDecision as apiSetLineDecision,
   setSectionDecision,
 } from '@/lib/adminPartialCreditClient';
@@ -130,17 +129,6 @@ export function AdminReviewClient() {
     [id, wrapBusy, refreshDetail],
   );
 
-  const handleGlobalBulk = useCallback(
-    (decision: ReviewDecision) => {
-      void wrapBusy(async () => {
-        const res = await setGlobalDecision(id, decision);
-        setSummary(res.summary);
-        await refreshDetail();
-      });
-    },
-    [id, wrapBusy, refreshDetail],
-  );
-
   const handleEncumberedFields = useCallback(
     (lineId: number, prologResult: PrologResult, actualValue: number | null) => {
       void wrapBusy(async () => {
@@ -196,10 +184,10 @@ export function AdminReviewClient() {
     );
   }
 
-  // Status pill colour: detail endpoint doesn't carry the hex, so we
-  // fall back to neutral grey. The landing list ships the hex; once
-  // SPKB-3664 wires status-config, we can either add it to the detail
-  // response or fetch it once on mount.
+  // Status pill colour: detail endpoint doesn't carry the hex today
+  // (the landing DTO does — see SPKB-3664 / Group-3 dependency notes).
+  // Fall back to neutral grey until the backend adds `statusColorHex`
+  // to the detail response.
   const fallbackPillColor = '#6F6F6F';
 
   return (
@@ -208,6 +196,8 @@ export function AdminReviewClient() {
         <Link href="/admin/auctions-data-center/partial-credit">All Partial Credit Requests</Link>
         &nbsp;›&nbsp; {detail.requestNumber}
       </div>
+
+      <h1 className={styles.heading}>Request Details</h1>
 
       <HeaderStrip
         detail={detail}
@@ -223,29 +213,9 @@ export function AdminReviewClient() {
 
       {error && <div className={styles.errorBanner}>{error}</div>}
 
-      <div className={styles.bulkBanner}>
-        <span className={styles.bulkBannerLabel}>Bulk apply across all sections:</span>
-        <button
-          type="button"
-          className={styles.buttonAcceptSmall}
-          disabled={busy}
-          onClick={() => handleGlobalBulk('ACCEPTED')}
-        >
-          Accept All
-        </button>
-        <button
-          type="button"
-          className={styles.buttonDanger}
-          disabled={busy}
-          onClick={() => handleGlobalBulk('DECLINED')}
-        >
-          Decline All
-        </button>
-      </div>
-
       {detail.hasMissingDevice && (
         <ReasonSection
-          title="Missing Devices"
+          title="Missing Device"
           kind="MISSING"
           lines={detail.missingLines}
           busy={busy}
@@ -256,7 +226,7 @@ export function AdminReviewClient() {
 
       {detail.hasWrongDevice && (
         <ReasonSection
-          title="Wrong Devices"
+          title="Wrong Device"
           kind="WRONG"
           lines={detail.wrongLines}
           busy={busy}
@@ -267,7 +237,7 @@ export function AdminReviewClient() {
 
       {detail.hasEncumberedDevice && (
         <ReasonSection
-          title="Encumbered Devices"
+          title="Encumbered Device"
           kind="ENCUMBERED"
           lines={detail.encumberedLines}
           busy={busy}
