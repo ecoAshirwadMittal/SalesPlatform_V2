@@ -31,18 +31,40 @@
   margin: 0 0 32px;
 }
 
+/* Step indicator (Group 5) — Figma "Step Horizontal" component.
+   Fixed 800px row with ONE continuous 1px line behind the circles
+   (NOT per-segment dividers). Each .stepNode is justified
+   space-between within the fixed-width row. */
 .stepIndicator {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  width: 800px;
+  max-width: 100%;
+  margin-bottom: 32px;
+}
+
+/* Single continuous line spanning the full step row, vertically
+   centered with the circles. Sits behind the nodes via z-index. */
+.stepIndicatorLine {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 16px;
+  height: 1px;
+  background: #A8A7A6;
+  z-index: 0;
 }
 
 .stepNode {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: 8px;
+  background: #F7F7F7;
+  padding: 0 8px;
 }
 
 .stepCircle {
@@ -81,19 +103,26 @@
   font-weight: 500;
 }
 
-.stepDivider {
-  width: 32px;
-  height: 1px;
-  background: #A8A7A6;
-}
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ Group 5 — reason steps (Missing / Wrong / Encumbered)                ║
+   ║ Card chrome, typography bumps, button sizing, OR-divider + file      ║
+   ║ dropzone, error/warning banner split, section-count badge, row       ║
+   ║ delete button, parsed-list table chrome, srOnly utility.             ║
+   ║                                                                      ║
+   ║ Next dispatch (Group 6 — Summary step) will append its own section   ║
+   ║ BELOW this block. Do not refactor across the boundary.               ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
 
 .card {
   background: #FFFFFF;
-  border: 1px solid #E6E5E4;
-  border-radius: 12px;
-  padding: 28px 32px;
+  border: 0;
+  border-radius: 8px;
+  padding: 24px 32px;
   margin-bottom: 24px;
-  max-width: 880px;
+  max-width: 800px;
+  box-shadow:
+    0px 1px 2px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 3px 0px rgba(0, 0, 0, 0.1);
 }
 
 .cardHeading {
@@ -104,17 +133,94 @@
 }
 
 .cardSubheading {
-  font-size: 14px;
-  color: #534F4C;
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--color-pc-text-muted, #3C3C3C);
   margin: 0 0 16px;
 }
 
 .fieldLabel {
   display: block;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 500;
   color: #1C1B1C;
   margin-bottom: 6px;
+}
+
+/* Accessible-but-invisible label — Figma uses the card subtitle as the
+   only visible label above the textarea (BarcodeEntryCard). */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* OR divider sandwiched between textarea and dropzone — Figma "**OR**". */
+.orDivider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.orDividerLine {
+  flex: 1 1 auto;
+  height: 1px;
+  background: #DDDDDD;
+}
+
+.orDividerLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1C1B1C;
+  letter-spacing: 0.04em;
+}
+
+/* File dropzone — replaces the old narrow file-drop chip. The whole card
+   surface (textarea → OR → dropzone) is one BarcodeEntryCard. */
+.fileDropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 24px 16px;
+  border: 1px dashed #A8A7A6;
+  border-radius: 8px;
+  background: #FFFFFF;
+  cursor: pointer;
+  text-align: center;
+}
+
+.fileDropzone:hover {
+  background: #FBFAF8;
+}
+
+.fileDropzoneTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1C1B1C;
+}
+
+.fileDropzoneHelper {
+  font-size: 14px;
+  color: var(--color-pc-text-muted, #3C3C3C);
+}
+
+.fileDropzoneInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
 }
 
 .helperText {
@@ -188,9 +294,9 @@
 .buttonRow {
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 8px;
   margin-top: 32px;
-  max-width: 880px;
+  max-width: 800px;
 }
 
 .buttonSecondary {
@@ -198,9 +304,11 @@
   color: #1C1B1C;
   border: 1px solid #A8A7A6;
   border-radius: 8px;
-  padding: 10px 20px;
+  padding: 8px 16px;
   font-size: 16px;
   font-weight: 500;
+  min-width: 200px;
+  height: 40px;
   cursor: pointer;
 }
 
@@ -213,9 +321,11 @@
   color: #FFFFFF;
   border: 0;
   border-radius: 8px;
-  padding: 10px 24px;
+  padding: 8px 16px;
   font-size: 16px;
   font-weight: 500;
+  min-width: 200px;
+  height: 40px;
   cursor: pointer;
 }
 
@@ -251,9 +361,24 @@
   margin-top: 4px;
 }
 
+/* Neutral reconciliation banner — "Removed N duplicate and M not in order".
+   This is intentionally NOT red (server reconciliation is informational,
+   not a validation error). Use .errorBanner for true validation errors. */
 .warningBanner {
+  background: #FBFAF8;
+  border: 1px solid #E6E5E4;
+  color: #1C1B1C;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+/* Red validation-error banner — distinct from the neutral warning banner.
+   Use this for "Failed to save", file-drop errors, and server 4xx/5xx. */
+.errorBanner {
   background: #FFF3EC;
-  border: 1px solid #F26B21;
+  border: 1px solid #EB3300;
   color: #1C1B1C;
   border-radius: 8px;
   padding: 12px 16px;
@@ -343,8 +468,109 @@
 .gridTable th {
   background: #F7F7F7;
   font-weight: 500;
-  color: #3C3C3C;
+  color: #1C1B1C;
+  font-size: 16px;
 }
+
+/* Sort icon button rendered inline with each <th>'s text — purely
+   decorative for now (Figma shows arrows-up-down chevrons). */
+.sortIcon {
+  display: inline-flex;
+  vertical-align: middle;
+  margin-left: 6px;
+  color: #7D7B7A;
+}
+
+.thWithSort {
+  white-space: nowrap;
+}
+
+.thMutedHelper {
+  color: var(--color-pc-text-muted, #3C3C3C);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* "(N)" badge appended to section headings — Figma "Missing Devices (25)".
+   Inline at end of the section header rather than a separate chip. */
+.countBadge {
+  margin-left: 8px;
+  color: var(--color-pc-text-muted, #3C3C3C);
+  font-weight: 400;
+}
+
+/* Section header row above a parsed-review table — Figma uses a large
+   section heading + Add More Devices CTA on the right. */
+.sectionHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 12px 0;
+  flex-wrap: wrap;
+}
+
+.sectionHeading {
+  font-size: 24px;
+  font-weight: 500;
+  color: #1C1B1C;
+  margin: 0;
+}
+
+/* xmark row-delete button — Figma shows a tiny icon-only button on the
+   right edge of each parsed-list row. */
+.rowDelete {
+  background: none;
+  border: 0;
+  color: var(--color-pc-text-muted, #3C3C3C);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.rowDelete:hover {
+  color: #EB3300;
+}
+
+/* Add-more "+ Add More Devices" CTA, rendered inline below a parsed list.
+   Visually a ghost button at the bottom of the table card. */
+.addMoreRow {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.addMoreButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--color-pc-green, #1F8B3D);
+  border: 0;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 8px;
+}
+
+.addMoreButton:hover {
+  text-decoration: underline;
+}
+
+/* Breadcrumb chevron — Figma uses a chevron icon between segments rather
+   than the ASCII "›" glyph. */
+.breadcrumbChevron {
+  display: inline-flex;
+  vertical-align: middle;
+  margin: 0 6px;
+  color: var(--color-pc-text-muted, #3C3C3C);
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ End Group 5 — reason steps                                           ║
+   ║ Group 6 (Summary step rebuild) appends below this marker. Do not    ║
+   ║ inline-merge with the Group 5 section above.                         ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
 
 .summarySection {
   background: #FFFFFF;

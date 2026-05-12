@@ -10,6 +10,7 @@ import {
   setWrongLines,
 } from '@/lib/partialCreditClient';
 import { StepIndicator } from '../../StepIndicator';
+import { BarcodeEntryCard } from '../_components/BarcodeEntryCard';
 import styles from '../../wizard.module.css';
 
 interface WrongRow {
@@ -17,12 +18,85 @@ interface WrongRow {
   actualImeiOrModel: string;
 }
 
+function BreadcrumbChevron() {
+  return (
+    <svg
+      className={styles.breadcrumbChevron}
+      viewBox="0 0 12 12"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path
+        d="M4.5 2.5L8 6L4.5 9.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function XmarkIcon() {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      width="12"
+      height="12"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path
+        d="M2 2L10 10M10 2L2 10"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg
+      className={styles.sortIcon}
+      viewBox="0 0 10 12"
+      width="10"
+      height="12"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path d="M5 1L5 11" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+      <path
+        d="M2 3.5L5 0.75L8 3.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M2 8.5L5 11.25L8 8.5"
+        stroke="currentColor"
+        strokeWidth="1.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 /**
  * Wizard Step 3 — Wrong Devices. Figma frames "Wrong Device" → "Barcodes
  * Entered" → "Actual Device Details".
  *
- * Two-stage: enter expected barcodes, then identify each received device.
- * Photo uploads + the photo modal are Sprint 4 scope.
+ * Two-stage: enter expected barcodes (BarcodeEntryCard), then identify
+ * each received device. Photo modals (Add Photos / Edit Photos) deferred
+ * to Phase 2 — the Photos column is rendered as a placeholder.
  */
 export function WrongDevicesStep() {
   const router = useRouter();
@@ -36,6 +110,7 @@ export function WrongDevicesStep() {
   const [blob, setBlob] = useState('');
   const [rows, setRows] = useState<WrongRow[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [barcodeError, setBarcodeError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!Number.isFinite(id) || id <= 0) {
@@ -62,9 +137,17 @@ export function WrongDevicesStep() {
   const barcodes = useMemo(() => parseBarcodeBlob(blob), [blob]);
 
   function onNextFromEntry() {
-    if (barcodes.length === 0) return;
+    if (barcodes.length === 0) {
+      setBarcodeError('Enter or upload the expected device barcodes');
+      return;
+    }
+    setBarcodeError(null);
     setRows(barcodes.map((b) => ({ expectedBarcode: b, actualImeiOrModel: '' })));
     setStage('details');
+  }
+
+  function deleteRow(idx: number) {
+    setRows(rows.filter((_, i) => i !== idx));
   }
 
   async function onNextFromDetails() {
@@ -73,9 +156,6 @@ export function WrongDevicesStep() {
     setError(null);
     try {
       const response = await setWrongLines(detail.id, rows);
-      // Surface the reconciliation banner so the buyer sees when the
-      // server dropped duplicates or non-manifest expected barcodes
-      // (Figma "Removed N duplicate and M not in order").
       if (response.reconciliation.banner) {
         setReconciliationBanner(response.reconciliation.banner);
       }
@@ -94,12 +174,10 @@ export function WrongDevicesStep() {
   return (
     <div className={`pg-partial-credit ${styles.page}`}>
       <div className={styles.breadcrumb}>
-        <Link href="/wholesale/partial-credit">All Credit Requests</Link> &nbsp;›&nbsp; Wrong
-        Devices
+        <Link href="/wholesale/partial-credit">All Credit Requests</Link>
+        <BreadcrumbChevron />
       </div>
-      <h1 className={styles.heading}>
-        {stage === 'enter' ? 'Which devices were you expecting?' : 'What did you receive instead?'}
-      </h1>
+      <h1 className={styles.heading}>Which devices were you expecting?</h1>
 
       <StepIndicator
         current="wrong"
@@ -109,35 +187,45 @@ export function WrongDevicesStep() {
       />
 
       {stage === 'enter' ? (
-        <div className={styles.card}>
-          <p className={styles.cardSubheading}>
-            Copy and paste the expected barcodes into the text field below.
-          </p>
-          {reconciliationBanner && (
-            <div className={styles.warningBanner}>{reconciliationBanner}</div>
-          )}
-          <label className={styles.fieldLabel} htmlFor="wrong-barcodes">
-            Barcodes
-          </label>
-          <textarea
-            id="wrong-barcodes"
-            className={styles.textarea}
-            placeholder="Enter barcodes (one per line or comma-separated)"
-            value={blob}
-            onChange={(e) => setBlob(e.target.value)}
-          />
-          <p className={styles.helperText}>{barcodes.length} barcode(s) entered</p>
-        </div>
+        <BarcodeEntryCard
+          value={blob}
+          onChange={setBlob}
+          textareaId="wrong-barcodes"
+          errorText={barcodeError}
+          reconciliationBanner={reconciliationBanner}
+        />
       ) : (
         <div className={styles.card} style={{ padding: 0 }}>
           {reconciliationBanner && (
             <div className={styles.warningBanner}>{reconciliationBanner}</div>
           )}
+          <div
+            className={styles.sectionHeaderRow}
+            style={{ padding: '16px 24px 0 24px', margin: 0 }}
+          >
+            <h2 className={styles.sectionHeading}>
+              Wrong Devices
+              <span className={styles.countBadge}>({rows.length})</span>
+            </h2>
+          </div>
           <table className={styles.gridTable}>
             <thead>
               <tr>
-                <th>Expected Device</th>
-                <th>Received Device (IMEI or model name)</th>
+                <th className={styles.thWithSort}>
+                  Expected Device
+                  <SortIcon />
+                </th>
+                <th className={styles.thWithSort}>
+                  Received Device
+                  <span className={styles.thMutedHelper}>(IMEI or model name)</span>
+                  <SortIcon />
+                </th>
+                <th className={styles.thWithSort}>
+                  Photos
+                  <span className={styles.thMutedHelper}>(optional)</span>
+                  <SortIcon />
+                </th>
+                <th aria-label="row actions" style={{ width: 32 }} />
               </tr>
             </thead>
             <tbody>
@@ -156,6 +244,30 @@ export function WrongDevicesStep() {
                       }}
                     />
                   </td>
+                  <td>
+                    {/* TODO Phase 2: open Figma "Add Photos" / "Edit Photos"
+                        modal (frames 27068 / 29122). Photo upload is wired
+                        on the detail page; the wizard placeholder ships
+                        without the modal for now. */}
+                    <button
+                      type="button"
+                      className={styles.addMoreButton}
+                      disabled
+                      aria-label={`Add photos for ${row.expectedBarcode}`}
+                    >
+                      + Add Photos
+                    </button>
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className={styles.rowDelete}
+                      aria-label={`Remove row for ${row.expectedBarcode}`}
+                      onClick={() => deleteRow(idx)}
+                    >
+                      <XmarkIcon />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -163,7 +275,7 @@ export function WrongDevicesStep() {
         </div>
       )}
 
-      {error && <div className={styles.warningBanner}>{error}</div>}
+      {error && <div className={styles.errorBanner}>{error}</div>}
 
       <div className={styles.buttonRow}>
         <button
@@ -180,7 +292,7 @@ export function WrongDevicesStep() {
           type="button"
           className={styles.buttonPrimary}
           onClick={stage === 'enter' ? onNextFromEntry : onNextFromDetails}
-          disabled={stage === 'enter' ? barcodes.length === 0 : submitting}
+          disabled={stage === 'enter' ? false : submitting}
         >
           {submitting ? 'Saving…' : 'Next'}
         </button>
