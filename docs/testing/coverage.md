@@ -54,3 +54,18 @@ are the load-bearing paths; see
 Target 85%+. 10 R2 tests (7 Only_Qualified branches + 1 DW + 1 All_Buyers + 1 noPriorBid_invisible) + 7 R3 tests + 2 STB + 1 R1 = 20 total.
 See `BidDataCreationRepositoryIT` (20 new cases added by sub-project 5b) and
 `BidDataScenario` builder extensions (7 new fluent primitives).
+
+---
+
+## partialcredit.review-completed-email (new 2026-05-11)
+Target 85%+. 7 unit cases cover both the `partial-credit.review-completed-email.enabled=false`
+(log-only) and `enabled=true` (real send) modes, plus the four
+degrade-gracefully paths (null id, request not found, no recipients, sender
+throws). See `ReviewCompletedEmailListenerTest`.
+
+## partialcredit.e2e-admin (new 2026-05-11)
+Playwright smoke for the admin review surface: `admin-partial-credit-review.spec.ts`
+runs 2 cases (landing renders + status-config colour edit round-trip) and
+keeps 1 happy-path test `.skip`'d until the JDBC Snowflake reader lands
+in staging. Frontend webServer config auto-starts `npm run dev`; the
+spec skips when `isBackendAvailable()` returns false.

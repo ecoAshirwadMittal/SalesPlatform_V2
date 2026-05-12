@@ -324,3 +324,14 @@ recalc:
 partial-credit:
   snowflake:
     reader: logging                  # logging | jdbc
+  # ─────────────────────────────────────
+  # Review-completed email listener (Sprint 3 chunk 8)
+  # enabled=false (default) → ReviewCompletedEmailListener logs the intended
+  # send but does not touch EmailSender. Flip enabled=true in QA/prod once
+  # the buyer-facing copy has been reviewed by ops. The flag is consumed
+  # via @Value injection on the listener, not @ConditionalOnProperty —
+  # this lets the bean exist (and its tests run) even when the feature is
+  # disabled.
+  # ─────────────────────────────────────
+  review-completed-email:
+    enabled: ${PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED:false}

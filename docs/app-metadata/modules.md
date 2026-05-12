@@ -38,3 +38,16 @@ Inventory of major modules and their primary entities.
 - Trigger: `R3PreProcessService` on `RoundClosedEvent(round=2)`; `R3InitService` on `RoundStartedEvent(round=3)`
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
 - Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)
+
+## Partial Credit Review-Completed Email (Sprint 3 chunk 8)
+- Source modules: AdminCreditRequestService.completeReview publishes
+  `ReviewCompletedEvent(requestId, outcome, reviewerUserId, occurredAt)`
+- Listener: `listener/partialcredit/ReviewCompletedEmailListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`;
+  reloads `CreditRequest` in `REQUIRES_NEW` then dispatches via existing
+  `EmailSender` (`LoggingEmailSender` dev / `SmtpEmailSender` prod). Hard-coded
+  subject + body (Sprint 4 may swap to admin-editable templates).
+- Gated by `partial-credit.review-completed-email.enabled` (default `false` —
+  log-only). Recipient resolution reuses
+  `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId` so the recipient
+  list matches PWS notifications.

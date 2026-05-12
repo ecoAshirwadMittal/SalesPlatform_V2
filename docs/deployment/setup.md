@@ -163,6 +163,15 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   does not flip the `Round3InitStatus`. The admin `/reinit-r3` recovery
   endpoint is unaffected.
 
+## Partial credit review-completed email config
+- `partial-credit.review-completed-email.enabled` — default `false`; when
+  `false`, `ReviewCompletedEmailListener` logs the intended send (slf4j INFO)
+  on every `ReviewCompletedEvent` but does NOT touch `EmailSender`. Flip
+  enabled=true in QA/prod once the buyer-facing copy has been reviewed
+  with ops. The listener still subscribes when the flag is off so it can
+  log the intent — flipping the flag does not require a bean restart.
+  Overridable via env: `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED=true`.
+
 ## JPA / Hibernate config
 - `spring.jpa.open-in-view: false` — added in sub-project 6 (Task 16).
   Disables the Open-Session-In-View anti-pattern. Without this setting,
