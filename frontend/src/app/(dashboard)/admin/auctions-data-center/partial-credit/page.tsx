@@ -8,6 +8,8 @@ import {
   type AdminLandingResponse,
   type AdminListFilter,
   type AdminSystemStatus,
+  ExportTooLargeError,
+  exportXlsx,
   type LineKind,
   listAdmin,
 } from '@/lib/adminPartialCreditClient';
@@ -63,6 +65,8 @@ export default function AdminPartialCreditLandingPage() {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [page, setPage] = useState<number>(0);
+  const [exporting, setExporting] = useState(false);
+  const [exportToast, setExportToast] = useState<string | null>(null);
 
   const filter = useMemo<AdminListFilter>(() => {
     const f: AdminListFilter = { page, size: PAGE_SIZE };
@@ -77,6 +81,41 @@ export default function AdminPartialCreditLandingPage() {
     if (dateTo) f.dateTo = dateTo;
     return f;
   }, [statusFilter, buyerCodeId, orderNumber, reason, dateFrom, dateTo, page]);
+
+  const handleDownload = useCallback(async () => {
+    setExporting(true);
+    setExportToast(null);
+    try {
+      // The exporter respects the same filter the table is showing —
+      // don't paginate the download. Strip page/size so the service
+      // sees "all rows matching this filter".
+      const exportFilter: AdminListFilter = { ...filter };
+      delete exportFilter.page;
+      delete exportFilter.size;
+      const blob = await exportXlsx(exportFilter);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const today = new Date().toISOString().slice(0, 10);
+      a.download = `partial-credit-${today}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      if (err instanceof ExportTooLargeError) {
+        setExportToast(
+          `Too many rows for one export — your filter matches ${err.matched} requests, the limit is ${err.limit}. Narrow your filters and try again.`,
+        );
+      } else {
+        setExportToast(
+          err instanceof Error ? err.message : 'Export failed',
+        );
+      }
+    } finally {
+      setExporting(false);
+    }
+  }, [filter]);
 
   useEffect(() => {
     setLoading(true);
@@ -154,8 +193,30 @@ export default function AdminPartialCreditLandingPage() {
               );
             })}
           </div>
+          <button
+            type="button"
+            className={styles.downloadButton}
+            onClick={handleDownload}
+            disabled={exporting}
+            data-testid="export-xlsx"
+          >
+            {exporting ? 'Preparing…' : 'Download'}
+          </button>
         </div>
       </div>
+      {exportToast && (
+        <div className={styles.exportToast} role="alert">
+          {exportToast}
+          <button
+            type="button"
+            className={styles.exportToastClose}
+            onClick={() => setExportToast(null)}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       <div className={styles.filterRow}>
         <span className={styles.filterLabel}>Filters</span>

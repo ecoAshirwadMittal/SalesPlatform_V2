@@ -41,6 +41,49 @@
   gap: 12px;
 }
 
+/* Download xlsx button — Sprint 4 chunk 7. */
+.downloadButton {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: var(--radius-input);
+  background: var(--color-brand-green, #407874);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.downloadButton:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.downloadButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.exportToast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 8px 0 0 0;
+  padding: 10px 14px;
+  border: 1px solid #c0392b;
+  background: #fdecea;
+  color: #c0392b;
+  border-radius: var(--radius-input);
+  font-size: 14px;
+}
+
+.exportToastClose {
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: #c0392b;
+  cursor: pointer;
+}
+
 .breadcrumb {
   display: inline-flex;
   align-items: center;

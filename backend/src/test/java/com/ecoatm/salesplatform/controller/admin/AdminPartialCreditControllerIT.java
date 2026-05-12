@@ -84,6 +84,7 @@ class AdminPartialCreditControllerIT {
     @MockBean BuyerCodeRepository buyerCodeRepository;
     @MockBean StatusConfigService statusConfigService;
     @MockBean EmailTemplateService emailTemplateService;
+    @MockBean com.ecoatm.salesplatform.service.partialcredit.PartialCreditExcelExportService exportService;
 
     CreditRequestStatus underReviewRow;
 
@@ -470,6 +471,43 @@ class AdminPartialCreditControllerIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"variables\":{}}"))
            .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------
+    // GET /export.xlsx  (Chunk 7)
+    // -------------------------------------------------------------------
+
+    @Test
+    void exportXlsx_salesOps_returns200_withAttachmentHeader() throws Exception {
+        byte[] payload = new byte[]{0x50, 0x4B, 0x03, 0x04}; // xlsx zip header bytes — enough to assert non-empty.
+        when(exportService.export(any())).thenReturn(payload);
+
+        mvc.perform(get("/api/v1/admin/partial-credit/export.xlsx").with(salesOps()))
+           .andExpect(status().isOk())
+           .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                   .string("Content-Type",
+                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+           .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                   .string("Content-Disposition",
+                           org.hamcrest.Matchers.startsWith("attachment; filename=\"partial-credit-")));
+    }
+
+    @Test
+    void exportXlsx_overCap_returns413_withMatchedCount() throws Exception {
+        doThrow(new com.ecoatm.salesplatform.service.partialcredit.TooManyRowsException(5000, 6123L))
+                .when(exportService).export(any());
+
+        mvc.perform(get("/api/v1/admin/partial-credit/export.xlsx").with(salesOps()))
+           .andExpect(status().isPayloadTooLarge())
+           .andExpect(jsonPath("$.error").value("too_many_rows"))
+           .andExpect(jsonPath("$.limit").value(5000))
+           .andExpect(jsonPath("$.matched").value(6123));
+    }
+
+    @Test
+    void exportXlsx_unauthenticated_returns401() throws Exception {
+        mvc.perform(get("/api/v1/admin/partial-credit/export.xlsx"))
+           .andExpect(status().isUnauthorized());
     }
 
     // -------------------------------------------------------------------

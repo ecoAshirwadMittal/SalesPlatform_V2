@@ -331,3 +331,51 @@ export async function completeReview(
   if (!r.ok) throw new Error(`completeReview failed: HTTP ${r.status}`);
   return CompleteReviewResponseSchema.parse(await r.json());
 }
+
+// ---------------------------------------------------------------------------
+// Excel export (Sprint 4 chunk 7)
+// ---------------------------------------------------------------------------
+
+/**
+ * Server caps the export at 5,000 requests. When the filter resolves
+ * more than that the response is 413 with `{error, limit, matched}` —
+ * surfaced as a typed error so the landing page can render a focused
+ * toast instead of a generic "HTTP 413".
+ */
+export class ExportTooLargeError extends Error {
+  readonly limit: number;
+  readonly matched: number;
+
+  constructor(limit: number, matched: number) {
+    super(`Export would include ${matched} rows (limit: ${limit})`);
+    this.limit = limit;
+    this.matched = matched;
+  }
+}
+
+/**
+ * Fetch the xlsx for the same filter set the landing GET applied.
+ * Returns the blob so the caller can hand it to the browser via an
+ * anchor + URL.createObjectURL — keeps the auth cookie attached without
+ * a noopener window.
+ */
+export async function exportXlsx(filter: AdminListFilter): Promise<Blob> {
+  const params = new URLSearchParams();
+  if (filter.status) params.set('status', filter.status);
+  if (filter.buyerCodeId !== undefined) params.set('buyerCodeId', String(filter.buyerCodeId));
+  if (filter.orderNumber) params.set('orderNumber', filter.orderNumber);
+  if (filter.reason) params.set('reason', filter.reason);
+  if (filter.dateFrom) params.set('dateFrom', filter.dateFrom);
+  if (filter.dateTo) params.set('dateTo', filter.dateTo);
+
+  const url = `${BASE}/export.xlsx${params.toString() ? `?${params.toString()}` : ''}`;
+  const r = await apiFetch(url);
+  if (r.status === 413) {
+    const body = (await r.json().catch(() => null)) as
+      | { limit?: number; matched?: number }
+      | null;
+    throw new ExportTooLargeError(body?.limit ?? 5000, body?.matched ?? 0);
+  }
+  if (!r.ok) throw new Error(`exportXlsx failed: HTTP ${r.status}`);
+  return await r.blob();
+}

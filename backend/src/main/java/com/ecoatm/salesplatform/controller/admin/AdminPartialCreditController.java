@@ -41,12 +41,16 @@ import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
 import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService;
 import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
+import com.ecoatm.salesplatform.service.partialcredit.PartialCreditExcelExportService;
 import com.ecoatm.salesplatform.service.partialcredit.StatusConfigService;
+import com.ecoatm.salesplatform.service.partialcredit.TooManyRowsException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -61,6 +65,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -103,6 +108,7 @@ public class AdminPartialCreditController {
     private final BuyerCodeRepository buyerCodeRepository;
     private final StatusConfigService statusConfigService;
     private final EmailTemplateService emailTemplateService;
+    private final PartialCreditExcelExportService exportService;
 
     public AdminPartialCreditController(
             AdminCreditRequestService adminService,
@@ -113,7 +119,8 @@ public class AdminPartialCreditController {
             EncumberedDeviceLineRepository encumberedDeviceLineRepository,
             BuyerCodeRepository buyerCodeRepository,
             StatusConfigService statusConfigService,
-            EmailTemplateService emailTemplateService) {
+            EmailTemplateService emailTemplateService,
+            PartialCreditExcelExportService exportService) {
         this.adminService = adminService;
         this.creditRequestRepository = creditRequestRepository;
         this.statusRepository = statusRepository;
@@ -123,6 +130,7 @@ public class AdminPartialCreditController {
         this.buyerCodeRepository = buyerCodeRepository;
         this.statusConfigService = statusConfigService;
         this.emailTemplateService = emailTemplateService;
+        this.exportService = exportService;
     }
 
     // -------------------------------------------------------------------
@@ -327,6 +335,41 @@ public class AdminPartialCreditController {
     }
 
     // -------------------------------------------------------------------
+    // GET /export.xlsx  —  filtered xlsx download (Sprint 4 chunk 7)
+    // -------------------------------------------------------------------
+
+    /**
+     * Streams a two-sheet xlsx (Requests + Lines) for the filter set
+     * the admin landing has already applied. Caps at
+     * {@link PartialCreditExcelExportService#ROW_CAP} requests — over
+     * that, the export service throws {@link TooManyRowsException}
+     * and the caller gets a {@code 413 Payload Too Large} with a
+     * {@code {error, limit, matched}} body so the UI can render a
+     * "narrow your filters" toast inline.
+     */
+    @GetMapping("/export.xlsx")
+    public ResponseEntity<byte[]> exportXlsx(
+            @RequestParam(required = false) SystemStatus status,
+            @RequestParam(required = false) Long buyerCodeId,
+            @RequestParam(required = false) String orderNumber,
+            @RequestParam(required = false) LineKind reason,
+            @RequestParam(required = false) LocalDate dateFrom,
+            @RequestParam(required = false) LocalDate dateTo) {
+        AdminListFilter filter = new AdminListFilter(
+                status, buyerCodeId, orderNumber, reason, dateFrom, dateTo);
+        byte[] bytes = exportService.export(filter);
+        String filename = "partial-credit-"
+                + LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+                + ".xlsx";
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + filename + "\"")
+                .body(bytes);
+    }
+
+    // -------------------------------------------------------------------
     // Email templates (Sprint 4 chunk 3 — SPKB-3664 admin half)
     // -------------------------------------------------------------------
 
@@ -413,6 +456,14 @@ public class AdminPartialCreditController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
                 "error", "INVALID_STATE",
                 "message", ex.getMessage() == null ? "Invalid state transition" : ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRowsException.class)
+    public ResponseEntity<Map<String, Object>> onTooManyRows(TooManyRowsException ex) {
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of(
+                "error", "too_many_rows",
+                "limit", ex.limit(),
+                "matched", ex.matched()));
     }
 
     // -------------------------------------------------------------------
