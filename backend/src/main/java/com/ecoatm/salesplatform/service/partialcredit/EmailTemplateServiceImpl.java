@@ -74,6 +74,12 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Optional<EmailTemplate> findById(Long id) {
+        return repository.findById(id);
+    }
+
+    @Override
     @Transactional
     public EmailTemplate update(Long id, EmailTemplateUpdate patch, Long changedByUserId) {
         EmailTemplate template = repository.findById(id)

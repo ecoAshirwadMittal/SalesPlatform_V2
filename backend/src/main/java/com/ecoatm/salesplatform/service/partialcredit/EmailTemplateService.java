@@ -37,6 +37,10 @@ public interface EmailTemplateService {
      *  Chunk-3 admin landing. */
     List<EmailTemplate> listAll();
 
+    /** Admin: load one template by id (enabled or disabled). Used by
+     *  the Chunk-3 preview endpoint which takes a row id, not a key. */
+    Optional<EmailTemplate> findById(Long id);
+
     /** Admin: patch one template. Bumps {@code changed_date} and
      *  {@code changed_by_id}. Invalidates the in-process cache. */
     EmailTemplate update(Long id, EmailTemplateUpdate patch, Long changedByUserId);

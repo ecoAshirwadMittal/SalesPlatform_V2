@@ -6,6 +6,9 @@ import com.ecoatm.salesplatform.dto.partialcredit.AdminLineProjection;
 import com.ecoatm.salesplatform.dto.partialcredit.CompleteReviewRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.CompleteReviewResponse;
 import com.ecoatm.salesplatform.dto.partialcredit.CreditRequestDetail;
+import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplatePreviewRequest;
+import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplateUpdate;
+import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplateView;
 import com.ecoatm.salesplatform.dto.partialcredit.EncumberedFieldsRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.GlobalDecisionRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.GlobalDecisionResponse;
@@ -36,6 +39,8 @@ import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.OpenReviewResult;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.SectionDecisionResult;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
+import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService;
+import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
 import com.ecoatm.salesplatform.service.partialcredit.StatusConfigService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
@@ -97,6 +102,7 @@ public class AdminPartialCreditController {
     private final EncumberedDeviceLineRepository encumberedDeviceLineRepository;
     private final BuyerCodeRepository buyerCodeRepository;
     private final StatusConfigService statusConfigService;
+    private final EmailTemplateService emailTemplateService;
 
     public AdminPartialCreditController(
             AdminCreditRequestService adminService,
@@ -106,7 +112,8 @@ public class AdminPartialCreditController {
             WrongDeviceLineRepository wrongDeviceLineRepository,
             EncumberedDeviceLineRepository encumberedDeviceLineRepository,
             BuyerCodeRepository buyerCodeRepository,
-            StatusConfigService statusConfigService) {
+            StatusConfigService statusConfigService,
+            EmailTemplateService emailTemplateService) {
         this.adminService = adminService;
         this.creditRequestRepository = creditRequestRepository;
         this.statusRepository = statusRepository;
@@ -115,6 +122,7 @@ public class AdminPartialCreditController {
         this.encumberedDeviceLineRepository = encumberedDeviceLineRepository;
         this.buyerCodeRepository = buyerCodeRepository;
         this.statusConfigService = statusConfigService;
+        this.emailTemplateService = emailTemplateService;
     }
 
     // -------------------------------------------------------------------
@@ -316,6 +324,61 @@ public class AdminPartialCreditController {
             Authentication auth) {
         Long actorUserId = principalUserId(auth);
         return StatusConfigRow.from(statusConfigService.update(id, patch, actorUserId));
+    }
+
+    // -------------------------------------------------------------------
+    // Email templates (Sprint 4 chunk 3 — SPKB-3664 admin half)
+    // -------------------------------------------------------------------
+
+    /**
+     * Lists every {@code partial_credit.email_templates} row for the
+     * admin editor. The 3 seed keys are
+     * {@code ReviewCompleted_Approved}, {@code ReviewCompleted_Declined},
+     * and {@code PhotoUploadRequested}; the editor cannot add new keys
+     * because listener code references them directly.
+     */
+    @GetMapping("/email-templates")
+    public List<EmailTemplateView> listEmailTemplates() {
+        return emailTemplateService.listAll().stream()
+                .map(EmailTemplateView::from)
+                .toList();
+    }
+
+    /**
+     * Patches an email template's editable fields. {@code templateKey}
+     * is intentionally not in {@link EmailTemplateUpdate} so a typo in
+     * the admin UI can never silently break a listener that looks the
+     * row up by key.
+     */
+    @PatchMapping("/email-templates/{id}")
+    public EmailTemplateView updateEmailTemplate(
+            @PathVariable Long id,
+            @RequestBody EmailTemplateUpdate patch,
+            Authentication auth) {
+        return EmailTemplateView.from(emailTemplateService.update(id, patch, principalUserId(auth)));
+    }
+
+    /**
+     * Renders the template at {@code id} with the supplied variables for
+     * the editor's Preview tab. Works even when the row is disabled —
+     * an admin disabling a template should still be able to preview it
+     * before flipping it back on.
+     */
+    @PostMapping("/email-templates/{id}/preview")
+    public ResponseEntity<RenderedEmail> previewEmailTemplate(
+            @PathVariable Long id,
+            @RequestBody(required = false) EmailTemplatePreviewRequest body) {
+        String templateKey = emailTemplateService.findById(id)
+                .map(t -> t.getTemplateKey())
+                .orElseThrow(() -> new EntityNotFoundException("Email template id=" + id));
+        Map<String, Object> variables = body == null || body.variables() == null
+                ? Map.of()
+                : body.variables();
+        // renderPreview bypasses the enabled-check so an admin disabling
+        // a template can still preview it before flipping it back on.
+        return emailTemplateService.renderPreview(templateKey, variables)
+                .map(ResponseEntity::ok)
+                .orElseThrow(() -> new EntityNotFoundException("Email template id=" + id));
     }
 
     // -------------------------------------------------------------------
