@@ -18,8 +18,10 @@
 }
 
 .heading {
+  font-family: var(--font-family-partial-credit);
   font-size: 40px;
   font-weight: 500;
+  line-height: 1.1;
   color: #1C1B1C;
   letter-spacing: -0.01em;
   margin: 0;
@@ -41,13 +43,15 @@
   gap: 12px;
 }
 
-/* Download xlsx button — Sprint 4 chunk 7. */
+/* Download xlsx button — Sprint 4 chunk 7 (additive over Figma).
+   Group 2: teal fallback replaced with --color-pc-green per R13
+   reconciliation — the partial-credit primary CTA token. */
 .downloadButton {
-  font-family: var(--font-family-primary);
+  font-family: var(--font-family-partial-credit);
   font-size: 14px;
   padding: 8px 16px;
   border-radius: var(--radius-input);
-  background: var(--color-brand-green, #407874);
+  background: var(--color-pc-green, #1F8B3D);
   color: white;
   border: none;
   cursor: pointer;
@@ -208,11 +212,14 @@
   color: #1C1B1C;
 }
 
+/* Group 2: cell padding 8px + border 0.81px #A8A7A6 per Figma (design-notes
+   §2.4 + §2.5). Admin-table-specific per R8 — buyer surfaces stay on
+   #DDDDDD / 1px. */
 .gridTable th,
 .gridTable td {
   text-align: left;
-  padding: 10px 14px;
-  border-bottom: 1px solid #E6E5E4;
+  padding: 8px;
+  border-bottom: 0.81px solid #A8A7A6;
 }
 
 .gridTable th {
@@ -245,15 +252,20 @@
   background: #F0EBE3;
 }
 
-/* Status pill — colour comes from the inline style. Pill chrome only. */
+/* Status pill — Group 2: neutral chrome with colored text per Figma. The
+   DTO `colorHex` is applied to `color` inline (not background); the pill
+   uses a transparent background so the row treatment reads as a colored
+   label, not a tinted chip. The `colorHex` was applied to background in
+   Sprint 3 — Group 2 retunes per the design-notes empty-state copy
+   (design-notes §2.5: "Pending Approval" rendered as plain text). */
 .statusPill {
   display: inline-flex;
   align-items: center;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  padding: 4px 10px;
+  padding: 4px 0;
   border-radius: 999px;
-  color: #FFFFFF;
+  background: transparent;
   white-space: nowrap;
 }
 
@@ -263,6 +275,17 @@
   padding: 48px 24px;
   text-align: center;
   font-size: 16px;
+  color: #1C1B1C;
+}
+
+/* Group 2: empty state renders as a single full-row <td> inside the
+   table body (design-notes §2.5: "single text node centered below the
+   table header row"). */
+.emptyStateCell {
+  padding: 48px 24px;
+  text-align: center;
+  font-family: var(--font-family-partial-credit);
+  font-size: 18px;
   color: #1C1B1C;
 }
 

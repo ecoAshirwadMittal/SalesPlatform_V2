@@ -193,6 +193,8 @@ export default function AdminPartialCreditLandingPage() {
               );
             })}
           </div>
+          {/* Sprint 4 additive: Download xlsx export. Not in Figma — kept per
+              Group 2 brief. Token swap: --color-pc-green (was teal #407874 fallback). */}
           <button
             type="button"
             className={styles.downloadButton}
@@ -204,6 +206,7 @@ export default function AdminPartialCreditLandingPage() {
           </button>
         </div>
       </div>
+      {/* Sprint 4 additive: dismissible over-cap toast (Export413 branch). Not in Figma. */}
       {exportToast && (
         <div className={styles.exportToast} role="alert">
           {exportToast}
@@ -218,6 +221,9 @@ export default function AdminPartialCreditLandingPage() {
         </div>
       )}
 
+      {/* Sprint 4 additive: standalone filter row. Figma puts the filter
+          affordances inline per-column (Ab buttons) — we keep this UX-driven
+          banner per Group 2 brief. */}
       <div className={styles.filterRow}>
         <span className={styles.filterLabel}>Filters</span>
         <input
@@ -279,36 +285,39 @@ export default function AdminPartialCreditLandingPage() {
       {error && <div className={styles.errorBanner}>{error}</div>}
 
       {loading && !data && <p>Loading…</p>}
-      {data && data.rows.length === 0 ? (
+      {data && (
         <div className={styles.tableCard}>
-          <div className={styles.emptyState}>
-            No partial credit requests match your filters
-          </div>
-        </div>
-      ) : (
-        data && (
-          <div className={styles.tableCard}>
-            <table className={styles.gridTable}>
-              <thead>
+          <table className={styles.gridTable}>
+            <thead>
+              {/* Figma 7-column shape (design-notes §2.4):
+                  Date Submitted | Buyer | Company | Order Number | Request Reason | Status | (eye) */}
+              <tr>
+                <th>Date Submitted</th>
+                <th>Buyer</th>
+                <th>Company</th>
+                <th>Order Number</th>
+                <th>Request Reason</th>
+                <th>Status</th>
+                <th className={styles.iconActionCell} aria-label="Open" />
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.length === 0 ? (
                 <tr>
-                  <th>Request #</th>
-                  <th>Order #</th>
-                  <th>Buyer</th>
-                  <th>Reasons</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Total</th>
-                  <th>Submitted</th>
-                  <th className={styles.iconActionCell} aria-label="Open" />
+                  {/* Figma empty-state copy (design-notes §2.5 line 728).
+                      Rendered as a single full-row <td> per Group 2 spec. */}
+                  <td colSpan={7} className={styles.emptyStateCell}>
+                    There are currently no Partial Credit Requests to approve
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((row) => (
+              ) : (
+                data.rows.map((row) => (
                   <AdminRow key={row.id} row={row} onOpen={() => router.push(detailHref(row.id))} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {data && data.total > PAGE_SIZE && (
@@ -346,30 +355,33 @@ interface AdminRowProps {
 function AdminRow({ row, onOpen }: AdminRowProps) {
   return (
     <tr>
-      <td>{row.requestNumber}</td>
+      {/* Figma 7-column shape (design-notes §2.4 / §2.5):
+          Date Submitted | Buyer | Company | Order Number | Request Reason | Status | (eye). */}
+      <td>{formatDate(row.submittedDate)}</td>
+      {/* TODO(DTO): Figma column "Buyer" is the contact-name (e.g. "Jonathan
+          Wildermeyer", design-notes §3.2 Group 1) — the AdminCreditRequestRow
+          DTO does not yet expose a `buyerName` field. Falling back to
+          `buyerCode` until the backend adds the contact-name field; flagged
+          as a Group 2 blocker for the human reviewer. */}
+      <td>{row.buyerCode ?? '—'}</td>
+      <td>{row.partyName ?? '—'}</td>
       <td>{row.orderNumber}</td>
-      <td>
-        {/* "code · party" — landing summary mirrors the Figma rows. Both
-            halves may be null when the backend couldn't resolve them, in
-            which case we render an em-dash. */}
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{ fontWeight: 500 }}>{row.buyerCode ?? '—'}</span>
-          <span style={{ fontSize: 12, color: '#6F6F6F' }}>{row.partyName ?? ''}</span>
-        </div>
-      </td>
       <td>{formatReasons(row)}</td>
       <td>
+        {/* R6/R8: Figma uses neutral pill chrome (transparent background) with
+            colored text driven by the DTO `colorHex`. The status pill renders
+            the colorHex as `color` rather than `backgroundColor`. */}
         <span
           className={styles.statusPill}
-          style={{ backgroundColor: row.statusColorHex }}
+          style={{ color: row.statusColorHex }}
           title={row.systemStatus}
         >
           {row.displayStatus}
         </span>
       </td>
-      <td style={{ textAlign: 'right' }}>{formatTotal(row.requestedTotal)}</td>
-      <td>{formatDate(row.submittedDate)}</td>
       <td className={styles.iconActionCell}>
+        {/* Eye-icon action column — Figma layout_TM4B6H. Navigates to the
+            review detail at /admin/auctions-data-center/partial-credit/{id}. */}
         <button
           type="button"
           className={styles.eyeButton}
@@ -398,11 +410,6 @@ function formatReasons(row: AdminCreditRequestRow): string {
   if (row.hasWrongDevice) reasons.push('Wrong Device');
   if (row.hasEncumberedDevice) reasons.push('Encumbered Device');
   return reasons.length === 0 ? '—' : reasons.join(', ');
-}
-
-function formatTotal(total: number | null): string {
-  if (total === null) return '—';
-  return `$${total.toFixed(2)}`;
 }
 
 function formatDate(iso: string | null): string {
