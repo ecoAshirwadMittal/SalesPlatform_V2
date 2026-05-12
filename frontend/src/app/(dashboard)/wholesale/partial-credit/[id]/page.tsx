@@ -80,11 +80,11 @@ export default function BuyerPartialCreditDetailPage() {
   }, []);
 
   if (loading) {
-    return <div className={styles.page}>Loading…</div>;
+    return <div className={`pg-partial-credit ${styles.page}`}>Loading…</div>;
   }
   if (error || !detail) {
     return (
-      <div className={styles.page}>
+      <div className={`pg-partial-credit ${styles.page}`}>
         <Link href="/wholesale/partial-credit" className={styles.backLink}>
           ← Back to my requests
         </Link>
@@ -103,7 +103,7 @@ export default function BuyerPartialCreditDetailPage() {
   const statusColorHex = fallbackStatusColor(detail.systemStatus);
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <Link href="/wholesale/partial-credit" className={styles.backLink}>
         ← Back to my requests
       </Link>

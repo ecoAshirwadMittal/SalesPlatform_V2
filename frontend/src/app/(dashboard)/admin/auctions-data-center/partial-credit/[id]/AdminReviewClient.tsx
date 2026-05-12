@@ -185,12 +185,12 @@ export function AdminReviewClient() {
   // ----- render ----------------------------------------------------------
 
   if (Number.isNaN(id)) {
-    return <div className={styles.detailPage}>Invalid request id.</div>;
+    return <div className={`pg-partial-credit ${styles.detailPage}`}>Invalid request id.</div>;
   }
 
   if (!detail || !summary) {
     return (
-      <div className={styles.detailPage}>
+      <div className={`pg-partial-credit ${styles.detailPage}`}>
         {error ? <div className={styles.errorBanner}>{error}</div> : <p>Loading review…</p>}
       </div>
     );
@@ -203,7 +203,7 @@ export function AdminReviewClient() {
   const fallbackPillColor = '#6F6F6F';
 
   return (
-    <div className={styles.detailPage}>
+    <div className={`pg-partial-credit ${styles.detailPage}`}>
       <div className={styles.breadcrumb}>
         <Link href="/admin/auctions-data-center/partial-credit">All Partial Credit Requests</Link>
         &nbsp;›&nbsp; {detail.requestNumber}

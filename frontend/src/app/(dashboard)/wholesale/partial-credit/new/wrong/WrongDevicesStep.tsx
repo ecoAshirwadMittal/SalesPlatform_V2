@@ -88,11 +88,11 @@ export function WrongDevicesStep() {
   }
 
   if (!detail) {
-    return <div className={styles.page}>{error ?? 'Loading…'}</div>;
+    return <div className={`pg-partial-credit ${styles.page}`}>{error ?? 'Loading…'}</div>;
   }
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <div className={styles.breadcrumb}>
         <Link href="/wholesale/partial-credit">All Credit Requests</Link> &nbsp;›&nbsp; Wrong
         Devices

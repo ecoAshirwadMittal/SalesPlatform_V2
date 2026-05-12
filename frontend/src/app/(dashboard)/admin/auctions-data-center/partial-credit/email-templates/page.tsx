@@ -56,7 +56,7 @@ export default function EmailTemplatesPage() {
   );
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <h1 className={styles.heading}>Email templates</h1>
       <p className={styles.intro}>
         Subject + body for partial-credit notification emails. Variables use{' '}

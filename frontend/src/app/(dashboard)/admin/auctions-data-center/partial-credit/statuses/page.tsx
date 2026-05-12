@@ -132,7 +132,7 @@ export default function StatusConfigPage() {
   }, [draft, editingId]);
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <div className={styles.headerRow}>
         <h1 className={styles.heading}>Partial Credit — Status Configuration</h1>
       </div>

@@ -104,6 +104,29 @@
   --color-sidebar-hover: rgba(255, 255, 255, 0.08);  /* Subtle white overlay on sidebar item hover */
 }
 
+/* ── Partial Credit design tokens (Group 1 foundation) ────────────────────
+   Scoped via :where(.pg-partial-credit) so the cascade is bounded to
+   partial-credit page wrappers (and the OnBehalfModal portal, which carries
+   the class on its own root). Mirrors docs/frontend/mendix-partial-credit-
+   stylesheet.css verbatim — the Mendix file is the source of truth.
+
+   Why scoped, not :root: the Mendix green (#1F8B3D) differs from the
+   auction-app green (#14AC36, exposed as --color-brand-green). Auction
+   surfaces must keep consuming --color-brand-green; partial-credit
+   surfaces opt in by adding `pg-partial-credit` to their outer wrapper
+   and consuming --color-pc-* / --font-family-partial-credit instead.
+   ─────────────────────────────────────────────────────────────────────── */
+:where(.pg-partial-credit) {
+  --font-family-partial-credit: "Founders Grotesk", "Brandon Grotesque", "Helvetica Neue", Arial, sans-serif;
+  --color-pc-green:        #1F8B3D;
+  --color-pc-green-hover:  #176E30;
+  --color-pc-text:         #1B1B1B;
+  --color-pc-text-muted:   #3C3C3C;
+  --color-pc-border:       #DDDDDD;
+  --color-pc-row-divider:  #E8E8E8;
+  --color-pc-bg-soft:      #F7F7F7;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

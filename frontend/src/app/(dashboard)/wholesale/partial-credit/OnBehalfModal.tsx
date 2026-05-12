@@ -112,7 +112,7 @@ export function OnBehalfModal({ open, onClose, onDraftCreated }: OnBehalfModalPr
   if (!open) return null;
 
   return (
-    <div className={styles.backdrop} role="dialog" aria-label="Submit on behalf">
+    <div className={`pg-partial-credit ${styles.backdrop}`} role="dialog" aria-label="Submit on behalf">
       <div className={styles.modal}>
         <header className={styles.header}>
           <h2 className={styles.heading}>Submit on behalf of a buyer</h2>

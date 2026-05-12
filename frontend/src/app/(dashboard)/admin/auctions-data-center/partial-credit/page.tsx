@@ -164,7 +164,7 @@ export default function AdminPartialCreditLandingPage() {
   }, []);
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <div className={styles.breadcrumb}>
         <Link href="/admin">Admin</Link> &nbsp;›&nbsp; Auctions Data Center &nbsp;›&nbsp; Partial
         Credit

@@ -45,7 +45,7 @@ export default function PartialCreditLandingPage() {
   }, [router]);
 
   return (
-    <div className={styles.page}>
+    <div className={`pg-partial-credit ${styles.page}`}>
       <div className={styles.breadcrumb}>
         <Link href="/buyer-select">All Buyer Codes</Link> &nbsp;›&nbsp; Credit Requests
       </div>
