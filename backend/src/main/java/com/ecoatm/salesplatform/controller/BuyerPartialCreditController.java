@@ -11,6 +11,7 @@ import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestFileDropParser;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
@@ -66,17 +67,25 @@ import org.springframework.web.multipart.MultipartFile;
  */
 @RestController
 @RequestMapping("/api/v1/buyer/partial-credit")
-@PreAuthorize("hasAnyRole('PartialCredit_Buyer','Bidder','SalesRep','Administrator')")
+// Sprint 4 §7.1 — drop the orphaned PartialCredit_Buyer role name.
+// The V89-seeded user_roles row (1101) stays in the DB but is never
+// assigned to a user; the allowlist references only the existing
+// global roles. Phase 2 can re-introduce the role tier if/when
+// wholesale-eligibility gating becomes wanted.
+@PreAuthorize("hasAnyRole('Bidder','SalesRep','Administrator')")
 public class BuyerPartialCreditController {
 
     private final CreditRequestService service;
     private final CreditRequestPhotoService photoService;
+    private final CreditRequestFileDropParser fileDropParser;
 
     public BuyerPartialCreditController(
             CreditRequestService service,
-            CreditRequestPhotoService photoService) {
+            CreditRequestPhotoService photoService,
+            CreditRequestFileDropParser fileDropParser) {
         this.service = service;
         this.photoService = photoService;
+        this.fileDropParser = fileDropParser;
     }
 
     @PostMapping("/draft")
@@ -175,6 +184,24 @@ public class BuyerPartialCreditController {
         return ResponseEntity.ok(body);
     }
 
+    // ─── file-drop barcode parser (Sprint 4 chunk 8) ────────────────────
+
+    /**
+     * Multipart endpoint for the wizard Step 2 file-drop. Accepts xlsx,
+     * csv, or docx; returns the parsed barcodes + any warnings (skipped
+     * cells, dedupe, etc.). The wizard merges the result with whatever
+     * the buyer already typed into the textarea — no DB write happens
+     * here, so this endpoint deliberately stays buyer-code-agnostic.
+     */
+    @PostMapping(value = "/parse-barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> parseBarcodes(
+            @RequestPart("file") MultipartFile file) {
+        var outcome = fileDropParser.parse(file);
+        return ResponseEntity.ok(Map.of(
+                "barcodes", outcome.barcodes(),
+                "warnings", outcome.warnings()));
+    }
+
     // ─── photo upload / list / download / delete (Sprint 4 chunk 4) ────
 
     /**
@@ -270,6 +297,15 @@ public class BuyerPartialCreditController {
         return ResponseEntity.status(ex.reason().status()).body(Map.of(
                 "error", ex.reason().name(),
                 "message", ex.getMessage() == null ? "Upload rejected" : ex.getMessage()));
+    }
+
+    @ExceptionHandler(UnsupportedOperationException.class)
+    public ResponseEntity<Map<String, Object>> onUnsupportedFileType(UnsupportedOperationException ex) {
+        // The file-drop parser raises this for non-xlsx/csv/docx
+        // uploads; surface as 415 so the UI can render an inline hint.
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(Map.of(
+                "error", "UNSUPPORTED_FILE_TYPE",
+                "message", ex.getMessage() == null ? "Unsupported file type" : ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

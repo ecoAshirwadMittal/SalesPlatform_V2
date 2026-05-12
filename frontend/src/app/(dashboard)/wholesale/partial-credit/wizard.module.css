@@ -261,6 +261,48 @@
   font-size: 14px;
 }
 
+/* File-drop row inside the barcodes card — Sprint 4 chunk 8. */
+.fileDropRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 12px 0;
+  flex-wrap: wrap;
+}
+
+.fileDropLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #F0FAF1;
+  border: 1px dashed #14AC36;
+  border-radius: 8px;
+  color: #0F5F1B;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.fileDropLabel input[type="file"] {
+  font-size: 12px;
+}
+
+.fileDropHint {
+  font-size: 13px;
+  color: #6b6b6b;
+}
+
+.fileDropWarnings {
+  list-style: disc inside;
+  margin: 0 0 12px 0;
+  padding: 8px 12px;
+  background: #FFFBE6;
+  border: 1px solid #EAD17A;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #6F5410;
+}
+
 .statusPill {
   display: inline-flex;
   align-items: center;

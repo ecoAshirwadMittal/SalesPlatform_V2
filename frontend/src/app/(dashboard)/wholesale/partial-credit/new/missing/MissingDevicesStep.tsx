@@ -5,8 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   type CreditRequestDetail,
+  FileDropError,
   getRequest,
   parseBarcodeBlob,
+  parseBarcodesFromFile,
   setMissingLines,
   updateDraft,
 } from '@/lib/partialCreditClient';
@@ -32,6 +34,9 @@ export function MissingDevicesStep() {
   const [blob, setBlob] = useState('');
   const [damage, setDamage] = useState<'YES' | 'NO' | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [fileDropWarnings, setFileDropWarnings] = useState<string[]>([]);
+  const [fileDropError, setFileDropError] = useState<string | null>(null);
+  const [parsing, setParsing] = useState(false);
 
   useEffect(() => {
     if (!Number.isFinite(id) || id <= 0) {
@@ -49,6 +54,31 @@ export function MissingDevicesStep() {
 
   const barcodes = useMemo(() => parseBarcodeBlob(blob), [blob]);
   const canNext = barcodes.length > 0 && damage !== null;
+
+  async function handleFile(file: File | null) {
+    if (!file) return;
+    setFileDropError(null);
+    setFileDropWarnings([]);
+    setParsing(true);
+    try {
+      const parsed = await parseBarcodesFromFile(file);
+      // Merge with whatever the buyer already typed — dedupe via a
+      // Set so re-uploading the same file is idempotent. Order: existing
+      // entries first, new ones appended after.
+      const existing = parseBarcodeBlob(blob);
+      const merged = new Set<string>([...existing, ...parsed.barcodes]);
+      setBlob(Array.from(merged).join(', '));
+      setFileDropWarnings(parsed.warnings);
+    } catch (e) {
+      if (e instanceof FileDropError) {
+        setFileDropError(e.message);
+      } else {
+        setFileDropError(e instanceof Error ? e.message : 'Failed to parse file');
+      }
+    } finally {
+      setParsing(false);
+    }
+  }
 
   async function onNext() {
     if (!detail || !canNext) return;
@@ -101,10 +131,38 @@ export function MissingDevicesStep() {
 
       <div className={styles.card}>
         <p className={styles.cardSubheading}>
-          Copy and paste the barcodes into the text field below.
+          Paste the barcodes below, or drop in an xlsx / csv / docx file
+          and we'll extract them.
         </p>
         {reconciliationBanner && (
           <div className={styles.warningBanner}>{reconciliationBanner}</div>
+        )}
+        <div className={styles.fileDropRow}>
+          <label className={styles.fileDropLabel}>
+            <span>{parsing ? 'Parsing…' : 'Choose a file'}</span>
+            <input
+              type="file"
+              accept=".xlsx,.csv,.docx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              disabled={parsing}
+              aria-label="Upload barcodes file"
+              onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <span className={styles.fileDropHint}>
+            xlsx, csv, or docx — first column / paragraph only.
+          </span>
+        </div>
+        {fileDropWarnings.length > 0 && (
+          <ul className={styles.fileDropWarnings} role="status">
+            {fileDropWarnings.map((w, i) => (
+              <li key={i}>{w}</li>
+            ))}
+          </ul>
+        )}
+        {fileDropError && (
+          <div className={styles.warningBanner} role="alert">
+            {fileDropError}
+          </div>
         )}
         <label className={styles.fieldLabel} htmlFor="missing-barcodes">
           Barcodes

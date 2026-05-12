@@ -338,16 +338,18 @@ partial-credit:
   snowflake:
     reader: logging                  # logging | jdbc
   # ─────────────────────────────────────
-  # Review-completed email listener (Sprint 3 chunk 8)
-  # enabled=false (default) → ReviewCompletedEmailListener logs the intended
-  # send but does not touch EmailSender. Flip enabled=true in QA/prod once
-  # the buyer-facing copy has been reviewed by ops. The flag is consumed
-  # via @Value injection on the listener, not @ConditionalOnProperty —
-  # this lets the bean exist (and its tests run) even when the feature is
-  # disabled.
+  # Review-completed email listener (Sprint 3 chunk 8, flipped on in
+  # Sprint 4 chunk 8). The default is now `true` — Sprint 4 close-out
+  # gates the production sender behind QA-realistic copy that's now
+  # live in the partial_credit.email_templates table (Chunk 1 seed +
+  # Chunk 3 admin editor). The PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED
+  # override remains so a dev / staging environment can disable the
+  # listener without a code change. The flag is consumed via @Value
+  # injection on the listener (not @ConditionalOnProperty) so the bean
+  # exists and its tests run regardless of the value.
   # ─────────────────────────────────────
   review-completed-email:
-    enabled: ${PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED:false}
+    enabled: ${PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED:true}
   # ─────────────────────────────────────
   # Buyer photo-upload limits (Sprint 4 chunk 4). The service enforces
   # these on every POST /photos request — they shadow the global

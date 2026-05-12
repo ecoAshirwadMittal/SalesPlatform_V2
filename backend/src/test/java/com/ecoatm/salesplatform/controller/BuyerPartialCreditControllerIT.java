@@ -11,6 +11,7 @@ import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.service.partialcredit.BarcodeReconciliationResult;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestFileDropParser;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService.LineReplacementOutcome;
@@ -65,6 +66,7 @@ class BuyerPartialCreditControllerIT {
     @Autowired MockMvc mvc;
     @MockBean CreditRequestService service;
     @MockBean CreditRequestPhotoService photoService;
+    @MockBean CreditRequestFileDropParser fileDropParser;
 
     @BeforeEach
     void primeDefaultStatusRow() {
@@ -284,6 +286,43 @@ class BuyerPartialCreditControllerIT {
         mvc.perform(delete("/api/v1/buyer/partial-credit/photos/10").with(bidder()))
            .andExpect(status().isForbidden())
            .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
+    // ─── file-drop parser (Chunk 8) ─────────────────────────────────────
+
+    @Test
+    void parseBarcodes_csvUpload_returns200_withBarcodesAndWarnings() throws Exception {
+        when(fileDropParser.parse(any()))
+                .thenReturn(new CreditRequestFileDropParser.Outcome(
+                        List.of("BC-1", "BC-2"),
+                        List.of("Removed 1 duplicate value(s)")));
+
+        MockMultipartFile csv = new MockMultipartFile(
+                "file", "barcodes.csv", "text/csv",
+                "BC-1\nBC-2\nBC-1\n".getBytes());
+
+        mvc.perform(multipart("/api/v1/buyer/partial-credit/parse-barcodes")
+                .file(csv)
+                .with(bidder()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.barcodes[0]").value("BC-1"))
+           .andExpect(jsonPath("$.barcodes[1]").value("BC-2"))
+           .andExpect(jsonPath("$.warnings[0]").value("Removed 1 duplicate value(s)"));
+    }
+
+    @Test
+    void parseBarcodes_unsupportedFileType_returns415() throws Exception {
+        doThrow(new UnsupportedOperationException("Unsupported file type: application/pdf"))
+                .when(fileDropParser).parse(any());
+
+        MockMultipartFile pdf = new MockMultipartFile(
+                "file", "scan.pdf", "application/pdf", new byte[]{1, 2, 3});
+
+        mvc.perform(multipart("/api/v1/buyer/partial-credit/parse-barcodes")
+                .file(pdf)
+                .with(bidder()))
+           .andExpect(status().isUnsupportedMediaType())
+           .andExpect(jsonPath("$.error").value("UNSUPPORTED_FILE_TYPE"));
     }
 
     // ─── helpers ───────────────────────────────────────────────────────

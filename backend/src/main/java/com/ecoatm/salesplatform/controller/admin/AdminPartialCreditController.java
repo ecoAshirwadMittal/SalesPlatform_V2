@@ -95,8 +95,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/admin/partial-credit")
-@PreAuthorize("hasAnyRole('PartialCredit_SalesOps','PartialCredit_Admin',"
-            + "'SalesOps','Administrator')")
+// Sprint 4 §7.1 — drop the orphaned PartialCredit_* role names; admin
+// surface uses the existing global roles. CoAdministrator + SalesRep
+// were added per the Sprint 4 §7 final-state allowlist (SalesRep needs
+// admin access for diagnostic / on-behalf flows).
+@PreAuthorize("hasAnyRole('SalesOps','SalesRep','Administrator','CoAdministrator')")
 public class AdminPartialCreditController {
 
     private final AdminCreditRequestService adminService;

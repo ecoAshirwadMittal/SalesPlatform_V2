@@ -126,10 +126,10 @@ export default function PartialCreditLandingPage() {
         open={onBehalfOpen}
         onClose={() => setOnBehalfOpen(false)}
         onDraftCreated={(draftId) => {
-          // Chunk 8 will teach the wizard to resume from a pre-existing
-          // draft via ?draftId=X — until then the rep lands on the
-          // detail page where the draft is visible.
-          router.push(`/wholesale/partial-credit/${draftId}`);
+          // Sprint 4 chunk 8 — wizard step 1 now reads ?draftId=X and
+          // resumes the existing draft instead of creating a new one,
+          // so the rep can drive every step from this entry point.
+          router.push(`/wholesale/partial-credit/new?draftId=${draftId}`);
         }}
       />
     </div>

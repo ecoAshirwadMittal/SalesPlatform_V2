@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { getActiveBuyerCode } from '@/lib/activeBuyerCode';
 import {
   createDraft,
   CreditRequestValidationError,
+  getRequest,
   updateDraft,
 } from '@/lib/partialCreditClient';
 import { StepIndicator } from '../StepIndicator';
@@ -20,7 +21,16 @@ import styles from '../wizard.module.css';
  */
 export default function StartCreditRequestPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  // Sprint 4 chunk 8 — on-behalf modal redirects here with ?draftId=X
+  // once it has already created the draft. When present we skip the
+  // createDraft round-trip and treat this step as "review + pick reasons".
+  const draftIdParam = searchParams?.get('draftId') ?? null;
+  const resumedDraftId = draftIdParam !== null ? Number(draftIdParam) : null;
+  const resuming = resumedDraftId !== null && Number.isFinite(resumedDraftId);
+
   const [buyerCodeId, setBuyerCodeId] = useState<number | null>(null);
+  const [draftId, setDraftId] = useState<number | null>(null);
   const [orderNumber, setOrderNumber] = useState('');
   const [hasMissing, setHasMissing] = useState(false);
   const [hasWrong, setHasWrong] = useState(false);
@@ -30,32 +40,55 @@ export default function StartCreditRequestPage() {
 
   useEffect(() => {
     const active = getActiveBuyerCode();
-    if (!active) {
+    if (!active && !resuming) {
       router.replace('/buyer-select');
       return;
     }
-    setBuyerCodeId(active.id);
-  }, [router]);
+    if (active) setBuyerCodeId(active.id);
+    if (resuming && resumedDraftId !== null) {
+      getRequest(resumedDraftId)
+        .then((d) => {
+          setDraftId(d.id);
+          setOrderNumber(d.orderNumber);
+          setHasMissing(d.hasMissingDevice);
+          setHasWrong(d.hasWrongDevice);
+          setHasEncumbered(d.hasEncumberedDevice);
+        })
+        .catch((e) => setError(e instanceof Error ? e.message : 'Failed to resume draft'));
+    }
+  }, [router, resuming, resumedDraftId]);
 
   const anyReason = hasMissing || hasWrong || hasEncumbered;
-  const canNext = orderNumber.trim().length > 0 && anyReason && buyerCodeId !== null;
+  // When resuming an existing draft the buyer-code lookup is unnecessary;
+  // the draft already has buyerCodeId stamped on it server-side.
+  const canNext = orderNumber.trim().length > 0
+      && anyReason
+      && (buyerCodeId !== null || draftId !== null);
 
   async function onNext() {
-    if (!canNext || buyerCodeId === null) return;
+    if (!canNext) return;
     setSubmitting(true);
     setError(null);
     try {
-      const draft = await createDraft({
-        orderNumber: orderNumber.trim(),
-        buyerCodeId,
-      });
-      await updateDraft(draft.id, {
+      let draftIdToUse: number;
+      if (draftId !== null) {
+        // Resume path — draft already exists from the on-behalf modal.
+        draftIdToUse = draftId;
+      } else {
+        if (buyerCodeId === null) return;
+        const draft = await createDraft({
+          orderNumber: orderNumber.trim(),
+          buyerCodeId,
+        });
+        draftIdToUse = draft.id;
+      }
+      await updateDraft(draftIdToUse, {
         hasMissingDevice: hasMissing,
         hasWrongDevice: hasWrong,
         hasEncumberedDevice: hasEncumbered,
       });
       const next = hasMissing ? 'missing' : hasWrong ? 'wrong' : 'encumbered';
-      router.push(`/wholesale/partial-credit/new/${next}?id=${draft.id}`);
+      router.push(`/wholesale/partial-credit/new/${next}?id=${draftIdToUse}`);
     } catch (e) {
       // Step 1 pre-validate failures (ORDER_NOT_FOUND /
       // ORDER_OUTSIDE_WINDOW) arrive as a typed validation error from

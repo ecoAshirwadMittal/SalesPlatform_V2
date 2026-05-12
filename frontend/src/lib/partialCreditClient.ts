@@ -357,3 +357,46 @@ export async function deletePhoto(photoId: number): Promise<void> {
 export function photoBlobUrl(photoId: number): string {
   return `${BASE}/photos/${photoId}/blob`;
 }
+
+// ---------------------------------------------------------------------------
+// File-drop parser (Sprint 4 chunk 8) — wizard Step 2 hybrid upload
+// ---------------------------------------------------------------------------
+
+export const ParsedBarcodesSchema = z.object({
+  barcodes: z.array(z.string()),
+  warnings: z.array(z.string()),
+});
+export type ParsedBarcodes = z.infer<typeof ParsedBarcodesSchema>;
+
+export class FileDropError extends Error {
+  readonly status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+/**
+ * Posts a single file (xlsx / csv / docx) to the backend file-drop
+ * parser. The wizard merges the returned barcodes into the Step 2
+ * textarea; warnings are surfaced inline so the buyer sees what was
+ * skipped (short digit runs, duplicates, unknown cells).
+ */
+export async function parseBarcodesFromFile(file: File): Promise<ParsedBarcodes> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const r = await apiFetch(`${BASE}/parse-barcodes`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!r.ok) {
+    const body = (await r.json().catch(() => null)) as
+      | { error?: string; message?: string }
+      | null;
+    throw new FileDropError(
+      body?.message ?? `parseBarcodesFromFile failed: HTTP ${r.status}`,
+      r.status,
+    );
+  }
+  return ParsedBarcodesSchema.parse(await r.json());
+}
