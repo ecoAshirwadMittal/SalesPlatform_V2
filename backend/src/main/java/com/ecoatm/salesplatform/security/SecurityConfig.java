@@ -82,6 +82,15 @@ public class SecurityConfig {
                 // Sub-project 5 R2 buyer assignment admin endpoint
                 .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/reassign-r2-buyers")
                     .hasAnyRole("Administrator", "SalesOps")
+                // Partial Credit Requests — admin review surface (Sprint 3).
+                // Class-level @PreAuthorize on AdminPartialCreditController
+                // narrows further to PartialCredit_SalesOps/PartialCredit_Admin
+                // when SPKB-3659 wires the new role mapping; today's SalesOps
+                // and Administrator accounts are admitted directly.
+                // Matcher precedes the broader /api/v1/admin/** rule so SalesOps
+                // is not blocked by the Administrator-only catch-all.
+                .requestMatchers("/api/v1/admin/partial-credit/**")
+                    .hasAnyRole("PartialCredit_SalesOps", "PartialCredit_Admin", "SalesOps", "Administrator")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")
