@@ -34,7 +34,7 @@ class PartialCreditMigrationIT extends PostgresIntegrationTest {
     private JdbcTemplate jdbc;
 
     @Test
-    @DisplayName("partial_credit schema and 7 expected tables exist after V89")
+    @DisplayName("partial_credit schema contains the 7 V89-introduced tables")
     void partial_credit_schema_and_tables_exist() {
         Integer schemaCount = jdbc.queryForObject(
             "SELECT COUNT(*) FROM information_schema.schemata "
@@ -42,9 +42,11 @@ class PartialCreditMigrationIT extends PostgresIntegrationTest {
             Integer.class);
         assertThat(schemaCount).isEqualTo(1);
 
-        // V89 creates exactly these 7 tables. Asserting on the full set
-        // catches both missing tables and accidentally-added ones.
-        List<String> expectedTables = Arrays.asList(
+        // V89 introduces these 7 tables. Use `containsAll` so additive
+        // follow-up migrations don't fail this V89 assertion — V90 adds
+        // email_templates + email_audit, and V90MigrationIT asserts the
+        // full post-V90 table set.
+        List<String> v89Tables = Arrays.asList(
             "credit_request_photos",
             "credit_request_statuses",
             "credit_request_uploads",
@@ -57,7 +59,7 @@ class PartialCreditMigrationIT extends PostgresIntegrationTest {
             "SELECT table_name FROM information_schema.tables "
             + "WHERE table_schema = 'partial_credit' ORDER BY table_name",
             String.class);
-        assertThat(actualTables).containsExactlyElementsOf(expectedTables);
+        assertThat(actualTables).containsAll(v89Tables);
     }
 
     @Test
