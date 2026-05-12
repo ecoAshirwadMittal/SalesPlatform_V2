@@ -1170,3 +1170,64 @@ no QBC or bid_data rows are written).
 | `404` | Unknown `schedulingAuctionId`. |
 | `409` | `r3_init_status = 'RUNNING'` — another run is in flight. |
 | `422` | Predecessor guard failure: `r3_preprocess_status ≠ SUCCESS` — pre-process must succeed before init. Mapped by `R3LifecycleValidationException` → `GlobalExceptionHandler`. |
+
+---
+
+## Partial Credit — Status Configuration (SPKB-3664)
+
+Admin-only surface for tuning the five seeded rows on
+`partial_credit.credit_request_statuses`. Edits propagate live to the buyer
+landing (which reads `colorHex` + `externalStatusText` from the API).
+
+| Method | Path | Roles | Purpose |
+|---|---|---|---|
+| `GET` | `/admin/partial-credit/statuses` | SalesOps / Administrator / PartialCredit_Admin / PartialCredit_SalesOps | List all 5 status rows ordered by `sort_order` ascending. |
+| `PATCH` | `/admin/partial-credit/statuses/{id}` | same as above | Update cosmetic fields on one row. |
+
+### PATCH /admin/partial-credit/statuses/{id}
+
+Request body (`StatusConfigPatch`) — every field is nullable; null means
+"leave existing value alone":
+
+```json
+{
+  "internalStatusText": "Awaiting review",
+  "externalStatusText": "Pending Approval",
+  "colorHex": "#FFAA00",
+  "sortOrder": 20,
+  "showInUserCounters": true
+}
+```
+
+Response (`StatusConfigRow`):
+
+```json
+{
+  "id": 2,
+  "systemStatus": "PENDING_APPROVAL",
+  "internalStatusText": "Awaiting review",
+  "externalStatusText": "Pending Approval",
+  "colorHex": "#FFAA00",
+  "sortOrder": 20,
+  "showInUserCounters": true,
+  "isDefault": false,
+  "statusGroupedTo": null
+}
+```
+
+`system_status` is **NOT** editable — it's the enum key consumed by both
+buyer landing rendering and admin business logic. Create / delete are
+**not supported**: the five seeded rows are fixed by the SPKB-3664 spec.
+
+**Validation (server-side, surfaces as 400):**
+- `colorHex` must match `#[0-9A-Fa-f]{6}`
+- `internalStatusText` / `externalStatusText` ≤ 100 characters
+
+**Errors:**
+
+| Status | Cause |
+|---|---|
+| `400` | Invalid `colorHex` or oversize text. |
+| `401` | No JWT / unauthenticated. |
+| `403` | Caller lacks the SalesOps/Administrator/PartialCredit_* role. |
+| `404` | Unknown `id`. |

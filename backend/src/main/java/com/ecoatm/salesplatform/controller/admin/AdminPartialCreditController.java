@@ -14,6 +14,8 @@ import com.ecoatm.salesplatform.dto.partialcredit.LineDecisionRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.LineDecisionResponse;
 import com.ecoatm.salesplatform.dto.partialcredit.SectionDecisionRequest;
 import com.ecoatm.salesplatform.dto.partialcredit.SectionDecisionResponse;
+import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigPatch;
+import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigRow;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
@@ -34,6 +36,7 @@ import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.OpenReviewResult;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.SectionDecisionResult;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
+import com.ecoatm.salesplatform.service.partialcredit.StatusConfigService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -44,6 +47,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -92,6 +96,7 @@ public class AdminPartialCreditController {
     private final WrongDeviceLineRepository wrongDeviceLineRepository;
     private final EncumberedDeviceLineRepository encumberedDeviceLineRepository;
     private final BuyerCodeRepository buyerCodeRepository;
+    private final StatusConfigService statusConfigService;
 
     public AdminPartialCreditController(
             AdminCreditRequestService adminService,
@@ -100,7 +105,8 @@ public class AdminPartialCreditController {
             MissingDeviceLineRepository missingDeviceLineRepository,
             WrongDeviceLineRepository wrongDeviceLineRepository,
             EncumberedDeviceLineRepository encumberedDeviceLineRepository,
-            BuyerCodeRepository buyerCodeRepository) {
+            BuyerCodeRepository buyerCodeRepository,
+            StatusConfigService statusConfigService) {
         this.adminService = adminService;
         this.creditRequestRepository = creditRequestRepository;
         this.statusRepository = statusRepository;
@@ -108,6 +114,7 @@ public class AdminPartialCreditController {
         this.wrongDeviceLineRepository = wrongDeviceLineRepository;
         this.encumberedDeviceLineRepository = encumberedDeviceLineRepository;
         this.buyerCodeRepository = buyerCodeRepository;
+        this.statusConfigService = statusConfigService;
     }
 
     // -------------------------------------------------------------------
@@ -282,6 +289,36 @@ public class AdminPartialCreditController {
     }
 
     // -------------------------------------------------------------------
+    // Status configuration endpoints (Sprint 3 chunk 7 — SPKB-3664)
+    // -------------------------------------------------------------------
+
+    /**
+     * Lists the 5 seeded status rows ordered by {@code sort_order}. Used by
+     * the admin status-config grid and any surface that needs canonical
+     * pill colors.
+     */
+    @GetMapping("/statuses")
+    public List<StatusConfigRow> listStatuses() {
+        return statusConfigService.listAll().stream()
+                .map(StatusConfigRow::from)
+                .toList();
+    }
+
+    /**
+     * Patches a single status row's cosmetic fields. {@code system_status}
+     * itself is immutable. Returns the updated row so the frontend can
+     * replace optimistic UI state with the persisted snapshot.
+     */
+    @PatchMapping("/statuses/{id}")
+    public StatusConfigRow updateStatus(
+            @PathVariable Long id,
+            @RequestBody StatusConfigPatch patch,
+            Authentication auth) {
+        Long actorUserId = principalUserId(auth);
+        return StatusConfigRow.from(statusConfigService.update(id, patch, actorUserId));
+    }
+
+    // -------------------------------------------------------------------
     // Exception handlers — mirror buyer-side controller's convention
     // -------------------------------------------------------------------
 
@@ -299,6 +336,13 @@ public class AdminPartialCreditController {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(
                 "error", "NOT_FOUND",
                 "message", ex.getMessage() == null ? "Resource not found" : ex.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, Object>> onInvalidArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(
+                "error", "INVALID_ARGUMENT",
+                "message", ex.getMessage() == null ? "Invalid argument" : ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

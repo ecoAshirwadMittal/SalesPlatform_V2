@@ -23,8 +23,10 @@ import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.LineKind;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.OpenReviewResult;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.SectionDecisionResult;
+import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigPatch;
 import com.ecoatm.salesplatform.service.partialcredit.CreditCalculationService.HeaderSummary;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
+import com.ecoatm.salesplatform.service.partialcredit.StatusConfigService;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,9 +52,11 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -74,6 +78,7 @@ class AdminPartialCreditControllerIT {
     @MockBean WrongDeviceLineRepository wrongDeviceLineRepository;
     @MockBean EncumberedDeviceLineRepository encumberedDeviceLineRepository;
     @MockBean BuyerCodeRepository buyerCodeRepository;
+    @MockBean StatusConfigService statusConfigService;
 
     CreditRequestStatus underReviewRow;
 
@@ -304,6 +309,81 @@ class AdminPartialCreditControllerIT {
     }
 
     // -------------------------------------------------------------------
+    // Status configuration endpoints (Chunk 7)
+    // -------------------------------------------------------------------
+
+    @Test
+    void salesOps_listStatuses_returns200WithSeedRows() throws Exception {
+        when(statusConfigService.listAll()).thenReturn(List.of(
+                statusRow(1L, SystemStatus.DRAFT, 0, "#888888"),
+                statusRow(2L, SystemStatus.PENDING_APPROVAL, 1, "#D08214"),
+                statusRow(3L, SystemStatus.UNDER_REVIEW, 2, "#407874"),
+                statusRow(4L, SystemStatus.APPROVED, 3, "#14AC36"),
+                statusRow(5L, SystemStatus.DECLINED, 4, "#B3261E")));
+
+        mvc.perform(get("/api/v1/admin/partial-credit/statuses").with(salesOps()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.length()").value(5))
+           .andExpect(jsonPath("$[0].systemStatus").value("DRAFT"))
+           .andExpect(jsonPath("$[4].systemStatus").value("DECLINED"));
+    }
+
+    @Test
+    void bidder_listStatuses_returns403() throws Exception {
+        mvc.perform(get("/api/v1/admin/partial-credit/statuses").with(bidder()))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void unauthenticated_listStatuses_returns401() throws Exception {
+        mvc.perform(get("/api/v1/admin/partial-credit/statuses"))
+           .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void admin_patchStatus_returns200_withUpdatedRow() throws Exception {
+        CreditRequestStatus updated = statusRow(2L, SystemStatus.PENDING_APPROVAL, 25, "#FF8800");
+        updated.setInternalStatusText("Awaiting review");
+        when(statusConfigService.update(eq(2L), any(StatusConfigPatch.class), any()))
+                .thenReturn(updated);
+
+        mvc.perform(patch("/api/v1/admin/partial-credit/statuses/2")
+                .with(administrator())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"internalStatusText\":\"Awaiting review\",\"colorHex\":\"#FF8800\",\"sortOrder\":25}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.id").value(2))
+           .andExpect(jsonPath("$.internalStatusText").value("Awaiting review"))
+           .andExpect(jsonPath("$.colorHex").value("#FF8800"));
+    }
+
+    @Test
+    void admin_patchStatus_invalidColor_returns400() throws Exception {
+        doThrow(new IllegalArgumentException("colorHex must match #RRGGBB"))
+                .when(statusConfigService).update(eq(2L), any(StatusConfigPatch.class), any());
+
+        mvc.perform(patch("/api/v1/admin/partial-credit/statuses/2")
+                .with(administrator())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"colorHex\":\"not-a-color\"}"))
+           .andExpect(status().isBadRequest())
+           .andExpect(jsonPath("$.error").value("INVALID_ARGUMENT"))
+           .andExpect(jsonPath("$.message").value("colorHex must match #RRGGBB"));
+    }
+
+    @Test
+    void admin_patchStatus_unknownId_returns404() throws Exception {
+        doThrow(new jakarta.persistence.EntityNotFoundException("credit_request_status 999"))
+                .when(statusConfigService).update(eq(999L), any(StatusConfigPatch.class), any());
+
+        mvc.perform(patch("/api/v1/admin/partial-credit/statuses/999")
+                .with(administrator())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"internalStatusText\":\"x\"}"))
+           .andExpect(status().isNotFound());
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
 
@@ -311,8 +391,25 @@ class AdminPartialCreditControllerIT {
         return authentication(asAuth(2L, "ops@test.com", "SalesOps"));
     }
 
+    private static RequestPostProcessor administrator() {
+        return authentication(asAuth(3L, "admin@test.com", "Administrator"));
+    }
+
     private static RequestPostProcessor bidder() {
         return authentication(asAuth(1L, "bidder@test.com", "Bidder"));
+    }
+
+    private static CreditRequestStatus statusRow(Long id, SystemStatus status, int sortOrder, String colorHex) {
+        CreditRequestStatus row = new CreditRequestStatus();
+        row.setId(id);
+        row.setSystemStatus(status);
+        row.setInternalStatusText(status.name());
+        row.setExternalStatusText(status.name());
+        row.setColorHex(colorHex);
+        row.setSortOrder(sortOrder);
+        row.setShowInUserCounters(Boolean.TRUE);
+        row.setIsDefault(Boolean.FALSE);
+        return row;
     }
 
     private static UsernamePasswordAuthenticationToken asAuth(

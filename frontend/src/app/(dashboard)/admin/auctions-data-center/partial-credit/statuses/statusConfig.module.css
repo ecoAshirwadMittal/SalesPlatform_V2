@@ -1,0 +1,212 @@
+/* Status config admin page — SPKB-3664.
+   Tokens defined in src/app/globals.css; do not hardcode hex values
+   that exist as design tokens. */
+
+.page {
+  padding: clamp(20px, 2vw, 32px) clamp(24px, 3vw, 40px);
+}
+
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--color-input-border);
+  padding-bottom: 12px;
+  margin-bottom: 20px;
+}
+
+.heading {
+  font-family: var(--font-family-primary);
+  font-size: 28px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-text-body);
+  margin: 0;
+}
+
+.description {
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+  margin: 0 0 20px 0;
+  max-width: 720px;
+}
+
+.toast {
+  border: 1px solid #2D7A4E;
+  background: #E6F4EC;
+  color: #1F5A38;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.errorAlert {
+  border: 1px solid #C0392B;
+  background: #FDECEA;
+  color: #C0392B;
+  padding: 8px 12px;
+  border-radius: var(--radius-input);
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.gridWrap {
+  background: #FFFFFF;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  overflow: hidden;
+}
+
+.grid {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  color: var(--color-text-body);
+}
+
+.grid thead {
+  background: var(--color-bg-body);
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr {
+  border-bottom: 1px solid var(--color-input-border);
+}
+
+.grid tbody tr:last-child {
+  border-bottom: 0;
+}
+
+.grid th,
+.grid td {
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.grid th {
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.systemStatusCell {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--color-text-body);
+}
+
+.textInput {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  background: #FFFFFF;
+}
+
+.numberInput {
+  width: 80px;
+  padding: 6px 8px;
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  background: #FFFFFF;
+}
+
+.colorCell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorSwatch {
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--color-input-border);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.colorHexInput {
+  width: 100px;
+  padding: 6px 8px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  background: #FFFFFF;
+  text-transform: uppercase;
+}
+
+.colorHexInputInvalid {
+  border-color: #C0392B;
+  background: #FDECEA;
+}
+
+.defaultBadge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #E6F4EC;
+  color: #1F5A38;
+  border: 1px solid #2D7A4E;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.actionsCell {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.buttonPrimary {
+  padding: 6px 12px;
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  font-weight: 500;
+  background: #00969F;
+  color: #FFFFFF;
+  border: 0;
+  border-radius: var(--radius-input);
+  cursor: pointer;
+}
+
+.buttonPrimary:hover {
+  background: #007680;
+}
+
+.buttonPrimary:disabled {
+  background: #B5B5B5;
+  cursor: not-allowed;
+}
+
+.buttonGhost {
+  padding: 6px 12px;
+  font-family: var(--font-family-primary);
+  font-size: 13px;
+  font-weight: 500;
+  background: #FFFFFF;
+  color: var(--color-text-body);
+  border: 1px solid var(--color-input-border);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+}
+
+.buttonGhost:hover {
+  background: var(--color-bg-body);
+}
+
+.rowError {
+  font-size: 12px;
+  color: #C0392B;
+  margin-top: 4px;
+}
