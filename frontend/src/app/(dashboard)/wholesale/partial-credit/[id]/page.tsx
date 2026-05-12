@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   getRequest,
   listPhotos,
@@ -10,9 +10,11 @@ import {
   type PhotoMetadata,
 } from '@/lib/partialCreditClient';
 import { getUserId } from '@/lib/session';
+import { ApprovedDeclinedToggle, type DecisionFilter } from './_components/ApprovedDeclinedToggle';
 import { BuyerHeaderStrip } from './_components/BuyerHeaderStrip';
 import { BuyerLineSection } from './_components/BuyerLineSection';
 import { BuyerSummaryPanels } from './_components/BuyerSummaryPanels';
+import { MultiReasonTabs, type ReasonTabKey } from './_components/MultiReasonTabs';
 import { PhotoGallery } from './_components/PhotoGallery';
 import { PhotoUploadDropzone } from './_components/PhotoUploadDropzone';
 import { ReviewSummaryPanel } from './_components/ReviewSummaryPanel';
@@ -33,6 +35,18 @@ import styles from './detail.module.css';
  *   <li>Review summary panel renders only when {@code reviewCompletedOn}
  *       is non-null.</li>
  * </ul>
+ *
+ * <p><b>Group 4 (Figma parity 2026-05-12):</b>
+ * <ul>
+ *   <li>Multi-reason variant (≥2 active reasons) renders a Tabs control
+ *       and a per-tab Approved/Declined toggle. Single-reason layout is
+ *       unchanged.</li>
+ *   <li>H1 reads "Credit Request Details"; request number sits under
+ *       the Order Number field on HeaderStrip.</li>
+ *   <li>Status pill colour is server-driven via {@code statusColorHex}.
+ *       The fallback helper was removed; see DTO blocker note in
+ *       Group 4 dispatch output.</li>
+ * </ul>
  */
 export default function BuyerPartialCreditDetailPage() {
   const params = useParams<{ id: string }>();
@@ -43,6 +57,12 @@ export default function BuyerPartialCreditDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [viewerUserId, setViewerUserId] = useState<number | null>(null);
+
+  // Multi-reason variant state: active tab + per-tab decision filter.
+  // The toggle defaults to APPROVED per Figma `656:3480` / `656:3735`.
+  const [activeTab, setActiveTab] = useState<ReasonTabKey | null>(null);
+  const [decisionFilter, setDecisionFilter] = useState<DecisionFilter>('APPROVED');
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,6 +91,15 @@ export default function BuyerPartialCreditDetailPage() {
     void load();
   }, [requestId, load]);
 
+  // Seed the active tab once the detail loads. Picking the first
+  // available reason avoids rendering an empty tablist body.
+  useEffect(() => {
+    if (!detail || activeTab !== null) return;
+    if (detail.hasMissingDevice) setActiveTab('MISSING');
+    else if (detail.hasWrongDevice) setActiveTab('WRONG');
+    else if (detail.hasEncumberedDevice) setActiveTab('ENCUMBERED');
+  }, [detail, activeTab]);
+
   const handleUploaded = useCallback((photo: PhotoMetadata) => {
     setPhotos((prev) => [...prev, photo]);
   }, []);
@@ -85,9 +114,7 @@ export default function BuyerPartialCreditDetailPage() {
   if (error || !detail) {
     return (
       <div className={`pg-partial-credit ${styles.page}`}>
-        <Link href="/wholesale/partial-credit" className={styles.backLink}>
-          ← Back to my requests
-        </Link>
+        <BreadcrumbBack />
         <div className={styles.errorBanner} role="alert">
           {error ?? 'Request not found'}
         </div>
@@ -97,42 +124,81 @@ export default function BuyerPartialCreditDetailPage() {
 
   const finalised =
     detail.systemStatus === 'APPROVED' || detail.systemStatus === 'DECLINED';
-  // Buyer landing colour is server-driven; the detail GET does not
-  // include it today, so render a fallback that matches the systemStatus
-  // family. Phase 2 will route this through credit_request_statuses.
-  const statusColorHex = fallbackStatusColor(detail.systemStatus);
+
+  // BLOCKER: GET /api/v1/buyer/partial-credit/{id} does NOT include
+  // `colorHex` on CreditRequestDetail today (server only exposes
+  // displayStatus + systemStatus). Until the backend joins
+  // credit_request_statuses.colorHex into the detail response, we ship
+  // a transparent string — the pill renders the displayStatus text
+  // styled against the surrounding card background and the parity-
+  // sensitive bg colour is left to follow once the DTO ships the hex.
+  // Recorded in Group 4 output.
+  const statusColorHex = '';
+
+  const activeReasons: ReasonTabKey[] = [];
+  if (detail.hasMissingDevice && detail.missingLines.length > 0) activeReasons.push('MISSING');
+  if (detail.hasWrongDevice && detail.wrongLines.length > 0) activeReasons.push('WRONG');
+  if (detail.hasEncumberedDevice && detail.encumberedLines.length > 0)
+    activeReasons.push('ENCUMBERED');
+  const multiReason = activeReasons.length >= 2;
 
   return (
     <div className={`pg-partial-credit ${styles.page}`}>
-      <Link href="/wholesale/partial-credit" className={styles.backLink}>
-        ← Back to my requests
-      </Link>
-      <h1 className={styles.pageHeading}>{detail.requestNumber}</h1>
+      <BreadcrumbBack />
+      <h1 className={styles.pageHeading}>Credit Request Details</h1>
 
       <BuyerHeaderStrip detail={detail} statusColorHex={statusColorHex} />
 
       <BuyerSummaryPanels
-        requestedSkus={countRequestedSkus(detail)}
         requestedQty={countRequestedQty(detail)}
         requestedTotal={detail.requestedTotal ?? 0}
-        approvedSkus={detail.reviewCompletedOn ? countApprovedSkus(detail) : null}
         approvedQty={detail.reviewCompletedOn ? countApprovedQty(detail) : null}
         approvedTotal={detail.approvedTotal}
       />
 
       <ReviewSummaryPanel detail={detail} />
 
-      <BuyerLineSection kind="MISSING" detail={detail} />
-      <BuyerLineSection kind="WRONG" detail={detail} />
-      <BuyerLineSection kind="ENCUMBERED" detail={detail} />
+      {multiReason ? (
+        <MultiReasonReasonSections
+          detail={detail}
+          activeReasons={activeReasons}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          decisionFilter={decisionFilter}
+          onDecisionFilterChange={setDecisionFilter}
+        />
+      ) : (
+        <>
+          <BuyerLineSection kind="MISSING" detail={detail} />
+          <BuyerLineSection kind="WRONG" detail={detail} />
+          <BuyerLineSection kind="ENCUMBERED" detail={detail} />
+        </>
+      )}
 
       <section className={styles.photosSection} aria-label="Photos">
         <h2 className={styles.photosHeading}>Photos</h2>
         {!finalised && (
-          <PhotoUploadDropzone
-            requestId={detail.id}
-            onUploaded={handleUploaded}
-          />
+          <>
+            {/* Figma "Add Photos" primary button (`+` icon). Functionality
+                stays in PhotoUploadDropzone but the visual is swapped for
+                a CTA that opens a native file picker via the hidden
+                input. TODO(backend): no buyer-export endpoint exists, so
+                the Figma "Download" CTA next to this row is not shipped. */}
+            <button
+              type="button"
+              className={styles.addPhotosButton}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <span aria-hidden>+</span> Add Photos
+            </button>
+            <div className={styles.hiddenDropzone}>
+              <PhotoUploadDropzone
+                requestId={detail.id}
+                onUploaded={handleUploaded}
+                inputRef={fileInputRef}
+              />
+            </div>
+          </>
         )}
         <PhotoGallery
           photos={photos}
@@ -145,6 +211,115 @@ export default function BuyerPartialCreditDetailPage() {
   );
 }
 
+function BreadcrumbBack() {
+  return (
+    <Link href="/wholesale/partial-credit" className={styles.backLink}>
+      <ChevronLeftIcon /> All Credit Requests
+    </Link>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg
+      aria-hidden
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  );
+}
+
+interface MultiReasonReasonSectionsProps {
+  detail: CreditRequestDetail;
+  activeReasons: readonly ReasonTabKey[];
+  activeTab: ReasonTabKey | null;
+  onTabChange: (next: ReasonTabKey) => void;
+  decisionFilter: DecisionFilter;
+  onDecisionFilterChange: (next: DecisionFilter) => void;
+}
+
+function MultiReasonReasonSections({
+  detail,
+  activeReasons,
+  activeTab,
+  onTabChange,
+  decisionFilter,
+  onDecisionFilterChange,
+}: MultiReasonReasonSectionsProps) {
+  if (activeTab === null) return null;
+  const tabs = activeReasons.map((key) => ({
+    key,
+    label: tabLabel(key),
+    count: reasonCount(key, detail),
+  }));
+  const decisionCounts = countDecisions(activeTab, detail);
+  return (
+    <>
+      <MultiReasonTabs active={activeTab} onChange={onTabChange} tabs={tabs} />
+      <ApprovedDeclinedToggle
+        value={decisionFilter ?? 'APPROVED'}
+        onChange={onDecisionFilterChange}
+        approvedCount={decisionCounts.approved}
+        declinedCount={decisionCounts.declined}
+      />
+      <BuyerLineSection
+        kind={activeTab}
+        detail={detail}
+        decisionFilter={decisionFilter}
+      />
+    </>
+  );
+}
+
+function tabLabel(kind: ReasonTabKey): string {
+  switch (kind) {
+    case 'MISSING':
+      return 'Missing Devices';
+    case 'WRONG':
+      return 'Wrong Devices';
+    case 'ENCUMBERED':
+      return 'Encumbered Devices';
+  }
+}
+
+function reasonCount(kind: ReasonTabKey, d: CreditRequestDetail): number {
+  switch (kind) {
+    case 'MISSING':
+      return d.missingLines.length;
+    case 'WRONG':
+      return d.wrongLines.length;
+    case 'ENCUMBERED':
+      return d.encumberedLines.length;
+  }
+}
+
+function countDecisions(
+  kind: ReasonTabKey,
+  d: CreditRequestDetail,
+): { approved: number; declined: number } {
+  const lines =
+    kind === 'MISSING'
+      ? d.missingLines
+      : kind === 'WRONG'
+        ? d.wrongLines
+        : d.encumberedLines;
+  let approved = 0;
+  let declined = 0;
+  for (const l of lines) {
+    if (l.reviewDecision === 'ACCEPTED') approved += 1;
+    else if (l.reviewDecision === 'DECLINED') declined += 1;
+  }
+  return { approved, declined };
+}
+
 // ---------------------------------------------------------------------------
 // Derived counters — recomputed client-side because the detail DTO does
 // not (yet) include them. These map to what the admin's HeaderSummary
@@ -152,38 +327,14 @@ export default function BuyerPartialCreditDetailPage() {
 // these from the response directly.
 // ---------------------------------------------------------------------------
 
-function countRequestedSkus(d: CreditRequestDetail): number {
+function countRequestedQty(d: CreditRequestDetail): number {
   return d.missingLines.length + d.wrongLines.length + d.encumberedLines.length;
 }
 
-function countRequestedQty(d: CreditRequestDetail): number {
-  return countRequestedSkus(d);
-}
-
-function countApprovedSkus(d: CreditRequestDetail): number {
+function countApprovedQty(d: CreditRequestDetail): number {
   return (
     d.missingLines.filter((l) => l.reviewDecision === 'ACCEPTED').length +
     d.wrongLines.filter((l) => l.reviewDecision === 'ACCEPTED').length +
     d.encumberedLines.filter((l) => l.reviewDecision === 'ACCEPTED').length
   );
-}
-
-function countApprovedQty(d: CreditRequestDetail): number {
-  return countApprovedSkus(d);
-}
-
-function fallbackStatusColor(status: CreditRequestDetail['systemStatus']): string {
-  switch (status) {
-    case 'PENDING_APPROVAL':
-      return '#D08214';
-    case 'UNDER_REVIEW':
-      return '#407874';
-    case 'APPROVED':
-      return '#14AC36';
-    case 'DECLINED':
-      return '#B3261E';
-    case 'DRAFT':
-    default:
-      return '#888888';
-  }
 }

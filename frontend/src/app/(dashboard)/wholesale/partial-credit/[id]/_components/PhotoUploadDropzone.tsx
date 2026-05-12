@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type MutableRefObject } from 'react';
 import {
   PhotoUploadError,
   uploadPhoto,
@@ -17,6 +17,14 @@ interface PhotoUploadDropzoneProps {
    */
   wrongDeviceLineId?: number | null;
   onUploaded: (photo: PhotoMetadata) => void;
+  /**
+   * Group 4 (Figma parity 2026-05-12) — the visual was swapped for a
+   * primary "+ Add Photos" CTA above this component; the page hides
+   * the dropzone chrome and triggers a click on this hidden input
+   * when the CTA is pressed. When supplied, the input element is
+   * attached to the ref so the parent can invoke `.click()`.
+   */
+  inputRef?: MutableRefObject<HTMLInputElement | null>;
 }
 
 /**
@@ -34,6 +42,7 @@ export function PhotoUploadDropzone({
   requestId,
   wrongDeviceLineId,
   onUploaded,
+  inputRef,
 }: PhotoUploadDropzoneProps) {
   const [error, setError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -81,6 +90,7 @@ export function PhotoUploadDropzone({
       <label className={styles.dropzoneLabel}>
         <span>{uploading ? 'Uploading…' : 'Choose photo(s) to upload'}</span>
         <input
+          ref={inputRef}
           type="file"
           accept="image/jpeg,image/png,image/heic,image/webp"
           multiple

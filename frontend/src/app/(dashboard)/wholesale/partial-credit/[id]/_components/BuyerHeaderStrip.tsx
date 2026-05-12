@@ -15,9 +15,14 @@ interface BuyerHeaderStripProps {
  * status label (per Sprint 4 §11.Q2 the admin sees the internal label,
  * the buyer sees the external one).
  *
- * Field set: Request Date, Buyer / Company (party_name), Order Number,
- * Request Reason, Status. The admin's "Complete Review" CTA is
- * intentionally absent — buyers never finalise a request themselves.
+ * Group 4 (Figma parity 2026-05-12) — fields are now:
+ *   Order Number | Request Date | Request Reason | Status | Approved Date
+ *
+ * "Company" (party_name) is dropped — Figma treats the buyer as the
+ * company so the duplicate field is removed. "Approved Date" is added
+ * and reuses `reviewCompletedOn` (null pre-review renders as `—`).
+ * The request number sits under the Order Number field as a sub-label
+ * per Figma `534:11349`.
  */
 export function BuyerHeaderStrip({
   detail,
@@ -26,9 +31,12 @@ export function BuyerHeaderStrip({
 }: BuyerHeaderStripProps) {
   return (
     <div className={styles.headerStrip}>
+      <Field
+        label="Order Number"
+        value={detail.orderNumber}
+        subLabel={detail.requestNumber}
+      />
       <Field label="Request Date" value={formatDate(detail.orderCreatedDate)} />
-      <Field label="Company" value={detail.partyName ?? '—'} />
-      <Field label="Order Number" value={detail.orderNumber} />
       <Field label="Request Reason" value={formatReasons(detail)} />
       <Field
         label="Status"
@@ -42,6 +50,7 @@ export function BuyerHeaderStrip({
           </span>
         }
       />
+      <Field label="Approved Date" value={formatDate(detail.reviewCompletedOn)} />
       {submittedByLine && (
         <div className={styles.submittedByLine}>{submittedByLine}</div>
       )}
@@ -49,11 +58,18 @@ export function BuyerHeaderStrip({
   );
 }
 
-function Field({ label, value }: { label: string; value: React.ReactNode }) {
+interface FieldProps {
+  label: string;
+  value: React.ReactNode;
+  subLabel?: string;
+}
+
+function Field({ label, value, subLabel }: FieldProps) {
   return (
     <div className={styles.headerField}>
       <span className={styles.headerLabel}>{label}</span>
       <span className={styles.headerValue}>{value}</span>
+      {subLabel && <span className={styles.headerSubLabel}>{subLabel}</span>}
     </div>
   );
 }

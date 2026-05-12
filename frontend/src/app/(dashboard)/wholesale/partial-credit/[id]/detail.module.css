@@ -1,20 +1,29 @@
 /* Buyer-detail page styles — Sprint 4 chunk 5 (SPKB-3669).
    Tokens defined in src/app/globals.css; do not hardcode hex values
-   that exist as design tokens. */
+   that exist as design tokens.
+
+   Group 4 (Figma parity 2026-05-12) — tokens flipped to the
+   --color-pc-* / --font-family-partial-credit set scoped under the
+   .pg-partial-credit wrapper class. */
 
 .page {
-  padding: clamp(20px, 2vw, 32px) clamp(24px, 3vw, 40px);
+  padding: 24px 32px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  font-family: var(--font-family-partial-credit);
+  color: var(--color-pc-text);
 }
 
 .backLink {
-  font-family: var(--font-family-primary);
+  font-family: var(--font-family-partial-credit);
   font-size: 14px;
-  color: var(--color-text-body);
+  color: var(--color-pc-text);
   text-decoration: none;
   width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .backLink:hover {
@@ -22,10 +31,12 @@
 }
 
 .pageHeading {
-  font-family: var(--font-family-primary);
-  font-size: 28px;
+  font-family: var(--font-family-partial-credit);
+  font-size: 40px;
   font-weight: 500;
+  line-height: 1.1;
   margin: 0;
+  color: var(--color-pc-text);
 }
 
 .errorBanner {
@@ -37,7 +48,9 @@
   font-size: 14px;
 }
 
-/* Header strip — six fields plus an optional submitted-by sub-line. */
+/* Header strip — five fields per Figma (Order Number / Request Date /
+   Request Reason / Status / Approved Date) plus optional submitted-by
+   sub-line for the on-behalf flow. */
 
 .headerStrip {
   display: grid;
@@ -45,8 +58,8 @@
   gap: 16px;
   padding: 16px 20px;
   background: white;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
+  border: 1px solid var(--color-pc-border);
+  border-radius: 8px;
 }
 
 .headerField {
@@ -58,19 +71,24 @@
 .headerLabel {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
 }
 
 .headerValue {
   font-size: 14px;
-  color: var(--color-text-body);
+  color: var(--color-pc-text);
+}
+
+.headerSubLabel {
+  font-size: 12px;
+  color: var(--color-pc-text-muted);
 }
 
 .statusPill {
   display: inline-block;
   padding: 4px 12px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 600;
   color: white;
 }
@@ -79,14 +97,15 @@
   grid-column: 1 / -1;
   font-size: 13px;
   font-style: italic;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
   background: #fff8d0;
   border: 1px solid #ead17a;
   padding: 6px 10px;
   border-radius: var(--radius-input);
 }
 
-/* Summary panels — two side-by-side mini-tables. */
+/* Summary panels — two side-by-side mini-tables.
+   Group 4: 2-column layout (Qty / Total). SKUs column dropped. */
 
 .summaryRow {
   display: flex;
@@ -97,8 +116,8 @@
 .summaryPanel {
   flex: 1 1 240px;
   background: white;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
+  border: 1px solid var(--color-pc-border);
+  border-radius: 8px;
   padding: 12px 16px;
   display: flex;
   flex-direction: column;
@@ -108,13 +127,13 @@
 .summaryPanelLabel {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
 }
 
 .summaryPanelTable {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 4px 12px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 24px;
   align-items: baseline;
 }
 
@@ -122,26 +141,28 @@
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
+  padding: 8px 4px;
 }
 
 .summaryDivider {
   grid-column: 1 / -1;
   height: 1px;
-  background: var(--color-input-border);
+  background: var(--color-pc-border);
 }
 
 .summaryCellValue {
   font-size: 16px;
   font-weight: 500;
+  padding: 8px 4px;
 }
 
 /* Review summary panel — visible only after the request is finalised. */
 
 .reviewPanel {
   background: white;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
+  border: 1px solid var(--color-pc-border);
+  border-radius: 8px;
   padding: 12px 16px;
 }
 
@@ -161,11 +182,71 @@
 
 .reviewGrid dt {
   font-weight: 600;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
 }
 
 .reviewGrid dd {
   margin: 0;
+}
+
+/* Multi-reason tabs + per-tab Approved/Declined toggle (Figma
+   `Tabs - Partial Credit` + `Toggle - Partial Credit`). Rendered only
+   when the request has ≥2 active reasons. */
+
+.reasonTabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--color-pc-border);
+}
+
+.reasonTab,
+.reasonTabActive {
+  font-family: var(--font-family-partial-credit);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-pc-text-muted);
+}
+
+.reasonTab:hover {
+  color: var(--color-pc-text);
+}
+
+.reasonTabActive {
+  color: var(--color-pc-text);
+  border-bottom-color: var(--color-pc-green);
+}
+
+.decisionToggleGroup {
+  display: inline-flex;
+  border: 1px solid var(--color-pc-border);
+  border-radius: 999px;
+  padding: 2px;
+  background: white;
+  width: fit-content;
+}
+
+.decisionToggle,
+.decisionToggleActive {
+  font-family: var(--font-family-partial-credit);
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  color: var(--color-pc-text-muted);
+}
+
+.decisionToggleActive {
+  background: var(--color-pc-green);
+  color: white;
 }
 
 /* Reason sections — one per Missing / Wrong / Encumbered, hidden when
@@ -173,15 +254,22 @@
 
 .reasonSection {
   background: white;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
+  border: 1px solid var(--color-pc-border);
+  border-radius: 8px;
   padding: 16px 20px;
 }
 
 .reasonHeading {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   margin: 0 0 12px 0;
+  color: var(--color-pc-text);
+}
+
+.reasonCountBadge {
+  font-weight: 500;
+  color: var(--color-pc-text-muted);
+  margin-left: 4px;
 }
 
 .reasonTable {
@@ -194,14 +282,17 @@
 .reasonTable td {
   text-align: left;
   padding: 8px 10px;
-  border-bottom: 1px solid var(--color-input-border);
+  border-bottom: 1px solid var(--color-pc-row-divider);
 }
 
 .reasonTable th {
   font-size: 12px;
   font-weight: 600;
-  color: var(--color-text-muted, #6b6b6b);
-  background: var(--color-surface-2, #f6f6f6);
+  color: var(--color-pc-text-muted);
+  /* Buyer surfaces use white per parity reconciliation R7 — the warm
+     cream #F7F5F1 is admin-only. */
+  background: white;
+  border-bottom: 1px solid var(--color-pc-border);
 }
 
 .decisionAccepted,
@@ -223,19 +314,55 @@
   color: #c0392b;
 }
 
-/* Photos section — dropzone + gallery. */
+/* Photos section — primary "+ Add Photos" CTA + gallery. The dropzone
+   chrome itself is hidden; the CTA triggers the underlying file input
+   via the inputRef prop. */
 
 .photosSection {
   background: white;
-  border: 1px solid var(--color-input-border);
-  border-radius: var(--radius-input);
+  border: 1px solid var(--color-pc-border);
+  border-radius: 8px;
   padding: 16px 20px;
 }
 
 .photosHeading {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   margin: 0 0 12px 0;
+  color: var(--color-pc-text);
+}
+
+.addPhotosButton {
+  font-family: var(--font-family-partial-credit);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--color-pc-green);
+  color: white;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.addPhotosButton:hover {
+  background: var(--color-pc-green-hover);
+}
+
+/* The underlying dropzone is kept mounted so its filetype/size error
+   surface still wires through onto the page; only the visual chrome
+   is hidden. The native input itself stays focusable via the ref. */
+.hiddenDropzone {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  margin: -1px;
+  padding: 0;
+  border: 0;
 }
 
 .dropzone {
@@ -243,8 +370,8 @@
   flex-direction: column;
   gap: 8px;
   padding: 12px;
-  background: var(--color-surface-2, #f6f6f6);
-  border: 1px dashed var(--color-input-border);
+  background: var(--color-pc-bg-soft);
+  border: 1px dashed var(--color-pc-border);
   border-radius: var(--radius-input);
 }
 
@@ -264,7 +391,7 @@
 .dropzoneHint {
   margin: 0;
   font-size: 12px;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
 }
 
 .dropzoneError {
@@ -286,7 +413,7 @@
 .galleryEmpty {
   margin: 12px 0 0 0;
   font-size: 13px;
-  color: var(--color-text-muted, #6b6b6b);
+  color: var(--color-pc-text-muted);
 }
 
 .galleryGrid {
@@ -306,7 +433,7 @@
 
 .galleryTileButton {
   background: none;
-  border: 1px solid var(--color-input-border);
+  border: 1px solid var(--color-pc-border);
   border-radius: var(--radius-input);
   padding: 0;
   overflow: hidden;
