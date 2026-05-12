@@ -94,12 +94,18 @@
 }
 
 .stepLabel {
+  /* Group 7: explicit font-family so the step indicator picks up the
+     partial-credit font stack rather than inheriting Brandon Grotesque
+     from the body fallback. Reconciliation R5 keeps the muted text at
+     #3C3C3C (the parity report's #534F4C is wrong vs. the Mendix
+     stylesheet). */
+  font-family: var(--font-family-partial-credit, inherit);
   font-size: 14px;
-  color: #3C3C3C;
+  color: var(--color-pc-text-muted, #3C3C3C);
 }
 
 .stepLabelActive {
-  color: #1C1B1C;
+  color: var(--color-pc-text, #1C1B1C);
   font-weight: 500;
 }
 
@@ -822,10 +828,13 @@
 }
 
 /* Landing R-2 / RMA explainer banner — verbatim copy from design notes
-   line 855. Neutral light-gray surface so it doesn't read as an error. */
+   line 855. Neutral light-gray surface so it doesn't read as an error.
+
+   Group 7: the 1px #E6E5E4 outline was dropped per Figma — the banner
+   keeps its off-white fill but sits flush with the page background. */
 .landingBanner {
   background: #FBFAF8;
-  border: 1px solid #E6E5E4;
+  border: 0;
   color: #1C1B1C;
   border-radius: 8px;
   padding: 12px 16px;
@@ -833,3 +842,69 @@
   font-size: 14px;
   max-width: 1024px;
 }
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ Group 7 — buyer landing + Start polish + on-behalf banner             ║
+   ║ Added: 2026-05-12. Owns landing action-column chrome, empty-state    ║
+   ║ cell, status-pill outline, and the wizard step-1 on-behalf banner.   ║
+   ║ Group 5 + Group 6 regions ABOVE are untouched.                       ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+/* Eye-icon action column — fixed-width rightmost cell on the landing
+   table. Anchors the icon to the right of each row. */
+.landingActionCol {
+  width: 40px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.landingViewLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-pc-text-muted, #3C3C3C);
+  text-decoration: none;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.landingViewLink:hover,
+.landingViewLink:focus-visible {
+  color: var(--color-pc-text, #1B1B1B);
+  background: #F7F5F1;
+}
+
+/* Empty-state cell rendered inside the table as a full-row colspan
+   message — Figma keeps the table chrome and only swaps the body. */
+.landingEmptyCell {
+  text-align: center;
+  color: var(--color-pc-text-muted, #3C3C3C);
+  padding: 24px 16px;
+}
+
+/* Status pill outline — Figma renders a 0.81px mid-grey stroke around
+   every pill so they read as outlined chips rather than solid badges.
+   Append to the existing tinted .statusPill rule from Group 5. */
+.statusPill {
+  border: 0.81px solid #A8A7A6;
+}
+
+/* Wizard step-1 on-behalf banner — soft warning-yellow pad rendered
+   below the StepIndicator when the page resumed from ?draftId=X.
+   Matches the Group 8 OnBehalfModal order-step summary palette so the
+   rep sees one consistent "you are submitting on behalf" visual cue. */
+.onBehalfBanner {
+  background: #FFF8D0;
+  border: 1px solid #EAD17A;
+  color: var(--color-pc-text, #1B1B1B);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  max-width: 800px;
+  font-family: var(--font-family-partial-credit, inherit);
+}
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ End Group 7                                                          ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */

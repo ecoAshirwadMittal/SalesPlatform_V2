@@ -37,6 +37,11 @@ export default function StartCreditRequestPage() {
   const [hasEncumbered, setHasEncumbered] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Group 7 — when ?draftId=X is present and the draft loaded, the step
+  // shows the on-behalf banner so the rep always sees which buyer they're
+  // submitting for. Mirrors the modal's order-step summary banner.
+  const [onBehalfBuyerName, setOnBehalfBuyerName] = useState<string | null>(null);
+  const [onBehalfBuyerCode, setOnBehalfBuyerCode] = useState<string | null>(null);
 
   useEffect(() => {
     const active = getActiveBuyerCode();
@@ -53,6 +58,14 @@ export default function StartCreditRequestPage() {
           setHasMissing(d.hasMissingDevice);
           setHasWrong(d.hasWrongDevice);
           setHasEncumbered(d.hasEncumberedDevice);
+          // partyName comes straight from the resumed detail response.
+          // TODO(DTO): the buyer-code string is NOT on CreditRequestDetail
+          // today — we fall back to the rep's active buyer code when it
+          // matches, otherwise leave null. A future DTO extension should
+          // surface the on-behalf code id + code string directly so we
+          // don't depend on the rep's currently-selected code.
+          setOnBehalfBuyerName(d.partyName);
+          setOnBehalfBuyerCode(active?.code ?? null);
         })
         .catch((e) => setError(e instanceof Error ? e.message : 'Failed to resume draft'));
     }
@@ -117,6 +130,22 @@ export default function StartCreditRequestPage() {
         hasEncumbered={hasEncumbered}
       />
 
+      {/* Group 7 — on-behalf banner. Visible only when a SalesRep landed
+          here via the OnBehalfModal redirect (?draftId=X). Mirrors the
+          modal's order-step summary line so the rep always knows whose
+          credit request they are filling out. */}
+      {resuming && (onBehalfBuyerName || onBehalfBuyerCode) && (
+        <div className={styles.onBehalfBanner} role="note">
+          Submitting on behalf of{' '}
+          <strong>{onBehalfBuyerName ?? 'this buyer'}</strong>
+          {onBehalfBuyerCode && (
+            <>
+              {' '}for code <strong>{onBehalfBuyerCode}</strong>
+            </>
+          )}
+        </div>
+      )}
+
       <div className={styles.card}>
         <h2 className={styles.cardHeading}>What order is the request for?</h2>
         <label className={styles.fieldLabel} htmlFor="orderNumber">
@@ -170,14 +199,10 @@ export default function StartCreditRequestPage() {
 
       {error && <div className={styles.warningBanner}>{error}</div>}
 
+      {/* Group 7 / Figma anomaly #15 — intermediate wizard steps have no
+          Cancel button. Step 1 has no Back either; abandon via the
+          breadcrumb "All Credit Requests" link above. */}
       <div className={styles.buttonRow}>
-        <button
-          type="button"
-          className={styles.buttonSecondary}
-          onClick={() => router.push('/wholesale/partial-credit')}
-        >
-          Cancel
-        </button>
         <button
           type="button"
           className={styles.buttonPrimary}

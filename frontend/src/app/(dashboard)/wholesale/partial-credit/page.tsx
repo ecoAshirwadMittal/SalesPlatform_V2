@@ -46,9 +46,8 @@ export default function PartialCreditLandingPage() {
 
   return (
     <div className={`pg-partial-credit ${styles.page}`}>
-      <div className={styles.breadcrumb}>
-        <Link href="/buyer-select">All Buyer Codes</Link> &nbsp;›&nbsp; Credit Requests
-      </div>
+      {/* Group 7 — Figma has no breadcrumb on top-level pages. The legacy
+          "All Buyer Codes › Credit Requests" breadcrumb was removed. */}
       <div className={styles.landingHeadingRow}>
         <h1 className={styles.heading}>Credit Requests</h1>
         <div className={styles.landingHeadingActions}>
@@ -73,7 +72,7 @@ export default function PartialCreditLandingPage() {
             onClick={() => router.push('/wholesale/partial-credit/new')}
             disabled={!buyerCodeId}
           >
-            + Submit a Credit Request
+            Submit a Credit Request
           </button>
         </div>
       </div>
@@ -89,13 +88,13 @@ export default function PartialCreditLandingPage() {
       {error && <div className={styles.warningBanner}>{error}</div>}
 
       {/* TODO(Sprint 3): add column-header `Ab` filter chips + `calendar-days`
-          icon picker for Date Submitted (see design notes §5.5). */}
+          icon picker for Date Submitted (see design notes §5.5).
+
+          Group 7: empty-state is rendered INSIDE the table chrome as a
+          full-row colspan message rather than a standalone card. The 5th
+          (eye-icon) action column routes to the detail page. */}
       {rows === null ? (
         <p>Loading…</p>
-      ) : rows.length === 0 ? (
-        <div className={styles.card}>
-          <p style={{ margin: 0 }}>There are currently no Partial Credit Requests</p>
-        </div>
       ) : (
         <div className={styles.card} style={{ padding: 0 }}>
           <table className={styles.gridTable}>
@@ -105,19 +104,37 @@ export default function PartialCreditLandingPage() {
                 <th>Order Number</th>
                 <th>Request Reasons</th>
                 <th>Status</th>
+                <th className={styles.landingActionCol} aria-label="View" />
               </tr>
             </thead>
             <tbody>
-              {rows.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    {r.submittedDate ? new Date(r.submittedDate).toLocaleDateString() : '—'}
+              {rows.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className={styles.landingEmptyCell}>
+                    There are currently no Partial Credit Requests
                   </td>
-                  <td>{r.orderNumber}</td>
-                  <td>{formatReasons(r)}</td>
-                  <td>{renderStatusPill(r.systemStatus, r.displayStatus)}</td>
                 </tr>
-              ))}
+              ) : (
+                rows.map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      {r.submittedDate ? new Date(r.submittedDate).toLocaleDateString() : '—'}
+                    </td>
+                    <td>{r.orderNumber}</td>
+                    <td>{formatReasons(r)}</td>
+                    <td>{renderStatusPill(r.systemStatus, r.displayStatus)}</td>
+                    <td className={styles.landingActionCol}>
+                      <Link
+                        href={`/wholesale/partial-credit/${r.id}`}
+                        className={styles.landingViewLink}
+                        aria-label={`View credit request ${r.requestNumber}`}
+                      >
+                        <EyeIcon />
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -158,4 +175,36 @@ function renderStatusPill(status: SystemStatus, label: string) {
       ? styles.statusDraft
       : styles.statusPending;
   return <span className={`${styles.statusPill} ${className}`}>{label}</span>;
+}
+
+/**
+ * Inline SVG eye glyph — Group 7 action column on the landing table.
+ * Sized to ~18px to sit centered inside the action cell.
+ */
+function EyeIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      width="18"
+      height="18"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path
+        d="M1.667 10S4.167 4.167 10 4.167 18.333 10 18.333 10 15.833 15.833 10 15.833 1.667 10 1.667 10z"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="10"
+        cy="10"
+        r="2.5"
+        stroke="currentColor"
+        strokeWidth="1.5"
+      />
+    </svg>
+  );
 }
