@@ -572,21 +572,184 @@
    ║ inline-merge with the Group 5 section above.                         ║
    ╚══════════════════════════════════════════════════════════════════════╝ */
 
-.summarySection {
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ Group 6 — Summary step rebuild                                       ║
+   ║ Added: 2026-05-12. Owns the .summaryMetaCard, .summarySection,      ║
+   ║ .summaryTable, .summaryBottomRow, .confirmModal* classes.           ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
+
+/* Top metadata card on Summary — three labelled rows (Order Number /
+   Request Reasons / Total Devices). Same chrome as a Group 5 .card but
+   with a Summary-specific class so future tweaks don't bleed across
+   surfaces. */
+.summaryMetaCard {
   background: #FFFFFF;
-  border: 1px solid #E6E5E4;
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  max-width: 880px;
+  border: 0;
+  border-radius: 8px;
+  padding: 24px 32px;
+  margin-bottom: 24px;
+  max-width: 800px;
+  box-shadow:
+    0px 1px 2px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 3px 0px rgba(0, 0, 0, 0.1);
 }
 
-.summarySection h3 {
-  margin: 0 0 12px;
+.summaryMetaList {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryMetaRow {
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+}
+
+.summaryMetaLabel {
+  flex: 0 0 180px;
+  font-family: var(--font-family-partial-credit, inherit);
   font-size: 18px;
   font-weight: 500;
+  color: var(--color-pc-text, #1B1B1B);
+  margin: 0;
 }
 
+.summaryMetaValue {
+  flex: 1 1 auto;
+  font-family: var(--font-family-partial-credit, inherit);
+  font-size: 18px;
+  font-weight: 400;
+  color: var(--color-pc-text, #1B1B1B);
+  margin: 0;
+}
+
+/* Per-reason section card — replaces the legacy .summarySection rule.
+   Box-shadow only (no border), 8px radius, 24px 32px padding, 800px
+   max-width per Group 6 dispatch spec. */
+.summarySection {
+  background: #FFFFFF;
+  border: 0;
+  border-radius: 8px;
+  padding: 24px 32px;
+  margin-bottom: 24px;
+  max-width: 800px;
+  box-shadow:
+    0px 1px 2px -1px rgba(0, 0, 0, 0.1),
+    0px 1px 3px 0px rgba(0, 0, 0, 0.1);
+}
+
+.summarySectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.summarySectionHeading {
+  font-family: var(--font-family-partial-credit, inherit);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--color-pc-text, #1B1B1B);
+  margin: 0;
+}
+
+.summarySectionActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Pen-icon + label "Edit" button per section. Visually a ghost button
+   sized to match Figma's compact inline action. */
+.summaryEditButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--color-pc-text, #1B1B1B);
+  border: 1px solid var(--color-pc-border, #DDDDDD);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.summaryEditButton:hover {
+  background: #F7F5F1;
+}
+
+/* Show/Hide Details toggle — text + chevron. The chevron rotates 180°
+   via inline style when collapsed (see ChevronIcon). */
+.summaryToggleButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  color: var(--color-pc-text-muted, #3C3C3C);
+  border: 0;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 6px 8px;
+  font-family: inherit;
+}
+
+.summaryToggleButton:hover {
+  color: var(--color-pc-text, #1B1B1B);
+}
+
+/* Summary tables — replaces the legacy `<ul>` rendering with Figma's
+   data-grid look. Borderless outer chrome (the .summarySection card
+   provides the visual frame); row dividers via --color-pc-row-divider. */
+.summaryTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-family-partial-credit, inherit);
+  font-size: 16px;
+  color: var(--color-pc-text, #1B1B1B);
+}
+
+.summaryTable th,
+.summaryTable td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-pc-row-divider, #E8E8E8);
+}
+
+.summaryTable th {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--color-pc-text, #1B1B1B);
+  background: transparent;
+  white-space: nowrap;
+}
+
+.summaryTable tr:last-child td {
+  border-bottom: 0;
+}
+
+/* Bottom button row for Summary — Edit | Cancel | Submit Request, 8px gap
+   per the Group 6 spec. Right-aligned to mirror the rest of the wizard
+   chrome but constrained to the same 800px max-width as the cards. */
+.summaryBottomRow {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 32px;
+  max-width: 800px;
+  flex-wrap: wrap;
+}
+
+/* Confirmation modal — Figma frame line 11097 / design notes §2.5.5.
+   Width 520px, panel fill #F0F6EF, 12px halo border #F7F5F1, centered
+   stack of circle-check icon + "Request submitted!" heading. NO buttons
+   per the Figma slice; dismiss via scrim click, Escape, or auto-redirect. */
 .confirmModal {
   position: fixed;
   inset: 0;
@@ -597,9 +760,6 @@
   z-index: 50;
 }
 
-/* Submit confirmation modal — Figma frame line 11097 / design notes §2.5.5.
-   Width 520px, panel fill #F0F6EF, 12px halo border #F7F5F1, centered
-   stack of circle-check icon + "Request submitted!" heading. */
 .confirmCard {
   background: #F0F6EF;
   border: 12px solid #F7F5F1;
@@ -615,7 +775,8 @@
   gap: 16px;
 }
 
-/* "Request submitted!" — Founders Grotesk Medium 26 per typography table. */
+/* "Request submitted!" — Founders Grotesk Medium 26 per typography table.
+   Inherits font-family from the .pg-partial-credit wrapper. */
 .confirmHeading {
   margin: 0;
   font-family: inherit;
@@ -628,6 +789,10 @@
   margin: 0;
   color: #534F4C;
 }
+
+/* ╔══════════════════════════════════════════════════════════════════════╗
+   ║ End Group 6 — Summary step rebuild                                   ║
+   ╚══════════════════════════════════════════════════════════════════════╝ */
 
 /* Landing page heading-row chrome: heading + policy link + primary CTA. */
 .landingHeadingRow {
