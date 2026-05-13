@@ -59,11 +59,13 @@ export default function StartCreditRequestPage() {
           setHasWrong(d.hasWrongDevice);
           setHasEncumbered(d.hasEncumberedDevice);
           // partyName comes straight from the resumed detail response.
-          // TODO(DTO): the buyer-code string is NOT on CreditRequestDetail
-          // today — we fall back to the rep's active buyer code when it
-          // matches, otherwise leave null. A future DTO extension should
-          // surface the on-behalf code id + code string directly so we
-          // don't depend on the rep's currently-selected code.
+          // The buyer-code string is intentionally NOT on
+          // CreditRequestDetail (the wholesale DTO surface stays
+          // buyer-code-id-only). We resolve the human-readable code
+          // from the rep's session — the on-behalf modal already
+          // confirmed the code matches what the rep picked, so this
+          // is the right source. Phase 2 may inline the code string
+          // on the detail response if/when other surfaces need it.
           setOnBehalfBuyerName(d.partyName);
           setOnBehalfBuyerCode(active?.code ?? null);
         })

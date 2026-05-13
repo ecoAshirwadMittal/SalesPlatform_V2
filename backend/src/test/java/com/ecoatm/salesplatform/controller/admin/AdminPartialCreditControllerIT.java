@@ -81,6 +81,7 @@ class AdminPartialCreditControllerIT {
     @MockBean MissingDeviceLineRepository missingDeviceLineRepository;
     @MockBean WrongDeviceLineRepository wrongDeviceLineRepository;
     @MockBean EncumberedDeviceLineRepository encumberedDeviceLineRepository;
+    @MockBean com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository photoRepository;
     @MockBean BuyerCodeRepository buyerCodeRepository;
     @MockBean StatusConfigService statusConfigService;
     @MockBean EmailTemplateService emailTemplateService;

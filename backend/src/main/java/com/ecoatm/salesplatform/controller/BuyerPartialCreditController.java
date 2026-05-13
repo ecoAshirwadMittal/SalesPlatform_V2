@@ -12,6 +12,7 @@ import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestFileDropParser;
+import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
@@ -78,14 +79,17 @@ public class BuyerPartialCreditController {
     private final CreditRequestService service;
     private final CreditRequestPhotoService photoService;
     private final CreditRequestFileDropParser fileDropParser;
+    private final CreditRequestPhotoRepository photoRepository;
 
     public BuyerPartialCreditController(
             CreditRequestService service,
             CreditRequestPhotoService photoService,
-            CreditRequestFileDropParser fileDropParser) {
+            CreditRequestFileDropParser fileDropParser,
+            CreditRequestPhotoRepository photoRepository) {
         this.service = service;
         this.photoService = photoService;
         this.fileDropParser = fileDropParser;
+        this.photoRepository = photoRepository;
     }
 
     @PostMapping("/draft")
@@ -342,13 +346,29 @@ public class BuyerPartialCreditController {
     private CreditRequestDetail toDetail(CreditRequest cr) {
         CreditRequestStatus statusRow = service.findStatusRow(cr.getStatusId())
                 .orElseThrow(() -> new IllegalStateException("Status row missing for " + cr.getId()));
+        // V91 — pre-resolve wrong-device photo counts so the buyer
+        // detail Wrong table's Photos column renders real values
+        // instead of "—" placeholders. Per-line cap of 5 photos
+        // keeps total volume tiny, so a list + group-in-memory is
+        // fine; the ownership check is already enforced by the
+        // class-level @PreAuthorize + service-layer guards above.
+        java.util.Map<Long, Integer> wrongPhotoCounts = new java.util.HashMap<>();
+        for (var photo : photoRepository.findByCreditRequestIdOrderById(cr.getId())) {
+            Long lineId = photo.getWrongDeviceLineId();
+            if (lineId != null) {
+                wrongPhotoCounts.merge(lineId, 1, Integer::sum);
+            }
+        }
         return CreditRequestDetail.from(
                 cr,
                 statusRow.getSystemStatus(),
                 statusRow.getExternalStatusText(),
+                statusRow.getInternalStatusText(),
+                statusRow.getColorHex(),
                 service.getMissingLines(cr.getId()),
                 service.getWrongLines(cr.getId()),
-                service.getEncumberedLines(cr.getId()));
+                service.getEncumberedLines(cr.getId()),
+                wrongPhotoCounts);
     }
 
     private CreditRequestSummary toSummary(CreditRequest cr) {

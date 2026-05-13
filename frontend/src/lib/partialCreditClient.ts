@@ -41,11 +41,17 @@ const MissingLineSchema = z.object({
 const WrongLineSchema = z.object({
   id: z.number(),
   expectedBarcode: z.string(),
+  // V91 (Figma parity fix #5) — Box No. column on admin Wrong table.
+  expectedBoxNumber: z.string().nullable(),
   expectedBrand: z.string().nullable(),
   expectedModel: z.string().nullable(),
   expectedGrade: z.string().nullable(),
   expectedAmountPaid: z.number().nullable(),
   actualImeiOrModel: z.string().nullable(),
+  // V91 (Figma parity fix #6a) — alias of actualImeiOrModel for the
+  // buyer detail "Received Device IMEI/Serial" column. Same underlying
+  // value today; Phase 2 may split.
+  receivedImei: z.string().nullable(),
   actualBrand: z.string().nullable(),
   actualModel: z.string().nullable(),
   actualGrade: z.string().nullable(),
@@ -54,6 +60,9 @@ const WrongLineSchema = z.object({
   lineStatus: z.string().nullable(),
   reviewDecision: z.string().nullable(),
   amountToCredit: z.number().nullable(),
+  // V91 (Figma parity fix #6b) — per-line photo count for the buyer
+  // detail Wrong table's Photos column. Pre-resolved by the controller.
+  photoCount: z.number().nullable(),
 });
 
 const EncumberedLineSchema = z.object({
@@ -75,11 +84,17 @@ export const CreditRequestDetailSchema = z.object({
   id: z.number(),
   requestNumber: z.string(),
   orderNumber: z.string(),
+  // V91 (Figma parity fix #2): contact name distinct from partyName.
+  buyerName: z.string().nullable(),
   partyName: z.string().nullable(),
   orderCreatedDate: z.string().nullable(),
   orderShippedDate: z.string().nullable(),
   systemStatus: SystemStatusSchema,
   displayStatus: z.string(),
+  // V91 — admin detail shows the internal text; buyer detail keeps
+  // displayStatus. statusColorHex flows live from credit_request_statuses.
+  internalStatusText: z.string().nullable(),
+  statusColorHex: z.string().nullable(),
   shipmentDamaged: ShipmentDamagedSchema,
   hasMissingDevice: z.boolean(),
   hasWrongDevice: z.boolean(),

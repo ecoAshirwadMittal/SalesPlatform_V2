@@ -19,11 +19,20 @@ public record CreditRequestDetail(
         Long id,
         String requestNumber,
         String orderNumber,
+        // V91 (Figma parity fix #2): contact name distinct from
+        // partyName (company). Nullable on legacy rows.
+        String buyerName,
         String partyName,
         Instant orderCreatedDate,
         Instant orderShippedDate,
         SystemStatus systemStatus,
         String displayStatus,
+        // Figma parity fix #3 + #4 — Sprint 3 §11.Q2 wants the admin
+        // detail to show the *internal* status text; buyer detail keeps
+        // the external label (already in displayStatus). statusColorHex
+        // flows live from credit_request_statuses for the pill colour.
+        String internalStatusText,
+        String statusColorHex,
         ShipmentDamaged shipmentDamaged,
         boolean hasMissingDevice,
         boolean hasWrongDevice,
@@ -40,22 +49,33 @@ public record CreditRequestDetail(
         List<WrongDeviceLineDto> wrongLines,
         List<EncumberedDeviceLineDto> encumberedLines) {
 
+    /**
+     * Full builder used by admin + buyer detail controllers post-V91.
+     * Caller resolves the status meta (internal text + colour hex) +
+     * the per-line photo counts in bulk before invoking this.
+     */
     public static CreditRequestDetail from(
             CreditRequest cr,
             SystemStatus systemStatus,
             String displayStatus,
+            String internalStatusText,
+            String statusColorHex,
             List<MissingDeviceLine> missingLines,
             List<WrongDeviceLine> wrongLines,
-            List<EncumberedDeviceLine> encumberedLines) {
+            List<EncumberedDeviceLine> encumberedLines,
+            java.util.Map<Long, Integer> wrongPhotoCountsByLineId) {
         return new CreditRequestDetail(
                 cr.getId(),
                 cr.getRequestNumber(),
                 cr.getOrderNumber(),
+                cr.getBuyerName(),
                 cr.getPartyName(),
                 cr.getOrderCreatedDate(),
                 cr.getOrderShippedDate(),
                 systemStatus,
                 displayStatus,
+                internalStatusText,
+                statusColorHex,
                 cr.getShipmentDamaged(),
                 Boolean.TRUE.equals(cr.getHasMissingDevice()),
                 Boolean.TRUE.equals(cr.getHasWrongDevice()),
@@ -66,8 +86,31 @@ public record CreditRequestDetail(
                 cr.getReviewedById(),
                 cr.getReviewCompletedOn(),
                 missingLines.stream().map(MissingDeviceLineDto::from).toList(),
-                wrongLines.stream().map(WrongDeviceLineDto::from).toList(),
+                wrongLines.stream()
+                        .map(line -> WrongDeviceLineDto.from(
+                                line,
+                                wrongPhotoCountsByLineId == null
+                                        ? 0
+                                        : wrongPhotoCountsByLineId.getOrDefault(line.getId(), 0)))
+                        .toList(),
                 encumberedLines.stream().map(EncumberedDeviceLineDto::from).toList());
+    }
+
+    /**
+     * Backwards-compatible overload — defaults internal text to display
+     * text, photo counts to empty, and colour hex to null. Used by
+     * call sites that pre-date V91 (status config, email-templates page,
+     * older test fixtures). New code should call the full overload.
+     */
+    public static CreditRequestDetail from(
+            CreditRequest cr,
+            SystemStatus systemStatus,
+            String displayStatus,
+            List<MissingDeviceLine> missingLines,
+            List<WrongDeviceLine> wrongLines,
+            List<EncumberedDeviceLine> encumberedLines) {
+        return from(cr, systemStatus, displayStatus, displayStatus, null,
+                missingLines, wrongLines, encumberedLines, java.util.Map.of());
     }
 
     public record MissingDeviceLineDto(
@@ -102,11 +145,20 @@ public record CreditRequestDetail(
     public record WrongDeviceLineDto(
             Long id,
             String expectedBarcode,
+            // Figma parity fix #5: Box No. column on admin Wrong table.
+            // Already a column on the JPA entity (expected_box_number);
+            // this field surfaces it through the DTO so the admin UI
+            // stops rendering "—" placeholders.
+            String expectedBoxNumber,
             String expectedBrand,
             String expectedModel,
             String expectedGrade,
             BigDecimal expectedAmountPaid,
             String actualImeiOrModel,
+            // Figma parity fix #6a: alias of actualImeiOrModel — buyer
+            // detail labels this column "Received Device IMEI/Serial".
+            // Same underlying field today; Phase 2 may split.
+            String receivedImei,
             String actualBrand,
             String actualModel,
             String actualGrade,
@@ -114,16 +166,23 @@ public record CreditRequestDetail(
             String actionRecommendation,
             String lineStatus,
             String reviewDecision,
-            BigDecimal amountToCredit) {
+            BigDecimal amountToCredit,
+            // Figma parity fix #6b: per-line photo count for the buyer
+            // detail Wrong table's Photos column. Resolved in bulk by
+            // the controller before invoking the parent from() builder.
+            Integer photoCount) {
 
-        public static WrongDeviceLineDto from(WrongDeviceLine line) {
+        /** Used by the V91 controller path that pre-resolved photo counts. */
+        public static WrongDeviceLineDto from(WrongDeviceLine line, int photoCount) {
             return new WrongDeviceLineDto(
                     line.getId(),
                     line.getExpectedBarcode(),
+                    line.getExpectedBoxNumber(),
                     line.getExpectedBrand(),
                     line.getExpectedModel(),
                     line.getExpectedGrade(),
                     line.getExpectedAmountPaid(),
+                    line.getActualImeiOrModel(),
                     line.getActualImeiOrModel(),
                     line.getActualBrand(),
                     line.getActualModel(),
@@ -132,7 +191,13 @@ public record CreditRequestDetail(
                     line.getActionRecommendation() == null ? null : line.getActionRecommendation().name(),
                     line.getLineStatus() == null ? null : line.getLineStatus().name(),
                     line.getReviewDecision() == null ? null : line.getReviewDecision().name(),
-                    line.getAmountToCredit());
+                    line.getAmountToCredit(),
+                    photoCount);
+        }
+
+        /** Backwards-compatible overload — defaults photoCount to 0. */
+        public static WrongDeviceLineDto from(WrongDeviceLine line) {
+            return from(line, 0);
         }
     }
 

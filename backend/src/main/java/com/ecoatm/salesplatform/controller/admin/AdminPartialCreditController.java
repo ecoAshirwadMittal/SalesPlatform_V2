@@ -24,6 +24,7 @@ import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestStatusRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.EncumberedDeviceLineRepository;
@@ -108,6 +109,7 @@ public class AdminPartialCreditController {
     private final MissingDeviceLineRepository missingDeviceLineRepository;
     private final WrongDeviceLineRepository wrongDeviceLineRepository;
     private final EncumberedDeviceLineRepository encumberedDeviceLineRepository;
+    private final CreditRequestPhotoRepository photoRepository;
     private final BuyerCodeRepository buyerCodeRepository;
     private final StatusConfigService statusConfigService;
     private final EmailTemplateService emailTemplateService;
@@ -120,6 +122,7 @@ public class AdminPartialCreditController {
             MissingDeviceLineRepository missingDeviceLineRepository,
             WrongDeviceLineRepository wrongDeviceLineRepository,
             EncumberedDeviceLineRepository encumberedDeviceLineRepository,
+            CreditRequestPhotoRepository photoRepository,
             BuyerCodeRepository buyerCodeRepository,
             StatusConfigService statusConfigService,
             EmailTemplateService emailTemplateService,
@@ -130,10 +133,27 @@ public class AdminPartialCreditController {
         this.missingDeviceLineRepository = missingDeviceLineRepository;
         this.wrongDeviceLineRepository = wrongDeviceLineRepository;
         this.encumberedDeviceLineRepository = encumberedDeviceLineRepository;
+        this.photoRepository = photoRepository;
         this.buyerCodeRepository = buyerCodeRepository;
         this.statusConfigService = statusConfigService;
         this.emailTemplateService = emailTemplateService;
         this.exportService = exportService;
+    }
+
+    /**
+     * Pre-resolves wrong-device-line → photo-count for the V91 DTO
+     * builder. One query, grouped in memory (per-line cap is 5 so
+     * total volume is tiny).
+     */
+    private java.util.Map<Long, Integer> wrongPhotoCounts(Long creditRequestId) {
+        java.util.Map<Long, Integer> counts = new java.util.HashMap<>();
+        for (var photo : photoRepository.findByCreditRequestIdOrderById(creditRequestId)) {
+            Long lineId = photo.getWrongDeviceLineId();
+            if (lineId != null) {
+                counts.merge(lineId, 1, Integer::sum);
+            }
+        }
+        return counts;
     }
 
     // -------------------------------------------------------------------
@@ -194,9 +214,12 @@ public class AdminPartialCreditController {
                 cr,
                 statusRow.getSystemStatus(),
                 statusRow.getExternalStatusText(),
+                statusRow.getInternalStatusText(),
+                statusRow.getColorHex(),
                 missingDeviceLineRepository.findByCreditRequestIdOrderById(id),
                 wrongDeviceLineRepository.findByCreditRequestIdOrderById(id),
-                encumberedDeviceLineRepository.findByCreditRequestIdOrderById(id)));
+                encumberedDeviceLineRepository.findByCreditRequestIdOrderById(id),
+                wrongPhotoCounts(id)));
     }
 
     // -------------------------------------------------------------------
@@ -214,9 +237,12 @@ public class AdminPartialCreditController {
                 result.creditRequest(),
                 statusRow.getSystemStatus(),
                 statusRow.getExternalStatusText(),
+                statusRow.getInternalStatusText(),
+                statusRow.getColorHex(),
                 result.missingLines(),
                 result.wrongLines(),
-                result.encumberedLines()));
+                result.encumberedLines(),
+                wrongPhotoCounts(id)));
     }
 
     // -------------------------------------------------------------------

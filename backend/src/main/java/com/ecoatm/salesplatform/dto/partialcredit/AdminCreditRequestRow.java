@@ -24,6 +24,9 @@ public record AdminCreditRequestRow(
         String orderNumber,
         Long buyerCodeId,
         String buyerCode,
+        // V91 (Figma parity fix #1) — distinct from partyName (company).
+        // Null on legacy rows; admin UI shows "—".
+        String buyerName,
         String partyName,
         SystemStatus systemStatus,
         String displayStatus,
@@ -51,6 +54,7 @@ public record AdminCreditRequestRow(
                 cr.getOrderNumber(),
                 cr.getBuyerCodeId(),
                 buyerCode,
+                cr.getBuyerName(),
                 cr.getPartyName(),
                 statusRow.getSystemStatus(),
                 statusRow.getExternalStatusText(),

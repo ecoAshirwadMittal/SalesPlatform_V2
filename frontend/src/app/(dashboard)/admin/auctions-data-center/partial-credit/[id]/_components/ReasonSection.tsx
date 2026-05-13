@@ -217,11 +217,10 @@ function WrongRow({ line, busy, onLineDecision }: WrongRowProps) {
   const effectiveValue: ReviewDecision | null =
     (line.reviewDecision as ReviewDecision | null) ?? defaultDecision;
 
-  // TODO(DTO): WrongDeviceLineDto needs to surface `expectedBoxNumber`
-  // (the column exists on the entity — see `WrongDeviceLine.java:32`).
-  // Until then the cell renders an em-dash. Tracked as a Group-3
-  // blocker.
-  const boxNumber: string | null = null;
+  // V91 — WrongDeviceLineDto now surfaces expectedBoxNumber (the
+  // column has always lived on the JPA entity; V91 exposes it through
+  // the DTO so the admin Wrong table renders a real value).
+  const boxNumber = line.expectedBoxNumber;
   return (
     <tr>
       <td>{line.expectedBarcode}</td>

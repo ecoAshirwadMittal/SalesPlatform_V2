@@ -67,6 +67,7 @@ class BuyerPartialCreditControllerIT {
     @MockBean CreditRequestService service;
     @MockBean CreditRequestPhotoService photoService;
     @MockBean CreditRequestFileDropParser fileDropParser;
+    @MockBean com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository photoRepository;
 
     @BeforeEach
     void primeDefaultStatusRow() {

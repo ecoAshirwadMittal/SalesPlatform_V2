@@ -48,18 +48,14 @@ export function HeaderStrip({
   onCompleteReview,
   completeDisabled,
 }: HeaderStripProps) {
-  // TODO(DTO): consume `detail.buyerName` once backend ships it.
-  // Falls back to partyName so the cell isn't empty while we wait.
-  const buyerName = detail.partyName ?? '—';
+  // V91 — buyer contact name (#2), internal status text (#3) and
+  // status pill colour (#4) all flow through CreditRequestDetail now.
+  // Legacy rows + the backwards-compatible from() overload may leave
+  // them null; fall back gracefully in each case.
+  const buyerName = detail.buyerName ?? '—';
   const companyName = detail.partyName ?? '—';
-
-  // TODO(DTO): consume `detail.internalStatusText` once backend ships
-  // it (see §11.Q2). For now `displayStatus` is the closest source.
-  const statusLabel = detail.displayStatus;
-
-  // TODO(DTO): consume `detail.statusColorHex` once backend ships it
-  // (see §11.Q5). For now use the fallback passed by the caller.
-  const pillColor = statusColorHex;
+  const statusLabel = detail.internalStatusText ?? detail.displayStatus;
+  const pillColor = detail.statusColorHex ?? statusColorHex;
 
   return (
     <div className={styles.headerStrip}>

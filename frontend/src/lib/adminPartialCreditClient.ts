@@ -53,6 +53,9 @@ export const AdminCreditRequestRowSchema = z.object({
   buyerCodeId: z.number().nullable(),
   // Backend returns null when buyer-code resolution didn't pre-load this row.
   buyerCode: z.string().nullable(),
+  // V91 (Figma parity fix #1) — contact name. Distinct from partyName
+  // (company). Null on legacy rows; the admin UI shows "—".
+  buyerName: z.string().nullable(),
   partyName: z.string().nullable(),
   systemStatus: SystemStatusSchema,
   displayStatus: z.string(),

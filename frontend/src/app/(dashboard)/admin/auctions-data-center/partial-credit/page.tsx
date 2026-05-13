@@ -358,12 +358,9 @@ function AdminRow({ row, onOpen }: AdminRowProps) {
       {/* Figma 7-column shape (design-notes §2.4 / §2.5):
           Date Submitted | Buyer | Company | Order Number | Request Reason | Status | (eye). */}
       <td>{formatDate(row.submittedDate)}</td>
-      {/* TODO(DTO): Figma column "Buyer" is the contact-name (e.g. "Jonathan
-          Wildermeyer", design-notes §3.2 Group 1) — the AdminCreditRequestRow
-          DTO does not yet expose a `buyerName` field. Falling back to
-          `buyerCode` until the backend adds the contact-name field; flagged
-          as a Group 2 blocker for the human reviewer. */}
-      <td>{row.buyerCode ?? '—'}</td>
+      {/* V91 — buyer contact name now lives on AdminCreditRequestRow.buyerName.
+          Legacy rows where no contact has been entered fall back to "—". */}
+      <td>{row.buyerName ?? '—'}</td>
       <td>{row.partyName ?? '—'}</td>
       <td>{row.orderNumber}</td>
       <td>{formatReasons(row)}</td>

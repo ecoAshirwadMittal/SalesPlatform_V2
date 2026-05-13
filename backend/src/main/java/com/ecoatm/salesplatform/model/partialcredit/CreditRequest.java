@@ -31,6 +31,10 @@ public class CreditRequest {
 
     @Column(name = "order_number", nullable = false, length = 200) private String orderNumber;
     @Column(name = "party_name", length = 200) private String partyName;
+    // V91 (Sprint 4 follow-up — Figma parity fix #1): contact name
+    // distinct from party_name (company). Nullable on legacy rows;
+    // admin UI shows "—" when missing.
+    @Column(name = "buyer_name", length = 200) private String buyerName;
     @Column(name = "order_created_date") private Instant orderCreatedDate;
     @Column(name = "order_shipped_date") private Instant orderShippedDate;
 
@@ -86,6 +90,8 @@ public class CreditRequest {
     public void setOrderNumber(String v) { this.orderNumber = v; }
     public String getPartyName() { return partyName; }
     public void setPartyName(String v) { this.partyName = v; }
+    public String getBuyerName() { return buyerName; }
+    public void setBuyerName(String v) { this.buyerName = v; }
     public Instant getOrderCreatedDate() { return orderCreatedDate; }
     public void setOrderCreatedDate(Instant v) { this.orderCreatedDate = v; }
     public Instant getOrderShippedDate() { return orderShippedDate; }
