@@ -86,27 +86,27 @@ class SnowflakeAggInventoryReaderTest {
         });
 
         when(resultSet.getString("DEVICE_ID")).thenAnswer(inv -> currentRow[0].deviceId);
-        when(resultSet.getString("ecoID")).thenAnswer(inv -> currentRow[0].ecoId);
+        when(resultSet.getString("ECOID")).thenAnswer(inv -> currentRow[0].ecoId);
         when(resultSet.getString("MG")).thenAnswer(inv -> currentRow[0].mergedGrade);
-        when(resultSet.getString("DataWipe")).thenAnswer(inv -> currentRow[0].datawipe);
-        when(resultSet.getString("name")).thenAnswer(inv -> currentRow[0].name);
-        when(resultSet.getString("model")).thenAnswer(inv -> currentRow[0].model);
-        when(resultSet.getString("brand")).thenAnswer(inv -> currentRow[0].brand);
-        when(resultSet.getString("carrier")).thenAnswer(inv -> currentRow[0].carrier);
-        when(resultSet.getString("category")).thenAnswer(inv -> currentRow[0].category);
-        when(resultSet.getBigDecimal("AvgTargetPrice")).thenAnswer(inv -> currentRow[0].avgTargetPrice);
-        when(resultSet.getBigDecimal("AvgPayout")).thenAnswer(inv -> currentRow[0].avgPayout);
-        when(resultSet.getBigDecimal("TotalPayout")).thenAnswer(inv -> currentRow[0].totalPayout);
-        when(resultSet.getInt("TotalQuantity")).thenAnswer(inv -> currentRow[0].totalQuantity);
-        when(resultSet.getBigDecimal("DWAvgTargetPrice")).thenAnswer(inv -> currentRow[0].dwAvgTargetPrice);
-        when(resultSet.getBigDecimal("DWAvgPayout")).thenAnswer(inv -> currentRow[0].dwAvgPayout);
-        when(resultSet.getBigDecimal("DWTotalPayout")).thenAnswer(inv -> currentRow[0].dwTotalPayout);
-        when(resultSet.getInt("DWTotalQuantity")).thenAnswer(inv -> currentRow[0].dwTotalQuantity);
+        when(resultSet.getString("DATAWIPE")).thenAnswer(inv -> currentRow[0].datawipe);
+        when(resultSet.getString("NAME")).thenAnswer(inv -> currentRow[0].name);
+        when(resultSet.getString("MODEL")).thenAnswer(inv -> currentRow[0].model);
+        when(resultSet.getString("BRAND")).thenAnswer(inv -> currentRow[0].brand);
+        when(resultSet.getString("CARRIER")).thenAnswer(inv -> currentRow[0].carrier);
+        when(resultSet.getString("CATEGORY")).thenAnswer(inv -> currentRow[0].category);
+        when(resultSet.getBigDecimal("AVGTARGETPRICE")).thenAnswer(inv -> currentRow[0].avgTargetPrice);
+        when(resultSet.getBigDecimal("AVGPAYOUT")).thenAnswer(inv -> currentRow[0].avgPayout);
+        when(resultSet.getBigDecimal("TOTALPAYOUT")).thenAnswer(inv -> currentRow[0].totalPayout);
+        when(resultSet.getInt("TOTALQUANTITY")).thenAnswer(inv -> currentRow[0].totalQuantity);
+        when(resultSet.getBigDecimal("DWAVGTARGETPRICE")).thenAnswer(inv -> currentRow[0].dwAvgTargetPrice);
+        when(resultSet.getBigDecimal("DWAVGPAYOUT")).thenAnswer(inv -> currentRow[0].dwAvgPayout);
+        when(resultSet.getBigDecimal("DWTOTALPAYOUT")).thenAnswer(inv -> currentRow[0].dwTotalPayout);
+        when(resultSet.getInt("DWTOTALQUANTITY")).thenAnswer(inv -> currentRow[0].dwTotalQuantity);
         when(resultSet.getBigDecimal("ROUND1TARGETPRICE")).thenAnswer(inv -> currentRow[0].round1TargetPrice);
         when(resultSet.getBigDecimal("ROUND1TARGETPRICE_DW")).thenAnswer(inv -> currentRow[0].round1TargetPriceDw);
-        when(resultSet.getTimestamp(eq("MaxUploadTime"), any(Calendar.class)))
+        when(resultSet.getTimestamp(eq("MAXUPLOADTIME"), any(Calendar.class)))
                 .thenAnswer(inv -> currentRow[0].maxUploadTime);
-        when(resultSet.getTimestamp(eq("created_at"), any(Calendar.class)))
+        when(resultSet.getTimestamp(eq("CREATED_AT"), any(Calendar.class)))
                 .thenAnswer(inv -> currentRow[0].createdAt);
     }
 
