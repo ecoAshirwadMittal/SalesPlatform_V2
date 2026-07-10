@@ -56,6 +56,17 @@ public class CreditRequestFileDropParser {
      *  with mixed character classes" — most real barcodes do). */
     private static final Pattern MIXED_ALNUM = Pattern.compile(".*[A-Za-z].*\\d.*|.*\\d.*[A-Za-z].*");
 
+    /**
+     * Hard cap on rows scanned and tokens collected, mirroring
+     * {@code BidImportService.MAX_DATA_ROWS} (security review 2026-07-10, H-9).
+     * {@code /parse-barcodes} is reachable by any Bidder/SalesRep and was
+     * previously unbounded — a crafted csv/xlsx/docx could force this
+     * DOM-loading parser to buffer millions of tokens on the heap. The breach
+     * throws {@link TooManyRowsException} (413 at the controller) rather than
+     * silently truncating, so the buyer is told to shrink the file.
+     */
+    private static final int MAX_ENTRIES = 10_000;
+
     public record Outcome(List<String> barcodes, List<String> warnings) {}
 
     public Outcome parse(MultipartFile file) {
@@ -102,10 +113,11 @@ public class CreditRequestFileDropParser {
             List<String> raw = new ArrayList<>();
             int rowsSeen = 0;
             for (Row row : sheet) {
-                rowsSeen++;
+                ensureUnderCap(++rowsSeen);
                 for (Cell cell : row) {
                     String value = fmt.formatCellValue(cell);
                     if (value != null && !value.isBlank()) {
+                        ensureUnderCap(raw.size() + 1);
                         raw.add(value.trim());
                     }
                 }
@@ -124,7 +136,7 @@ public class CreditRequestFileDropParser {
                         new InputStreamReader(in, StandardCharsets.UTF_8))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                rowsSeen++;
+                ensureUnderCap(++rowsSeen);
                 // First column only — the Sprint 4 contract is
                 // deliberately conservative; multi-column files force
                 // the buyer to clean their data before upload.
@@ -136,7 +148,10 @@ public class CreditRequestFileDropParser {
                 if (first.length() >= 2 && first.startsWith("\"") && first.endsWith("\"")) {
                     first = first.substring(1, first.length() - 1);
                 }
-                if (!first.isEmpty()) raw.add(first);
+                if (!first.isEmpty()) {
+                    ensureUnderCap(raw.size() + 1);
+                    raw.add(first);
+                }
             }
         }
         return classify(raw, rowsSeen);
@@ -158,7 +173,7 @@ public class CreditRequestFileDropParser {
         try (InputStream in = file.getInputStream();
                 XWPFDocument doc = new XWPFDocument(in)) {
             for (XWPFParagraph p : doc.getParagraphs()) {
-                rowsSeen++;
+                ensureUnderCap(++rowsSeen);
                 String text = p.getText();
                 if (text == null) continue;
                 // Word docs frequently put one barcode per line but
@@ -166,11 +181,27 @@ public class CreditRequestFileDropParser {
                 // — split on any whitespace to be forgiving.
                 for (String token : text.split("\\s+")) {
                     String trimmed = token.trim();
-                    if (!trimmed.isEmpty()) raw.add(trimmed);
+                    if (!trimmed.isEmpty()) {
+                        ensureUnderCap(raw.size() + 1);
+                        raw.add(trimmed);
+                    }
                 }
             }
         }
         return classify(raw, rowsSeen);
+    }
+
+    // ── row / entry cap ──────────────────────────────────────────────
+
+    /**
+     * Rejects the upload once the running row/token count crosses
+     * {@link #MAX_ENTRIES}. Called incrementally so a hostile file is
+     * abandoned before the heap fills — not after a full read.
+     */
+    private static void ensureUnderCap(int count) {
+        if (count > MAX_ENTRIES) {
+            throw new TooManyRowsException(MAX_ENTRIES, count);
+        }
     }
 
     // ── classification ───────────────────────────────────────────────

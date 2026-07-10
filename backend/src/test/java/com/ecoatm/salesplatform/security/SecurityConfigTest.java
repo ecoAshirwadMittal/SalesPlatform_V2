@@ -4,6 +4,7 @@ import com.ecoatm.salesplatform.controller.AuthController;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.service.PasswordResetService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -16,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,6 +43,17 @@ class SecurityConfigTest {
     @MockBean private AuthService authService;
     @MockBean private BuyerCodeService buyerCodeService;
     @MockBean private PasswordResetService passwordResetService;
+    // AuthController depends on AuthRateLimiter (a @Component, not part of the
+    // @WebMvcTest slice), so the context cannot instantiate the controller
+    // without this mock — pre-existing gap from the H-6 auth-throttling change.
+    // Default-allow so the permitAll /login test still reaches the controller
+    // (mirrors AuthControllerTest).
+    @MockBean private AuthRateLimiter authRateLimiter;
+
+    @BeforeEach
+    void allowRateLimitByDefault() {
+        when(authRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     // --- Public endpoints ---
 

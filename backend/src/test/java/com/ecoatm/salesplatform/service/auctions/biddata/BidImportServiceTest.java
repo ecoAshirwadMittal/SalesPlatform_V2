@@ -20,6 +20,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -41,6 +42,10 @@ class BidImportServiceTest {
     @BeforeEach
     void setUp() {
         service = new BidImportService(jdbc);
+        // Gate 0 (CR-4): every import now asserts buyer-code ownership first.
+        // Default the caller to an owner; the dedicated IDOR test overrides this.
+        lenient().when(jdbc.queryForObject(anyString(), eq(Long.class), anyLong(), anyLong()))
+                .thenReturn(1L);
     }
 
     // ---------------------------------------------------------------------------
@@ -181,6 +186,31 @@ class BidImportServiceTest {
                 .isInstanceOf(BidDataValidationException.class)
                 .satisfies(e -> assertThat(((BidDataValidationException) e).code())
                         .isEqualTo("IMPORT_INVALID"));
+    }
+
+    // ---------------------------------------------------------------------------
+    // IDOR guard (CR-4)
+    // ---------------------------------------------------------------------------
+
+    @Test
+    @DisplayName("IDOR guard: a caller who does not own the buyer code is rejected before any read/write")
+    void importBids_callerDoesNotOwnBuyerCode_throwsNotYourBidData() throws Exception {
+        // Ownership query returns 0 → the authenticated user is not associated
+        // with this buyer code. Overrides the owner default from setUp().
+        when(jdbc.queryForObject(anyString(), eq(Long.class), anyLong(), anyLong()))
+                .thenReturn(0L);
+
+        MockMultipartFile file = buildXlsx(new Object[][]{
+                {BID_DATA_ID, "45.00", "10"}
+        });
+
+        assertThatThrownBy(() -> service.importBids(USER_ID, BID_ROUND_ID, BUYER_CODE_ID, file))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .satisfies(e -> assertThat(((BidDataSubmissionException) e).code())
+                        .isEqualTo("NOT_YOUR_BID_DATA"));
+
+        // Guard runs before any parse/apply — nothing is written.
+        verify(jdbc, never()).batchUpdate(anyString(), any(List.class));
     }
 
     // ---------------------------------------------------------------------------

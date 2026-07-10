@@ -16,6 +16,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HexFormat;
 import java.util.Optional;
@@ -30,10 +31,12 @@ import java.util.Optional;
  *       BCrypt hash, mark the token consumed.</li>
  * </ol>
  *
- * <p><b>Email delivery</b>: In this phase the raw token is logged at INFO
- * (prefixed {@code DEV:}) instead of being sent via SMTP. Real email delivery
- * will be wired in a follow-up phase once the SMTP infrastructure is decided.
- * TODO(email-infra): replace the log.info call below with an EmailSender invocation
+ * <p><b>Email delivery</b>: not yet wired. Until SMTP is decided, the raw token
+ * is logged <b>only under the {@code local} profile</b> for local end-to-end
+ * testing (H-5, security review 2026-07-10); no other environment ever logs the
+ * token, which is a full account-takeover credential (CWE-532). Real email
+ * delivery will be wired in a follow-up phase.
+ * TODO(email-infra): replace the log call below with an EmailSender invocation
  * using the same post-commit event pattern from the 2026-04-13 PWS email ADR.
  */
 @Service
@@ -51,6 +54,8 @@ public class PasswordResetService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository tokenRepository;
     private final PasswordEncoder passwordEncoder;
+    // Used only to gate the raw-token debug log to the local profile (H-5).
+    private final org.springframework.core.env.Environment environment;
 
     /**
      * Issue a password-reset token for the given email address.
@@ -90,8 +95,18 @@ public class PasswordResetService {
         // TODO(email-infra): publish a PasswordResetEmailEvent (post-commit, async)
         // and handle it in a listener that calls EmailSender.send() — same pattern
         // as PwsOfferEmailListener from the 2026-04-13 ADR.
-        log.info("DEV: password reset email would be sent to={} token={} expiresInMinutes={}",
-                email, rawToken, TOKEN_TTL_MINUTES);
+        //
+        // SECURITY (H-5, review 2026-07-10): the raw token is a full account-takeover
+        // credential — logging it is CWE-532. The raw-token line is gated to the
+        // `local` profile purely for local end-to-end testing until real email
+        // delivery lands; every other environment logs no token at all.
+        if (Arrays.asList(environment.getActiveProfiles()).contains("local")) {
+            log.info("DEV(local): password reset token for {} = {} (expires in {} min)",
+                    email, rawToken, TOKEN_TTL_MINUTES);
+        } else {
+            log.info("Password reset token generated for {} (expires in {} min); "
+                    + "email delivery pending email-infra wiring.", email, TOKEN_TTL_MINUTES);
+        }
     }
 
     /**

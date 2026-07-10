@@ -49,6 +49,18 @@ class OfferReviewControllerTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    // CR-3/C5 (security review 2026-07-10): the internal sales-review workflow
+    // must not be reachable by a buyer/bidder — accept/decline/finalize create
+    // real Oracle orders. A non-internal role must get 403, not 200.
+    @Test
+    void acceptAll_withBidderRole_returns403() throws Exception {
+        String bidderToken = jwtService.generateToken(
+                9L, "bidder@buyerco.com", java.util.List.of("Bidder"), false);
+        mockMvc.perform(post("/api/v1/pws/offer-review/500/accept-all")
+                        .header("Authorization", "Bearer " + bidderToken))
+                .andExpect(status().isForbidden());
+    }
+
     @Test
     void summary_withToken_returnsSummaries() throws Exception {
         when(reviewService.getStatusSummaries()).thenReturn(List.of(

@@ -75,13 +75,18 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/qualified-buyer-codes/**").hasAnyRole("Administrator", "SalesOps")
                 // Sub-project 4B PO admin surface
                 .requestMatchers("/api/v1/admin/purchase-orders/**").hasAnyRole("Administrator", "SalesOps")
-                // Sub-project 4C recalc admin endpoints
-                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/re-rank",
-                                 "/api/v1/admin/auctions/scheduling-auctions/*/recalculate-target-price")
-                    .hasAnyRole("Administrator", "SalesOps")
-                // Sub-project 5 R2 buyer assignment admin endpoint
-                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/reassign-r2-buyers")
-                    .hasAnyRole("Administrator", "SalesOps")
+                // L-9 (security review 2026-07-10): the Sub-project 4C recalc
+                // (re-rank / recalculate-target-price) and Sub-project 5
+                // (reassign-r2-buyers) matchers were removed here as DEAD CODE.
+                // They target /api/v1/admin/auctions/scheduling-auctions/** —
+                // already matched by the broader "/api/v1/admin/auctions/**" rule
+                // above, which grants the SAME hasAnyRole("Administrator",
+                // "SalesOps"). Spring Security applies the first matching rule, so
+                // these later duplicates never fired. Authz for those URLs is
+                // unchanged (still Administrator + SalesOps). NB: the R3
+                // preprocess-r3 / reinit-r3 matchers stay above the broader rule
+                // because they NARROW to Administrator-only — those are not
+                // redundant and must not be removed.
                 // Partial Credit Requests — admin review surface (Sprint 3).
                 // Class-level @PreAuthorize on AdminPartialCreditController
                 // narrows further to PartialCredit_SalesOps/PartialCredit_Admin
@@ -100,6 +105,31 @@ public class SecurityConfig {
                 // Bidder/Administrator for today's accounts.
                 .requestMatchers("/api/v1/buyer/partial-credit/**")
                     .hasAnyRole("PartialCredit_Buyer", "Bidder", "Administrator")
+                // Internal PWS + inventory surfaces that previously fell through to
+                // anyRequest().authenticated() — no financial/catalog write or sales
+                // review should be reachable by a plain authenticated buyer
+                // (security review 2026-07-10, CR-3 / H-1 / H-2 / H-4). The
+                // /inventory/sync/** and /admin/inventory/** matchers above are more
+                // specific and are evaluated first, so they keep their own roles.
+                .requestMatchers("/api/v1/pws/offer-review/**")
+                    .hasAnyRole("Administrator", "SalesOps", "SalesRep")
+                .requestMatchers("/api/v1/pws/pricing/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/inventory/**").hasAnyRole("Administrator", "SalesOps")
+                // Buyer-facing cart/offer/counter-offer surfaces — Bidder (own
+                // buyer codes only, enforced at the service layer) + Administrator
+                // (security review 2026-07-10, CR-3).
+                .requestMatchers("/api/v1/pws/offers/**").hasAnyRole("Bidder", "Administrator")
+                .requestMatchers("/api/v1/pws/counter-offers/**").hasAnyRole("Bidder", "Administrator")
+                .requestMatchers("/api/v1/pws/orders/**").hasAnyRole("Bidder", "Administrator")
+                // RMA surface — buyer submit/view-own + internal review. The
+                // review/mutation actions are further narrowed to internal roles by
+                // method-level @PreAuthorize on the controller (CR-3/C6).
+                .requestMatchers("/api/v1/pws/rma/**")
+                    .hasAnyRole("Bidder", "SalesRep", "SalesOps", "Administrator")
+                // Internal user-management (role assignment / PII) — Administrator
+                // only. Without this an authenticated Bidder could self-grant
+                // Administrator via /api/v1/users/direct-users. See review (CR-1).
+                .requestMatchers("/api/v1/users/**").hasRole("Administrator")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

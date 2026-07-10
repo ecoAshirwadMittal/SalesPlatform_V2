@@ -10,6 +10,7 @@ import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.partialcredit.BarcodeReconciliationResult;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestFileDropParser;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
@@ -39,6 +40,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
@@ -68,6 +70,7 @@ class BuyerPartialCreditControllerIT {
     @MockBean CreditRequestPhotoService photoService;
     @MockBean CreditRequestFileDropParser fileDropParser;
     @MockBean com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository photoRepository;
+    @MockBean UploadRateLimiter uploadRateLimiter;
 
     @BeforeEach
     void primeDefaultStatusRow() {
@@ -81,6 +84,9 @@ class BuyerPartialCreditControllerIT {
         when(service.getMissingLines(anyLong())).thenReturn(List.of());
         when(service.getWrongLines(anyLong())).thenReturn(List.of());
         when(service.getEncumberedLines(anyLong())).thenReturn(List.of());
+        // H-10 rate limiter is a collaborator on the two multipart endpoints;
+        // allow uploads by default so the non-rate-limit tests are unaffected.
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
     }
 
     @Test
@@ -261,7 +267,7 @@ class BuyerPartialCreditControllerIT {
     }
 
     @Test
-    void downloadPhoto_streamsBytes_withInlineDispositionAndContentType() throws Exception {
+    void downloadPhoto_streamsBytes_asAttachmentWithNosniff() throws Exception {
         CreditRequestPhoto photo = photoRow(10L, 100L, 500L, "shot.jpg", "image/jpeg", 4, 1L);
         photo.setBlob(new byte[]{0x4F, 0x4B, 0x21, 0x21});
         when(photoService.downloadPhoto(eq(10L), eq(1L), anyBoolean())).thenReturn(photo);
@@ -269,7 +275,8 @@ class BuyerPartialCreditControllerIT {
         mvc.perform(get("/api/v1/buyer/partial-credit/photos/10/blob").with(bidder()))
            .andExpect(status().isOk())
            .andExpect(header().string("Content-Type", "image/jpeg"))
-           .andExpect(header().string("Content-Disposition", "inline; filename=\"shot.jpg\""))
+           .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+           .andExpect(header().string("Content-Disposition", "attachment; filename=\"shot.jpg\""))
            .andExpect(content().bytes(new byte[]{0x4F, 0x4B, 0x21, 0x21}));
     }
 
@@ -324,6 +331,20 @@ class BuyerPartialCreditControllerIT {
                 .with(bidder()))
            .andExpect(status().isUnsupportedMediaType())
            .andExpect(jsonPath("$.error").value("UNSUPPORTED_FILE_TYPE"));
+    }
+
+    // H-10: the unthrottled /parse-barcodes endpoint is now IP-rate-limited.
+    @Test
+    void parseBarcodes_rateLimited_returns429() throws Exception {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(false);
+
+        MockMultipartFile csv = new MockMultipartFile(
+                "file", "barcodes.csv", "text/csv", "BC-1\nBC-2\n".getBytes());
+
+        mvc.perform(multipart("/api/v1/buyer/partial-credit/parse-barcodes")
+                .file(csv)
+                .with(bidder()))
+           .andExpect(status().isTooManyRequests());
     }
 
     // ─── helpers ───────────────────────────────────────────────────────

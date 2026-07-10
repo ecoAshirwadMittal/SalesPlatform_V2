@@ -11,14 +11,17 @@ import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestPhoto;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestFileDropParser;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestPhotoService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
 import com.ecoatm.salesplatform.service.partialcredit.PhotoUploadException;
+import com.ecoatm.salesplatform.service.partialcredit.TooManyRowsException;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import org.springframework.data.domain.Page;
@@ -80,16 +83,19 @@ public class BuyerPartialCreditController {
     private final CreditRequestPhotoService photoService;
     private final CreditRequestFileDropParser fileDropParser;
     private final CreditRequestPhotoRepository photoRepository;
+    private final UploadRateLimiter uploadRateLimiter;
 
     public BuyerPartialCreditController(
             CreditRequestService service,
             CreditRequestPhotoService photoService,
             CreditRequestFileDropParser fileDropParser,
-            CreditRequestPhotoRepository photoRepository) {
+            CreditRequestPhotoRepository photoRepository,
+            UploadRateLimiter uploadRateLimiter) {
         this.service = service;
         this.photoService = photoService;
         this.fileDropParser = fileDropParser;
         this.photoRepository = photoRepository;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     @PostMapping("/draft")
@@ -199,7 +205,11 @@ public class BuyerPartialCreditController {
      */
     @PostMapping(value = "/parse-barcodes", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Map<String, Object>> parseBarcodes(
-            @RequestPart("file") MultipartFile file) {
+            @RequestPart("file") MultipartFile file,
+            HttpServletRequest request) {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         var outcome = fileDropParser.parse(file);
         return ResponseEntity.ok(Map.of(
                 "barcodes", outcome.barcodes(),
@@ -222,7 +232,11 @@ public class BuyerPartialCreditController {
             @PathVariable Long id,
             @RequestPart("file") MultipartFile file,
             @RequestParam(value = "wrongDeviceLineId", required = false) Long wrongDeviceLineId,
-            Authentication auth) {
+            Authentication auth,
+            HttpServletRequest request) {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         Long userId = principalUserId(auth);
         boolean admin = isAdmin(auth);
         CreditRequestPhoto saved = photoService.uploadPhoto(id, wrongDeviceLineId, file, userId, admin);
@@ -243,20 +257,34 @@ public class BuyerPartialCreditController {
         return ResponseEntity.ok(photos);
     }
 
-    /** Stream a photo blob. {@code Content-Disposition: inline} lets
-     *  the browser render the image in-place; the gallery component
-     *  uses this URL as the {@code <img src>}. */
+    /** Stream a photo blob. Served as {@code attachment} with {@code nosniff} so a
+     *  stored blob can never execute as script in the app origin if opened directly
+     *  (H-11); {@code <img src>} embedding still renders it (browsers ignore
+     *  Content-Disposition for subresource loads). Upload-side magic-byte
+     *  validation already guarantees the bytes are a real image. */
     @GetMapping("/photos/{photoId}/blob")
     public ResponseEntity<byte[]> downloadPhoto(
             @PathVariable Long photoId, Authentication auth) {
         Long userId = principalUserId(auth);
         boolean admin = isAdmin(auth);
         CreditRequestPhoto photo = photoService.downloadPhoto(photoId, userId, admin);
+        String safeName = sanitizeHeaderFilename(photo.getOriginalFilename());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"" + photo.getOriginalFilename() + "\"")
+                        org.springframework.http.ContentDisposition.builder("attachment")
+                                .filename(safeName)
+                                .build().toString())
                 .body(photo.getBlob());
+    }
+
+    /** Strip characters that could break the quoted Content-Disposition value. */
+    private static String sanitizeHeaderFilename(String name) {
+        if (name == null || name.isBlank()) {
+            return "photo";
+        }
+        return name.replaceAll("[\"\\r\\n\\\\]", "_");
     }
 
     /** Delete a photo. Buyers can only delete their own uploads; admins
@@ -310,6 +338,18 @@ public class BuyerPartialCreditController {
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(Map.of(
                 "error", "UNSUPPORTED_FILE_TYPE",
                 "message", ex.getMessage() == null ? "Unsupported file type" : ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRowsException.class)
+    public ResponseEntity<Map<String, Object>> onTooManyRows(TooManyRowsException ex) {
+        // The file-drop parser raises this once a hostile upload crosses the
+        // row/entry cap (H-9); surface as 413 so the UI can tell the buyer to
+        // shrink the file rather than silently truncating.
+        return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE).body(Map.of(
+                "error", "TOO_MANY_ROWS",
+                "limit", ex.limit(),
+                "matched", ex.matched(),
+                "message", ex.getMessage() == null ? "File too large" : ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalStateException.class)

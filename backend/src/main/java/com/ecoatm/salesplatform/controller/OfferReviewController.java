@@ -17,7 +17,12 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/pws/offer-review")
-@CrossOrigin(origins = "http://localhost:3000")
+// Internal sales-review workflow (accept/decline/finalize → real Oracle order).
+// Never reachable by a plain buyer/bidder (security review 2026-07-10, CR-3/C5);
+// gated in SecurityConfig too. TODO(follow-up): derive completeReview's reviewer
+// id from Authentication instead of the client-supplied userId param.
+@org.springframework.security.access.prepost.PreAuthorize(
+        "hasAnyRole('Administrator','SalesOps','SalesRep')")
 public class OfferReviewController {
 
     private final OfferReviewService reviewService;

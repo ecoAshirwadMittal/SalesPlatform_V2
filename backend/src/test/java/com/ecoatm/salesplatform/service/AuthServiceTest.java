@@ -78,7 +78,7 @@ class AuthServiceTest {
         LoginResponse response = authService.authenticateLocalUser(loginRequest);
 
         assertThat(response.isSuccess()).isFalse();
-        assertThat(response.getMessage()).contains("No account");
+        assertThat(response.getMessage()).contains("Invalid email or password");
     }
 
     @Test
@@ -89,7 +89,7 @@ class AuthServiceTest {
         LoginResponse response = authService.authenticateLocalUser(loginRequest);
 
         assertThat(response.isSuccess()).isFalse();
-        assertThat(response.getMessage()).contains("Incorrect Password");
+        assertThat(response.getMessage()).contains("Invalid email or password");
     }
 
     @Test
@@ -100,7 +100,7 @@ class AuthServiceTest {
         LoginResponse response = authService.authenticateLocalUser(loginRequest);
 
         assertThat(response.isSuccess()).isFalse();
-        assertThat(response.getMessage()).contains("disabled");
+        assertThat(response.getMessage()).contains("Invalid email or password");
     }
 
     @Test
@@ -111,7 +111,7 @@ class AuthServiceTest {
         LoginResponse response = authService.authenticateLocalUser(loginRequest);
 
         assertThat(response.isSuccess()).isFalse();
-        assertThat(response.getMessage()).contains("disabled");
+        assertThat(response.getMessage()).contains("Invalid email or password");
     }
 
     @Test

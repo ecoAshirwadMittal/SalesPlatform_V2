@@ -46,6 +46,22 @@ class AuthControllerTest {
     @MockBean private AuthService authService;
     @MockBean private BuyerCodeService buyerCodeService;
     @MockBean private PasswordResetService passwordResetService;
+    @MockBean private com.ecoatm.salesplatform.security.AuthRateLimiter authRateLimiter;
+
+    @org.junit.jupiter.api.BeforeEach
+    void allowRateLimitByDefault() {
+        when(authRateLimiter.tryAcquire(org.mockito.ArgumentMatchers.anyString())).thenReturn(true);
+    }
+
+    // H-6 (security review 2026-07-10): auth endpoints are IP-rate-limited.
+    @Test
+    void login_whenRateLimited_returns429() throws Exception {
+        when(authRateLimiter.tryAcquire(org.mockito.ArgumentMatchers.anyString())).thenReturn(false);
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"john@test.com\",\"password\":\"Password123!\",\"rememberMe\":false}"))
+                .andExpect(status().isTooManyRequests());
+    }
 
     @Test
     void login_withValidCredentials_setsHttpOnlyCookieAndOmitsTokenFromBody() throws Exception {

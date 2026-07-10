@@ -132,6 +132,15 @@ public class CreditRequestPhotoService {
             throw new RuntimeException("Failed to read upload bytes", ex);
         }
 
+        // H-11: verify the actual bytes are a real image, not a script payload
+        // uploaded with a spoofed image/* content-type — defense in depth even if
+        // the content-type allowlist is later widened (e.g. to image/svg+xml).
+        if (!looksLikeAllowedImage(bytes)) {
+            throw new PhotoUploadException(
+                    PhotoUploadException.Reason.UNSUPPORTED_TYPE,
+                    "File content is not a valid image");
+        }
+
         CreditRequestPhoto photo = new CreditRequestPhoto();
         photo.setCreditRequestId(creditRequestId);
         photo.setWrongDeviceLineId(wrongDeviceLineId);
@@ -161,6 +170,36 @@ public class CreditRequestPhotoService {
                 .orElseThrow(() -> new EntityNotFoundException("Photo " + photoId));
         creditRequestService.getById(photo.getCreditRequestId(), viewerUserId, isAdmin);
         return photo;
+    }
+
+    private static final java.util.Set<String> HEIF_BRANDS = java.util.Set.of(
+            "heic", "heix", "hevc", "hevx", "mif1", "msf1", "heim", "heis", "hevm", "hevs");
+
+    /**
+     * Verifies the bytes match an allowed image format (JPEG / PNG / WebP / HEIF)
+     * rather than trusting the client-declared MIME (security review 2026-07-10,
+     * H-11). SVG deliberately fails — it has no binary signature.
+     */
+    private static boolean looksLikeAllowedImage(byte[] b) {
+        if (b == null || b.length < 12) {
+            return false;
+        }
+        if ((b[0] & 0xFF) == 0xFF && (b[1] & 0xFF) == 0xD8 && (b[2] & 0xFF) == 0xFF) {
+            return true; // JPEG
+        }
+        if ((b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G') {
+            return true; // PNG
+        }
+        if (b[0] == 'R' && b[1] == 'I' && b[2] == 'F' && b[3] == 'F'
+                && b[8] == 'W' && b[9] == 'E' && b[10] == 'B' && b[11] == 'P') {
+            return true; // WebP
+        }
+        if (b[4] == 'f' && b[5] == 't' && b[6] == 'y' && b[7] == 'p') { // HEIF / HEIC
+            String brand = new String(b, 8, 4, java.nio.charset.StandardCharsets.US_ASCII)
+                    .toLowerCase(java.util.Locale.ROOT);
+            return HEIF_BRANDS.contains(brand);
+        }
+        return false;
     }
 
     /**

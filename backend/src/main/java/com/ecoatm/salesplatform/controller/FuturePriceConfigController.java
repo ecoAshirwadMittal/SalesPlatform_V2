@@ -10,6 +10,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/pws/pricing/config")
+// Global future-price effective date — Administrator/SalesOps only
+// (security review 2026-07-10, H-4).
+@org.springframework.security.access.prepost.PreAuthorize(
+        "hasAnyRole('Administrator','SalesOps')")
 public class FuturePriceConfigController {
 
     private final FuturePriceConfigService configService;

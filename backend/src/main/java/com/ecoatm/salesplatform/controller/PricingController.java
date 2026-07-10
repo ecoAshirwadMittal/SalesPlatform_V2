@@ -4,9 +4,12 @@ import com.ecoatm.salesplatform.dto.CsvUploadResult;
 import com.ecoatm.salesplatform.dto.PriceHistoryResponse;
 import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.dto.PricingUpdateRequest;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.PricingService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,12 +21,18 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/pws/pricing")
+// Global pricing catalog writes (bulk future prices, CSV upload, soft-delete) —
+// Administrator/SalesOps only (security review 2026-07-10, H-1).
+@org.springframework.security.access.prepost.PreAuthorize(
+        "hasAnyRole('Administrator','SalesOps')")
 public class PricingController {
 
     private final PricingService pricingService;
+    private final UploadRateLimiter uploadRateLimiter;
 
-    public PricingController(PricingService pricingService) {
+    public PricingController(PricingService pricingService, UploadRateLimiter uploadRateLimiter) {
         this.pricingService = pricingService;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     @GetMapping("/devices")
@@ -102,7 +111,12 @@ public class PricingController {
     private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024; // 10 MB
 
     @PostMapping(value = "/devices/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadPricingCsv(@RequestParam("file") MultipartFile file) {
+    public ResponseEntity<?> uploadPricingCsv(@RequestParam("file") MultipartFile file,
+                                              HttpServletRequest request) {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("error", "Too many upload requests. Please retry shortly."));
+        }
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "File is empty"));
         }
@@ -110,8 +124,12 @@ public class PricingController {
             return ResponseEntity.badRequest().body(Map.of("error", "File exceeds maximum size of 10 MB"));
         }
         String contentType = file.getContentType();
-        if (contentType != null && !contentType.equals("text/csv") && !contentType.equals("text/plain")
-                && !contentType.equals("application/vnd.ms-excel")) {
+        // M-6 (security review 2026-07-10): a missing Content-Type is a rejection,
+        // not a bypass — previously a null type skipped the allowlist entirely.
+        if (contentType == null
+                || (!contentType.equals("text/csv")
+                        && !contentType.equals("text/plain")
+                        && !contentType.equals("application/vnd.ms-excel"))) {
             return ResponseEntity.badRequest().body(Map.of("error", "File must be a CSV (text/csv)"));
         }
         try {

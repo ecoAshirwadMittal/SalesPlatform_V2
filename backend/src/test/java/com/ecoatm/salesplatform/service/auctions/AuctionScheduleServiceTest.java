@@ -109,6 +109,14 @@ class AuctionScheduleServiceTest {
         lenient().when(queryStub.setParameter(anyString(), any())).thenReturn(queryStub);
         lenient().when(queryStub.getSingleResult()).thenReturn(new Object[]{0L, 0L});
         lenient().when(queryStub.getResultList()).thenReturn(java.util.List.of());
+        // L-4 (security review 2026-07-10): the per-SA buyer-count query now binds
+        // its SA ids as a Postgres bigint[] via Session#doWork + createArrayOf (the
+        // proven in-repo pattern) instead of string-joining an IN(...) list. Stub
+        // em.unwrap(Session) so the mock chain does not NPE; doWork is a void
+        // no-op here, so the counts map stays empty — behaviourally identical to
+        // the previous empty getResultList() stub (tests never assert stat values).
+        org.hibernate.Session sessionStub = mock(org.hibernate.Session.class);
+        lenient().when(em.unwrap(org.hibernate.Session.class)).thenReturn(sessionStub);
 
         service = newService(Clock.fixed(TEST_NOW_BEFORE_WEEK, ZoneOffset.UTC));
     }

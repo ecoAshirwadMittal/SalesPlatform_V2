@@ -15,6 +15,35 @@ async function jsonOrThrow<T = unknown>(res: Response): Promise<T> {
   try { return JSON.parse(text) as T; } catch { throw new Error(text.slice(0, 200)); }
 }
 
+/**
+ * M-3 (security review 2026-07-10): the email-log HTML body is server-derived
+ * and rendered via `dangerouslySetInnerHTML` below. No DOMPurify is available in
+ * this project's dependencies and we must NOT add one in this change, so this is
+ * a STOPGAP scrubber that strips the highest-risk XSS vectors: script/style/
+ * iframe/object/embed/form/noscript/template elements (with their content),
+ * standalone link/meta/base tags, inline `on*=` event handlers, and
+ * javascript:/vbscript:/data: URI schemes.
+ *
+ * Regex-based HTML scrubbing is inherently incomplete (mutation XSS, nested
+ * obfuscation) — this is defense-in-depth, not a real sanitizer. Before the
+ * backend email-log endpoint ships and real HTML reaches this view, replace this
+ * with DOMPurify (or sanitize server-side). The endpoint is not live today, so
+ * no untrusted HTML currently reaches this code.
+ */
+function sanitizeEmailHtml(html: string): string {
+  return html
+    // Drop dangerous elements together with their content.
+    .replace(/<\s*(script|style|iframe|object|embed|form|noscript|template)\b[\s\S]*?<\s*\/\s*\1\s*>/gi, '')
+    // Drop standalone dangerous tags that have no closing form.
+    .replace(/<\s*(link|meta|base)\b[^>]*>/gi, '')
+    // Strip inline event-handler attributes (onclick=, onerror=, ...) — quoted or bare.
+    .replace(/\son\w+\s*=\s*"[^"]*"/gi, '')
+    .replace(/\son\w+\s*=\s*'[^']*'/gi, '')
+    .replace(/\son\w+\s*=\s*[^\s>]+/gi, '')
+    // Neutralize dangerous URI schemes anywhere they appear in an attribute value.
+    .replace(/(javascript|vbscript|data)\s*:/gi, 'unsafe:');
+}
+
 // ── Types ──
 
 interface SmtpConfig {
@@ -661,7 +690,8 @@ function EmailLogTab({ onBanner }: { onBanner: (b: Banner) => void }) {
               {detailData.content_html && (
                 <>
                   <h4 style={{ marginTop: 16, marginBottom: 8 }}>HTML Body</h4>
-                  <div className={e.htmlPreview} dangerouslySetInnerHTML={{ __html: String(detailData.content_html) }} />
+                  {/* M-3: scrub server-derived HTML before injecting (see sanitizeEmailHtml). */}
+                  <div className={e.htmlPreview} dangerouslySetInnerHTML={{ __html: sanitizeEmailHtml(String(detailData.content_html)) }} />
                 </>
               )}
             </div>

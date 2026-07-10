@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.dto.MasterDataItemRequest;
 import com.ecoatm.salesplatform.service.AdminMasterDataService;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -16,7 +17,11 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/admin/master-data")
-@CrossOrigin(origins = "http://localhost:3000")
+// L-6 (security review 2026-07-10): defense-in-depth. The SecurityConfig
+// "/api/v1/admin/**" matcher already requires Administrator; this class-level
+// @PreAuthorize re-asserts it at the method layer so the MDM lookup CRUD can
+// never be exposed to a lesser role by a future matcher change.
+@PreAuthorize("hasRole('Administrator')")
 public class AdminMasterDataController {
 
     private final AdminMasterDataService service;

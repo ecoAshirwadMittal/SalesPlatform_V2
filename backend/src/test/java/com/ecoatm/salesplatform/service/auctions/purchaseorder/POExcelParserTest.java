@@ -62,6 +62,31 @@ class POExcelParserTest {
                 .isInstanceOf(PurchaseOrderValidationException.class);
     }
 
+    @Test
+    void tooManyDataRowsRejected() throws Exception {
+        // Header at row 0 + a single sparse row at index 10_001 makes
+        // getLastRowNum() == 10_001 (> the 10_000 cap) without materialising
+        // 10k intermediate rows — a fast, deterministic DoS-guard assertion.
+        byte[] bytes = makeWorkbookWithSparseLastRow(10_001);
+        assertThatThrownBy(() -> parser.parse(new ByteArrayInputStream(bytes)))
+                .isInstanceOfSatisfying(PurchaseOrderValidationException.class, ex ->
+                        assertThat(ex.getCode()).isEqualTo("UPLOAD_ROW_LIMIT"));
+    }
+
+    private static byte[] makeWorkbookWithSparseLastRow(int lastRowIndex) throws Exception {
+        try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = wb.createSheet("PO");
+            String[] header = {"ProductID", "Grade", "ModelName", "Price", "QtyCap", "BuyerCode"};
+            Row headerRow = sheet.createRow(0);
+            for (int c = 0; c < header.length; c++) {
+                headerRow.createCell(c).setCellValue(header[c]);
+            }
+            sheet.createRow(lastRowIndex); // pushes getLastRowNum() past the cap
+            wb.write(out);
+            return out.toByteArray();
+        }
+    }
+
     private static byte[] makeWorkbook(String[][] rows) throws Exception {
         try (Workbook wb = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = wb.createSheet("PO");

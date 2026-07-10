@@ -6,7 +6,9 @@ import com.ecoatm.salesplatform.dto.PricingDeviceResponse;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.PricingService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -46,6 +48,12 @@ class PricingControllerTest {
     @Autowired private JwtService jwtService;
 
     @MockBean private PricingService pricingService;
+    @MockBean private UploadRateLimiter uploadRateLimiter;
+
+    @BeforeEach
+    void allowUploadsByDefault() {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     private String validToken() {
         return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
@@ -367,6 +375,33 @@ class PricingControllerTest {
                             .file(file)
                             .header("Authorization", "Bearer " + validToken()))
                     .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("returns 400 when content type is missing (M-6 — null is a rejection, not a bypass)")
+        void returns400ForMissingContentType() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    null, "sku,futureListPrice,futureMinPrice\nPWS001,120,95\n".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("CSV")));
+        }
+
+        @Test
+        @DisplayName("returns 429 when the upload rate limit is exceeded (H-10)")
+        void returns429WhenRateLimited() throws Exception {
+            when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(false);
+
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    "text/csv", "sku,futureListPrice,futureMinPrice\nPWS001,120,95\n".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isTooManyRequests());
         }
     }
 }

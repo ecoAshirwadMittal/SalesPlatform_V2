@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -36,9 +37,17 @@ class CounterOfferControllerTest {
     @Autowired private JwtService jwtService;
 
     @MockBean private CounterOfferService counterOfferService;
+    @MockBean private com.ecoatm.salesplatform.security.PwsOwnershipGuard ownership;
 
     private String validToken() {
         return jwtService.generateToken(1L, "bidder@test.com", List.of("Bidder"), false);
+    }
+
+    @org.junit.jupiter.api.BeforeEach
+    void ownershipAllowedByDefault() {
+        // Ownership is enforced on every endpoint now (CR-3); default to owner.
+        when(ownership.ownsBuyerCode(anyLong(), anyLong())).thenReturn(true);
+        when(ownership.ownsOffer(anyLong(), anyLong())).thenReturn(true);
     }
 
     @Test
@@ -119,5 +128,15 @@ class CounterOfferControllerTest {
                         .header("Authorization", "Bearer " + validToken()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
+    }
+
+    // CR-3 (security review 2026-07-10): a Bidder who does not own the offer must
+    // be rejected — no cross-tenant counter-offer access via id enumeration.
+    @Test
+    void getCounterOfferDetail_whenNotOwner_returns403() throws Exception {
+        when(ownership.ownsOffer(anyLong(), anyLong())).thenReturn(false);
+        mockMvc.perform(get("/api/v1/pws/counter-offers/999")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isForbidden());
     }
 }

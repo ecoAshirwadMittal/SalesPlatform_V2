@@ -100,6 +100,11 @@ import java.util.Map;
 // surface uses the existing global roles. CoAdministrator + SalesRep
 // were added per the Sprint 4 §7 final-state allowlist (SalesRep needs
 // admin access for diagnostic / on-behalf flows).
+// L-7 (security review 2026-07-10): the SalesRep grant here is INTENTIONAL and
+// verified against the Sprint 4 §7 role matrix — SalesRep submits/reviews credit
+// requests on behalf of buyers, so it must reach this admin surface. Per-request
+// admin scope (no buyer-code gate) is enforced by AdminCreditRequestService, not
+// the matcher. Not a finding to fix — documented here to close L-7.
 @PreAuthorize("hasAnyRole('SalesOps','SalesRep','Administrator','CoAdministrator')")
 public class AdminPartialCreditController {
 

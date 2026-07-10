@@ -9,10 +9,13 @@ import com.ecoatm.salesplatform.dto.ReserveBidUploadResult;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidException;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidService;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidValidationException;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterSpec;
 import com.ecoatm.salesplatform.service.auctions.reservebid.filter.FilterSpecParser;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -39,9 +42,11 @@ import java.util.Map;
 public class ReserveBidController {
 
     private final ReserveBidService service;
+    private final UploadRateLimiter uploadRateLimiter;
 
-    public ReserveBidController(ReserveBidService service) {
+    public ReserveBidController(ReserveBidService service, UploadRateLimiter uploadRateLimiter) {
         this.service = service;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     /**
@@ -91,8 +96,12 @@ public class ReserveBidController {
     }
 
     @PostMapping("/upload")
-    public ReserveBidUploadResult upload(@RequestParam("file") MultipartFile file) {
-        return service.upload(userId(), file);
+    public ResponseEntity<ReserveBidUploadResult> upload(@RequestParam("file") MultipartFile file,
+                                                         HttpServletRequest request) {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        return ResponseEntity.ok(service.upload(userId(), file));
     }
 
     @GetMapping("/download")

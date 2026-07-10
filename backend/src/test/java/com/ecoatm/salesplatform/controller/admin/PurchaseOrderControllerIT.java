@@ -8,11 +8,13 @@ import com.ecoatm.salesplatform.model.auctions.PurchaseOrderLifecycleState;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PODetailService;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.POExcelBuilder;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PurchaseOrderService;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PurchaseOrderValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,6 +35,7 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -71,6 +74,12 @@ class PurchaseOrderControllerIT {
     @MockBean PurchaseOrderService poService;
     @MockBean PODetailService detailService;
     @MockBean POExcelBuilder excelBuilder;
+    @MockBean UploadRateLimiter uploadRateLimiter;
+
+    @BeforeEach
+    void allowUploadsByDefault() {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     @Test
     @WithMockUser(roles = "Administrator")
