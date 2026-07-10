@@ -37,6 +37,9 @@ public class RmaController {
     private static final Set<String> INTERNAL_ROLES =
             Set.of("ROLE_Administrator", "ROLE_SalesOps", "ROLE_SalesRep");
 
+    /** 10 MB upload ceiling, mirroring {@code PricingController.MAX_UPLOAD_SIZE}. */
+    private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
     private final RmaService rmaService;
     private final BuyerCodeService buyerCodeService;
 
@@ -113,6 +116,21 @@ public class RmaController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(RmaSubmitResponse.failure(List.of("No file uploaded.")));
+        }
+        // M-6 (security review 2026-07-10): size + content-type allowlist,
+        // mirroring PricingController.uploadPricingCsv. A missing Content-Type
+        // is a rejection, not a bypass.
+        if (file.getSize() > MAX_UPLOAD_SIZE) {
+            return ResponseEntity.badRequest()
+                    .body(RmaSubmitResponse.failure(List.of("File exceeds maximum size of 10 MB.")));
+        }
+        String contentType = file.getContentType();
+        if (contentType == null
+                || (!contentType.equals("text/csv")
+                        && !contentType.equals("text/plain")
+                        && !contentType.equals("application/vnd.ms-excel"))) {
+            return ResponseEntity.badRequest()
+                    .body(RmaSubmitResponse.failure(List.of("File must be a CSV (text/csv).")));
         }
         RmaSubmitResponse response = rmaService.submitRmaRequest(buyerCodeId, userId, file.getInputStream());
         return response.isSuccess()

@@ -114,8 +114,12 @@ public class PricingController {
             return ResponseEntity.badRequest().body(Map.of("error", "File exceeds maximum size of 10 MB"));
         }
         String contentType = file.getContentType();
-        if (contentType != null && !contentType.equals("text/csv") && !contentType.equals("text/plain")
-                && !contentType.equals("application/vnd.ms-excel")) {
+        // M-6 (security review 2026-07-10): a missing Content-Type is a rejection,
+        // not a bypass — previously a null type skipped the allowlist entirely.
+        if (contentType == null
+                || (!contentType.equals("text/csv")
+                        && !contentType.equals("text/plain")
+                        && !contentType.equals("application/vnd.ms-excel"))) {
             return ResponseEntity.badRequest().body(Map.of("error", "File must be a CSV (text/csv)"));
         }
         try {

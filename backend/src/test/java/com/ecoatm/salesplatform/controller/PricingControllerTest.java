@@ -368,5 +368,18 @@ class PricingControllerTest {
                             .header("Authorization", "Bearer " + validToken()))
                     .andExpect(status().isOk());
         }
+
+        @Test
+        @DisplayName("returns 400 when content type is missing (M-6 — null is a rejection, not a bypass)")
+        void returns400ForMissingContentType() throws Exception {
+            MockMultipartFile file = new MockMultipartFile("file", "pricing.csv",
+                    null, "sku,futureListPrice,futureMinPrice\nPWS001,120,95\n".getBytes());
+
+            mockMvc.perform(multipart("/api/v1/pws/pricing/devices/upload")
+                            .file(file)
+                            .header("Authorization", "Bearer " + validToken()))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value(org.hamcrest.Matchers.containsString("CSV")));
+        }
     }
 }
