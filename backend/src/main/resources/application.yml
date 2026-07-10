@@ -103,6 +103,12 @@ management:
   endpoint:
     health:
       show-details: when-authorized
+      # L-2 (security review 2026-07-10): gate full health detail to Administrator.
+      # With show-details=when-authorized, component detail (DB / disk / host
+      # internals) is only revealed to a caller holding one of these roles; a
+      # plain authenticated Bidder now sees the rollup status only. The `local`
+      # profile overrides show-details to `always` for dev convenience.
+      roles: Administrator
   health:
     # Spring Boot auto-registers a JavaMail health indicator that probes the
     # SMTP host on every /actuator/health hit. With no SMTP server running
@@ -253,6 +259,14 @@ auctions:
 # ─────────────────────────────────────
 # Profile: local (override for dev convenience)
 # Activate with: --spring.profiles.active=local
+#
+# L-3 (security review 2026-07-10): `local` and `production` are MUTUALLY
+# EXCLUSIVE — never activate them together (e.g. `--spring.profiles.active=
+# production,local`). `local` widens the attack surface for dev convenience
+# (actuator show-details: always, flyway/mappings exposed, full error
+# messages, auth cookie Secure=false); combining it with `production` would
+# leak those in a real deployment. Production runs with the `production`
+# profile ONLY.
 # ─────────────────────────────────────
 spring:
   config:
@@ -282,6 +296,10 @@ management:
 # ─────────────────────────────────────
 # Profile: production
 # Activate with: --spring.profiles.active=production
+#
+# L-3 (security review 2026-07-10): activate this profile ALONE. Never combine
+# it with `local` (see the local-profile note above) — doing so re-opens the
+# dev-only actuator detail, verbose errors, and Secure=false cookie in prod.
 # ─────────────────────────────────────
 spring:
   config:
@@ -294,11 +312,25 @@ spring:
     show-sql: false
 auth:
   cookie:
+    # M-2 (security review 2026-07-10): production serves over HTTPS only, so the
+    # auth cookie MUST carry the Secure attribute. This overrides the fail-open
+    # base default (auth.cookie.secure: ${AUTH_COOKIE_SECURE:false} — kept so
+    # http://localhost dev keeps working). Do NOT remove this line: without it a
+    # prod deploy could ship the auth cookie without Secure.
     secure: true    # prod MUST serve over HTTPS
 server:
   error:
     include-message: never
     include-exception: false
+# ─────────────────────────────────────
+# M-4 (security review 2026-07-10): production CORS must NOT carry the ngrok
+# wildcard origins from the base default (those are dev-tunnel only — a wildcard
+# origin with allowCredentials=true is an exfiltration risk). Lock to the real
+# prod origin; override via CORS_ALLOWED_ORIGINS (comma-separated) if the
+# deployed hostname differs. There is intentionally NO ngrok pattern here.
+# ─────────────────────────────────────
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:https://buy.ecoatmdirect.com}
 
 # ─────────────────────────────────────
 # Sub-project 4A: ExchangeBid (EB) sync config
