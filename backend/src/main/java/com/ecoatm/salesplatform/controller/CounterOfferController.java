@@ -25,7 +25,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/pws/counter-offers")
-@CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('Bidder','Administrator')")
 public class CounterOfferController {
 

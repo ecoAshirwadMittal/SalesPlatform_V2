@@ -31,7 +31,6 @@ import java.util.Set;
  */
 @RestController
 @RequestMapping("/api/v1/pws/rma")
-@CrossOrigin(origins = "http://localhost:3000")
 @PreAuthorize("hasAnyRole('Bidder','SalesRep','SalesOps','Administrator')")
 public class RmaController {
 

@@ -20,7 +20,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
-@CrossOrigin(origins = "http://localhost:3000")
 public class AtpSyncController {
 
     private static final Logger log = LoggerFactory.getLogger(AtpSyncController.class);

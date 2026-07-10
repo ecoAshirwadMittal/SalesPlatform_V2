@@ -16,7 +16,6 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/api/v1/admin/master-data")
-@CrossOrigin(origins = "http://localhost:3000")
 public class AdminMasterDataController {
 
     private final AdminMasterDataService service;
