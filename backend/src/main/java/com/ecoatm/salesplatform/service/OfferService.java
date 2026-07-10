@@ -269,6 +269,16 @@ public class OfferService {
      *      BuyerOffer to delete — the DRAFT offer itself becomes the permanent offer)
      *   5. SUB_SendPWSOfferConfirmationEmail — (stubbed: email integration not yet wired)
      */
+    /**
+     * Returns the buyer code id that owns the given offer, or {@code null} if the
+     * offer does not exist. Used by the controller to enforce ownership on the
+     * offerId-based endpoints (security review 2026-07-10, CR-3).
+     */
+    @Transactional(readOnly = true)
+    public Long getOfferBuyerCodeId(Long offerId) {
+        return offerRepository.findById(offerId).map(Offer::getBuyerCodeId).orElse(null);
+    }
+
     @Transactional
     public SubmitResponse submitOffer(Long offerId, Long submittedByUserId) {
         Optional<Offer> offerOpt = offerRepository.findById(offerId);

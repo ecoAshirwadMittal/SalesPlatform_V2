@@ -12,10 +12,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import jakarta.validation.Valid;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+/**
+ * Buyer-facing PWS cart / offer / order surface.
+ *
+ * <p><b>Security (review 2026-07-10, CR-3):</b> every endpoint is scoped to the
+ * authenticated caller — {@code userId} is taken from the JWT (never a request
+ * parameter), and ownership of the target buyer code / offer is enforced before
+ * any read or write. Previously {@code userId} was an optional request param and
+ * the ownership check bypassed when it was absent, so any authenticated user
+ * could read or mutate another company's cart and force a real Oracle order.
+ */
 @RestController
 @RequestMapping("/api/v1/pws/offers")
+@PreAuthorize("hasAnyRole('Bidder','Administrator')")
 public class OfferController {
 
     private static final Logger log = LoggerFactory.getLogger(OfferController.class);
@@ -31,7 +44,8 @@ public class OfferController {
     @GetMapping("/cart")
     public ResponseEntity<OfferResponse> getCart(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -42,8 +56,9 @@ public class OfferController {
     @PutMapping("/cart/items")
     public ResponseEntity<OfferResponse> upsertItem(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId,
-            @Valid @RequestBody CartItemRequest request) {
+            @Valid @RequestBody CartItemRequest request,
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -54,8 +69,9 @@ public class OfferController {
     @DeleteMapping("/cart/items/{sku}")
     public ResponseEntity<OfferResponse> removeItem(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId,
-            @PathVariable String sku) {
+            @PathVariable String sku,
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -66,7 +82,8 @@ public class OfferController {
     @DeleteMapping("/cart")
     public ResponseEntity<OfferResponse> resetCart(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -80,7 +97,8 @@ public class OfferController {
     @PostMapping("/cart/submit")
     public ResponseEntity<SubmitResponse> submitCart(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -99,7 +117,11 @@ public class OfferController {
     @PostMapping("/{offerId}/submit-offer")
     public ResponseEntity<SubmitResponse> submitOffer(
             @PathVariable Long offerId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
+        if (!authorizeOffer(userId, offerId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(offerService.submitOffer(offerId, userId));
     }
 
@@ -111,7 +133,11 @@ public class OfferController {
     @PostMapping("/{offerId}/submit-order")
     public ResponseEntity<SubmitResponse> submitOrder(
             @PathVariable Long offerId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
+        if (!authorizeOffer(userId, offerId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         return ResponseEntity.ok(offerService.submitOrder(offerId, userId));
     }
 
@@ -119,7 +145,8 @@ public class OfferController {
     @GetMapping("/cart/export")
     public ResponseEntity<byte[]> exportCart(
             @RequestParam Long buyerCodeId,
-            @RequestParam(required = false) Long userId) {
+            Authentication auth) {
+        long userId = (Long) auth.getPrincipal();
         if (!authorize(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -133,12 +160,24 @@ public class OfferController {
     }
 
     /**
-     * Authorization check: validate user owns the buyer code.
-     * When userId is null (no JWT yet), skip the check for backwards compatibility.
-     * Once JWT auth is implemented, userId will come from the token and this will be mandatory.
+     * The authenticated user must own the buyer code. {@code userId} always comes
+     * from the JWT, so there is no null-bypass any more (security review CR-3).
      */
-    private boolean authorize(Long userId, Long buyerCodeId) {
-        if (userId == null) return true;
+    private boolean authorize(long userId, Long buyerCodeId) {
+        return buyerCodeService.isUserAuthorizedForBuyerCode(userId, buyerCodeId);
+    }
+
+    /**
+     * Ownership check for offerId-based endpoints: the caller must own the buyer
+     * code the offer belongs to. A non-existent offer passes here so the service
+     * returns its normal "not found" response rather than leaking existence via
+     * 403-vs-200.
+     */
+    private boolean authorizeOffer(long userId, Long offerId) {
+        Long buyerCodeId = offerService.getOfferBuyerCodeId(offerId);
+        if (buyerCodeId == null) {
+            return true;
+        }
         return buyerCodeService.isUserAuthorizedForBuyerCode(userId, buyerCodeId);
     }
 }

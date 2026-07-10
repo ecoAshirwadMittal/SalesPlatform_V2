@@ -43,6 +43,14 @@ class OfferControllerTest {
         return jwtService.generateToken(1L, "test@test.com", List.of("Bidder"), false);
     }
 
+    @org.junit.jupiter.api.BeforeEach
+    void ownershipAllowedByDefault() {
+        // userId now comes from the JWT (1L) and ownership is enforced on every
+        // endpoint (CR-3). Default the caller to an owner; the 403 test overrides.
+        when(buyerCodeService.isUserAuthorizedForBuyerCode(anyLong(), anyLong())).thenReturn(true);
+        when(offerService.getOfferBuyerCodeId(anyLong())).thenReturn(1L);
+    }
+
     @Test
     void getCart_withoutToken_returns401() throws Exception {
         mockMvc.perform(get("/api/v1/pws/offers/cart")
@@ -146,7 +154,7 @@ class OfferControllerTest {
 
     @Test
     void submitCart_withToken_returns200() throws Exception {
-        when(offerService.submitCart(eq(1L), isNull()))
+        when(offerService.submitCart(eq(1L), eq(1L)))
                 .thenReturn(SubmitResponse.salesReview(1L, 2));
 
         mockMvc.perform(post("/api/v1/pws/offers/cart/submit")
@@ -158,7 +166,7 @@ class OfferControllerTest {
 
     @Test
     void submitCart_exception_returnsError() throws Exception {
-        when(offerService.submitCart(eq(1L), isNull()))
+        when(offerService.submitCart(eq(1L), eq(1L)))
                 .thenThrow(new RuntimeException("DB error"));
 
         mockMvc.perform(post("/api/v1/pws/offers/cart/submit")
@@ -172,7 +180,7 @@ class OfferControllerTest {
 
     @Test
     void submitOffer_withToken_returns200() throws Exception {
-        when(offerService.submitOffer(1L, null))
+        when(offerService.submitOffer(1L, 1L))
                 .thenReturn(SubmitResponse.offerSubmitted(1L, "OFF-001"));
 
         mockMvc.perform(post("/api/v1/pws/offers/1/submit-offer")
@@ -185,7 +193,7 @@ class OfferControllerTest {
 
     @Test
     void submitOrder_withToken_returns200() throws Exception {
-        when(offerService.submitOrder(eq(1L), isNull()))
+        when(offerService.submitOrder(eq(1L), eq(1L)))
                 .thenReturn(SubmitResponse.submitted(1L, "ORD-001"));
 
         mockMvc.perform(post("/api/v1/pws/offers/1/submit-order")
@@ -210,13 +218,16 @@ class OfferControllerTest {
 
     // --- authorize ---
 
+    // CR-3 (security review 2026-07-10): ownership is checked against the JWT
+    // principal, and a spoofed userId request param is ignored — a caller who does
+    // not own the buyer code gets 403 even while sending someone else's userId.
     @Test
     void authorize_forbiddenUser_returns403() throws Exception {
-        when(buyerCodeService.isUserAuthorizedForBuyerCode(99L, 1L)).thenReturn(false);
+        when(buyerCodeService.isUserAuthorizedForBuyerCode(anyLong(), anyLong())).thenReturn(false);
 
         mockMvc.perform(get("/api/v1/pws/offers/cart")
                         .param("buyerCodeId", "1")
-                        .param("userId", "99")
+                        .param("userId", "99")   // spoofed — now ignored by the controller
                         .header("Authorization", "Bearer " + validToken()))
                 .andExpect(status().isForbidden());
     }

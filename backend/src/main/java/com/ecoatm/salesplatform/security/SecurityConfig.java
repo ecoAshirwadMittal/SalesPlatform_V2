@@ -110,6 +110,9 @@ public class SecurityConfig {
                     .hasAnyRole("Administrator", "SalesOps", "SalesRep")
                 .requestMatchers("/api/v1/pws/pricing/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/inventory/**").hasAnyRole("Administrator", "SalesOps")
+                // Buyer-facing cart/offer surface — Bidder (own buyer codes only,
+                // enforced at the service layer) + Administrator (CR-3).
+                .requestMatchers("/api/v1/pws/offers/**").hasAnyRole("Bidder", "Administrator")
                 // Internal user-management (role assignment / PII) — Administrator
                 // only. Without this an authenticated Bidder could self-grant
                 // Administrator via /api/v1/users/direct-users. See review (CR-1).
