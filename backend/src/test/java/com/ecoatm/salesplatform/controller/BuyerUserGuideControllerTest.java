@@ -6,8 +6,10 @@ import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService.DownloadResult;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +47,14 @@ class BuyerUserGuideControllerTest {
 
     @MockBean
     private BuyerUserGuideService service;
+
+    @MockBean
+    private UploadRateLimiter uploadRateLimiter;
+
+    @BeforeEach
+    void allowUploadsByDefault() {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     private String adminToken() {
         return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);

@@ -2,11 +2,14 @@ package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.BuyerUserGuideListResponse;
 import com.ecoatm.salesplatform.dto.BuyerUserGuideMetadata;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService.DownloadResult;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,9 +40,11 @@ import java.nio.charset.StandardCharsets;
 public class BuyerUserGuideController {
 
     private final BuyerUserGuideService service;
+    private final UploadRateLimiter uploadRateLimiter;
 
-    public BuyerUserGuideController(BuyerUserGuideService service) {
+    public BuyerUserGuideController(BuyerUserGuideService service, UploadRateLimiter uploadRateLimiter) {
         this.service = service;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     // ---------------------------------------------------------------------------
@@ -57,7 +62,11 @@ public class BuyerUserGuideController {
     @PreAuthorize("hasRole('Administrator')")
     public ResponseEntity<BuyerUserGuideMetadata> upload(
             @RequestParam("file") MultipartFile file,
-            Authentication auth) throws IOException {
+            Authentication auth,
+            HttpServletRequest request) throws IOException {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         long userId = (Long) auth.getPrincipal();
         BuyerUserGuideMetadata meta = service.upload(file, userId);
         return ResponseEntity.ok(meta);

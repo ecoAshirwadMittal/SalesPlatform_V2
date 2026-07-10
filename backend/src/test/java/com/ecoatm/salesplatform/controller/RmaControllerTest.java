@@ -37,11 +37,14 @@ class RmaControllerTest {
 
     @MockBean private RmaService rmaService;
     @MockBean private com.ecoatm.salesplatform.service.BuyerCodeService buyerCodeService;
+    @MockBean private com.ecoatm.salesplatform.security.UploadRateLimiter uploadRateLimiter;
 
     @org.junit.jupiter.api.BeforeEach
     void ownershipAllowedByDefault() {
         // Buyer-code ownership is enforced now (CR-3); default the caller to owner.
         when(buyerCodeService.isUserAuthorizedForBuyerCode(anyLong(), anyLong())).thenReturn(true);
+        // H-10 rate limiter is a collaborator now; allow uploads by default.
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
     }
 
     private String validToken() {

@@ -6,7 +6,9 @@ import com.ecoatm.salesplatform.dto.ReserveBidUploadResult;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.reservebid.ReserveBidService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -26,6 +28,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
@@ -49,6 +52,14 @@ class ReserveBidControllerIT {
 
     @MockBean
     ReserveBidService service;
+
+    @MockBean
+    UploadRateLimiter uploadRateLimiter;
+
+    @BeforeEach
+    void allowUploadsByDefault() {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     @Test
     @WithMockUser(roles = "Administrator")

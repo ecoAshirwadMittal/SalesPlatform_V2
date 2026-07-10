@@ -1,8 +1,10 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.service.RmaService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,10 +44,13 @@ public class RmaController {
 
     private final RmaService rmaService;
     private final BuyerCodeService buyerCodeService;
+    private final UploadRateLimiter uploadRateLimiter;
 
-    public RmaController(RmaService rmaService, BuyerCodeService buyerCodeService) {
+    public RmaController(RmaService rmaService, BuyerCodeService buyerCodeService,
+                         UploadRateLimiter uploadRateLimiter) {
         this.rmaService = rmaService;
         this.buyerCodeService = buyerCodeService;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     /** List RMAs. Buyers see only their own buyer code; the all-view is internal. */
@@ -108,7 +113,11 @@ public class RmaController {
     public ResponseEntity<RmaSubmitResponse> submitRma(
             @RequestParam Long buyerCodeId,
             @RequestParam("file") MultipartFile file,
-            Authentication auth) throws IOException {
+            Authentication auth,
+            HttpServletRequest request) throws IOException {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         long userId = (Long) auth.getPrincipal();
         if (!buyerCodeService.isUserAuthorizedForBuyerCode(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
