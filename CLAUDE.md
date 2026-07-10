@@ -51,6 +51,87 @@ If Playwright is available, navigate to the QA page and take a screenshot, then 
 - **Commit format**: `[prefix]: [change description]` (feat/fix/docs/test/refactor/chore)
 - **PR**: Self-review -> Assign reviewer -> Merge
 
+## Security Rules (MANDATORY)
+
+Derived from the 2026-07-10 security review
+(`docs/tasks/security-review-and-remediation-plan-2026-07-10.md`). Every rule
+below maps to a real defect found in this codebase — do **not** regress them.
+When adding or changing any endpoint, upload, auth flow, or config, you MUST
+satisfy these. Use the **security-reviewer** agent before committing
+security-sensitive code.
+
+### Authorization — every endpoint, explicitly
+- **Never** rely on `.anyRequest().authenticated()` alone for a sensitive or
+  state-changing endpoint. Every controller MUST be covered by **both** an
+  explicit `SecurityConfig` URL matcher **and** a class/method-level
+  `@PreAuthorize` (defense-in-depth). Adding a controller means adding its
+  matcher in the same change.
+- A new `/api/v1/<x>/**` namespace with no explicit role rule in
+  `SecurityConfig.authorizeHttpRequests` is a **bug**, not a default.
+
+### Identity comes from the token, never the request
+- **Never** accept `userId`, `buyerCodeId`, `roleIds`, or any identity/authority
+  as a `@RequestParam`/body field and trust it. Derive the caller from
+  `Authentication` / `@AuthenticationPrincipal` (the verified JWT).
+- Every tenant-bound resource access MUST enforce ownership at the service layer
+  **before** read or write. Reuse the proven in-repo pattern
+  (`CreditRequestService.ensureBuyerCodeOwnership`, `BuyerCodeService`, the
+  `BidderDashboardService` "IDOR guard") — do not invent a new one.
+- Privilege grants must be validated against what the **caller** may grant —
+  never blind-write a client-supplied role list.
+
+### Secrets & config — fail closed, never silently
+- No secret may have a usable literal default. A secret `@Value` has **no**
+  fallback (`${app.jwt.secret}`, not `${...:default}`). Add a startup assertion
+  that refuses to boot on a missing/placeholder/weak secret in production.
+- Security-relevant config defaults fail **closed**: `AUTH_COOKIE_SECURE`
+  defaults `true`; DB/JWT/SMTP creds have no shipped default outside `local`.
+- Never commit real secrets; keep `.env` gitignored (only `.env.example`
+  tracked).
+
+### Never log secrets, tokens, or PII
+- No password, JWT, reset/session token, or full PII in any log at any level.
+  (The password-reset-token-in-logs defect must never recur.)
+
+### Auth endpoints
+- Rate-limit `/api/v1/auth/**` (login, forgot-password, reset-password) by IP +
+  account; wire `failed_logins` → lockout.
+- Login/reset failures return **one** generic message
+  ("Invalid email or password") — never reveal whether an account exists.
+- Token lifetime must not exceed its cookie `Max-Age`; invalidate tokens on
+  logout and password change.
+
+### File uploads
+- Enforce size **and** row/entry caps server-side (mirror `BidImportService`);
+  validate real content by **magic bytes** (mirror
+  `BuyerUserGuideService.validateMagicBytes`), not the client-declared MIME;
+  allowlist types.
+- Serve downloads as `Content-Disposition: attachment` with a sanitized
+  content-type; build the header via `ContentDisposition.builder(...)`, never
+  string concatenation.
+- Rate-limit every multipart endpoint.
+
+### Frontend
+- Set security headers in `next.config.ts` (`Content-Security-Policy`,
+  `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy`, HSTS).
+- No `dangerouslySetInnerHTML` on server/user-derived content without
+  sanitizing (DOMPurify).
+- Client-side role gates (`RequireRole`, `proxy.ts`) are **UX only, not a
+  security boundary** — the server re-checks every call.
+- Keep the JWT in the HttpOnly cookie; never read it into JS/localStorage.
+
+### Dependencies
+- Keep Spring Boot and Next.js on currently-supported patched lines. Run
+  `npm audit` and `mvn org.owasp:dependency-check:check` before release; ship no
+  unaddressed HIGH/CRITICAL advisories.
+
+### Definition of done for a backend endpoint
+Not "done" until: (1) explicit authz matcher + `@PreAuthorize`, (2) identity is
+JWT-derived, (3) ownership enforced where the resource is tenant-bound, (4) an IT
+proves a wrong-role / other-tenant caller gets **403**, (5) inputs validated,
+(6) no secret/PII logged.
+
 ## Documentation Structure
 All project documents are organized under the `docs/` directory. **These documents are living artifacts** — they MUST be created and updated as we build the project.
 
