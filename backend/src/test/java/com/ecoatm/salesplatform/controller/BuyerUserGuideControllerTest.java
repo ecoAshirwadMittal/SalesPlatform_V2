@@ -244,6 +244,30 @@ class BuyerUserGuideControllerTest {
     }
 
     @Test
+    @DisplayName("bidder download builds a safe Content-Disposition for a hostile filename (M-7)")
+    void bidderDownload_maliciousFilename_headerCannotBreakOut() throws Exception {
+        byte[] pdfBytes = {0x25, 0x50, 0x44, 0x46, 0x2D};
+        // Quote + CR/LF + a ';x=y' attribute-injection attempt in the filename.
+        DownloadResult result = new DownloadResult(
+                "evil\";x=y\r\n.pdf", "application/pdf", pdfBytes.length,
+                new ByteArrayInputStream(pdfBytes));
+        when(service.download()).thenReturn(result);
+
+        mockMvc.perform(get("/api/v1/bidder/docs/buyer-guide")
+                        .header("Authorization", "Bearer " + bidderToken()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", org.hamcrest.Matchers.allOf(
+                        org.hamcrest.Matchers.containsString("inline"),
+                        // Built via ContentDisposition.builder -> RFC 5987 filename* form.
+                        // The quote + CR/LF are stripped by sanitize and ';'/'=' are
+                        // percent-encoded, so the hostile filename cannot break out of
+                        // the header value the way raw string concatenation would allow.
+                        org.hamcrest.Matchers.containsString("filename*=UTF-8''evil%3Bx%3Dy.pdf"),
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("\r")),
+                        org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("\n")))));
+    }
+
+    @Test
     @DisplayName("Administrator can also access the bidder download endpoint")
     void bidderDownload_admin_streamsOk() throws Exception {
         byte[] pdfBytes = {0x25, 0x50, 0x44, 0x46, 0x2D};

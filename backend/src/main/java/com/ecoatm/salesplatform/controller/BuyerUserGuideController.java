@@ -5,6 +5,8 @@ import com.ecoatm.salesplatform.dto.BuyerUserGuideMetadata;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService;
 import com.ecoatm.salesplatform.service.admin.BuyerUserGuideService.DownloadResult;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -14,7 +16,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
 /**
@@ -85,17 +86,36 @@ public class BuyerUserGuideController {
     public void download(HttpServletResponse response) throws IOException {
         DownloadResult result = service.download();
 
-        String encoded = URLEncoder.encode(result.fileName(), StandardCharsets.UTF_8)
-                .replace("+", "%20");
+        // M-7 (security review 2026-07-10): build the Content-Disposition via
+        // ContentDisposition.builder rather than string concatenation so a
+        // filename carrying a quote, CR/LF, or ';' can't break out of the header
+        // value (header injection / response splitting). Sanitise first, then let
+        // Spring RFC 5987-encode the UTF-8 filename* form.
+        String safeName = sanitizeFilename(result.fileName());
+        ContentDisposition disposition = ContentDisposition.builder("inline")
+                .filename(safeName, StandardCharsets.UTF_8)
+                .build();
 
         response.setContentType(result.contentType());
-        response.setHeader("Content-Disposition",
-                "inline; filename=\"" + result.fileName()
-                        + "\"; filename*=UTF-8''" + encoded);
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, disposition.toString());
         response.setContentLengthLong(result.byteSize());
 
         try (var in = result.stream(); OutputStream out = response.getOutputStream()) {
             in.transferTo(out);
         }
+    }
+
+    /**
+     * Strips path separators, control characters (incl. CR/LF), quotes, and
+     * backslashes from an upload's stored filename before it is echoed into the
+     * Content-Disposition header. Falls back to a safe default when the name is
+     * blank or reduces to nothing after cleaning.
+     */
+    private static String sanitizeFilename(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return "buyer-user-guide.pdf";
+        }
+        String cleaned = raw.replaceAll("[\\p{Cntrl}\"'\\\\/]", "").trim();
+        return cleaned.isEmpty() ? "buyer-user-guide.pdf" : cleaned;
     }
 }
