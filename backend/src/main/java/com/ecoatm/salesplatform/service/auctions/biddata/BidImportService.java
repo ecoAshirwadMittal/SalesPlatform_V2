@@ -76,9 +76,15 @@ public class BidImportService {
     private static final int COL_QTY_CAP = 10;
     private static final int COL_ID      = 11;
 
-    private static final String OWNERSHIP_CHECK_SQL = """
-            SELECT COUNT(*) FROM auctions.bid_data
-            WHERE id = ? AND bid_round_id = ? AND buyer_code_id = ?
+    /**
+     * A user owns a buyer code iff they share at least one buyer with it — there
+     * is no direct {@code (user_id, buyer_code_id)} column. Mirrors
+     * {@code BidDataSubmissionService.OWNERSHIP_SQL}, the proven IDOR-guard query.
+     */
+    private static final String BUYER_CODE_OWNERSHIP_SQL = """
+            SELECT COUNT(*) FROM user_mgmt.user_buyers ub
+            JOIN buyer_mgmt.buyer_code_buyers bcb ON bcb.buyer_id = ub.buyer_id
+            WHERE ub.user_id = ? AND bcb.buyer_code_id = ?
             """;
 
     private static final String ROUND_STATUS_SQL = """
@@ -122,6 +128,12 @@ public class BidImportService {
                                       long bidRoundId,
                                       long buyerCodeId,
                                       MultipartFile file) throws IOException {
+        // --- Gate 0: IDOR guard — the caller must own this buyer code before any
+        // read or write. Without it a bidder could upload a sheet targeting
+        // another company's buyer_code_id and overwrite their live bids
+        // (security review 2026-07-10, CR-4). Mirrors the sibling bid services. ---
+        assertOwnership(userId, buyerCodeId);
+
         // --- Gate 1: file size ---
         if (file.getSize() > MAX_FILE_BYTES) {
             throw new BidDataValidationException("IMPORT_INVALID",
@@ -244,6 +256,22 @@ public class BidImportService {
         String status = jdbc.queryForObject(ROUND_STATUS_SQL, String.class, bidRoundId);
         if ("Closed".equals(status)) {
             throw new BidDataSubmissionException("ROUND_CLOSED", "Round is closed");
+        }
+    }
+
+    /**
+     * IDOR guard: the authenticated user must own the buyer code being imported
+     * into. Administrators bypass (parity with the sibling bid services).
+     * Mirrors {@code BidDataSubmissionService.assertOwnership}.
+     */
+    private void assertOwnership(long userId, long buyerCodeId) {
+        if (hasAdministratorRole()) {
+            return;
+        }
+        Long count = jdbc.queryForObject(BUYER_CODE_OWNERSHIP_SQL, Long.class, userId, buyerCodeId);
+        if (count == null || count == 0L) {
+            throw new BidDataSubmissionException("NOT_YOUR_BID_DATA",
+                    "User does not own buyer_code_id=" + buyerCodeId);
         }
     }
 
