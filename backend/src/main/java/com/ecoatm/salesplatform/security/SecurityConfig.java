@@ -100,6 +100,16 @@ public class SecurityConfig {
                 // Bidder/Administrator for today's accounts.
                 .requestMatchers("/api/v1/buyer/partial-credit/**")
                     .hasAnyRole("PartialCredit_Buyer", "Bidder", "Administrator")
+                // Internal PWS + inventory surfaces that previously fell through to
+                // anyRequest().authenticated() — no financial/catalog write or sales
+                // review should be reachable by a plain authenticated buyer
+                // (security review 2026-07-10, CR-3 / H-1 / H-2 / H-4). The
+                // /inventory/sync/** and /admin/inventory/** matchers above are more
+                // specific and are evaluated first, so they keep their own roles.
+                .requestMatchers("/api/v1/pws/offer-review/**")
+                    .hasAnyRole("Administrator", "SalesOps", "SalesRep")
+                .requestMatchers("/api/v1/pws/pricing/**").hasAnyRole("Administrator", "SalesOps")
+                .requestMatchers("/api/v1/inventory/**").hasAnyRole("Administrator", "SalesOps")
                 // Internal user-management (role assignment / PII) — Administrator
                 // only. Without this an authenticated Bidder could self-grant
                 // Administrator via /api/v1/users/direct-users. See review (CR-1).

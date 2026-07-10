@@ -15,6 +15,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/inventory")
+// Device / case-lot catalog writes — Administrator/SalesOps only
+// (security review 2026-07-10, H-2). /inventory/sync/** stays Administrator-only.
+@org.springframework.security.access.prepost.PreAuthorize(
+        "hasAnyRole('Administrator','SalesOps')")
 public class InventoryController {
 
     private final PwsInventoryService inventoryService;

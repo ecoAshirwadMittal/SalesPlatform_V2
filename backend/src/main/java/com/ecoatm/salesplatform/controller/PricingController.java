@@ -18,6 +18,10 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/pws/pricing")
+// Global pricing catalog writes (bulk future prices, CSV upload, soft-delete) —
+// Administrator/SalesOps only (security review 2026-07-10, H-1).
+@org.springframework.security.access.prepost.PreAuthorize(
+        "hasAnyRole('Administrator','SalesOps')")
 public class PricingController {
 
     private final PricingService pricingService;
