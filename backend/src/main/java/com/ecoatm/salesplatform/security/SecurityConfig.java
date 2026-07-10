@@ -115,6 +115,7 @@ public class SecurityConfig {
                 // (security review 2026-07-10, CR-3).
                 .requestMatchers("/api/v1/pws/offers/**").hasAnyRole("Bidder", "Administrator")
                 .requestMatchers("/api/v1/pws/counter-offers/**").hasAnyRole("Bidder", "Administrator")
+                .requestMatchers("/api/v1/pws/orders/**").hasAnyRole("Bidder", "Administrator")
                 // Internal user-management (role assignment / PII) — Administrator
                 // only. Without this an authenticated Bidder could self-grant
                 // Administrator via /api/v1/users/direct-users. See review (CR-1).

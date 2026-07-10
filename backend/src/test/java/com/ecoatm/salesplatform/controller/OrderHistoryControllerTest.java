@@ -43,6 +43,13 @@ class OrderHistoryControllerTest {
     @Autowired private JwtService jwtService;
 
     @MockBean private OrderHistoryService orderHistoryService;
+    @MockBean private com.ecoatm.salesplatform.security.PwsOwnershipGuard ownership;
+
+    @org.junit.jupiter.api.BeforeEach
+    void ownershipAllowedByDefault() {
+        // Offer-detail endpoints verify ownership now (CR-3/H-3); default to owner.
+        when(ownership.ownsOffer(anyLong(), anyLong())).thenReturn(true);
+    }
 
     private String validToken() {
         return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
@@ -109,7 +116,7 @@ class OrderHistoryControllerTest {
         @DisplayName("passes tab and pagination params to service")
         void passesTabAndPagination() throws Exception {
             Page<OrderHistoryResponse> page = new PageImpl<>(List.of(), PageRequest.of(1, 50), 0);
-            when(orderHistoryService.listOrders(eq("inProcess"), eq(2L), any(), any(Pageable.class)))
+            when(orderHistoryService.listOrders(eq("inProcess"), eq(1L), any(), any(Pageable.class)))
                     .thenReturn(page);
 
             mockMvc.perform(get("/api/v1/pws/orders")
@@ -120,7 +127,7 @@ class OrderHistoryControllerTest {
                             .header("Authorization", "Bearer " + validToken()))
                     .andExpect(status().isOk());
 
-            verify(orderHistoryService).listOrders(eq("inProcess"), eq(2L), any(), any(Pageable.class));
+            verify(orderHistoryService).listOrders(eq("inProcess"), eq(1L), any(), any(Pageable.class));
         }
 
         @Test
@@ -183,7 +190,8 @@ class OrderHistoryControllerTest {
         @Test
         @DisplayName("returns all-zero counts when service returns zeros")
         void returnsZeroCounts() throws Exception {
-            when(orderHistoryService.getTabCounts(eq(99L), any()))
+            // userId now comes from the JWT (1L); the ?userId=99 param is ignored.
+            when(orderHistoryService.getTabCounts(eq(1L), any()))
                     .thenReturn(new OrderHistoryTabCounts(0L, 0L, 0L, 0L));
 
             mockMvc.perform(get("/api/v1/pws/orders/counts")
@@ -192,5 +200,23 @@ class OrderHistoryControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.all").value(0));
         }
+    }
+
+    // CR-3/H-3 (security review 2026-07-10): order-detail endpoints verify offer
+    // ownership — a caller who does not own the offer gets 403, not the data.
+    @Test
+    void getDetailsBySku_whenNotOwner_returns403() throws Exception {
+        when(ownership.ownsOffer(anyLong(), anyLong())).thenReturn(false);
+        mockMvc.perform(get("/api/v1/pws/orders/999/details/by-sku")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getDetailsBySku_whenOwner_returns200() throws Exception {
+        when(orderHistoryService.getDetailsBySku(5L)).thenReturn(List.of());
+        mockMvc.perform(get("/api/v1/pws/orders/5/details/by-sku")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isOk());
     }
 }
