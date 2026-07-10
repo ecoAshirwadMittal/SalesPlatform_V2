@@ -100,6 +100,10 @@ public class SecurityConfig {
                 // Bidder/Administrator for today's accounts.
                 .requestMatchers("/api/v1/buyer/partial-credit/**")
                     .hasAnyRole("PartialCredit_Buyer", "Bidder", "Administrator")
+                // Internal user-management (role assignment / PII) — Administrator
+                // only. Without this an authenticated Bidder could self-grant
+                // Administrator via /api/v1/users/direct-users. See review (CR-1).
+                .requestMatchers("/api/v1/users/**").hasRole("Administrator")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

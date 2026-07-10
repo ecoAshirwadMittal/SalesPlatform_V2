@@ -107,4 +107,27 @@ class DirectUserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].companyName").value("Acme"));
     }
+
+    // CR-1 (security review 2026-07-10): a non-Administrator must not reach this
+    // internal user-management surface — otherwise a Bidder could self-grant
+    // Administrator via PUT /direct-users/{id} with a crafted roleIds list.
+    @Test
+    void listDirectUsers_withNonAdminToken_returns403() throws Exception {
+        String bidderToken = jwtService.generateToken(
+                2L, "bidder@buyerco.com", List.of("Bidder"), false);
+        mockMvc.perform(get("/api/v1/users/direct-users")
+                        .header("Authorization", "Bearer " + bidderToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void updateDirectUser_withNonAdminToken_returns403() throws Exception {
+        String bidderToken = jwtService.generateToken(
+                2L, "bidder@buyerco.com", List.of("Bidder"), false);
+        mockMvc.perform(put("/api/v1/users/direct-users/2")
+                        .header("Authorization", "Bearer " + bidderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"firstName\":\"X\",\"lastName\":\"Y\",\"email\":\"x@test.com\",\"roleIds\":[1]}"))
+                .andExpect(status().isForbidden());
+    }
 }

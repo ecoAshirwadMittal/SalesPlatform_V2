@@ -4,13 +4,23 @@ import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.service.DirectUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Internal user-management surface (roles, buyer associations, PII).
+ *
+ * <p>Administrator-only: this controller can grant role assignments, so anything
+ * less than an Administrator gate would be a privilege-escalation vector (a
+ * lower-privilege caller could self-grant {@code Administrator} via
+ * {@code roleIds}). See security review 2026-07-10 (CR-1).
+ */
 @RestController
 @RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
+@PreAuthorize("hasRole('Administrator')")
 public class DirectUserController {
 
     private final DirectUserService directUserService;
