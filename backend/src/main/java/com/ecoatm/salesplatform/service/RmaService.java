@@ -145,6 +145,16 @@ public class RmaService {
         return summaries;
     }
 
+    /**
+     * Returns the buyer code id that owns the given RMA, or {@code null} if the
+     * RMA does not exist. Used by the controller to enforce ownership on
+     * rmaId-based reads (security review 2026-07-10, CR-3).
+     */
+    @Transactional(readOnly = true)
+    public Long getRmaBuyerCodeId(Long rmaId) {
+        return rmaRepository.findById(rmaId).map(Rma::getBuyerCodeId).orElse(null);
+    }
+
     /** Get RMA detail with all items, enriched with device info. */
     @Transactional(readOnly = true)
     public RmaDetailResponse getRmaDetail(Long rmaId) {

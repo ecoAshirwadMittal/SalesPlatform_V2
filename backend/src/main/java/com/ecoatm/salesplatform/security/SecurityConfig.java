@@ -116,6 +116,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/pws/offers/**").hasAnyRole("Bidder", "Administrator")
                 .requestMatchers("/api/v1/pws/counter-offers/**").hasAnyRole("Bidder", "Administrator")
                 .requestMatchers("/api/v1/pws/orders/**").hasAnyRole("Bidder", "Administrator")
+                // RMA surface — buyer submit/view-own + internal review. The
+                // review/mutation actions are further narrowed to internal roles by
+                // method-level @PreAuthorize on the controller (CR-3/C6).
+                .requestMatchers("/api/v1/pws/rma/**")
+                    .hasAnyRole("Bidder", "SalesRep", "SalesOps", "Administrator")
                 // Internal user-management (role assignment / PII) — Administrator
                 // only. Without this an authenticated Bidder could self-grant
                 // Administrator via /api/v1/users/direct-users. See review (CR-1).

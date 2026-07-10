@@ -35,6 +35,13 @@ class RmaControllerTest {
     @Autowired private JwtService jwtService;
 
     @MockBean private RmaService rmaService;
+    @MockBean private com.ecoatm.salesplatform.service.BuyerCodeService buyerCodeService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void ownershipAllowedByDefault() {
+        // Buyer-code ownership is enforced now (CR-3); default the caller to owner.
+        when(buyerCodeService.isUserAuthorizedForBuyerCode(anyLong(), anyLong())).thenReturn(true);
+    }
 
     private String validToken() {
         return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
@@ -203,25 +210,38 @@ class RmaControllerTest {
     void completeReview_withToken_returns200() throws Exception {
         RmaResponse rmaResp = new RmaResponse();
         RmaDetailResponse detail = new RmaDetailResponse(rmaResp, Collections.emptyList());
-        when(rmaService.completeReview(eq(1L), isNull())).thenReturn(detail);
+        when(rmaService.completeReview(eq(1L), eq(1L))).thenReturn(detail);
 
         mockMvc.perform(put("/api/v1/pws/rma/1/complete-review")
                         .header("Authorization", "Bearer " + validToken()))
                 .andExpect(status().isOk());
 
-        verify(rmaService).completeReview(1L, null);
+        verify(rmaService).completeReview(1L, 1L);
     }
 
+    // CR-3/C6: the reviewer id comes from the JWT principal; a spoofed ?userId=5
+    // request param is ignored (previously it was trusted as the reviewer).
     @Test
-    void completeReview_withUserId_passesUserId() throws Exception {
+    void completeReview_spoofedUserId_usesJwtPrincipal() throws Exception {
         RmaResponse rmaResp = new RmaResponse();
         RmaDetailResponse detail = new RmaDetailResponse(rmaResp, Collections.emptyList());
-        when(rmaService.completeReview(eq(1L), eq(5L))).thenReturn(detail);
+        when(rmaService.completeReview(eq(1L), eq(1L))).thenReturn(detail);
 
         mockMvc.perform(put("/api/v1/pws/rma/1/complete-review?userId=5")
                         .header("Authorization", "Bearer " + validToken()))
                 .andExpect(status().isOk());
 
-        verify(rmaService).completeReview(1L, 5L);
+        verify(rmaService).completeReview(1L, 1L);
+    }
+
+    // CR-3/C6 (security review 2026-07-10): a buyer must never reach the internal
+    // review actions — a Bidder approving/finalizing an RMA is the core exploit.
+    @Test
+    void approveAll_withBidderRole_returns403() throws Exception {
+        String bidderToken = jwtService.generateToken(
+                9L, "bidder@buyerco.com", java.util.List.of("Bidder"), false);
+        mockMvc.perform(put("/api/v1/pws/rma/1/items/approve-all")
+                        .header("Authorization", "Bearer " + bidderToken))
+                .andExpect(status().isForbidden());
     }
 }
