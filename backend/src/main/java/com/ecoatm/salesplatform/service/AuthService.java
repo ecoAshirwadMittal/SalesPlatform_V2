@@ -23,6 +23,13 @@ public class AuthService {
     private final JwtService jwtService;
     private final EntityManager em;
 
+    /**
+     * One generic message for every login failure — never reveal whether the
+     * email exists, is disabled, or the password was wrong. Enumeration-resistant,
+     * matching the forgot-password flow (security review 2026-07-10, H-7).
+     */
+    private static final String GENERIC_LOGIN_ERROR = "Invalid email or password";
+
     @Transactional(readOnly = true)
     public LoginResponse authenticateLocalUser(LoginRequest request) {
         // Mendix ACT_Login_ExternalUser logic representation
@@ -30,13 +37,13 @@ public class AuthService {
         Optional<User> userOpt = userRepository.findByNameIgnoreCase(request.getEmail());
 
         if (userOpt.isEmpty()) {
-            return new LoginResponse(false, "No account with this email", null);
+            return new LoginResponse(false, GENERIC_LOGIN_ERROR, null);
         }
 
         User user = userOpt.get();
 
         if (!user.isActive() || user.isBlocked()) {
-            return new LoginResponse(false, "Account is disabled or locked.", null);
+            return new LoginResponse(false, GENERIC_LOGIN_ERROR, null);
         }
 
         // Validate BCrypt password stored by Mendix
@@ -49,7 +56,7 @@ public class AuthService {
             resp.setUser(userInfo);
             return resp;
         } else {
-            return new LoginResponse(false, "Incorrect Password", null);
+            return new LoginResponse(false, GENERIC_LOGIN_ERROR, null);
         }
     }
 
