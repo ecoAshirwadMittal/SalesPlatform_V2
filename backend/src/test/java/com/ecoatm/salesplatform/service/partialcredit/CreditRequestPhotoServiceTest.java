@@ -251,7 +251,10 @@ class CreditRequestPhotoServiceTest {
         when(creditRequestService.getById(anyLong(), anyLong(), anyBoolean())).thenReturn(openRequest(100L));
         when(creditRequestService.findStatusRow(anyLong())).thenReturn(Optional.of(pendingStatus()));
         when(photoRepository.save(any(CreditRequestPhoto.class))).thenAnswer(inv -> inv.getArgument(0));
-        byte[] payload = new byte[]{0x4F, 0x4B, (byte) 0xC3, 0x28};
+        // Valid PNG magic bytes so the H-11 content check passes; the snapshot
+        // assertion still verifies getBytes() is stored verbatim.
+        byte[] payload = new byte[]{
+                (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D};
         MultipartFile file = new MockMultipartFile("file", "snap.png", "image/png", payload);
 
         ArgumentCaptor<CreditRequestPhoto> captor = ArgumentCaptor.forClass(CreditRequestPhoto.class);
@@ -259,6 +262,22 @@ class CreditRequestPhotoServiceTest {
         verify(photoRepository).save(captor.capture());
 
         assertThat(captor.getValue().getBlob()).containsExactly(payload);
+    }
+
+    @Test
+    @DisplayName("uploadPhoto — declared image/* but non-image bytes rejected (H-11 magic-byte check)")
+    void uploadPhoto_spoofedContentTypeNonImageBytes_rejected() {
+        when(creditRequestService.getById(anyLong(), anyLong(), anyBoolean())).thenReturn(openRequest(100L));
+        when(creditRequestService.findStatusRow(anyLong())).thenReturn(Optional.of(pendingStatus()));
+        // Declares image/png, but the bytes are a script payload — not a PNG.
+        byte[] notAnImage = "<script>alert(1)</script>".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        MultipartFile file = new MockMultipartFile("file", "evil.png", "image/png", notAnImage);
+
+        assertThatThrownBy(() -> service.uploadPhoto(100L, 500L, file, 7L, false))
+                .isInstanceOf(PhotoUploadException.class)
+                .extracting("reason")
+                .isEqualTo(PhotoUploadException.Reason.UNSUPPORTED_TYPE);
+        verify(photoRepository, never()).save(any());
     }
 
     // ── helpers ────────────────────────────────────────────────────────
@@ -283,7 +302,13 @@ class CreditRequestPhotoServiceTest {
     }
 
     private static MultipartFile jpeg(String filename, int bytes) {
-        return new MockMultipartFile("file", filename, "image/jpeg", new byte[bytes]);
+        // Real JPEG magic bytes (FF D8 FF) so the H-11 content check passes; total
+        // length stays `bytes` (>= 12 for the check) so size assertions are unaffected.
+        byte[] content = new byte[Math.max(bytes, 12)];
+        content[0] = (byte) 0xFF;
+        content[1] = (byte) 0xD8;
+        content[2] = (byte) 0xFF;
+        return new MockMultipartFile("file", filename, "image/jpeg", content);
     }
 
     private static CreditRequestPhoto stub() {

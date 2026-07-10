@@ -261,7 +261,7 @@ class BuyerPartialCreditControllerIT {
     }
 
     @Test
-    void downloadPhoto_streamsBytes_withInlineDispositionAndContentType() throws Exception {
+    void downloadPhoto_streamsBytes_asAttachmentWithNosniff() throws Exception {
         CreditRequestPhoto photo = photoRow(10L, 100L, 500L, "shot.jpg", "image/jpeg", 4, 1L);
         photo.setBlob(new byte[]{0x4F, 0x4B, 0x21, 0x21});
         when(photoService.downloadPhoto(eq(10L), eq(1L), anyBoolean())).thenReturn(photo);
@@ -269,7 +269,8 @@ class BuyerPartialCreditControllerIT {
         mvc.perform(get("/api/v1/buyer/partial-credit/photos/10/blob").with(bidder()))
            .andExpect(status().isOk())
            .andExpect(header().string("Content-Type", "image/jpeg"))
-           .andExpect(header().string("Content-Disposition", "inline; filename=\"shot.jpg\""))
+           .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+           .andExpect(header().string("Content-Disposition", "attachment; filename=\"shot.jpg\""))
            .andExpect(content().bytes(new byte[]{0x4F, 0x4B, 0x21, 0x21}));
     }
 

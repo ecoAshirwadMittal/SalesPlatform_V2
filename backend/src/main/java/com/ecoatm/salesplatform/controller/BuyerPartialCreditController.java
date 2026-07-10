@@ -243,20 +243,34 @@ public class BuyerPartialCreditController {
         return ResponseEntity.ok(photos);
     }
 
-    /** Stream a photo blob. {@code Content-Disposition: inline} lets
-     *  the browser render the image in-place; the gallery component
-     *  uses this URL as the {@code <img src>}. */
+    /** Stream a photo blob. Served as {@code attachment} with {@code nosniff} so a
+     *  stored blob can never execute as script in the app origin if opened directly
+     *  (H-11); {@code <img src>} embedding still renders it (browsers ignore
+     *  Content-Disposition for subresource loads). Upload-side magic-byte
+     *  validation already guarantees the bytes are a real image. */
     @GetMapping("/photos/{photoId}/blob")
     public ResponseEntity<byte[]> downloadPhoto(
             @PathVariable Long photoId, Authentication auth) {
         Long userId = principalUserId(auth);
         boolean admin = isAdmin(auth);
         CreditRequestPhoto photo = photoService.downloadPhoto(photoId, userId, admin);
+        String safeName = sanitizeHeaderFilename(photo.getOriginalFilename());
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(photo.getContentType()))
+                .header("X-Content-Type-Options", "nosniff")
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "inline; filename=\"" + photo.getOriginalFilename() + "\"")
+                        org.springframework.http.ContentDisposition.builder("attachment")
+                                .filename(safeName)
+                                .build().toString())
                 .body(photo.getBlob());
+    }
+
+    /** Strip characters that could break the quoted Content-Disposition value. */
+    private static String sanitizeHeaderFilename(String name) {
+        if (name == null || name.isBlank()) {
+            return "photo";
+        }
+        return name.replaceAll("[\"\\r\\n\\\\]", "_");
     }
 
     /** Delete a photo. Buyers can only delete their own uploads; admins
