@@ -1,8 +1,10 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.service.RmaService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -37,12 +39,18 @@ public class RmaController {
     private static final Set<String> INTERNAL_ROLES =
             Set.of("ROLE_Administrator", "ROLE_SalesOps", "ROLE_SalesRep");
 
+    /** 10 MB upload ceiling, mirroring {@code PricingController.MAX_UPLOAD_SIZE}. */
+    private static final long MAX_UPLOAD_SIZE = 10 * 1024 * 1024;
+
     private final RmaService rmaService;
     private final BuyerCodeService buyerCodeService;
+    private final UploadRateLimiter uploadRateLimiter;
 
-    public RmaController(RmaService rmaService, BuyerCodeService buyerCodeService) {
+    public RmaController(RmaService rmaService, BuyerCodeService buyerCodeService,
+                         UploadRateLimiter uploadRateLimiter) {
         this.rmaService = rmaService;
         this.buyerCodeService = buyerCodeService;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     /** List RMAs. Buyers see only their own buyer code; the all-view is internal. */
@@ -105,7 +113,11 @@ public class RmaController {
     public ResponseEntity<RmaSubmitResponse> submitRma(
             @RequestParam Long buyerCodeId,
             @RequestParam("file") MultipartFile file,
-            Authentication auth) throws IOException {
+            Authentication auth,
+            HttpServletRequest request) throws IOException {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         long userId = (Long) auth.getPrincipal();
         if (!buyerCodeService.isUserAuthorizedForBuyerCode(userId, buyerCodeId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
@@ -113,6 +125,21 @@ public class RmaController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest()
                     .body(RmaSubmitResponse.failure(List.of("No file uploaded.")));
+        }
+        // M-6 (security review 2026-07-10): size + content-type allowlist,
+        // mirroring PricingController.uploadPricingCsv. A missing Content-Type
+        // is a rejection, not a bypass.
+        if (file.getSize() > MAX_UPLOAD_SIZE) {
+            return ResponseEntity.badRequest()
+                    .body(RmaSubmitResponse.failure(List.of("File exceeds maximum size of 10 MB.")));
+        }
+        String contentType = file.getContentType();
+        if (contentType == null
+                || (!contentType.equals("text/csv")
+                        && !contentType.equals("text/plain")
+                        && !contentType.equals("application/vnd.ms-excel"))) {
+            return ResponseEntity.badRequest()
+                    .body(RmaSubmitResponse.failure(List.of("File must be a CSV (text/csv).")));
         }
         RmaSubmitResponse response = rmaService.submitRmaRequest(buyerCodeId, userId, file.getInputStream());
         return response.isSuccess()

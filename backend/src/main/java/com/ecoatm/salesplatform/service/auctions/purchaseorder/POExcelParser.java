@@ -21,6 +21,15 @@ public class POExcelParser {
     private static final List<String> REQUIRED = List.of(
             "ProductID", "Grade", "ModelName", "Price", "QtyCap", "BuyerCode");
 
+    /**
+     * Hard cap on data rows, mirroring {@code BidImportService.MAX_DATA_ROWS}
+     * (security review 2026-07-10, H-9). Without it a hand-crafted workbook with
+     * millions of rows would be fully DOM-loaded into heap by POI before any
+     * per-row validation runs — a cheap denial-of-service. Row 0 is the header,
+     * so {@code getLastRowNum()} (0-based) is the data-row count.
+     */
+    private static final int MAX_DATA_ROWS = 10_000;
+
     public List<ParsedRow> parse(InputStream in) {
         try (Workbook wb = new XSSFWorkbook(in)) {
             Sheet sheet = wb.getSheetAt(0);
@@ -29,9 +38,15 @@ public class POExcelParser {
                         "Workbook contains no sheets", List.of());
             }
             Map<String, Integer> headerIndex = readHeader(sheet.getRow(0));
+            int lastRow = sheet.getLastRowNum();
+            if (lastRow > MAX_DATA_ROWS) {
+                throw new PurchaseOrderValidationException("UPLOAD_ROW_LIMIT",
+                        "File contains " + lastRow + " data rows; limit is " + MAX_DATA_ROWS,
+                        List.of());
+            }
             List<ParsedRow> parsed = new ArrayList<>();
             List<String> rowErrors = new ArrayList<>();
-            for (int r = 1; r <= sheet.getLastRowNum(); r++) {
+            for (int r = 1; r <= lastRow; r++) {
                 Row row = sheet.getRow(r);
                 if (row == null || isBlankRow(row, headerIndex)) continue;
                 try {

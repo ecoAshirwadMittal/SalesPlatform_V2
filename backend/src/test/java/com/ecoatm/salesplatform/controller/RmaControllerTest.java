@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,11 +37,14 @@ class RmaControllerTest {
 
     @MockBean private RmaService rmaService;
     @MockBean private com.ecoatm.salesplatform.service.BuyerCodeService buyerCodeService;
+    @MockBean private com.ecoatm.salesplatform.security.UploadRateLimiter uploadRateLimiter;
 
     @org.junit.jupiter.api.BeforeEach
     void ownershipAllowedByDefault() {
         // Buyer-code ownership is enforced now (CR-3); default the caller to owner.
         when(buyerCodeService.isUserAuthorizedForBuyerCode(anyLong(), anyLong())).thenReturn(true);
+        // H-10 rate limiter is a collaborator now; allow uploads by default.
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
     }
 
     private String validToken() {
@@ -243,5 +247,49 @@ class RmaControllerTest {
         mockMvc.perform(put("/api/v1/pws/rma/1/items/approve-all")
                         .header("Authorization", "Bearer " + bidderToken))
                 .andExpect(status().isForbidden());
+    }
+
+    // --- POST /api/v1/pws/rma/submit — M-6 size + content-type gate ---
+
+    @Test
+    void submitRma_validCsv_returns200() throws Exception {
+        when(rmaService.submitRmaRequest(eq(100L), eq(1L), any()))
+                .thenReturn(RmaSubmitResponse.success(55L, "RMA-1", 3));
+
+        MockMultipartFile file = new MockMultipartFile("file", "rma.csv", "text/csv",
+                "IMEI/Serial,Return Reason\n123456789012345,Defective\n".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/pws/rma/submit")
+                        .file(file)
+                        .param("buyerCodeId", "100")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void submitRma_missingContentType_returns400() throws Exception {
+        MockMultipartFile file = new MockMultipartFile("file", "rma.csv", null,
+                "IMEI/Serial,Return Reason\n123456789012345,Defective\n".getBytes());
+
+        mockMvc.perform(multipart("/api/v1/pws/rma/submit")
+                        .file(file)
+                        .param("buyerCodeId", "100")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.containsString("CSV")));
+    }
+
+    @Test
+    void submitRma_oversizeFile_returns400() throws Exception {
+        byte[] big = new byte[10 * 1024 * 1024 + 1]; // 10 MB + 1 byte
+        MockMultipartFile file = new MockMultipartFile("file", "rma.csv", "text/csv", big);
+
+        mockMvc.perform(multipart("/api/v1/pws/rma/submit")
+                        .file(file)
+                        .param("buyerCodeId", "100")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors[0]").value(org.hamcrest.Matchers.containsString("10 MB")));
     }
 }

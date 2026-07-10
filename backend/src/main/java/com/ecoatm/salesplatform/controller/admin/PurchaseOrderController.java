@@ -8,12 +8,15 @@ import com.ecoatm.salesplatform.dto.PurchaseOrderRow;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PODetailService;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.POExcelBuilder;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PurchaseOrderException;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PurchaseOrderService;
 import com.ecoatm.salesplatform.service.auctions.purchaseorder.PurchaseOrderValidationException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -57,13 +60,16 @@ public class PurchaseOrderController {
     private final PurchaseOrderService poService;
     private final PODetailService detailService;
     private final POExcelBuilder excelBuilder;
+    private final UploadRateLimiter uploadRateLimiter;
 
     public PurchaseOrderController(PurchaseOrderService poService,
                                    PODetailService detailService,
-                                   POExcelBuilder excelBuilder) {
+                                   POExcelBuilder excelBuilder,
+                                   UploadRateLimiter uploadRateLimiter) {
         this.poService = poService;
         this.detailService = detailService;
         this.excelBuilder = excelBuilder;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     @GetMapping
@@ -122,9 +128,13 @@ public class PurchaseOrderController {
 
     @PostMapping(path = "/{id}/details/upload",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public PODetailUploadResult upload(@PathVariable long id,
-                                       @RequestParam("file") MultipartFile file) throws IOException {
-        return detailService.upload(id, file.getInputStream());
+    public ResponseEntity<PODetailUploadResult> upload(@PathVariable long id,
+                                       @RequestParam("file") MultipartFile file,
+                                       HttpServletRequest request) throws IOException {
+        if (!uploadRateLimiter.tryAcquire(UploadRateLimiter.clientIp(request))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        return ResponseEntity.ok(detailService.upload(id, file.getInputStream()));
     }
 
     @GetMapping(path = "/{id}/details/download",

@@ -167,6 +167,26 @@ class CreditRequestFileDropParserTest {
                 .hasMessageContaining("pdf");
     }
 
+    // ── row / entry cap (H-9) ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("csv — a file above the row cap is rejected (413 at the controller)")
+    void csv_aboveRowCap_throwsTooManyRows() {
+        // 10_001 valid-looking barcode lines pushes rowsSeen past the 10_000 cap.
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10_001; i++) {
+            sb.append("12345678\n");
+        }
+        MultipartFile file = new MockMultipartFile(
+                "file", "flood.csv", "text/csv", sb.toString().getBytes());
+
+        assertThatThrownBy(() -> parser.parse(file))
+                .isInstanceOfSatisfying(TooManyRowsException.class, ex -> {
+                    assertThat(ex.limit()).isEqualTo(10_000);
+                    assertThat(ex.matched()).isGreaterThan(10_000L);
+                });
+    }
+
     // ── keep-rule unit ────────────────────────────────────────────────
 
     @Test
