@@ -75,13 +75,18 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/qualified-buyer-codes/**").hasAnyRole("Administrator", "SalesOps")
                 // Sub-project 4B PO admin surface
                 .requestMatchers("/api/v1/admin/purchase-orders/**").hasAnyRole("Administrator", "SalesOps")
-                // Sub-project 4C recalc admin endpoints
-                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/re-rank",
-                                 "/api/v1/admin/auctions/scheduling-auctions/*/recalculate-target-price")
-                    .hasAnyRole("Administrator", "SalesOps")
-                // Sub-project 5 R2 buyer assignment admin endpoint
-                .requestMatchers("/api/v1/admin/auctions/scheduling-auctions/*/reassign-r2-buyers")
-                    .hasAnyRole("Administrator", "SalesOps")
+                // L-9 (security review 2026-07-10): the Sub-project 4C recalc
+                // (re-rank / recalculate-target-price) and Sub-project 5
+                // (reassign-r2-buyers) matchers were removed here as DEAD CODE.
+                // They target /api/v1/admin/auctions/scheduling-auctions/** —
+                // already matched by the broader "/api/v1/admin/auctions/**" rule
+                // above, which grants the SAME hasAnyRole("Administrator",
+                // "SalesOps"). Spring Security applies the first matching rule, so
+                // these later duplicates never fired. Authz for those URLs is
+                // unchanged (still Administrator + SalesOps). NB: the R3
+                // preprocess-r3 / reinit-r3 matchers stay above the broader rule
+                // because they NARROW to Administrator-only — those are not
+                // redundant and must not be removed.
                 // Partial Credit Requests — admin review surface (Sprint 3).
                 // Class-level @PreAuthorize on AdminPartialCreditController
                 // narrows further to PartialCredit_SalesOps/PartialCredit_Admin

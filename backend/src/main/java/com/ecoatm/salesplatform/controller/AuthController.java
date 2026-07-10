@@ -135,13 +135,41 @@ public class AuthController {
     public ResponseEntity<?> handleSSORedirect(@RequestParam String target) {
         // Stub for ACT_Login_InternalUser / OpenURL functionality.
         // This will be replaced by standard Spring Security OAuth2 / SAML endpoints.
+        //
+        // L-5 (security review 2026-07-10): `target` is inert today — the redirect
+        // below is a hardcoded stub and never uses it — but it is an open-redirect
+        // magnet for the future SAML wiring. Guard it now so a later implementer
+        // cannot forward the caller to an attacker-controlled absolute URL: only a
+        // safe *internal* path may ever drive a redirect (leading "/", but NOT
+        // "//host" or "/\host", which browsers resolve as protocol-relative →
+        // external). We reject an unsafe value up front rather than silently
+        // ignore it, so the constraint is enforced the moment `target` is wired in.
+        // This does NOT change the redirect destination for a valid/absent target.
+        if (target != null && !isSafeInternalRedirectTarget(target)) {
+            return ResponseEntity.badRequest().build();
+        }
         // TODO(Theme 3): when the real SSO callback lands, it MUST issue the JWT
         // via buildAuthCookie(token, DEFAULT_TTL) and attach it as a Set-Cookie
         // header — matching the /login flow. Do NOT return the token in the
-        // redirect URL, query string, or response body.
+        // redirect URL, query string, or response body. Redirect ONLY to a
+        // validated internal `target` (see isSafeInternalRedirectTarget) — never
+        // to a caller-supplied absolute URL.
         return ResponseEntity.status(HttpStatus.FOUND)
                 .header("Location", "https://login.microsoftonline.com/ecoatm-sso-stub")
                 .build();
+    }
+
+    /**
+     * True only for a safe <em>internal</em> redirect target: a path rooted at
+     * {@code "/"} that is not protocol-relative ({@code "//host"}) or a backslash
+     * variant ({@code "/\\host"}) — both of which browsers resolve to an external
+     * origin. Keeps the future SSO {@code target} param from becoming an
+     * open redirect (security review 2026-07-10, L-5).
+     */
+    private static boolean isSafeInternalRedirectTarget(String target) {
+        return target.startsWith("/")
+                && !target.startsWith("//")
+                && !target.startsWith("/\\");
     }
 
     /**

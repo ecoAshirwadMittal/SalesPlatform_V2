@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -27,6 +28,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/admin/oracle-config")
 @RequiredArgsConstructor
+// L-6 (security review 2026-07-10): defense-in-depth. Covered by the
+// SecurityConfig "/api/v1/admin/**" Administrator matcher; this class-level
+// @PreAuthorize re-asserts it at the method layer so the Oracle ERP credential
+// config + test-auth surface can never be reached by a lesser role if a URL
+// matcher is later changed.
+@PreAuthorize("hasRole('Administrator')")
 public class OracleConfigController {
 
     private static final Logger log = LoggerFactory.getLogger(OracleConfigController.class);
