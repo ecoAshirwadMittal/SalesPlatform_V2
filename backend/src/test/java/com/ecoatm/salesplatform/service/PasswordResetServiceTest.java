@@ -34,7 +34,8 @@ class PasswordResetServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new PasswordResetService(userRepository, tokenRepository, passwordEncoder);
+        service = new PasswordResetService(userRepository, tokenRepository, passwordEncoder,
+                new org.springframework.core.env.StandardEnvironment());
 
         testUser = new User();
         testUser.setId(42L);
