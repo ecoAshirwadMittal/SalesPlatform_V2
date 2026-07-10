@@ -23,10 +23,13 @@ import com.ecoatm.salesplatform.repository.auctions.BidRoundRepository;
 import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
 import jakarta.persistence.EntityManager;
+import org.hibernate.Session;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -484,28 +487,37 @@ public class AuctionScheduleService {
         // Single query for per-SA buyer counts (sa_id -> count). One row per
         // SA in the rounds list; rounds with zero matching QBCs simply
         // won't appear in the result map (lookup yields null -> render "All").
-        // Inline SA ids directly into the IN list — they are surrogate Long
-        // primary keys and never user-supplied. Hibernate's setParameter
-        // with a Collection on a native query has historically tripped on
-        // {@code IN (:saIds)} expansion, so we side-step the parameter
-        // expansion entirely.
+        //
+        // L-4 (security review 2026-07-10): bind the SA ids as a single Postgres
+        // bigint[] parameter via {@code = ANY(?)} instead of string-joining them
+        // into the SQL text. These ids are surrogate Long PKs (never
+        // user-supplied), so the old inline join was safe by Java typing alone —
+        // {@code = ANY(?)} makes it safe by construction: no value ever reaches
+        // the SQL string. Mirrors the proven in-repo binding in
+        // QualifiedBuyerCodeRepositoryImpl (Session#doReturningWork +
+        // Connection#createArrayOf("bigint", ...) + PreparedStatement#setArray) —
+        // the reliable Hibernate/Postgres bigint[] path that sidesteps the
+        // {@code IN (:collection)} expansion quirk the old comment cited.
         List<Long> saIds = rounds.stream().map(SchedulingAuction::getId).toList();
         java.util.Map<Long, Integer> countsBySa = new java.util.HashMap<>();
         if (!saIds.isEmpty()) {
-            String inList = saIds.stream()
-                    .map(String::valueOf)
-                    .collect(java.util.stream.Collectors.joining(","));
-            @SuppressWarnings("unchecked")
-            List<Object[]> rows = em.createNativeQuery(
-                    "SELECT scheduling_auction_id, CAST(COUNT(*) AS bigint)"
-                            + "  FROM buyer_mgmt.qualified_buyer_codes"
-                            + " WHERE included = true"
-                            + "   AND scheduling_auction_id IN (" + inList + ")"
-                            + " GROUP BY scheduling_auction_id")
-                    .getResultList();
-            for (Object[] row : rows) {
-                countsBySa.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
-            }
+            Long[] saIdArray = saIds.toArray(new Long[0]);
+            Session session = em.unwrap(Session.class);
+            session.doWork(connection -> {
+                String sql = "SELECT scheduling_auction_id, CAST(COUNT(*) AS bigint)"
+                        + "  FROM buyer_mgmt.qualified_buyer_codes"
+                        + " WHERE included = true"
+                        + "   AND scheduling_auction_id = ANY(?)"
+                        + " GROUP BY scheduling_auction_id";
+                try (PreparedStatement ps = connection.prepareStatement(sql)) {
+                    ps.setArray(1, connection.createArrayOf("bigint", saIdArray));
+                    try (ResultSet rs = ps.executeQuery()) {
+                        while (rs.next()) {
+                            countsBySa.put(rs.getLong(1), rs.getInt(2));
+                        }
+                    }
+                }
+            });
         }
 
         return rounds.stream()

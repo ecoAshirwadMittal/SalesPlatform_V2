@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -16,6 +17,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
+// L-6 (security review 2026-07-10): defense-in-depth. The SecurityConfig
+// "/api/v1/admin/**" URL matcher already requires Administrator; this
+// class-level @PreAuthorize re-asserts it at the method-invocation layer so a
+// future matcher edit can never silently expose this JDBC-backed config CRUD to
+// a lesser role.
+@PreAuthorize("hasRole('Administrator')")
 public class PWSAdminController {
 
     private final JdbcTemplate jdbc;
