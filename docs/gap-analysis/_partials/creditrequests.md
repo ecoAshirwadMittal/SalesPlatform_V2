@@ -1,0 +1,54 @@
+# CreditRequests — gap analysis
+
+**Rollup:** Implemented 22 · Partial 1 · Missing 6 · Divergent 1 (of 30 assessed) · spec surface: 15 pages / 0 batches / 41 reachable flows (of 46)
+
+## State (2-3 sentences)
+Partial Credit is the repo's most complete module (Phase 1 done, Sprint 4, 124/124 backend tests green). The entire buyer wizard (5 steps, three reason branches), admin review (per-line / per-section / global decisions, live totals, complete-review + async buyer email), status config, email-template editor, photos, xlsx export, and the sales-rep on-behalf flow are all faithfully rebuilt across three controllers (`BuyerPartialCreditController`, `AdminPartialCreditController`, `OnBehalfPartialCreditController`) and `service/partialcredit/*`. The behavioral gaps are narrow and mostly intentional deferrals: the KPI/reports dashboard, the buyer "we received your request" submission email, the internal accounting-notification email, per-request Excel packet, draft deletion, and the automated Prolog encumbrance check (Phase 2).
+
+## Entry points, screens & flows
+
+| Spec node (id · name · kind) | Verdict | Modern evidence (path/symbol) | Behavior gap / notes |
+|---|---|---|---|
+| `PG_CreditRequests` · sales/buyer landing, start new · page | IMPLEMENTED | `(dashboard)/wholesale/partial-credit/page.tsx`; `BuyerPartialCreditController.list/createDraft`; `POST /draft` → `CreditRequestService.createDraft` | Buyer-code selection is via API param + on-behalf modal instead of Mendix `NP_BuyerCodeSelect_Helper`. |
+| `PG_CreditRequest_Sales` · status-filtered grids, admin queue Excel · page | IMPLEMENTED | `admin/.../partial-credit/page.tsx`; `AdminPartialCreditController.list` (status/buyerCode/reason/date filters + counters) + `GET /export.xlsx` | Status counters chips + filtered list = parity; export is broader than legacy (filtered vs pending-only). |
+| `CreditRequest_SubmitNew` · wizard entry, flag issue, dup guard · page | IMPLEMENTED | `wholesale/partial-credit/new/page.tsx`; `PATCH /{id}` (reason flags), `VAL_NewCreditRequest` dup guard → `CreditRequestValidator.validateOrderEligibility` (`findActiveByOrderAndBuyer` excl. DECLINED) | |
+| `CreditRequest_DeviceUpload` · paste/type barcodes popup · page | IMPLEMENTED | `POST /{id}/{missing\|wrong\|encumbered}-lines`; `POST /parse-barcodes` (`CreditRequestFileDropParser`, xlsx/csv/docx) | Modern file-drop supports csv+docx too (legacy was Excel-only via `JA_ImportBarcodesFromExcel`). |
+| `CreditRequest_MissingDevice` · review missing lines, damage Q, Next · page | IMPLEMENTED | `new/missing/page.tsx`; `replaceMissingLines`; damage-answer gate in `CreditRequestValidator.validateDamageAnswer` (`damageNotAnswered` / `damageRequiresPhoto`) | `VAL_MissingDevices` shipment-damage gate ported as submit-time validation. |
+| `CreditRequest_WrongDevice` · review wrong-model lines · page | IMPLEMENTED | `new/wrong/page.tsx`; `replaceWrongLines`; expected/actual pairs on `WrongDeviceLine` | |
+| `CreditRequest_EncumberedDevices` · review encumbered lines · page | IMPLEMENTED | `new/encumbered/page.tsx`; `replaceEncumberedLines` | See Prolog gap below — barcodes captured; encumbrance verification manual. |
+| `CreditRequest_Summary` · final review + submit · page | IMPLEMENTED | `new/summary/page.tsx`; `POST /{id}/submit` → `CreditRequestService.submit` (full validator + denormalise + flip PENDING_APPROVAL) | |
+| `CreditRequest_PhotoUpload` / `_MissingDevice` · photo popups + count badge · page | IMPLEMENTED | `POST/GET/DELETE /{id}/photos`, `/photos/{id}/blob`; `CreditRequestPhotoService` (5 MB, 5/line cap, image allowlist, freeze-when-final); `ACE_CalculateImageCount` → V91 wrong-photo-count map in `toDetail` | |
+| `CreditRequest_Detail` · full detail to sales/admin · page | IMPLEMENTED | buyer `[id]/page.tsx` + admin `[id]/page.tsx`; `CreditRequestDetail.from` | Buyer detail reveals per-line decisions post-finalisation. |
+| `PG_CreditRequest_Review` · per-line/bulk decisions, live totals · page | IMPLEMENTED | admin `[id]/page.tsx`; `POST /{id}/lines/{lineId}/decision`, `/sections/{kind}/decision`, `/decision`, `/lines/{lineId}/encumbered`; `SUB_CalculateTotals` → `CreditCalculationService.computeHeaderSummary` recomputed per decision | Wrong-device received-pricing (`SUB_CalculateReceivedDeviceAmt`) → `ResolveReceivedDeviceService` + `MaxSubmittedBidLookup`. |
+| `Admin_CreditRequest` · admin overview → drill to detail · page | IMPLEMENTED | admin landing + `GET /{id}` | |
+| `PG_Admin_PartialCreditStatus` · status config · page | IMPLEMENTED | `admin/.../partial-credit/statuses/page.tsx`; `GET /statuses`, `PATCH /statuses/{id}`; `StatusConfigService` (5 seeded rows, cosmetic-only, immutable `system_status`) | |
+| `ACT_CreditRequest_CompleteReview` · terminal APPROVED/DECLINED + email · flow | IMPLEMENTED | `POST /{id}/complete-review` → `AdminCreditRequestService.completeReview` publishes `ReviewCompletedEvent`; `ReviewCompletedEmailListener` (`@TransactionalEventListener` AFTER_COMMIT, `@Async`) → `EmailTemplateService` + `EmailAuditService` | Adds `UNDER_REVIEW` intermediate state + `open-for-review` (net-new honest verb). |
+| barcode manifest reconciliation (`SUB_GenerateValidBarcodesList`) · flow | PARTIAL | `CreditRequestValidator.reconcileBarcodes` + `validateOrderForBuyer` via `CreditRequestSnowflakeReader.getOrderLines` | Logic complete (dedupe/Valid/NotInOrder + banner), but the live `JdbcCreditRequestSnowflakeReader` is gated behind `partial-credit.snowflake.reader=jdbc`; default is `Logging` stub and the JDBC path is unproven in staging (one e2e test `.skip`'d). |
+| `PG_CreditRequest_Reports` + `SUB_ComputeCRKPIs`/`ACT_RefreshCRKPIs`/`ACT_Open_CRKPIDashboard` · KPI dashboard · page+flows | MISSING | not found (searched `frontend/**/partial-credit`, backend `service/partialcredit/*` for KPI/CRSummary) | No reports/KPI surface at all — confirmed-absent. |
+| `SUB_SendCreditRequestSubmittedEmail` · buyer "we received your request" email · flow | MISSING | not found — `submit()` only flips status + saves, no event/email; `ReviewCompletedEmailListener` only fires on complete-review | Email infra exists but no submit-time buyer confirmation. Confirmed-absent. |
+| `ACT_SendCreditRequestAccountingEmail` · internal accounting-review notification · flow | MISSING | not found — only `ReviewCompleted_Approved/_Declined` + `PhotoUploadRequested` templates seeded (V90); listener resolves buyer recipients only | No internal accounting-team notification. Confirmed-absent. |
+| encumbered submit-time re-pricing / automated Prolog check (`ACT_SubmitCreditRequest` `EncumberedDevicesPrices` re-derive) · flow | MISSING | admin enters `prologResult`+`actualValue` manually via `POST /{id}/lines/{lineId}/encumbered`; `PrologResult` enum exists but no automated check | Deferred to Phase 2 (documented in `partial-credit.md` §"NOT in Phase 1"). Credit = manual `actualValue`. |
+| `NF_DeleteDraftCreditRequest` / `ACT_DeleteCreditRequest` · delete unsubmitted draft · flow | MISSING | not found — `BuyerPartialCreditController` has no `DELETE /{id}` (only `DELETE /photos/{photoId}`); `CreditRequestService` has no delete-request method | Buyer cannot delete a draft. Confirmed-absent. |
+| `ACT_DownloadCreditRequest` · per-request review-packet Excel · flow | MISSING | not found — only the two-sheet list export (`PartialCreditExcelExportService.export`) exists | Single-request POI packet not ported (low value; list export supersedes). |
+| `SUB_NavigateCreditRequests` / `NAV_CreditRequests` / `ACT_NAV_CreditRequests` · role-based buyer-code routing · flow | DIVERGENT | on-behalf modal + `?buyerCodeId=` param; role gating via `@PreAuthorize` | Mendix `NP_BuyerCodeSelect_Helper` / `CreditRequestWizard` / `CreditRequest_ImportHelper` session-state machinery is obsolete under a stateless REST wizard — intentional re-architecture, not a regression. |
+
+## Biggest gaps (named, with spec node ids)
+1. **KPI/Reports dashboard fully absent** — `PG_CreditRequest_Reports` + `SUB_ComputeCRKPIs` + `ACT_RefreshCRKPIs` + `ACT_Open_CRKPIDashboard`. No submitted-volume-by-Internal/External metrics surface exists. (MISSING)
+2. **Buyer submission-confirmation email not sent** — `SUB_SendCreditRequestSubmittedEmail`. Legacy emailed the buyer on submit; modern only emails on review completion. Buyer gets no "we received it" acknowledgement. (MISSING)
+3. **Automated encumbrance (Prolog) check + submit-time encumbered re-pricing deferred** — `ACT_SubmitCreditRequest` encumbered branch. Modern relies on a reviewer manually entering `prologResult`+`actualValue`; the automated block-list/lock verification and DB-query re-pricing are Phase 2. (MISSING/deferred)
+
+Secondary: internal accounting-notification email (`ACT_SendCreditRequestAccountingEmail`), draft deletion (`NF_DeleteDraftCreditRequest`), per-request Excel packet (`ACT_DownloadCreditRequest`).
+
+## Net-new modern behavior (not in legacy)
+- **`UNDER_REVIEW` state + explicit `POST /{id}/open-for-review`** — legacy had Draft→Pending→Approved/Declined; modern adds an honest intermediate review-open transition (replaces the spec's implied state-mutating GET).
+- **Action-recommendation engine** — `ActionRecommendationService` computes ACCEPT/DECLINE defaults for wrong-device lines (brand allowlist, no-power, capacity-vs-grade diff, price floor); a formalised decision tree the reviewer can override.
+- **Formalised sales-rep on-behalf flow** — `OnBehalfPartialCreditController` (`/api/v1/salesrep/partial-credit/**`): pick buyer-code → buyer-user → order#, `is_on_behalf` stamping. Legacy only tracked `SubmittedByType` Internal/External.
+- **`email_audit` trail** (V90) — one row per send attempt with success/error; `ON DELETE SET NULL`. No legacy equivalent.
+- **DB-driven status pills + admin-editable email templates** — `credit_request_statuses` cosmetic config + `email_templates` `{{var}}` renderer with HTML-escape default and `{{!var}}` raw opt-out.
+- **Hardened uploads** — `UploadRateLimiter`, 5 MB/5-per-line photo caps, magic-byte image validation, `nosniff` attachment streaming, xlsx 5,000-row cap → 413.
+
+## Likely-dead / obsolete legacy (don't port)
+- **`CreditRequest_ImportHelper` / `CreditRequestWizard` / `NP_BuyerCodeSelect_Helper` session objects** and their reset flows (`ACT_ViewCreditRequest`, `ACT_CreditRequest_BackButton`) — Mendix client-state scaffolding; obsolete under a stateless REST wizard where each step is an idempotent PATCH/POST.
+- **`DS_CreateUIHelper`, `DS_CurrentPageName`, `NF_CreditRequest_Sales_SwitchTab`, `NAV_CreditRequests` progress-spinner wrappers** — pure Mendix UI-state plumbing; React owns tab/nav/loading state.
+- **`SUB_CR_LogInfo` / `SUB_CR_LogWarning` / Custom_Logging timers** — replaced by slf4j + the `email_audit` table.
+- **`NF_DownloadCreditRequests_Sales`** (unreachable in legacy) — superseded by the admin `export.xlsx`.
