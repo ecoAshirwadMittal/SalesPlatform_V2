@@ -16,6 +16,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * The general send pipeline for the unified email module: load a template by
@@ -129,8 +130,13 @@ public class EmailService {
         emailLog.setCreatedDate(Instant.now());
         emailLog = emailLogRepository.save(emailLog);
 
-        EmailMessage message = new EmailMessage(to, cc, bcc, from, replyTo, subject, html, plain);
-        emailLog = attemptSend(emailLog, message);
+        // Build the message INSIDE attemptSend's try (via a supplier) so a
+        // construction-time failure — e.g. a rendered subject/html that came
+        // out blank, which EmailMessage rejects — is captured as a FAILED log
+        // rather than escaping and rolling back the PENDING row already
+        // inserted above (IDENTITY id → INSERT ran, but same @Transactional).
+        emailLog = attemptSend(
+                emailLog, () -> new EmailMessage(to, cc, bcc, from, replyTo, subject, html, plain));
         return emailLogRepository.save(emailLog);
     }
 
@@ -155,14 +161,16 @@ public class EmailService {
         EmailLog emailLog = emailLogRepository.findById(logId)
                 .orElseThrow(() -> new EntityNotFoundException("Email log not found: id=" + logId));
 
-        List<String> to = split(emailLog.getToAddress());
-        List<String> cc = split(emailLog.getCc());
-        List<String> bcc = split(emailLog.getBcc());
-        EmailMessage message = new EmailMessage(
-                to, cc, bcc, emailLog.getFromAddress(), null,
-                emailLog.getSubject(), emailLog.getContentHtml(), null);
-
-        emailLog = attemptSend(emailLog, message);
+        // Same rationale as sendTemplated: build the message inside
+        // attemptSend's try so a blank snapshot subject/html (which
+        // EmailMessage rejects) becomes a FAILED status-update, not an escaped
+        // throw. attemptSend returns the same instance it mutates, so a final
+        // alias is safe for the supplier to close over.
+        final EmailLog snapshot = emailLog;
+        emailLog = attemptSend(emailLog, () -> new EmailMessage(
+                split(snapshot.getToAddress()), split(snapshot.getCc()), split(snapshot.getBcc()),
+                snapshot.getFromAddress(), null,
+                snapshot.getSubject(), snapshot.getContentHtml(), null));
         return emailLogRepository.save(emailLog);
     }
 
@@ -174,20 +182,27 @@ public class EmailService {
      * retries on the same schedule this class uses for a first failure.
      */
     public static Duration backoff(int retryCount) {
-        long minutes = Math.min(1L << Math.min(retryCount, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MINUTES);
+        // Guard the 1L << negative footgun: a negative shift wraps mod-64
+        // (e.g. 1L << -1 == 1L << 63 → a wildly huge value). T6 will pass
+        // column-derived counts, so clamp defensively at the floor.
+        int safeRetryCount = Math.max(retryCount, 0);
+        long minutes = Math.min(1L << Math.min(safeRetryCount, MAX_BACKOFF_SHIFT), MAX_BACKOFF_MINUTES);
         return Duration.ofMinutes(minutes);
     }
 
     /**
-     * Sends {@code message} via {@link #emailSender} and mutates
-     * {@code emailLog}'s status in place. Never rethrows — a transport
-     * failure is recorded on the log, not propagated to the caller, so
+     * Builds the message (via {@code messageSupplier}) and sends it via
+     * {@link #emailSender}, mutating {@code emailLog}'s status in place.
+     * Message construction happens <em>inside</em> the try so that a
+     * construction-time {@link IllegalArgumentException} (blank rendered
+     * subject/html, empty recipient list) is treated identically to a
+     * transport failure — recorded as a FAILED log, never rethrown — so
      * both {@link #sendTemplated} and {@link #resend} return a truthful
-     * FAILED row instead of throwing.
+     * FAILED row instead of throwing and rolling back the PENDING snapshot.
      */
-    private EmailLog attemptSend(EmailLog emailLog, EmailMessage message) {
+    private EmailLog attemptSend(EmailLog emailLog, Supplier<EmailMessage> messageSupplier) {
         try {
-            emailSender.send(message);
+            emailSender.send(messageSupplier.get());
             emailLog.setStatus(EmailStatus.SENT);
             emailLog.setSentDate(Instant.now());
         } catch (Exception ex) {

@@ -153,6 +153,28 @@ class EmailServiceTest {
         verify(emailLogRepository, times(2)).save(any());
     }
 
+    @Test
+    @DisplayName("sendTemplated — blank rendered subject fails EmailMessage construction → FAILED log (not thrown, not rolled back)")
+    void blankRenderedSubject_writesFailedLog_doesNotThrow() {
+        EmailTemplate template = template("K", true);
+        template.setToDefault("buyer@example.com");
+        when(emailTemplateRepository.findByTemplateKey("K")).thenReturn(Optional.of(template));
+        // A subject that renders to "" (e.g. it was only "{{missingVar}}") —
+        // TemplateRenderer returns empty string, no exception, but EmailMessage
+        // rejects a blank subject. This must NOT roll back the PENDING insert.
+        when(templateRenderer.renderPlain(eq(template.getSubject()), anyMap())).thenReturn("");
+        when(templateRenderer.render(eq(template.getContentHtml()), anyMap())).thenReturn("<p>html</p>");
+        when(emailLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EmailLog log = service.sendTemplated("K", Map.of(), null, null);
+
+        assertThat(log.getStatus()).isEqualTo(EmailStatus.FAILED);
+        assertThat(log.getErrorMessage()).contains("subject");
+        assertThat(log.getNextAttemptAt()).isNotNull();
+        verify(emailSender, never()).send(any());
+        verify(emailLogRepository, times(2)).save(any()); // PENDING survives; then FAILED
+    }
+
     // ── sendTemplated — recipient / from resolution ─────────────────────
 
     @Test
@@ -289,6 +311,23 @@ class EmailServiceTest {
     }
 
     @Test
+    @DisplayName("resend — blank snapshot subject fails EmailMessage construction → FAILED log (not thrown)")
+    void resend_blankSnapshotSubject_writesFailedLog_doesNotThrow() {
+        EmailLog existing = snapshotLog();
+        existing.setSubject(""); // a corrupt/blank snapshot subject EmailMessage rejects
+        when(emailLogRepository.findById(42L)).thenReturn(Optional.of(existing));
+        when(emailLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EmailLog result = service.resend(42L);
+
+        assertThat(result.getStatus()).isEqualTo(EmailStatus.FAILED);
+        assertThat(result.getErrorMessage()).contains("subject");
+        assertThat(result.getNextAttemptAt()).isNotNull();
+        verify(emailSender, never()).send(any());
+        verify(emailLogRepository, times(1)).save(any());
+    }
+
+    @Test
     @DisplayName("resend — unknown log id throws EntityNotFoundException, no send attempted")
     void resend_unknownId_throws() {
         when(emailLogRepository.findById(999L)).thenReturn(Optional.empty());
@@ -310,6 +349,7 @@ class EmailServiceTest {
         assertThat(EmailService.backoff(3)).isEqualTo(Duration.ofMinutes(8));
         assertThat(EmailService.backoff(6)).isEqualTo(Duration.ofMinutes(60)); // capped
         assertThat(EmailService.backoff(50)).isEqualTo(Duration.ofMinutes(60)); // no overflow, still capped
+        assertThat(EmailService.backoff(-1)).isEqualTo(Duration.ofMinutes(1)); // negative clamped to 0 (no mod-64 shift wrap)
     }
 
     // ── helpers ──────────────────────────────────────────────────────────
