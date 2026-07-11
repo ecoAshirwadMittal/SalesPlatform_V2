@@ -39,7 +39,7 @@ Inventory of major modules and their primary entities.
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
 - Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)
 
-## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12)
+## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12; email migrated onto the unified module by Task 11, 2026-07-11)
 - Source module: `ecoatm_partialcredit` (Mendix)
 - Schema: `partial_credit` (V89 + V90)
 - Primary tables: `credit_requests` (header), `missing_device_lines` /
@@ -47,8 +47,12 @@ Inventory of major modules and their primary entities.
   reason-specific columns), `credit_request_photos` (bytea + kind),
   `credit_request_uploads` (xlsx/csv/docx evidence files),
   `credit_request_statuses` (5 seeded rows — DB-driven pill colour +
-  external label), `email_templates` (3 seeded rows — DB-backed
-  subject + body), `email_audit` (one row per send attempt)
+  external label). `email_templates` (3 seeded rows) and `email_audit`
+  (one row per send attempt) are **frozen as of Task 11** (design
+  decision D5) — V92 copied the 3 template rows into the unified
+  `email.template` store and all new sends write `email.log` instead;
+  these two tables + their historical rows stay in place, read-only,
+  for audit history
 - Purpose: lets a buyer file a partial credit claim against a recently
   shipped order with reasons of MISSING / WRONG / ENCUMBERED; sales
   ops reviews per-line, sets a decision, and the system fires a
@@ -58,7 +62,10 @@ Inventory of major modules and their primary entities.
 - Admin surface: `/admin/auctions-data-center/partial-credit/**` —
   landing with filters + status counters + xlsx export, review
   detail with per-line / per-section / global decisions, Complete
-  Review modal, status configuration page, email-template editor
+  Review modal, status configuration page. The PC-specific
+  email-template editor (`.../partial-credit/email-templates`) was
+  **retired by Task 11** — template editing now happens on the unified
+  Email Admin screen (`/admin/app-control-center/email-admin`)
 - Sales-rep surface: `/api/v1/salesrep/partial-credit/**` — Submit
   on behalf modal + endpoints (`SalesRep` role; permissive scoping
   in Phase 1)
@@ -68,9 +75,16 @@ Inventory of major modules and their primary entities.
   `ReviewCompletedEvent(requestId, outcome, reviewerUserId,
   occurredAt)`
 - Listener: `listener/partialcredit/ReviewCompletedEmailListener` —
-  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`;
-  renders via `EmailTemplateService` from DB-backed templates, writes
-  one `email_audit` row per recipient
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`.
+  **As of Task 11**, it dispatches through the unified
+  `EmailService.sendTemplated(templateKey, vars, SendOverrides(recipients,
+  null, null), SourceRef("PARTIAL_CREDIT", requestId))` — rendering,
+  recipient-override plumbing, the `email.log` write, and delivery all
+  live in `EmailService`; the listener only reloads the `CreditRequest`,
+  resolves recipients, and picks `ReviewCompleted_Approved` /
+  `_Declined` by outcome. Its `@Transactional` attribute is
+  `REQUIRES_NEW` **without** `readOnly` (T11 dropped `readOnly=true` —
+  `sendTemplated` writes `email.log` and would fail a readOnly tx)
 - Gated by `partial-credit.review-completed-email.enabled` (default
   `true` from Sprint 4 chunk 8; env override
   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED` remains for dev/staging)
@@ -80,10 +94,9 @@ Inventory of major modules and their primary entities.
 - Business-logic guide: `docs/business-logic/partial-credit.md`
 - Phase 2 deferred items: automated Prolog encumbrance check, RMA
   auto-creation for accepted encumbered lines, Oracle write-back,
-  S3-backed photos, `PartialCredit_*` role-tier promotion, email
-  template versioning
+  S3-backed photos, `PartialCredit_*` role-tier promotion
 
-## Unified Email Management (admin surface + frontend complete — Tasks 7-10; Task 11 Partial Credit migration still open)
+## Unified Email Management (Tasks 1-11 complete — Partial Credit migrated onto this module 2026-07-11)
 - Schema: `email` (V92)
 - Primary tables: `smtp_config` (singleton id=1 row — server host/port/
   protocol, from/reply-to address, ssl/tls, enabled, retry + timeout;
@@ -142,6 +155,19 @@ Inventory of major modules and their primary entities.
   preview) is closed with `DOMPurify.sanitize(...)` (real `dompurify`,
   not `isomorphic-dompurify` — the SSR path never calls `.sanitize()`
   since it's gated behind `useEffect`-populated state).
+- **Task 11 (final migration):** `ReviewCompletedEmailListener` (Partial
+  Credit) repointed onto `EmailService.sendTemplated` — see the "Partial
+  Credit Requests" entry above for the wiring detail. The PC-specific
+  `AdminPartialCreditController` email-template endpoints
+  (`/api/v1/admin/partial-credit/email-templates/**`) and the frontend
+  `.../partial-credit/email-templates` editor route (incl. an
+  unsanitized `dangerouslySetInnerHTML` on its Preview tab — closed by
+  deleting the route) are removed; `AdminEmailController`'s
+  `/api/v1/admin/email/templates/**` is now the only template editor.
+  `EmailTemplateService`/`EmailTemplateServiceImpl` (the PC-local
+  render/CRUD service) were deleted as fully orphaned once nothing
+  called them; the shared `TemplateRenderer` (Task 4) remains the render
+  engine for both the unified and (historical) PC paths.
 - **Known issue (observed 2026-07-11, not yet root-caused):** all three
   `GET /api/v1/admin/email/{smtp,templates,log}` endpoints 500
   (`"Internal server error"`, no further detail in the response) against

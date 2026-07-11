@@ -2,15 +2,12 @@ package com.ecoatm.salesplatform.listener.partialcredit;
 
 import com.ecoatm.salesplatform.config.AsyncConfig;
 import com.ecoatm.salesplatform.event.ReviewCompletedEvent;
+import com.ecoatm.salesplatform.model.email.EmailLog;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestRepository;
-import com.ecoatm.salesplatform.service.email.EmailMessage;
-import com.ecoatm.salesplatform.service.email.EmailSender;
-import com.ecoatm.salesplatform.service.partialcredit.EmailAuditService;
-import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService;
-import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
+import com.ecoatm.salesplatform.service.email.EmailService;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -39,13 +36,27 @@ import org.springframework.transaction.event.TransactionalEventListener;
  * the {@code @Async} executor thread has a self-contained, fully
  * initialised aggregate to render.
  *
- * <p><b>Sprint 4 / Chunk 2:</b> subject + body now come from
- * {@code partial_credit.email_templates} via {@link EmailTemplateService}.
- * Every send attempt records a row in {@code partial_credit.email_audit}
- * via {@link EmailAuditService} so the "did the buyer get the email?"
- * question is answerable without mining stdout. The listener is still
- * gated by {@code partial-credit.review-completed-email.enabled} so it
- * can be flipped off without redeploy.
+ * <p><b>T11 (unified email migration):</b> rendering, recipient
+ * resolution beyond this class, delivery, and audit logging all go
+ * through {@link EmailService#sendTemplated} against the shared
+ * {@code email.template} store (V92 copied the 3 PC template rows over) —
+ * the module-local {@code EmailTemplateService}/{@code EmailSender}/
+ * {@code EmailAuditService} path is retired. Every send now writes one
+ * {@code email.log} row tagged {@code source_module="PARTIAL_CREDIT"};
+ * the old {@code partial_credit.email_audit} table is frozen (design
+ * decision D5) — its historical rows stay queryable but nothing new is
+ * written there. The listener is still gated by
+ * {@code partial-credit.review-completed-email.enabled} so it can be
+ * flipped off without redeploy.
+ *
+ * <p><b>Transaction shape matters here.</b> This method is
+ * {@code @Transactional(REQUIRES_NEW)} — deliberately NOT {@code readOnly},
+ * unlike the pre-T11 version. {@link EmailService#sendTemplated} is itself
+ * {@code @Transactional} ({@code REQUIRES}) and WRITES {@code email.log}, so
+ * it joins this method's transaction; a {@code readOnly=true} transaction
+ * here would make that INSERT fail. It stays {@code REQUIRES_NEW} (its own
+ * transaction on the async thread, isolated from the already-committed
+ * review-completion transaction) — only the {@code readOnly} flag changed.
  */
 @Component
 public class ReviewCompletedEmailListener {
@@ -55,32 +66,29 @@ public class ReviewCompletedEmailListener {
     static final String TEMPLATE_APPROVED = "ReviewCompleted_Approved";
     static final String TEMPLATE_DECLINED = "ReviewCompleted_Declined";
 
+    /** {@code email.log.source_module} tag for every send this listener triggers. */
+    private static final String SOURCE_MODULE = "PARTIAL_CREDIT";
+
     private final CreditRequestRepository creditRequestRepository;
     private final EcoATMDirectUserRepository directUserRepository;
-    private final EmailSender emailSender;
-    private final EmailTemplateService emailTemplateService;
-    private final EmailAuditService emailAuditService;
+    private final EmailService emailService;
     private final boolean enabled;
 
     public ReviewCompletedEmailListener(
             CreditRequestRepository creditRequestRepository,
             EcoATMDirectUserRepository directUserRepository,
-            EmailSender emailSender,
-            EmailTemplateService emailTemplateService,
-            EmailAuditService emailAuditService,
+            EmailService emailService,
             @Value("${partial-credit.review-completed-email.enabled:false}") boolean enabled) {
         this.creditRequestRepository = creditRequestRepository;
         this.directUserRepository = directUserRepository;
-        this.emailSender = emailSender;
-        this.emailTemplateService = emailTemplateService;
-        this.emailAuditService = emailAuditService;
+        this.emailService = emailService;
         this.enabled = enabled;
     }
 
     /**
-     * Reload the credit request, resolve buyer recipients, render the
-     * outcome-specific template, and dispatch the rendered email. Runs
-     * on the {@link AsyncConfig#EMAIL_EXECUTOR} pool so the admin
+     * Reload the credit request, resolve buyer recipients, and dispatch the
+     * outcome-specific template through {@link EmailService#sendTemplated}.
+     * Runs on the {@link AsyncConfig#EMAIL_EXECUTOR} pool so the admin
      * completion call returns immediately.
      *
      * <p>All exceptions are caught and logged — a failure here must
@@ -88,7 +96,7 @@ public class ReviewCompletedEmailListener {
      * the admin user (the review is already final once the event fires).
      */
     @Async(AsyncConfig.EMAIL_EXECUTOR)
-    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onReviewCompleted(ReviewCompletedEvent event) {
         try {
@@ -136,27 +144,23 @@ public class ReviewCompletedEmailListener {
         String templateKey = event.outcome() == SystemStatus.APPROVED
                 ? TEMPLATE_APPROVED
                 : TEMPLATE_DECLINED;
-        RenderedEmail rendered = emailTemplateService.render(templateKey, variablesFor(cr, event.outcome()));
 
-        EmailMessage message = EmailMessage.of(
-                recipients,
-                List.of(),
-                rendered.subject(),
-                rendered.bodyHtml(),
-                rendered.bodyText());
-        try {
-            emailSender.send(message);
-            recordAudit(templateKey, recipients, requestId, true, null);
-            log.info(
-                    "ReviewCompleted email dispatched: creditRequestId={} requestNumber={} outcome={} recipients={}",
-                    requestId,
-                    cr.getRequestNumber(),
-                    event.outcome(),
-                    recipients.size());
-        } catch (RuntimeException sendFailure) {
-            recordAudit(templateKey, recipients, requestId, false, sendFailure.getMessage());
-            throw sendFailure;
-        }
+        // Recipients MUST travel via SendOverrides.to: the PC templates
+        // copied by V92 have to_default=null, so passing a null overrides
+        // would make sendTemplated throw "no recipients" (see its javadoc).
+        EmailLog sent = emailService.sendTemplated(
+                templateKey,
+                variablesFor(cr, event.outcome()),
+                new EmailService.SendOverrides(recipients, null, null),
+                new EmailService.SourceRef(SOURCE_MODULE, requestId));
+
+        log.info(
+                "ReviewCompleted email dispatched: creditRequestId={} requestNumber={} outcome={} recipients={} status={}",
+                requestId,
+                cr.getRequestNumber(),
+                event.outcome(),
+                recipients.size(),
+                sent.getStatus());
     }
 
     /**
@@ -175,20 +179,6 @@ public class ReviewCompletedEmailListener {
             vars.put("approvedTotalDisplay", "$" + approvedTotal.toPlainString());
         }
         return vars;
-    }
-
-    private void recordAudit(
-            String templateKey, List<String> recipients, Long requestId, boolean success, String errorMessage) {
-        try {
-            emailAuditService.recordBatch(templateKey, recipients, requestId, success, errorMessage);
-        } catch (RuntimeException auditFailure) {
-            log.error(
-                    "Failed to record email_audit rows for creditRequestId={} templateKey={}: {}",
-                    requestId,
-                    templateKey,
-                    auditFailure.getMessage(),
-                    auditFailure);
-        }
     }
 
     /**

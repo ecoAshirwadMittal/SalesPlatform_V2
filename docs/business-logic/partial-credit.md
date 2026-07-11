@@ -4,6 +4,11 @@ Phase 1 complete as of Sprint 4 (2026-05-12) — SPKB-3653 epic with stories
 SPKB-3658, SPKB-3659, SPKB-3660, SPKB-3661, SPKB-3662, SPKB-3663,
 SPKB-3664, SPKB-3669.
 
+**2026-07-11 — Task 11 of the unified email management build** migrated
+the review-completed email off this module's own render/send/audit path
+onto the shared `EmailService` (see "Email templates" and "Audit trail"
+below) and retired the PC-specific email-template editor.
+
 ## Glossary
 
 | Term | Meaning |
@@ -36,19 +41,25 @@ SPKB-3664, SPKB-3669.
         ┌─────────┴─────────┐
         ▼                   ▼
   ┌──────────┐         ┌──────────┐
-  │ APPROVED │         │ DECLINED │  email_audit row written,
-  │          │         │          │  ReviewCompletedEvent fired
+  │ APPROVED │         │ DECLINED │  ReviewCompletedEvent fired
   └──────────┘         └──────────┘
                   │
                   └─► ReviewCompletedEmailListener (async, AFTER_COMMIT)
-                       └─► EmailTemplateService.render(...)
-                            └─► EmailSender + EmailAuditService.recordBatch(...)
+                       └─► EmailService.sendTemplated(templateKey, vars,
+                             SendOverrides(recipients,null,null),
+                             SourceRef("PARTIAL_CREDIT", requestId))
+                            └─► renders from email.template, writes
+                                email.log, sends, marks SENT/FAILED
 ```
 
 Once final (`APPROVED` / `DECLINED`):
 - Photos can no longer be uploaded or deleted (audit trail freezes).
 - Buyer detail page reveals per-line decisions for the first time.
-- `email_audit` records one row per recipient per send attempt.
+- **As of Task 11** (unified email migration, 2026-07-11), the review-
+  completed email is sent through the shared `EmailService` and records
+  one `email.log` row tagged `source_module='PARTIAL_CREDIT'`.
+  `partial_credit.email_audit` is frozen (design decision D5) — its
+  pre-Task-11 rows stay queryable, but nothing new is written there.
 
 ## Buyer surface
 
@@ -80,7 +91,11 @@ Photos uploaded with no `wrongDeviceLineId` are stored as request-scoped
 | `/admin/.../partial-credit` | Landing — filterable list + status counter chips + Download xlsx |
 | `/admin/.../partial-credit/[id]` | Review detail — 3 reason sections, per-line + bulk decisions, Complete Review modal |
 | `/admin/.../partial-credit/statuses` | Status configuration — edit pill colour, text, sort order |
-| `/admin/.../partial-credit/email-templates` | Email-template editor (Edit + Preview tabs) |
+
+The PC-specific email-template editor that used to live at
+`/admin/.../partial-credit/email-templates` was retired by Task 11
+(unified email migration) — template editing moved to
+`/admin/app-control-center/email-admin` (see "Email templates" below).
 
 xlsx export hard-caps at 5,000 requests via `TooManyRowsException` (→ 413).
 Two sheets: **Requests** (one row per request) + **Lines** (one row per
@@ -119,32 +134,48 @@ admin changes propagate without redeploy.
 
 ## Email templates
 
-3 seeded rows in `partial_credit.email_templates` (V90 seed):
-`ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
-`PhotoUploadRequested`. Bodies use `{{varName}}` substitution rendered by
-`EmailTemplateService`:
+**As of Task 11** (unified email migration, 2026-07-11), the 3 template
+keys — `ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
+`PhotoUploadRequested` — live in the unified `email.template` table
+(V92 copied them over from `partial_credit.email_templates`, which
+stays in place as the frozen historical source, D5). They are edited on
+the Email Admin screen (`/admin/app-control-center/email-admin` →
+`AdminEmailController`'s `/api/v1/admin/email/templates/**`), not a
+partial-credit-specific screen. Rendering still uses the same
+`{{varName}}` substitution engine (`TemplateRenderer`, shared since
+Task 4 — byte-identical rules to the pre-migration
+`EmailTemplateServiceImpl`, which was deleted once nothing referenced
+it):
 - HTML body escapes substituted values by default; `{{!varName}}` opts
   out for admin-trusted raw HTML.
 - Subject + plain-text body never escape (no HTML context).
 - Missing variables substitute to empty + warn log.
-- In-process `ConcurrentHashMap` cache evicted on every `update()` call.
 
 `approvedTotalDisplay` (e.g. `"$25.00"`) carries the currency sign as
 part of the rendered value — Flyway parses `${...}` as its own
-placeholder syntax, so the V90 seed migration cannot put a literal `$`
-adjacent to `{{`.
+placeholder syntax, so the V90 seed migration (and now V92's copy)
+cannot put a literal `$` adjacent to `{{`.
 
 `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED` env var (default `true` from
-Sprint 4 chunk 8) gates the actual SMTP send. When `false` the listener
-logs the intended send but doesn't touch `EmailSender`.
+Sprint 4 chunk 8) gates the actual SMTP send at the
+`ReviewCompletedEmailListener` level — when `false`, the listener logs
+the intended send and returns before ever calling
+`EmailService.sendTemplated`.
 
 ## Audit trail
 
-`partial_credit.email_audit` — one row per send attempt
-(`template_key`, `recipient_email`, `credit_request_id`, `sent_at`,
-`success`, `error_message`). Diagnose "did the buyer receive the email?"
-without mining stdout. `credit_request_id` is `ON DELETE SET NULL` so
-deleting a request doesn't lose the audit trail.
+**As of Task 11**, every review-completed send writes one row to the
+unified `email.log` table (V92) tagged `source_module='PARTIAL_CREDIT'`,
+`source_id=<credit_request_id>` — status `PENDING`/`SENT`/`FAILED`,
+`retry_count`, `next_attempt_at` (auto-retry worker picks up transient
+failures the same way it does for every other module).
+
+`partial_credit.email_audit` (`template_key`, `recipient_email`,
+`credit_request_id`, `sent_at`, `success`, `error_message`) is **frozen**
+(design decision D5) — its pre-Task-11 rows stay queryable for
+historical audit, but the listener no longer writes to it.
+`credit_request_id` was `ON DELETE SET NULL` so deleting a request never
+lost the (now-historical) audit trail.
 
 ## What's NOT in Phase 1 (deferred to Phase 2)
 

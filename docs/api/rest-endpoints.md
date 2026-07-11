@@ -1317,17 +1317,19 @@ uploads.
 `{"error":"too_many_rows","limit":5000,"matched":<count>}` so the UI can
 render a "narrow your filters" toast.
 
-### Admin surface — email templates (Sprint 4 chunk 3)
+### Admin surface — email templates — RETIRED (Task 11, 2026-07-11)
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/api/v1/admin/partial-credit/email-templates` | List every row (enabled + disabled) |
-| `PATCH` | `/api/v1/admin/partial-credit/email-templates/{id}` | Update `subject` / `bodyHtml` / `bodyText` / `enabled` / `description`. `templateKey` is **NOT** patchable |
-| `POST` | `/api/v1/admin/partial-credit/email-templates/{id}/preview` | Render the (possibly disabled) template against supplied stub variables for the editor's Preview tab. Body: `{variables: {key: value, ...}}` |
-
-3 seeded keys: `ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
-`PhotoUploadRequested`. Bodies use `{{varName}}` substitution; HTML body
-escapes by default, `{{!varName}}` opts out for admin-trusted raw HTML.
+The PC-specific email-template editor endpoints
+(`GET`/`PATCH /api/v1/admin/partial-credit/email-templates/**`,
+`POST .../{id}/preview`) were removed. The 3 template keys
+(`ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
+`PhotoUploadRequested`) now live in the unified `email.template` store
+(V92 copied them over) and are edited via `AdminEmailController`'s
+`/api/v1/admin/email/templates/**` — see "Unified Email Management —
+Admin Template CRUD" below. `partial_credit.email_templates` and its
+now-superseded editor DTOs/service (`EmailTemplateService`) are gone
+from the codebase; the source table itself stays (frozen, D5) only as
+the historical row that V92's copy read from.
 
 ### Admin surface — status configuration
 
@@ -1348,24 +1350,39 @@ After the draft is created the modal redirects to
 `/wholesale/partial-credit/new?draftId=X` — the wizard step 1 reads the
 param and resumes the existing draft instead of creating a new one.
 
-### Email + audit (operational)
+### Email + audit (operational) — migrated onto the unified module (Task 11)
 
 `ReviewCompletedEvent` fires from `completeReview` → handled by
 `ReviewCompletedEmailListener` (`AFTER_COMMIT` + `@Async`). Listener:
-1. Reloads the `CreditRequest` in `REQUIRES_NEW`.
+1. Reloads the `CreditRequest` in its own `REQUIRES_NEW` transaction
+   (deliberately **not** `readOnly` — see step 3).
 2. Resolves recipients via `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId`.
-3. Renders the right template (`ReviewCompleted_Approved` /
-   `_Declined`) via `EmailTemplateService`.
-4. Dispatches through `EmailSender` (gated by
-   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED`, default `true`).
-5. Writes one `partial_credit.email_audit` row per recipient via
-   `EmailAuditService` — both success and sender-throws paths.
+3. Calls `EmailService.sendTemplated(templateKey, vars,
+   SendOverrides(recipients, null, null),
+   SourceRef("PARTIAL_CREDIT", requestId))` — one call now does what
+   used to be three (render, send, audit). `templateKey` is
+   `ReviewCompleted_Approved` / `_Declined` by outcome. Recipients MUST
+   travel via `SendOverrides.to`: the copied templates have
+   `to_default=null`, so a `null` overrides would make `sendTemplated`
+   throw "no recipients".
+4. `sendTemplated` renders from `email.template`, resolves `from` (env
+   SMTP config fallback), writes a `PENDING` `email.log` row, sends via
+   the configured `EmailSender` (gated by
+   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED`, default `true`, at the
+   listener level — the `sendTemplated` call itself is unconditional
+   once reached), and updates that row to `SENT`/`FAILED`.
+5. Any exception `sendTemplated` raises (missing/disabled template, no
+   recipients) is caught by the listener's outer try/catch and logged —
+   never rethrown, never rolls back the already-committed review.
 
-Verify post-flow with:
+`partial_credit.email_audit` is **frozen** (design decision D5) — its
+historical rows stay queryable, but no new PC send writes there. Verify
+post-flow with:
 ```sql
-SELECT template_key, recipient_email, success, sent_at
-FROM   partial_credit.email_audit
-ORDER  BY sent_at DESC
+SELECT template_key, to_address, status, source_module, source_id, created_date
+FROM   email.log
+WHERE  source_module = 'PARTIAL_CREDIT'
+ORDER  BY created_date DESC
 LIMIT  10;
 ```
 
@@ -1413,7 +1430,10 @@ configured"}` in that case instead of failing to boot.
 
 `Administrator`-only. Backs the admin email-template editor for
 `email.template` (V92) — the unified store that supersedes the
-module-local `partial_credit.email_templates` table for new call sites.
+module-local `partial_credit.email_templates` table. As of Task 11 this
+is the *only* template editor: the PC-specific one under
+`/api/v1/admin/partial-credit/email-templates/**` is retired, and
+`ReviewCompletedEmailListener` resolves its templates here too.
 The email-log admin surface for this module is a separate, later task
 (T9) — not covered here.
 

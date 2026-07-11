@@ -8,12 +8,17 @@ import { isBackendAvailable } from './_helpers/backend';
  * cleanly. Local runs with `mvn spring-boot:run` exercise the real
  * surface end-to-end.
  *
- * Covers five plan §8 chunk-8 scenarios at a smoke level: deeper
- * scenarios (full wizard submit → admin complete-review → email_audit
+ * Covers four plan §8 chunk-8 scenarios at a smoke level: deeper
+ * scenarios (full wizard submit → admin complete-review → email.log
  * insert) need DB state coordination that's better verified manually
  * via the §12 verification list than from a single Playwright run.
  * What we DO want from this spec is regression-guard: if any of the
- * five entry points 404 or 403 unexpectedly, CI fails fast.
+ * four entry points 404 or 403 unexpectedly, CI fails fast.
+ *
+ * T11 (unified email migration) retired the fifth entry point this spec
+ * used to cover — the PC-specific `/partial-credit/email-templates`
+ * editor — in favour of the unified Email Admin screen
+ * (`/admin/app-control-center/email-admin`), which has its own coverage.
  */
 
 async function loginAs(page: Page, email: string, password: string) {
@@ -52,16 +57,6 @@ test.describe('Partial Credit — Sprint 4 close-out', () => {
     await expect(page.getByTestId('export-xlsx')).toBeEnabled();
   });
 
-  test('admin email-templates page lists the 3 seeded templates', async ({ page }) => {
-    await loginAs(page, 'admin@test.com', 'Admin123!');
-    await page.goto('/admin/auctions-data-center/partial-credit/email-templates');
-    await expect(page.locator('h1')).toHaveText('Email templates');
-    // The 3 V90-seeded keys must all be visible in the table.
-    await expect(page.getByText('ReviewCompleted_Approved')).toBeVisible();
-    await expect(page.getByText('ReviewCompleted_Declined')).toBeVisible();
-    await expect(page.getByText('PhotoUploadRequested')).toBeVisible();
-  });
-
   test('admin Download triggers an xlsx response (or 413 when filter is too wide)', async ({ page }) => {
     await loginAs(page, 'admin@test.com', 'Admin123!');
     await page.goto('/admin/auctions-data-center/partial-credit');
@@ -97,12 +92,16 @@ test.describe('Partial Credit — Sprint 4 close-out', () => {
  *  - Buyer submits a request → opens the detail page → uploads a
  *    photo → photo appears in the gallery (covered piecemeal by
  *    Sprint 2 + Chunk 5 unit tests).
- *  - Admin reviews + APPROVEs → partial_credit.email_audit gets a row
- *    (verify with `psql -c "SELECT template_key, recipient_email, success
- *     FROM partial_credit.email_audit ORDER BY sent_at DESC LIMIT 5"`).
+ *  - Admin reviews + APPROVEs → email.log gets a row with
+ *    source_module='PARTIAL_CREDIT' (T11; verify with `psql -c "SELECT
+ *     template_key, to_address, status, source_module, source_id FROM
+ *     email.log WHERE source_module='PARTIAL_CREDIT' ORDER BY
+ *     created_date DESC LIMIT 5"`). partial_credit.email_audit is frozen
+ *    (D5) — no new rows land there.
  *  - Sales-rep submits on behalf → request appears on the bidder's
  *    landing (the on-behalf modal + wizard resume flow is exercised by
  *    Chunk 6 + Chunk 8 unit tests).
- *  - Admin edits an email template → re-runs a review → new subject is
- *    logged in email_audit.
+ *  - Admin edits an email template (now via `/admin/app-control-center
+ *    /email-admin`, not the retired PC editor) → re-runs a review → new
+ *    subject appears in the next email.log row.
  */
