@@ -111,3 +111,21 @@ security-critical assertions carry the weight.
 
 Backend email-admin sweep: **16/16 green** (`AdminEmailControllerSmtpIT`
 9 + `SmtpConfigServiceTest` 7).
+
+---
+
+## email.admin-templates (new 2026-07-11, Task 8)
+Target 85%+. Extends `AdminEmailController` (Task 7) with the
+`email.template` CRUD/preview/send-test surface. Load-bearing branches:
+duplicate-`templateKey` conflict, `templateKey` immutability on update,
+404 on every missing-id path, preview bypassing the `enabled` check, and
+the send-test rate limit being user-keyed (not IP-keyed) and checked
+before the template lookup.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` template endpoints | `AdminEmailControllerTemplatesIT` (22, `@WebMvcTest` + imported `SecurityConfig`, mirrors `AdminEmailControllerSmtpIT`'s auth setup) — create→201+id with audit stamps; duplicate key→409; list; get by id 200/404; put updates `changed_date` + ignores a submitted `templateKey` change (ArgumentCaptor asserts the saved entity kept the original key); delete→204/404; preview renders `{{var}}` via mocked `TemplateRenderer` **on a disabled template** (proves the enabled-check bypass) + null-`contentPlain`→`text` absent; send-test→200 + `ArgumentCaptor` proof of the exact `SendOverrides`/`SourceRef` passed to `EmailService.sendTemplated`, plus an exact-match assertion that the rate-limit key is `"email-send-test:" + userId`; send-test 404 (missing template) and 429 (limiter denies, asserted to skip the template lookup entirely); non-admin→403 on list/create/send-test; validation negatives — bad `templateKey` pattern→400, blank `subject`→400, bad/blank send-test email→400 |
+| `AdminEmailControllerSmtpIT` regression | Extended with 3 new `@MockBean`s (`EmailTemplateRepository`, `TemplateRenderer`, `EmailService`) required after `AdminEmailController`'s constructor grew — still 9/9 green, no behavior changes |
+
+Backend email-admin sweep: **31/31 green** (`AdminEmailControllerTemplatesIT`
+22 + `AdminEmailControllerSmtpIT` 9).

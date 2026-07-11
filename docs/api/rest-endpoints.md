@@ -1408,3 +1408,68 @@ authenticated JWT principal — never from a request field.
 `spring.mail.host` is unset in this app today so no `JavaMailSender` bean
 exists. `POST /smtp/test` returns `{success:false, message:"SMTP is not
 configured"}` in that case instead of failing to boot.
+
+## Unified Email Management — Admin Template CRUD (Task 8)
+
+`Administrator`-only. Backs the admin email-template editor for
+`email.template` (V92) — the unified store that supersedes the
+module-local `partial_credit.email_templates` table for new call sites.
+The email-log admin surface for this module is a separate, later task
+(T9) — not covered here.
+
+### Admin surface — templates
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/templates` | List every row (enabled + disabled). Response: `EmailTemplateView[]` |
+| `POST` | `/api/v1/admin/email/templates` | Create. Body: `EmailTemplateUpsert`. `409` if `templateKey` already exists. `201` + the new `EmailTemplateView` (with `id`) on success |
+| `GET` | `/api/v1/admin/email/templates/{id}` | Single row. `404` if missing |
+| `PUT` | `/api/v1/admin/email/templates/{id}` | Update. Body: `EmailTemplateUpsert` (full representation — every editable field is required, not a null-means-unchanged patch). **`templateKey` is immutable**: the submitted value is validated but silently ignored, never written. `404` if missing |
+| `DELETE` | `/api/v1/admin/email/templates/{id}` | Hard delete. `204`. `404` if missing. Phase 1 does not guard a key still referenced by a sender (e.g. the Partial-Credit listener) |
+| `POST` | `/api/v1/admin/email/templates/{id}/preview` | Render `{subject, html, text}` against supplied `vars`, **bypassing the `enabled` check** — a disabled template can still be previewed. Body: `PreviewRequest{vars}`. `404` if missing |
+| `POST` | `/api/v1/admin/email/templates/{id}/send-test` | Send a real test email via `EmailService.sendTemplated`, overriding `to` with the supplied address. Body: `SendTestRequest{toAddress, vars}`. Rate-limited (`429` when denied) and `404` if the template is missing |
+
+**Validation (`EmailTemplateUpsert`):** `templateKey`/`templateName`/
+`subject`/`contentHtml` are `@NotBlank`; `templateKey` must match
+`^[A-Za-z0-9_]+$` (mirrors the V92 CHECK constraint); every `@Size` bound
+mirrors the V92 column widths (`templateKey` 80, `templateName` 160,
+`subject`/`fromAddress`/`fromDisplayName`/`replyTo` 255, `toDefault`/
+`ccDefault`/`bccDefault` 2000, `description` 500); `fromAddress`/`replyTo`
+are `@Email` (no-op when absent). A violation maps to `400` via
+`GlobalExceptionHandler.handleValidation`.
+
+**`templateKey` immutability:** the create/update DTO shape is shared
+(`EmailTemplateUpsert`) so a PUT body still carries a syntactically valid
+`templateKey`, but the controller never writes it onto an existing row —
+only `POST /templates` sets it, at creation. This protects senders that
+resolve a template by key (e.g. the Partial-Credit `ReviewCompletedEmailListener`)
+from a silent break.
+
+**Preview bypasses `enabled`:** unlike `EmailService.sendTemplated` (which
+throws if the template is disabled), `POST /templates/{id}/preview` never
+checks the `enabled` column — an admin must be able to preview a template
+before flipping it back on, mirroring
+`AdminPartialCreditController.previewEmailTemplate`'s established
+partial-credit-module precedent.
+
+**Security — send-test rate limit is user-keyed, not IP-keyed:**
+`POST /templates/{id}/send-test` triggers a real outbound send, so it is
+rate-limited via the shared `UploadRateLimiter` — but keyed by
+`"email-send-test:" + <authenticated user id>` rather than
+`UploadRateLimiter.clientIp(request)`. `clientIp` trusts a spoofable
+`X-Forwarded-For` header; since this endpoint always has a verified JWT
+principal, keying by user id closes that gap (security review
+2026-07-10 hardening). The rate-limit check runs **before** the template
+lookup. `POST /smtp/test` (Task 7) intentionally keeps its existing
+IP-keyed limiter as-is — unifying both endpoints onto the same keying
+scheme is a separate follow-up.
+
+**Authorization:** covered by the existing `/api/v1/admin/email/**`
+`SecurityConfig` matcher (added in Task 7 — no change needed for these
+new sub-paths) plus the class-level `@PreAuthorize("hasRole('Administrator')")`
+on `AdminEmailController` (defense-in-depth).
+
+**Audit:** `POST /templates` stamps `created_date`/`changed_date`/
+`created_by_id`/`changed_by_id`; `PUT /templates/{id}` stamps
+`changed_date`/`changed_by_id` — all from the server clock and the
+authenticated JWT principal, never from a request field.
