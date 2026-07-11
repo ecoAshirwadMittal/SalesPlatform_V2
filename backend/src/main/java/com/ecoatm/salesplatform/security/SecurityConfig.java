@@ -67,6 +67,11 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
                 .requestMatchers("/api/v1/admin/reserve-bids/**").hasRole("Administrator")
+                // Unified email management (Task 7) — SMTP config admin surface.
+                // Same effective role as the "/api/v1/admin/**" catch-all below, but
+                // Security Rules mandate an explicit matcher (defense-in-depth) for
+                // every new admin namespace rather than relying on the catch-all alone.
+                .requestMatchers("/api/v1/admin/email/**").hasRole("Administrator")
                 // P8 admin surfaces: SalesOps + Administrator per master plan;
                 // matchers must precede the catch-all admin rule.
                 .requestMatchers("/api/v1/admin/round-criteria/**").hasAnyRole("Administrator", "SalesOps")

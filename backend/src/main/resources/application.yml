@@ -70,7 +70,9 @@ spring:
     host: ${MAIL_HOST:localhost}
     port: ${MAIL_PORT:25}
     username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    # Password only ever comes from env (design decision D2, email-management-design-2026-07-10.md) —
+    # never DB/API. EmailSmtpValidator fails startup in production if enabled=true and this is blank.
+    password: ${EMAIL_SMTP_PASSWORD:}
     properties:
       mail:
         smtp:

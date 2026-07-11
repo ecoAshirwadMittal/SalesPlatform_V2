@@ -39,7 +39,7 @@ Inventory of major modules and their primary entities.
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
 - Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)
 
-## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12)
+## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12; email migrated onto the unified module by Task 11, 2026-07-11)
 - Source module: `ecoatm_partialcredit` (Mendix)
 - Schema: `partial_credit` (V89 + V90)
 - Primary tables: `credit_requests` (header), `missing_device_lines` /
@@ -47,8 +47,12 @@ Inventory of major modules and their primary entities.
   reason-specific columns), `credit_request_photos` (bytea + kind),
   `credit_request_uploads` (xlsx/csv/docx evidence files),
   `credit_request_statuses` (5 seeded rows — DB-driven pill colour +
-  external label), `email_templates` (3 seeded rows — DB-backed
-  subject + body), `email_audit` (one row per send attempt)
+  external label). `email_templates` (3 seeded rows) and `email_audit`
+  (one row per send attempt) are **frozen as of Task 11** (design
+  decision D5) — V92 copied the 3 template rows into the unified
+  `email.template` store and all new sends write `email.log` instead;
+  these two tables + their historical rows stay in place, read-only,
+  for audit history
 - Purpose: lets a buyer file a partial credit claim against a recently
   shipped order with reasons of MISSING / WRONG / ENCUMBERED; sales
   ops reviews per-line, sets a decision, and the system fires a
@@ -58,7 +62,10 @@ Inventory of major modules and their primary entities.
 - Admin surface: `/admin/auctions-data-center/partial-credit/**` —
   landing with filters + status counters + xlsx export, review
   detail with per-line / per-section / global decisions, Complete
-  Review modal, status configuration page, email-template editor
+  Review modal, status configuration page. The PC-specific
+  email-template editor (`.../partial-credit/email-templates`) was
+  **retired by Task 11** — template editing now happens on the unified
+  Email Admin screen (`/admin/app-control-center/email-admin`)
 - Sales-rep surface: `/api/v1/salesrep/partial-credit/**` — Submit
   on behalf modal + endpoints (`SalesRep` role; permissive scoping
   in Phase 1)
@@ -68,9 +75,16 @@ Inventory of major modules and their primary entities.
   `ReviewCompletedEvent(requestId, outcome, reviewerUserId,
   occurredAt)`
 - Listener: `listener/partialcredit/ReviewCompletedEmailListener` —
-  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`;
-  renders via `EmailTemplateService` from DB-backed templates, writes
-  one `email_audit` row per recipient
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)`.
+  **As of Task 11**, it dispatches through the unified
+  `EmailService.sendTemplated(templateKey, vars, SendOverrides(recipients,
+  null, null), SourceRef("PARTIAL_CREDIT", requestId))` — rendering,
+  recipient-override plumbing, the `email.log` write, and delivery all
+  live in `EmailService`; the listener only reloads the `CreditRequest`,
+  resolves recipients, and picks `ReviewCompleted_Approved` /
+  `_Declined` by outcome. Its `@Transactional` attribute is
+  `REQUIRES_NEW` **without** `readOnly` (T11 dropped `readOnly=true` —
+  `sendTemplated` writes `email.log` and would fail a readOnly tx)
 - Gated by `partial-credit.review-completed-email.enabled` (default
   `true` from Sprint 4 chunk 8; env override
   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED` remains for dev/staging)
@@ -80,5 +94,87 @@ Inventory of major modules and their primary entities.
 - Business-logic guide: `docs/business-logic/partial-credit.md`
 - Phase 2 deferred items: automated Prolog encumbrance check, RMA
   auto-creation for accepted encumbered lines, Oracle write-back,
-  S3-backed photos, `PartialCredit_*` role-tier promotion, email
-  template versioning
+  S3-backed photos, `PartialCredit_*` role-tier promotion
+
+## Unified Email Management (Tasks 1-11 complete — Partial Credit migrated onto this module 2026-07-11)
+- Schema: `email` (V92)
+- Primary tables: `smtp_config` (singleton id=1 row — server host/port/
+  protocol, from/reply-to address, ssl/tls, enabled, retry + timeout;
+  **no password column** — the SMTP password is env-only,
+  `spring.mail.password`), `template` (keyed by `template_key`, HTML +
+  plain body, from/reply-to/cc/bcc defaults; seeded from the live
+  Partial Credit templates), `log` (one row per send attempt — status
+  `PENDING`/`SENT`/`FAILED`, `retry_count`, `next_attempt_at`, source
+  module/id)
+- Admin surface:
+  - Task 7 (SMTP config): `GET`/`PUT /api/v1/admin/email/smtp` +
+    `POST /api/v1/admin/email/smtp/test` (rate-limited, IP-keyed)
+  - Task 8 (template CRUD): `GET`/`POST /api/v1/admin/email/templates`,
+    `GET`/`PUT`/`DELETE /api/v1/admin/email/templates/{id}`,
+    `POST /api/v1/admin/email/templates/{id}/preview` (bypasses the
+    `enabled` check), `POST /api/v1/admin/email/templates/{id}/send-test`
+    (real send via `EmailService.sendTemplated`, rate-limited —
+    user-keyed, not IP-keyed)
+  - Task 9 (delivery log): `GET /api/v1/admin/email/log` (filtered +
+    paged — `status`/`from`/`to`/`templateKey`), `GET
+    /api/v1/admin/email/log/{id}` (detail incl. rendered `content_html`),
+    `POST /api/v1/admin/email/log/{id}/resend` (admin-forced — bypasses
+    the normal `retry_count` cap by resetting it to 0 before calling
+    `EmailService.resend`)
+
+  All `Administrator`-only. See `docs/api/rest-endpoints.md`
+  § "Unified Email Management — Admin SMTP Config", § "Unified Email
+  Management — Admin Template CRUD", and § "Unified Email Management —
+  Admin Log"
+- Security (design decision D2): the SMTP password is env-only and MUST
+  NEVER appear in a request body, response, or DB column. Enforced
+  structurally — `SmtpConfigView`/`SmtpConfigUpdate` have no password
+  component for Jackson to populate or bind into
+- `JavaMailSender` is injected as `ObjectProvider<JavaMailSender>` (not
+  a hard dependency) because `spring.mail.host` is unset in this app
+  today, so no bean exists yet; `/smtp/test` degrades to
+  `{success:false, message:"SMTP is not configured"}` instead of
+  failing the app to boot
+- Task 8 `templateKey` is immutable post-create (create/update share the
+  `EmailTemplateUpsert` DTO shape, but the controller only ever writes
+  `templateKey` on `POST /templates`) — protects senders that resolve a
+  template by key (e.g. the Partial-Credit `ReviewCompletedEmailListener`)
+  from a silent break via the admin editor
+- Task 9's `EmailLogRepository.search` JPQL casts the `from`/`to`
+  `IS NULL` checks to `timestamp` — a bare `:from IS NULL` with no
+  comparison operator in that branch leaves PostgreSQL's extended query
+  protocol unable to infer the bind parameter's type
+  (`PSQLException: could not determine data type of parameter $N`),
+  caught by the real-Postgres `EmailRepositoryIT` rather than the mocked
+  controller slice
+- **Task 10 (frontend):** `frontend/src/app/(dashboard)/admin/app-control-center/email-admin/`
+  — `page.tsx` is a thin shell; `SmtpConfigTab.tsx` / `TemplatesTab.tsx` /
+  `TemplateDetailEditor.tsx` / `EmailLogTab.tsx` own each tab's fetching +
+  UI, backed by the typed client `frontend/src/lib/adminEmailClient.ts`.
+  M-3 (unsanitized `dangerouslySetInnerHTML` on the log-detail HTML
+  preview) is closed with `DOMPurify.sanitize(...)` (real `dompurify`,
+  not `isomorphic-dompurify` — the SSR path never calls `.sanitize()`
+  since it's gated behind `useEffect`-populated state).
+- **Task 11 (final migration):** `ReviewCompletedEmailListener` (Partial
+  Credit) repointed onto `EmailService.sendTemplated` — see the "Partial
+  Credit Requests" entry above for the wiring detail. The PC-specific
+  `AdminPartialCreditController` email-template endpoints
+  (`/api/v1/admin/partial-credit/email-templates/**`) and the frontend
+  `.../partial-credit/email-templates` editor route (incl. an
+  unsanitized `dangerouslySetInnerHTML` on its Preview tab — closed by
+  deleting the route) are removed; `AdminEmailController`'s
+  `/api/v1/admin/email/templates/**` is now the only template editor.
+  `EmailTemplateService`/`EmailTemplateServiceImpl` (the PC-local
+  render/CRUD service) were deleted as fully orphaned once nothing
+  called them; the shared `TemplateRenderer` (Task 4) remains the render
+  engine for both the unified and (historical) PC paths.
+- **Known issue (observed 2026-07-11, not yet root-caused):** all three
+  `GET /api/v1/admin/email/{smtp,templates,log}` endpoints 500
+  (`"Internal server error"`, no further detail in the response) against
+  the local dev DB, reproduced directly against port 8080 (not a
+  frontend/proxy issue) with a valid seeded `smtp_config` row present.
+  Not the JPQL casting issue above (that's `/log`-specific; this hits
+  `/smtp` and `/templates` too, suggesting something controller- or
+  security-config-wide). The Task 10 frontend catches and displays the
+  error correctly either way (verified in a real logged-in browser
+  session) — this is a backend follow-up, not a frontend defect.

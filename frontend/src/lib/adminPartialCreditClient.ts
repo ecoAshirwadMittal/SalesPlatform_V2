@@ -121,11 +121,17 @@ const MissingLineDtoSchema = z.object({
 const WrongLineDtoSchema = z.object({
   id: z.number(),
   expectedBarcode: z.string(),
+  // V91 (Figma parity fix #5) — Box No. column on admin Wrong table.
+  // Mirrors partialCreditClient's WrongLineSchema; the backend's shared
+  // WrongDeviceLineDto record always includes this field.
+  expectedBoxNumber: z.string().nullable(),
   expectedBrand: z.string().nullable(),
   expectedModel: z.string().nullable(),
   expectedGrade: z.string().nullable(),
   expectedAmountPaid: z.number().nullable(),
   actualImeiOrModel: z.string().nullable(),
+  // V91 (Figma parity fix #6a) — alias of actualImeiOrModel.
+  receivedImei: z.string().nullable(),
   actualBrand: z.string().nullable(),
   actualModel: z.string().nullable(),
   actualGrade: z.string().nullable(),
@@ -134,6 +140,8 @@ const WrongLineDtoSchema = z.object({
   lineStatus: z.string().nullable(),
   reviewDecision: z.string().nullable(),
   amountToCredit: z.number().nullable(),
+  // V91 (Figma parity fix #6b) — per-line photo count.
+  photoCount: z.number().nullable(),
 });
 
 const EncumberedLineDtoSchema = z.object({

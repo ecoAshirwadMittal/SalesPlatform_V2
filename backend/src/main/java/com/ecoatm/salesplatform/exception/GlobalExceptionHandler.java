@@ -14,6 +14,7 @@ import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -42,6 +43,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleBadRequest(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
                 .body(errorBody(HttpStatus.BAD_REQUEST, ex.getMessage(), null));
+    }
+
+    /**
+     * A typed {@code @RequestParam}/{@code @PathVariable} (e.g. {@code Instant from},
+     * {@code Long id}) that fails to parse throws this from Spring's argument
+     * resolution — before it ever reaches application code — so without this handler
+     * it falls through to {@link #handleGeneric} as a raw 500. Applies app-wide to
+     * every typed request parameter (final review batch, whole-branch fix #4; closes
+     * the {@code GET /admin/email/log?from=garbage} 500).
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, Object>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        return ResponseEntity.badRequest()
+                .body(errorBody(HttpStatus.BAD_REQUEST, "Invalid value for parameter '" + ex.getName() + "'", null));
     }
 
     /**

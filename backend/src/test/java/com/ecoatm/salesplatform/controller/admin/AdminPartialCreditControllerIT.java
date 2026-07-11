@@ -23,13 +23,9 @@ import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.LineKind;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.OpenReviewResult;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.SectionDecisionResult;
-import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplateUpdate;
 import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigPatch;
-import com.ecoatm.salesplatform.model.partialcredit.EmailTemplate;
 import com.ecoatm.salesplatform.service.partialcredit.CreditCalculationService.HeaderSummary;
 import com.ecoatm.salesplatform.service.partialcredit.CreditRequestValidationException;
-import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService;
-import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
 import com.ecoatm.salesplatform.service.partialcredit.StatusConfigService;
 import com.ecoatm.salesplatform.service.partialcredit.ValidationIssue;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,7 +80,6 @@ class AdminPartialCreditControllerIT {
     @MockBean com.ecoatm.salesplatform.repository.partialcredit.CreditRequestPhotoRepository photoRepository;
     @MockBean BuyerCodeRepository buyerCodeRepository;
     @MockBean StatusConfigService statusConfigService;
-    @MockBean EmailTemplateService emailTemplateService;
     @MockBean com.ecoatm.salesplatform.service.partialcredit.PartialCreditExcelExportService exportService;
 
     CreditRequestStatus underReviewRow;
@@ -391,90 +386,6 @@ class AdminPartialCreditControllerIT {
     }
 
     // -------------------------------------------------------------------
-    // Email-template endpoints (Chunk 3)
-    // -------------------------------------------------------------------
-
-    @Test
-    void salesOps_listEmailTemplates_returns200WithSeedRows() throws Exception {
-        when(emailTemplateService.listAll()).thenReturn(List.of(
-                emailTemplate(1L, "ReviewCompleted_Approved", "approved-subj", true),
-                emailTemplate(2L, "ReviewCompleted_Declined", "declined-subj", true),
-                emailTemplate(3L, "PhotoUploadRequested", "photo-subj", true)));
-
-        mvc.perform(get("/api/v1/admin/partial-credit/email-templates").with(salesOps()))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("$.length()").value(3))
-           .andExpect(jsonPath("$[0].templateKey").value("ReviewCompleted_Approved"))
-           .andExpect(jsonPath("$[0].enabled").value(true));
-    }
-
-    @Test
-    void unauthenticated_listEmailTemplates_returns401() throws Exception {
-        mvc.perform(get("/api/v1/admin/partial-credit/email-templates"))
-           .andExpect(status().isUnauthorized());
-    }
-
-    @Test
-    void admin_patchEmailTemplate_subjectOnly_returns200_withUpdatedRow() throws Exception {
-        EmailTemplate updated = emailTemplate(1L, "ReviewCompleted_Approved", "Approved (revised)", true);
-        when(emailTemplateService.update(eq(1L), any(EmailTemplateUpdate.class), any()))
-                .thenReturn(updated);
-
-        mvc.perform(patch("/api/v1/admin/partial-credit/email-templates/1")
-                .with(administrator())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"subject\":\"Approved (revised)\"}"))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("$.id").value(1))
-           .andExpect(jsonPath("$.subject").value("Approved (revised)"));
-    }
-
-    @Test
-    void admin_patchEmailTemplate_disabled_returns200_withEnabledFalse() throws Exception {
-        EmailTemplate updated = emailTemplate(1L, "ReviewCompleted_Approved", "subj", false);
-        when(emailTemplateService.update(eq(1L), any(EmailTemplateUpdate.class), any()))
-                .thenReturn(updated);
-
-        mvc.perform(patch("/api/v1/admin/partial-credit/email-templates/1")
-                .with(administrator())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"enabled\":false}"))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("$.enabled").value(false));
-    }
-
-    @Test
-    void salesOps_previewEmailTemplate_returns200_withRenderedOutput() throws Exception {
-        EmailTemplate row = emailTemplate(1L, "ReviewCompleted_Approved", "subj-template", true);
-        when(emailTemplateService.findById(1L)).thenReturn(Optional.of(row));
-        when(emailTemplateService.renderPreview(eq("ReviewCompleted_Approved"), any()))
-                .thenReturn(Optional.of(new RenderedEmail(
-                        "Approved PCR-7",
-                        "<p>PCR-7 approved.</p>",
-                        "PCR-7 approved.")));
-
-        mvc.perform(post("/api/v1/admin/partial-credit/email-templates/1/preview")
-                .with(salesOps())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"variables\":{\"requestNumber\":\"PCR-7\"}}"))
-           .andExpect(status().isOk())
-           .andExpect(jsonPath("$.subject").value("Approved PCR-7"))
-           .andExpect(jsonPath("$.bodyHtml").value("<p>PCR-7 approved.</p>"))
-           .andExpect(jsonPath("$.bodyText").value("PCR-7 approved."));
-    }
-
-    @Test
-    void previewEmailTemplate_unknownId_returns404() throws Exception {
-        when(emailTemplateService.findById(999L)).thenReturn(Optional.empty());
-
-        mvc.perform(post("/api/v1/admin/partial-credit/email-templates/999/preview")
-                .with(salesOps())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"variables\":{}}"))
-           .andExpect(status().isNotFound());
-    }
-
-    // -------------------------------------------------------------------
     // GET /export.xlsx  (Chunk 7)
     // -------------------------------------------------------------------
 
@@ -571,16 +482,5 @@ class AdminPartialCreditControllerIT {
 
     private static HeaderSummary emptySummary() {
         return new HeaderSummary(0, 0, BigDecimal.ZERO, 0, 0, BigDecimal.ZERO);
-    }
-
-    private static EmailTemplate emailTemplate(Long id, String key, String subject, boolean enabled) {
-        EmailTemplate t = new EmailTemplate();
-        t.setId(id);
-        t.setTemplateKey(key);
-        t.setSubject(subject);
-        t.setBodyHtml("<p>html for " + key + "</p>");
-        t.setBodyText("text for " + key);
-        t.setEnabled(enabled);
-        return t;
     }
 }

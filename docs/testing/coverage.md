@@ -79,10 +79,10 @@ test sweep covers each surface end-to-end.
 | Surface | Key tests |
 |---|---|
 | V90 migration (email_templates + email_audit + on-behalf cols) | `V90MigrationIT` (5 cases) — table set, seed presence, audit indexes, on-behalf columns + default, PartialCredit_* roles remain orphaned |
-| EmailTemplateService — render / cache / update / preview | `EmailTemplateServiceTest` (11) — HTML escape default, `{{!varName}}` raw opt-out, missing-variable warn-log, `$`-in-substitution regression guard for `Matcher.appendReplacement` |
-| ReviewCompletedEmailListener flipped to DB templates | `ReviewCompletedEmailListenerTest` (7) — mocks `EmailTemplateService`, asserts variable map shape + audit row writes on both success + sender-throws paths |
-| EmailAuditService | `EmailAuditServiceIT` (3) — success / failure / batch persistence on real Postgres |
-| Admin email-templates REST | `AdminPartialCreditControllerIT` extension (+6) — list / patch / preview happy paths plus 401 + 404 |
+| ~~EmailTemplateService — render / cache / update / preview~~ | `EmailTemplateServiceTest` (11) — HTML escape default, `{{!varName}}` raw opt-out, missing-variable warn-log, `$`-in-substitution regression guard for `Matcher.appendReplacement`. **Deleted by Task 11** (2026-07-11) — the service was fully orphaned once the listener + controller stopped calling it; the render rules it proved now live in the shared `TemplateRenderer`, covered by `TemplateRendererTest` |
+| ~~ReviewCompletedEmailListener flipped to DB templates~~ | `ReviewCompletedEmailListenerTest` (7) — mocked `EmailTemplateService`, asserted variable map shape + audit row writes. **Rewritten by Task 11** — see "partialcredit.email-migration" below for the current shape |
+| EmailAuditService | `EmailAuditServiceIT` (3) — success / failure / batch persistence on real Postgres. Still green post-Task-11 (table + service frozen, D5 — the listener stopped calling it, nothing else did) |
+| ~~Admin email-templates REST~~ | `AdminPartialCreditControllerIT` extension (+6) — list / patch / preview happy paths plus 401 + 404. **Removed by Task 11** — the endpoints are gone, superseded by `AdminEmailControllerTemplatesIT` (see "email.admin-templates" below) |
 | CreditRequestPhotoService — upload / list / download / delete | `CreditRequestPhotoServiceTest` (14) — oversize, unsupported MIME, empty upload, finalized-parent freeze, per-line cap, DAMAGE-bypasses-cap, buyer-vs-admin delete authorization, byte-snapshot regression for `MultipartFile.getBytes()` |
 | Photo REST endpoints | `BuyerPartialCreditControllerIT` extension (+6) — 201 multipart, 413 body shape, list, inline-disposition download, 204 delete, 403 foreign-delete |
 | Buyer detail page components | RTL: `BuyerLineSection.test.tsx` (5) + `PhotoUploadDropzone.test.tsx` (4) + `PhotoGallery.test.tsx` (6) |
@@ -93,7 +93,154 @@ test sweep covers each surface end-to-end.
 | xlsx endpoint | `AdminPartialCreditControllerIT` extension (+3) — 200 with attachment header, 413 body shape, 401 unauth |
 | CreditRequestFileDropParser | `CreditRequestFileDropParserTest` (11) — csv first-column, xlsx first-sheet, docx whitespace split, short-digit-run drop, dedupe, quoted-cells, empty file warning, unsupported MIME, keep-rule unit |
 | parse-barcodes endpoint | `BuyerPartialCreditControllerIT` extension (+2) — 200 with warnings, 415 unsupported type |
-| End-to-end smoke | `partial-credit-sprint4.spec.ts` (Playwright, 6 cases) gated on `isBackendAvailable()` — covers the five Sprint 4 entry points + bidder-can't-reach-admin |
+| End-to-end smoke | `partial-credit-sprint4.spec.ts` (Playwright, was 6 cases covering five Sprint 4 entry points + bidder-can't-reach-admin; **Task 11 removed the email-templates-page case** — now 5 cases / four entry points + bidder-can't-reach-admin) |
 
 Full backend partial-credit sweep: **124/124 green** (was 41 pre-Sprint-4).
 Frontend RTL: 30 new component cases across the four Sprint 4 test files.
+
+---
+
+## partialcredit.email-migration (Task 11, 2026-07-11)
+Target 85%+. Final task of the unified-email-management build — repoints
+`ReviewCompletedEmailListener` from its own render/send/audit path onto
+`EmailService.sendTemplated` and retires the PC-specific template
+editor. Load-bearing branches: the exact `SendOverrides`/`SourceRef`
+shape passed to `EmailService`, template-key selection by outcome, every
+degrade-gracefully guard (disabled flag, null id, request not found, no
+recipients), any `sendTemplated` exception being swallowed, and — the
+one only a real-Postgres IT can prove — the listener's `@Transactional`
+attribute actually allows the `email.log` INSERT (it must NOT be
+`readOnly`, since `sendTemplated` joins the listener's `REQUIRES_NEW`
+transaction and writes).
+
+| Surface | Key tests |
+|---|---|
+| `ReviewCompletedEmailListener` → `EmailService` | `ReviewCompletedEmailListenerTest` (7, rewritten) — mocks `EmailService` only (dropped `EmailSender`/`EmailTemplateService`/`EmailAuditService`); `eq(new SendOverrides(recipients,null,null))` + `eq(new SourceRef("PARTIAL_CREDIT", requestId))` proof for both APPROVED (`ReviewCompleted_Approved`, includes `approvedTotalDisplay`) and DECLINED (`ReviewCompleted_Declined`, omits it); disabled-flag/null-id/not-found/no-recipients all assert `sendTemplated` is never called; a thrown `IllegalStateException` (simulating a disabled template) is swallowed and logged, never escapes |
+| Real end-to-end wiring + the readOnly-transaction fix | `PartialCreditEmailMigrationIT` (2, new, real Postgres via `PostgresIntegrationTest`) — the 3 PC keys exist in `email.template` post-V92; publishing a `ReviewCompletedEvent` inside a `TransactionTemplate`-committed transaction (mirrors `AggInventorySyncListenerIT`'s pattern for testing a real `@TransactionalEventListener(AFTER_COMMIT)` + `@Async` listener) drives the real listener → real `EmailService` → writes one `email.log` row (`source_module='PARTIAL_CREDIT'`, `status='SENT'` via the default `LoggingEmailSender`) and **zero** new `partial_credit.email_audit` rows. `EcoATMDirectUserRepository` is swapped for a `@Primary` Mockito mock (`@TestConfiguration`, not `@MockBean`) so the test doesn't have to build the buyer/account/direct-user join chain just to resolve one recipient |
+| Admin controller | `AdminPartialCreditControllerIT` — 6 email-template cases removed (endpoints deleted); remaining 20 cases green, untouched |
+| E2E | `partial-credit-sprint4.spec.ts` — the email-templates-page case removed; remaining 5 cases green |
+
+Full partial-credit backend sweep post-Task-11: **220/220 green** (20
+`AdminPartialCreditControllerIT` + 18 `BuyerPartialCreditControllerIT` +
+10 `OnBehalfPartialCreditControllerIT` + 2 `PartialCreditEmailMigrationIT`
++ 7 `ReviewCompletedEmailListenerTest` + 4 `PartialCreditMigrationIT` + 5
+`V90MigrationIT` + 16 `ActionRecommendationServiceTest` + 16
+`AdminCreditRequestServiceTest` + 15 `CreditCalculationServiceTest` + 12
+`CreditRequestFileDropParserTest` + 15 `CreditRequestPhotoServiceTest` +
+17 `CreditRequestServiceTest` + 21 `CreditRequestValidatorTest` + 3
+`EmailAuditServiceIT` + 7 `MaxSubmittedBidLookupTest` + 9
+`OnBehalfSubmissionServiceTest` + 7 `PartialCreditExcelExportServiceTest`
++ 8 `ResolveReceivedDeviceServiceTest` + 8 `StatusConfigServiceTest`).
+Broader unified-email regression sweep (Tasks 1-10's suites, to confirm
+no collateral damage from adding a new `EmailService` caller): **123/123
+green**. `EmailTemplateService`/`EmailTemplateServiceImpl` +
+`EmailTemplateServiceTest` deleted (confirmed fully unreferenced by grep
+before deletion); the 3 now-orphaned PC template DTOs
+(`dto.partialcredit.EmailTemplateView`/`EmailTemplateUpdate`/
+`EmailTemplatePreviewRequest`) deleted alongside them.
+`partial_credit.email_templates`/`email_audit` tables, the
+`EmailAuditService` bean, and the `model.partialcredit.EmailTemplate`
+entity are untouched (frozen, D5).
+
+**Frontend:** the retired route's own RTL file
+(`EmailTemplateEditor.test.tsx`, 8 cases) was deleted along with the
+component — no orphaned test remains (confirmed: `npm test -- --run`
+finds no reference to `EmailTemplateEditor`/`adminEmailTemplatesClient`).
+`npm test -- --run`: **283/285 green, 31/32 test files** — the 2
+failures are the same pre-existing, unrelated `apiFetch-guard.test.ts`
+cases called out in the Task 10 entry above (none of the flagged files
+were touched by Task 11 either). `npm run build`'s TypeScript gate is
+still blocked by the same pre-existing `AdminReviewClient.tsx` /
+`/wholesale/partial-credit/new` errors from the Task 10 entry — verified
+unrelated to Task 11 (neither file is in this task's diff, and the
+Turbopack module-graph compile step itself succeeds, proving the route
+deletion left no dangling import).
+
+---
+
+## email.admin-smtp (new 2026-07-11, Task 7)
+Target 85%+. First admin surface of the unified email module — the
+security-critical assertions carry the weight.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` SMTP endpoints | `AdminEmailControllerSmtpIT` (9, `@WebMvcTest` + imported `SecurityConfig`) — D2: GET never returns `password`/`encryptedPassword`; PUT structurally drops a client-supplied `password`/`encryptedPassword` (ArgumentCaptor equals the 11 real fields only); `@Valid` rejects `serverPort:0` as 400 without calling the service; authz matrix — Bidder→403 on GET **and** PUT **and** `/smtp/test`, plus no-token→401; `/smtp/test` rate-limit denial→429; `/smtp/test` graceful no-`JavaMailSender`-bean branch→`{success:false,"SMTP is not configured"}` |
+| `SmtpConfigService.update` | `SmtpConfigServiceTest` (+3, now 7 total) — full-patch + audit-stamp + cache-invalidation (findById called 3×: prime + update + post-update reload), all-null patch leaves columns unchanged, missing-singleton-row guard throws |
+
+Backend email-admin sweep: **16/16 green** (`AdminEmailControllerSmtpIT`
+9 + `SmtpConfigServiceTest` 7).
+
+---
+
+## email.admin-templates (new 2026-07-11, Task 8)
+Target 85%+. Extends `AdminEmailController` (Task 7) with the
+`email.template` CRUD/preview/send-test surface. Load-bearing branches:
+duplicate-`templateKey` conflict, `templateKey` immutability on update,
+404 on every missing-id path, preview bypassing the `enabled` check, and
+the send-test rate limit being user-keyed (not IP-keyed) and checked
+before the template lookup.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` template endpoints | `AdminEmailControllerTemplatesIT` (22, `@WebMvcTest` + imported `SecurityConfig`, mirrors `AdminEmailControllerSmtpIT`'s auth setup) — create→201+id with audit stamps; duplicate key→409; list; get by id 200/404; put updates `changed_date` + ignores a submitted `templateKey` change (ArgumentCaptor asserts the saved entity kept the original key); delete→204/404; preview renders `{{var}}` via mocked `TemplateRenderer` **on a disabled template** (proves the enabled-check bypass) + null-`contentPlain`→`text` absent; send-test→200 + `ArgumentCaptor` proof of the exact `SendOverrides`/`SourceRef` passed to `EmailService.sendTemplated`, plus an exact-match assertion that the rate-limit key is `"email-send-test:" + userId`; send-test 404 (missing template) and 429 (limiter denies, asserted to skip the template lookup entirely); non-admin→403 on list/create/send-test; validation negatives — bad `templateKey` pattern→400, blank `subject`→400, bad/blank send-test email→400 |
+| `AdminEmailControllerSmtpIT` regression | Extended with 3 new `@MockBean`s (`EmailTemplateRepository`, `TemplateRenderer`, `EmailService`) required after `AdminEmailController`'s constructor grew — still 9/9 green, no behavior changes |
+
+Backend email-admin sweep: **31/31 green** (`AdminEmailControllerTemplatesIT`
+22 + `AdminEmailControllerSmtpIT` 9).
+
+---
+
+## email.admin-log (new 2026-07-11, Task 9)
+Target 85%+. Completes `AdminEmailController` (Tasks 7-8) with the
+`email.log` delivery-log list/detail/resend surface — the last backend
+admin task for this module. Load-bearing branches: filter params parsed
+and forwarded verbatim (incl. default page/size/sort when omitted), an
+unrecognized `status` value 400s rather than 500ing, detail exposes the
+rendered `content_html` snapshot, and resend resets
+`retry_count`/`next_attempt_at` and saves that reset **before** calling
+`EmailService.resend` (the admin count-bypass, design §5) — proven via an
+`InOrder` Mockito verification, not just the end state. The
+`EmailLogRepository.search` JPQL also needed a real-Postgres fix mid-task:
+a bare `:from IS NULL`/`:to IS NULL` branch (no comparison operator to
+give PostgreSQL a type to infer) tripped `PSQLException: could not
+determine data type of parameter $N` under the extended query protocol —
+caught by `EmailRepositoryIT` against real Postgres, invisible to the
+mocked `@WebMvcTest` slice. Fixed by wrapping those two null-checks in
+`CAST(... AS timestamp)`.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` log endpoints | `AdminEmailControllerLogIT` (11, `@WebMvcTest` + imported `SecurityConfig`, mirrors the Smtp/Templates IT auth setup) — list with no params defaults to page 0/size 20/sort `createdDate desc` with all-null filters forwarded to `search`; list with every filter set (`status`/`from`/`to`/`templateKey`/`page`/`size`) asserts the exact parsed values reach `search` via `ArgumentCaptor`; invalid `status` → 400, `search` never called; detail 200 with `contentHtml` snapshot / 404 when missing; resend — `InOrder` proof of `findById` → `save` (captured: `retryCount==0`, `nextAttemptAt==null`) → `EmailService.resend(id)`, and 404 skips both `save` and `resend` when the id is missing; non-admin → 403 on list/detail/resend; unauthenticated → 401 |
+| `EmailLogRepository.search` | `EmailRepositoryIT` (+1 case, now 10 total) — real Postgres: filters by `templateKey` (proves newest-first ordering too), by `status`+`templateKey` together, by date range scoped to a `templateKey`, by `status` alone (loose containment — shared dev-DB fallback may hold unrelated rows), unfiltered reachability, and paging (`page size 1` of an exactly-2-row scoped set returns the right row with correct `totalElements`/`totalPages`) |
+| `AdminEmailControllerSmtpIT` / `AdminEmailControllerTemplatesIT` regression | Both extended with a new `@MockBean EmailLogRepository` required after `AdminEmailController`'s constructor grew again — still 9/9 and 22/22 green, no behavior changes |
+
+Backend email-admin sweep: **52/52 green** (`AdminEmailControllerLogIT` 11 +
+`AdminEmailControllerSmtpIT` 9 + `AdminEmailControllerTemplatesIT` 22 +
+`EmailRepositoryIT` 10). Regression sweep of untouched email unit tests
+(`EmailServiceTest` 16, `EmailRetryWorkerTest` 5, `SmtpEmailSenderTest` 10,
+`LoggingEmailSenderTest` 1, `EmailMessageTest` 8,
+`ReviewCompletedEmailListenerTest` 7 — 47 total) stayed green, confirming
+no collateral behavior change.
+
+---
+
+## emailadmin.frontend (new 2026-07-11, Task 10)
+RTL coverage for the Email Admin frontend (`frontend/src/app/(dashboard)/admin/app-control-center/email-admin/`), each tab component rendered in isolation. 13 cases across 3 files:
+
+| Surface | Key tests |
+|---|---|
+| `SmtpConfigTab` | `emailAdmin.smtp.test.tsx` (4) — loads `GET /smtp` and renders camelCase fields with no Username/Password inputs (D2); `PUT /smtp` body is asserted `.toEqual(...)` against the exact `SmtpConfigUpdate` shape plus explicit `not.toHaveProperty` guards against snake_case/password leakage; `Enabled` toggle flips the saved payload; `Test Connection` posts to `/smtp/test` and surfaces `{success, message}` via the `onBanner` callback |
+| `TemplatesTab` + `TemplateDetailEditor` | `emailAdmin.templates.test.tsx` (5) — lists via `GET /templates`; edit sends a camelCase `PUT .../templates/{id}` body (`EmailTemplateUpsert` shape, guarded against `template_name`/`content_html`/`has_attachment`); create sends `POST` with `templateKey` + `contentHtml` populated (the stub's create flow had neither field wired and would have 400'd on every attempt); delete confirms then `DELETE`s; Preview renders `{subject, html, text}` and Send Test posts `{toAddress, vars}` to `/templates/{id}/send-test` — both previously entirely unwired |
+| `EmailLogTab` | `emailAdmin.log.test.tsx` (4) — lists from the `Page<EmailLogView>` envelope (`.content`/`.totalElements`); status filter re-fetches with the real `PENDING`/`SENT`/`FAILED` enum (the stub used the non-existent `SENT/QUEUED/FAILED/ERROR`); **M-3** — opening a detail row sanitizes `contentHtml` via `DOMPurify.sanitize`, asserting a `<script>` tag and a dangling `onerror` attribute are both absent from the rendered DOM (`container.querySelector('script')` / `'[onerror]'` are `null`); `Resend` posts to `POST /log/{id}/resend` and reloads the list |
+
+`npm test -- emailAdmin`: **13/13 green**. Full frontend suite: 291/293 (2
+pre-existing `apiFetch-guard.test.ts` failures predate this task and are
+unrelated — verified none of the violation files were touched here).
+`npm run build`'s TypeScript gate is currently blocked by pre-existing,
+unrelated errors in `partial-credit/[id]/AdminReviewClient.tsx` and
+`/wholesale/partial-credit/new` (confirmed via `git stash` to reproduce
+on `HEAD` with this task's changes removed); this task's own files carry
+**zero** errors under a full `tsc --noEmit` sweep and were confirmed to
+render correctly end-to-end in a real authenticated browser session
+(Playwright) — see `docs/tasks/email-management-implementation-plan-2026-07-10.md`
+Task 10 for detail.

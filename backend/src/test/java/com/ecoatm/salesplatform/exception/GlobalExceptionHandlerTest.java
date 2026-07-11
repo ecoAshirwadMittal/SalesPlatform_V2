@@ -8,7 +8,9 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 
@@ -45,6 +47,21 @@ class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody().get("message")).isEqualTo("Device not valid");
+    }
+
+    @Test
+    void handleTypeMismatch_returns400WithParameterNameInMessage() {
+        // Final review batch, fix #4: a typed @RequestParam (e.g. `Instant from` on
+        // AdminEmailController#listLog) that fails to parse must 400, not fall through
+        // to the generic 500 handler.
+        MethodParameter mockParam = mock(MethodParameter.class);
+        MethodArgumentTypeMismatchException ex = new MethodArgumentTypeMismatchException(
+                "not-a-date", Instant.class, "from", mockParam, new IllegalArgumentException("bad instant"));
+
+        ResponseEntity<Map<String, Object>> response = handler.handleTypeMismatch(ex);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().get("message")).isEqualTo("Invalid value for parameter 'from'");
     }
 
     @Test

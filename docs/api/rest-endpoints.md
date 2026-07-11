@@ -1317,17 +1317,19 @@ uploads.
 `{"error":"too_many_rows","limit":5000,"matched":<count>}` so the UI can
 render a "narrow your filters" toast.
 
-### Admin surface — email templates (Sprint 4 chunk 3)
+### Admin surface — email templates — RETIRED (Task 11, 2026-07-11)
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/api/v1/admin/partial-credit/email-templates` | List every row (enabled + disabled) |
-| `PATCH` | `/api/v1/admin/partial-credit/email-templates/{id}` | Update `subject` / `bodyHtml` / `bodyText` / `enabled` / `description`. `templateKey` is **NOT** patchable |
-| `POST` | `/api/v1/admin/partial-credit/email-templates/{id}/preview` | Render the (possibly disabled) template against supplied stub variables for the editor's Preview tab. Body: `{variables: {key: value, ...}}` |
-
-3 seeded keys: `ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
-`PhotoUploadRequested`. Bodies use `{{varName}}` substitution; HTML body
-escapes by default, `{{!varName}}` opts out for admin-trusted raw HTML.
+The PC-specific email-template editor endpoints
+(`GET`/`PATCH /api/v1/admin/partial-credit/email-templates/**`,
+`POST .../{id}/preview`) were removed. The 3 template keys
+(`ReviewCompleted_Approved`, `ReviewCompleted_Declined`,
+`PhotoUploadRequested`) now live in the unified `email.template` store
+(V92 copied them over) and are edited via `AdminEmailController`'s
+`/api/v1/admin/email/templates/**` — see "Unified Email Management —
+Admin Template CRUD" below. `partial_credit.email_templates` and its
+now-superseded editor DTOs/service (`EmailTemplateService`) are gone
+from the codebase; the source table itself stays (frozen, D5) only as
+the historical row that V92's copy read from.
 
 ### Admin surface — status configuration
 
@@ -1348,23 +1350,193 @@ After the draft is created the modal redirects to
 `/wholesale/partial-credit/new?draftId=X` — the wizard step 1 reads the
 param and resumes the existing draft instead of creating a new one.
 
-### Email + audit (operational)
+### Email + audit (operational) — migrated onto the unified module (Task 11)
 
 `ReviewCompletedEvent` fires from `completeReview` → handled by
 `ReviewCompletedEmailListener` (`AFTER_COMMIT` + `@Async`). Listener:
-1. Reloads the `CreditRequest` in `REQUIRES_NEW`.
+1. Reloads the `CreditRequest` in its own `REQUIRES_NEW` transaction
+   (deliberately **not** `readOnly` — see step 3).
 2. Resolves recipients via `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId`.
-3. Renders the right template (`ReviewCompleted_Approved` /
-   `_Declined`) via `EmailTemplateService`.
-4. Dispatches through `EmailSender` (gated by
-   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED`, default `true`).
-5. Writes one `partial_credit.email_audit` row per recipient via
-   `EmailAuditService` — both success and sender-throws paths.
+3. Calls `EmailService.sendTemplated(templateKey, vars,
+   SendOverrides(recipients, null, null),
+   SourceRef("PARTIAL_CREDIT", requestId))` — one call now does what
+   used to be three (render, send, audit). `templateKey` is
+   `ReviewCompleted_Approved` / `_Declined` by outcome. Recipients MUST
+   travel via `SendOverrides.to`: the copied templates have
+   `to_default=null`, so a `null` overrides would make `sendTemplated`
+   throw "no recipients".
+4. `sendTemplated` renders from `email.template`, resolves `from` (env
+   SMTP config fallback), writes a `PENDING` `email.log` row, sends via
+   the configured `EmailSender` (gated by
+   `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED`, default `true`, at the
+   listener level — the `sendTemplated` call itself is unconditional
+   once reached), and updates that row to `SENT`/`FAILED`.
+5. Any exception `sendTemplated` raises (missing/disabled template, no
+   recipients) is caught by the listener's outer try/catch and logged —
+   never rethrown, never rolls back the already-committed review.
 
-Verify post-flow with:
+`partial_credit.email_audit` is **frozen** (design decision D5) — its
+historical rows stay queryable, but no new PC send writes there. Verify
+post-flow with:
 ```sql
-SELECT template_key, recipient_email, success, sent_at
-FROM   partial_credit.email_audit
-ORDER  BY sent_at DESC
+SELECT template_key, to_address, status, source_module, source_id, created_date
+FROM   email.log
+WHERE  source_module = 'PARTIAL_CREDIT'
+ORDER  BY created_date DESC
 LIMIT  10;
 ```
+
+## Unified Email Management — Admin SMTP Config (Task 7)
+
+`Administrator`-only. Backs the admin SMTP settings screen for the
+`email.smtp_config` singleton row (V92). Email-templates and email-log
+admin surfaces for this module are separate, later tasks — not covered
+here.
+
+### Admin surface — SMTP configuration
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/smtp` | Current config. Response is `SmtpConfigView` |
+| `PUT` | `/api/v1/admin/email/smtp` | Update config. Body: `SmtpConfigUpdate`. Fields left `null` are left unchanged |
+| `POST` | `/api/v1/admin/email/smtp/test` | Live connection check against the env-configured mail sender. Rate-limited (per-IP, shares `UploadRateLimiter`) — `429` when denied |
+
+**Security — password never in the DB or API (design decision D2):** the
+SMTP password is env-only (`spring.mail.password`).
+`email.smtp_config` has no password column, and neither `SmtpConfigView`
+(GET/PUT response) nor `SmtpConfigUpdate` (PUT request body) declares a
+password field. If a client's PUT body includes `password` or
+`encryptedPassword` anyway, Jackson silently drops it — there is no
+component on the record to bind into, so there is no code path that could
+ever persist or echo one. `POST /smtp/test` only exercises the
+env-supplied `JavaMailSender` bean; it never reads anything from the
+request body.
+
+**Authorization:** covered by both an explicit `SecurityConfig` matcher
+(`/api/v1/admin/email/**` → `hasRole("Administrator")`) and a class-level
+`@PreAuthorize("hasRole('Administrator')")` on `AdminEmailController`
+(defense-in-depth).
+
+**Audit:** `PUT /smtp` stamps `changed_date`/`changed_by_id` from the
+authenticated JWT principal — never from a request field.
+
+**Boots without mail configured:** `JavaMailSender` is injected as
+`ObjectProvider<JavaMailSender>` rather than a hard dependency, because
+`spring.mail.host` is unset in this app today so no `JavaMailSender` bean
+exists. `POST /smtp/test` returns `{success:false, message:"SMTP is not
+configured"}` in that case instead of failing to boot.
+
+## Unified Email Management — Admin Template CRUD (Task 8)
+
+`Administrator`-only. Backs the admin email-template editor for
+`email.template` (V92) — the unified store that supersedes the
+module-local `partial_credit.email_templates` table. As of Task 11 this
+is the *only* template editor: the PC-specific one under
+`/api/v1/admin/partial-credit/email-templates/**` is retired, and
+`ReviewCompletedEmailListener` resolves its templates here too.
+The email-log admin surface for this module is a separate, later task
+(T9) — not covered here.
+
+### Admin surface — templates
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/templates` | List every row (enabled + disabled). Response: `EmailTemplateView[]` |
+| `POST` | `/api/v1/admin/email/templates` | Create. Body: `EmailTemplateUpsert`. `409` if `templateKey` already exists. `201` + the new `EmailTemplateView` (with `id`) on success |
+| `GET` | `/api/v1/admin/email/templates/{id}` | Single row. `404` if missing |
+| `PUT` | `/api/v1/admin/email/templates/{id}` | Update. Body: `EmailTemplateUpsert` (full representation — every editable field is required, not a null-means-unchanged patch). **`templateKey` is immutable**: the submitted value is validated but silently ignored, never written. `404` if missing |
+| `DELETE` | `/api/v1/admin/email/templates/{id}` | Hard delete. `204`. `404` if missing. Phase 1 does not guard a key still referenced by a sender (e.g. the Partial-Credit listener) |
+| `POST` | `/api/v1/admin/email/templates/{id}/preview` | Render `{subject, html, text}` against supplied `vars`, **bypassing the `enabled` check** — a disabled template can still be previewed. Body: `PreviewRequest{vars}`. `404` if missing |
+| `POST` | `/api/v1/admin/email/templates/{id}/send-test` | Send a real test email via `EmailService.sendTemplated`, overriding `to` with the supplied address. Body: `SendTestRequest{toAddress, vars}`. Rate-limited (`429` when denied) and `404` if the template is missing |
+
+**Validation (`EmailTemplateUpsert`):** `templateKey`/`templateName`/
+`subject`/`contentHtml` are `@NotBlank`; `templateKey` must match
+`^[A-Za-z0-9_]+$` (mirrors the V92 CHECK constraint); every `@Size` bound
+mirrors the V92 column widths (`templateKey` 80, `templateName` 160,
+`subject`/`fromAddress`/`fromDisplayName`/`replyTo` 255, `toDefault`/
+`ccDefault`/`bccDefault` 2000, `description` 500); `fromAddress`/`replyTo`
+are `@Email` (no-op when absent). A violation maps to `400` via
+`GlobalExceptionHandler.handleValidation`.
+
+**`templateKey` immutability:** the create/update DTO shape is shared
+(`EmailTemplateUpsert`) so a PUT body still carries a syntactically valid
+`templateKey`, but the controller never writes it onto an existing row —
+only `POST /templates` sets it, at creation. This protects senders that
+resolve a template by key (e.g. the Partial-Credit `ReviewCompletedEmailListener`)
+from a silent break.
+
+**Preview bypasses `enabled`:** unlike `EmailService.sendTemplated` (which
+throws if the template is disabled), `POST /templates/{id}/preview` never
+checks the `enabled` column — an admin must be able to preview a template
+before flipping it back on, mirroring
+`AdminPartialCreditController.previewEmailTemplate`'s established
+partial-credit-module precedent.
+
+**Security — send-test rate limit is user-keyed, not IP-keyed:**
+`POST /templates/{id}/send-test` triggers a real outbound send, so it is
+rate-limited via the shared `UploadRateLimiter` — but keyed by
+`"email-send-test:" + <authenticated user id>` rather than
+`UploadRateLimiter.clientIp(request)`. `clientIp` trusts a spoofable
+`X-Forwarded-For` header; since this endpoint always has a verified JWT
+principal, keying by user id closes that gap (security review
+2026-07-10 hardening). The rate-limit check runs **before** the template
+lookup. `POST /smtp/test` (Task 7) intentionally keeps its existing
+IP-keyed limiter as-is — unifying both endpoints onto the same keying
+scheme is a separate follow-up.
+
+**Authorization:** covered by the existing `/api/v1/admin/email/**`
+`SecurityConfig` matcher (added in Task 7 — no change needed for these
+new sub-paths) plus the class-level `@PreAuthorize("hasRole('Administrator')")`
+on `AdminEmailController` (defense-in-depth).
+
+**Audit:** `POST /templates` stamps `created_date`/`changed_date`/
+`created_by_id`/`changed_by_id`; `PUT /templates/{id}` stamps
+`changed_date`/`changed_by_id` — all from the server clock and the
+authenticated JWT principal, never from a request field.
+
+## Unified Email Management — Admin Log (Task 9)
+
+`Administrator`-only. Backs the admin delivery-log screen for
+`email.log` (V92) — the last piece of the unified email module's admin
+surface (SMTP config is Task 7, template CRUD is Task 8).
+
+### Admin surface — log
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/log` | Filtered, paged listing. Query params: `status` (`PENDING`/`SENT`/`FAILED`, `400` if unrecognized), `from`/`to` (ISO-8601 instant, inclusive on `created_date`), `templateKey`, `page`/`size` (default `0`/`20`). Sorted newest-first (`created_date desc`). Response: `Page<EmailLogView>` |
+| `GET` | `/api/v1/admin/email/log/{id}` | Single row, including the rendered `content_html` snapshot that was actually sent (or attempted). `404` if missing |
+| `POST` | `/api/v1/admin/email/log/{id}/resend` | Admin-forced resend. `404` if missing. Response: the updated `EmailLogView` |
+
+**Filtering (`EmailLogRepository.search`):** every query param is
+independently optional — a `null`/absent value matches every row on that
+field. Implemented as one `@Query` JPQL with `(:param IS NULL OR ...)`
+branches rather than `Specification`, since a single fixed 4-filter shape
+doesn't need dynamic predicate composition. `from`/`to`'s `IS NULL` checks
+are wrapped in `CAST(... AS timestamp)` — without it, PostgreSQL's extended
+query protocol can't determine the bind parameter's type from a bare
+`? IS NULL` with no comparison operator in that branch, and throws
+`PSQLException: could not determine data type of parameter $N` (caught by
+the real-Postgres `EmailRepositoryIT`, not the mocked `@WebMvcTest` slice —
+`status`/`templateKey` don't hit the same ambiguity). The cast only pins
+the placeholder's declared type for the null-check branch; the actual
+comparison branch (`l.createdDate >= :from`) is still typed from the
+`TIMESTAMPTZ` column as usual, so no behavior changes for a non-null value.
+
+**Resend bypasses the retry-count cap (admin-forced, design §5):** unlike
+the T6 `EmailRetryWorker`'s automatic retry (which respects
+`smtp_config.max_retry_attempts` and leaves a row that hit the cap
+permanently `FAILED`), `POST /log/{id}/resend` always re-attempts —
+including a terminal row. The handler loads the row first (`404` via the
+app's `EntityNotFoundException` if missing), resets `retry_count=0` and
+`next_attempt_at=null`, saves that reset, and only then calls
+`EmailService#resend(id)` — which reloads the (now-reset) row from the DB,
+re-sends from its persisted snapshot (`content_html`, resolved recipients,
+`from`), and sets `SENT`/`FAILED` accordingly. `EmailService#resend` itself
+stays count-neutral (the T5/T6 contract auto-retry depends on) — only this
+admin path resets the count, and only right before invoking it.
+
+**Authorization:** covered by the existing `/api/v1/admin/email/**`
+`SecurityConfig` matcher (added in Task 7 — no change needed for `/log`)
+plus the class-level `@PreAuthorize("hasRole('Administrator')")` on
+`AdminEmailController` (defense-in-depth).
