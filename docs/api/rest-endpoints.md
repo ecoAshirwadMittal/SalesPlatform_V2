@@ -1473,3 +1473,50 @@ on `AdminEmailController` (defense-in-depth).
 `created_by_id`/`changed_by_id`; `PUT /templates/{id}` stamps
 `changed_date`/`changed_by_id` — all from the server clock and the
 authenticated JWT principal, never from a request field.
+
+## Unified Email Management — Admin Log (Task 9)
+
+`Administrator`-only. Backs the admin delivery-log screen for
+`email.log` (V92) — the last piece of the unified email module's admin
+surface (SMTP config is Task 7, template CRUD is Task 8).
+
+### Admin surface — log
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/log` | Filtered, paged listing. Query params: `status` (`PENDING`/`SENT`/`FAILED`, `400` if unrecognized), `from`/`to` (ISO-8601 instant, inclusive on `created_date`), `templateKey`, `page`/`size` (default `0`/`20`). Sorted newest-first (`created_date desc`). Response: `Page<EmailLogView>` |
+| `GET` | `/api/v1/admin/email/log/{id}` | Single row, including the rendered `content_html` snapshot that was actually sent (or attempted). `404` if missing |
+| `POST` | `/api/v1/admin/email/log/{id}/resend` | Admin-forced resend. `404` if missing. Response: the updated `EmailLogView` |
+
+**Filtering (`EmailLogRepository.search`):** every query param is
+independently optional — a `null`/absent value matches every row on that
+field. Implemented as one `@Query` JPQL with `(:param IS NULL OR ...)`
+branches rather than `Specification`, since a single fixed 4-filter shape
+doesn't need dynamic predicate composition. `from`/`to`'s `IS NULL` checks
+are wrapped in `CAST(... AS timestamp)` — without it, PostgreSQL's extended
+query protocol can't determine the bind parameter's type from a bare
+`? IS NULL` with no comparison operator in that branch, and throws
+`PSQLException: could not determine data type of parameter $N` (caught by
+the real-Postgres `EmailRepositoryIT`, not the mocked `@WebMvcTest` slice —
+`status`/`templateKey` don't hit the same ambiguity). The cast only pins
+the placeholder's declared type for the null-check branch; the actual
+comparison branch (`l.createdDate >= :from`) is still typed from the
+`TIMESTAMPTZ` column as usual, so no behavior changes for a non-null value.
+
+**Resend bypasses the retry-count cap (admin-forced, design §5):** unlike
+the T6 `EmailRetryWorker`'s automatic retry (which respects
+`smtp_config.max_retry_attempts` and leaves a row that hit the cap
+permanently `FAILED`), `POST /log/{id}/resend` always re-attempts —
+including a terminal row. The handler loads the row first (`404` via the
+app's `EntityNotFoundException` if missing), resets `retry_count=0` and
+`next_attempt_at=null`, saves that reset, and only then calls
+`EmailService#resend(id)` — which reloads the (now-reset) row from the DB,
+re-sends from its persisted snapshot (`content_html`, resolved recipients,
+`from`), and sets `SENT`/`FAILED` accordingly. `EmailService#resend` itself
+stays count-neutral (the T5/T6 contract auto-retry depends on) — only this
+admin path resets the count, and only right before invoking it.
+
+**Authorization:** covered by the existing `/api/v1/admin/email/**`
+`SecurityConfig` matcher (added in Task 7 — no change needed for `/log`)
+plus the class-level `@PreAuthorize("hasRole('Administrator')")` on
+`AdminEmailController` (defense-in-depth).

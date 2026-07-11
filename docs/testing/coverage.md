@@ -129,3 +129,37 @@ before the template lookup.
 
 Backend email-admin sweep: **31/31 green** (`AdminEmailControllerTemplatesIT`
 22 + `AdminEmailControllerSmtpIT` 9).
+
+---
+
+## email.admin-log (new 2026-07-11, Task 9)
+Target 85%+. Completes `AdminEmailController` (Tasks 7-8) with the
+`email.log` delivery-log list/detail/resend surface — the last backend
+admin task for this module. Load-bearing branches: filter params parsed
+and forwarded verbatim (incl. default page/size/sort when omitted), an
+unrecognized `status` value 400s rather than 500ing, detail exposes the
+rendered `content_html` snapshot, and resend resets
+`retry_count`/`next_attempt_at` and saves that reset **before** calling
+`EmailService.resend` (the admin count-bypass, design §5) — proven via an
+`InOrder` Mockito verification, not just the end state. The
+`EmailLogRepository.search` JPQL also needed a real-Postgres fix mid-task:
+a bare `:from IS NULL`/`:to IS NULL` branch (no comparison operator to
+give PostgreSQL a type to infer) tripped `PSQLException: could not
+determine data type of parameter $N` under the extended query protocol —
+caught by `EmailRepositoryIT` against real Postgres, invisible to the
+mocked `@WebMvcTest` slice. Fixed by wrapping those two null-checks in
+`CAST(... AS timestamp)`.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` log endpoints | `AdminEmailControllerLogIT` (11, `@WebMvcTest` + imported `SecurityConfig`, mirrors the Smtp/Templates IT auth setup) — list with no params defaults to page 0/size 20/sort `createdDate desc` with all-null filters forwarded to `search`; list with every filter set (`status`/`from`/`to`/`templateKey`/`page`/`size`) asserts the exact parsed values reach `search` via `ArgumentCaptor`; invalid `status` → 400, `search` never called; detail 200 with `contentHtml` snapshot / 404 when missing; resend — `InOrder` proof of `findById` → `save` (captured: `retryCount==0`, `nextAttemptAt==null`) → `EmailService.resend(id)`, and 404 skips both `save` and `resend` when the id is missing; non-admin → 403 on list/detail/resend; unauthenticated → 401 |
+| `EmailLogRepository.search` | `EmailRepositoryIT` (+1 case, now 10 total) — real Postgres: filters by `templateKey` (proves newest-first ordering too), by `status`+`templateKey` together, by date range scoped to a `templateKey`, by `status` alone (loose containment — shared dev-DB fallback may hold unrelated rows), unfiltered reachability, and paging (`page size 1` of an exactly-2-row scoped set returns the right row with correct `totalElements`/`totalPages`) |
+| `AdminEmailControllerSmtpIT` / `AdminEmailControllerTemplatesIT` regression | Both extended with a new `@MockBean EmailLogRepository` required after `AdminEmailController`'s constructor grew again — still 9/9 and 22/22 green, no behavior changes |
+
+Backend email-admin sweep: **52/52 green** (`AdminEmailControllerLogIT` 11 +
+`AdminEmailControllerSmtpIT` 9 + `AdminEmailControllerTemplatesIT` 22 +
+`EmailRepositoryIT` 10). Regression sweep of untouched email unit tests
+(`EmailServiceTest` 16, `EmailRetryWorkerTest` 5, `SmtpEmailSenderTest` 10,
+`LoggingEmailSenderTest` 1, `EmailMessageTest` 8,
+`ReviewCompletedEmailListenerTest` 7 — 47 total) stayed green, confirming
+no collateral behavior change.

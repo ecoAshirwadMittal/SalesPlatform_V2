@@ -83,7 +83,7 @@ Inventory of major modules and their primary entities.
   S3-backed photos, `PartialCredit_*` role-tier promotion, email
   template versioning
 
-## Unified Email Management (in progress — Task 7 SMTP config + Task 8 template CRUD)
+## Unified Email Management (admin surface complete — Tasks 7-9; Task 10 frontend wiring + Task 11 Partial Credit migration still open)
 - Schema: `email` (V92)
 - Primary tables: `smtp_config` (singleton id=1 row — server host/port/
   protocol, from/reply-to address, ssl/tls, enabled, retry + timeout;
@@ -93,7 +93,7 @@ Inventory of major modules and their primary entities.
   Partial Credit templates), `log` (one row per send attempt — status
   `PENDING`/`SENT`/`FAILED`, `retry_count`, `next_attempt_at`, source
   module/id)
-- Admin surface so far:
+- Admin surface:
   - Task 7 (SMTP config): `GET`/`PUT /api/v1/admin/email/smtp` +
     `POST /api/v1/admin/email/smtp/test` (rate-limited, IP-keyed)
   - Task 8 (template CRUD): `GET`/`POST /api/v1/admin/email/templates`,
@@ -102,11 +102,17 @@ Inventory of major modules and their primary entities.
     `enabled` check), `POST /api/v1/admin/email/templates/{id}/send-test`
     (real send via `EmailService.sendTemplated`, rate-limited —
     user-keyed, not IP-keyed)
+  - Task 9 (delivery log): `GET /api/v1/admin/email/log` (filtered +
+    paged — `status`/`from`/`to`/`templateKey`), `GET
+    /api/v1/admin/email/log/{id}` (detail incl. rendered `content_html`),
+    `POST /api/v1/admin/email/log/{id}/resend` (admin-forced — bypasses
+    the normal `retry_count` cap by resetting it to 0 before calling
+    `EmailService.resend`)
 
-  All `Administrator`-only. The email-log admin surface (T9) is a
-  separate, later task — not built yet. See `docs/api/rest-endpoints.md`
-  § "Unified Email Management — Admin SMTP Config" and § "Unified Email
-  Management — Admin Template CRUD"
+  All `Administrator`-only. See `docs/api/rest-endpoints.md`
+  § "Unified Email Management — Admin SMTP Config", § "Unified Email
+  Management — Admin Template CRUD", and § "Unified Email Management —
+  Admin Log"
 - Security (design decision D2): the SMTP password is env-only and MUST
   NEVER appear in a request body, response, or DB column. Enforced
   structurally — `SmtpConfigView`/`SmtpConfigUpdate` have no password
@@ -121,3 +127,10 @@ Inventory of major modules and their primary entities.
   `templateKey` on `POST /templates`) — protects senders that resolve a
   template by key (e.g. the Partial-Credit `ReviewCompletedEmailListener`)
   from a silent break via the admin editor
+- Task 9's `EmailLogRepository.search` JPQL casts the `from`/`to`
+  `IS NULL` checks to `timestamp` — a bare `:from IS NULL` with no
+  comparison operator in that branch leaves PostgreSQL's extended query
+  protocol unable to infer the bind parameter's type
+  (`PSQLException: could not determine data type of parameter $N`),
+  caught by the real-Postgres `EmailRepositoryIT` rather than the mocked
+  controller slice
