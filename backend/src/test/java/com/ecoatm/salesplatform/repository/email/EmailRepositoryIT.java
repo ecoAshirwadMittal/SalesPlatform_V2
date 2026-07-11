@@ -124,6 +124,28 @@ class EmailRepositoryIT extends PostgresIntegrationTest {
         assertThat(due).extracting(EmailLog::getId).doesNotContain(atCap.getId());
     }
 
+    // ── log — stale-PENDING rescue finder (T6) ──────────────────────────
+
+    @Test
+    @DisplayName("stale-PENDING finder returns only the PENDING row older than the cutoff, not a recent one")
+    void stalePendingFinder_returnsOnlyRowsOlderThanCutoff() {
+        Instant cutoff = Instant.now().minusSeconds(300);
+
+        EmailLog oldPending = newLog(EmailStatus.PENDING, null, 0);
+        oldPending.setCreatedDate(cutoff.minusSeconds(60));
+        emailLogRepository.save(oldPending);
+
+        EmailLog recentPending = newLog(EmailStatus.PENDING, null, 0);
+        recentPending.setCreatedDate(Instant.now());
+        emailLogRepository.save(recentPending);
+
+        List<EmailLog> stale =
+                emailLogRepository.findByStatusAndCreatedDateBefore(EmailStatus.PENDING, cutoff);
+
+        assertThat(stale).extracting(EmailLog::getId).contains(oldPending.getId());
+        assertThat(stale).extracting(EmailLog::getId).doesNotContain(recentPending.getId());
+    }
+
     // ── log — paged status listing (T9) ─────────────────────────────────
 
     @Test

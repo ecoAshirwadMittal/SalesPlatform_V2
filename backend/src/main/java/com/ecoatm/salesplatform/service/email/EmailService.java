@@ -208,7 +208,15 @@ public class EmailService {
         } catch (Exception ex) {
             emailLog.setStatus(EmailStatus.FAILED);
             emailLog.setErrorMessage(truncate(ex.getMessage(), MAX_ERROR_MESSAGE_LENGTH));
-            emailLog.setNextAttemptAt(Instant.now().plus(backoff(0)));
+            // Keyed off the row's OWN retry_count rather than a hardcoded 0:
+            // on a fresh sendTemplated attempt retry_count is 0, so this is
+            // still backoff(0) — unchanged. On a resend called by T6's
+            // EmailRetryWorker, the worker has already incremented and saved
+            // retry_count before calling resend(), so this reload sees the
+            // incremented value and the delay escalates each retry. resend()
+            // itself never touches retry_count (stays count-neutral) — see
+            // EmailRetryWorker.
+            emailLog.setNextAttemptAt(Instant.now().plus(backoff(emailLog.getRetryCount())));
         }
         return emailLog;
     }
