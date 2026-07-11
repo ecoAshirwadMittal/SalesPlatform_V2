@@ -1,25 +1,31 @@
 package com.ecoatm.salesplatform.controller.admin;
 
+import com.ecoatm.salesplatform.dto.email.EmailLogView;
 import com.ecoatm.salesplatform.dto.email.EmailTemplateUpsert;
 import com.ecoatm.salesplatform.dto.email.EmailTemplateView;
 import com.ecoatm.salesplatform.dto.email.PreviewRequest;
 import com.ecoatm.salesplatform.dto.email.SendTestRequest;
 import com.ecoatm.salesplatform.dto.email.SmtpConfigUpdate;
 import com.ecoatm.salesplatform.dto.email.SmtpConfigView;
+import com.ecoatm.salesplatform.exception.EntityNotFoundException;
 import com.ecoatm.salesplatform.model.email.EmailLog;
 import com.ecoatm.salesplatform.model.email.EmailStatus;
 import com.ecoatm.salesplatform.model.email.EmailTemplate;
+import com.ecoatm.salesplatform.repository.email.EmailLogRepository;
 import com.ecoatm.salesplatform.repository.email.EmailTemplateRepository;
 import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.email.EmailService;
 import com.ecoatm.salesplatform.service.email.SmtpConfigService;
 import com.ecoatm.salesplatform.service.email.TemplateRenderer;
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -33,6 +39,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,10 +49,10 @@ import java.util.Map;
 
 /**
  * Admin REST surface for the unified email module: SMTP configuration
- * (Task 7) plus email-template CRUD/preview/send-test (Task 8). The
- * email-log surface lands in T9 and is intentionally NOT built here.
- * {@code Administrator}-only — this is operational infrastructure config,
- * not a SalesOps/buyer-facing surface.
+ * (Task 7), email-template CRUD/preview/send-test (Task 8), and the
+ * delivery-log list/detail/resend surface (Task 9). {@code
+ * Administrator}-only — this is operational infrastructure config, not a
+ * SalesOps/buyer-facing surface.
  *
  * <p><b>Design decision D2 — password never exposed:</b> the SMTP password
  * is env-only ({@code spring.mail.password}); {@code email.smtp_config}
@@ -66,6 +73,17 @@ import java.util.Map;
  * authenticated user id rather than {@link UploadRateLimiter#clientIp},
  * because {@code X-Forwarded-For} is spoofable and this endpoint always has
  * a verified JWT principal; security review 2026-07-10).
+ *
+ * <p><b>Task 9 — log:</b> paged, filtered listing over {@code email.log}
+ * (V92) via {@link EmailLogRepository#search}, a detail fetch that includes
+ * the rendered {@code content_html} snapshot, and {@code POST
+ * /log/{id}/resend}. The resend endpoint is an admin-forced action that
+ * BYPASSES the normal retry-count bookkeeping — it resets {@code
+ * retry_count=0}/{@code next_attempt_at=null} and saves that reset BEFORE
+ * calling {@link EmailService#resend}, so a row that already hit the
+ * auto-retry cap (T6 {@code EmailRetryWorker}) can be forced back into a
+ * retry-eligible state. {@link EmailService#resend} itself stays
+ * count-neutral (T5/T6 contract) — only this admin path resets the count.
  */
 @RestController
 @RequestMapping("/api/v1/admin/email")
@@ -87,6 +105,7 @@ public class AdminEmailController {
     private final EmailTemplateRepository emailTemplateRepository;
     private final TemplateRenderer templateRenderer;
     private final EmailService emailService;
+    private final EmailLogRepository emailLogRepository;
 
     public AdminEmailController(
             SmtpConfigService smtpConfigService,
@@ -94,13 +113,15 @@ public class AdminEmailController {
             ObjectProvider<JavaMailSender> mailSenderProvider,
             EmailTemplateRepository emailTemplateRepository,
             TemplateRenderer templateRenderer,
-            EmailService emailService) {
+            EmailService emailService,
+            EmailLogRepository emailLogRepository) {
         this.smtpConfigService = smtpConfigService;
         this.uploadRateLimiter = uploadRateLimiter;
         this.mailSenderProvider = mailSenderProvider;
         this.emailTemplateRepository = emailTemplateRepository;
         this.templateRenderer = templateRenderer;
         this.emailService = emailService;
+        this.emailLogRepository = emailLogRepository;
     }
 
     // -------------------------------------------------------------------
@@ -279,6 +300,58 @@ public class AdminEmailController {
     }
 
     // -------------------------------------------------------------------
+    // GET /log — filtered + paged listing over email.log. Every filter param
+    // is optional; omitted page/size default to page 0, size 20. Invalid
+    // `status` values 400 via parseStatus rather than reaching the
+    // repository (and therefore never risk a 500).
+    // -------------------------------------------------------------------
+
+    @GetMapping("/log")
+    public Page<EmailLogView> listLog(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
+            @RequestParam(required = false) String templateKey,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdDate").descending());
+        return emailLogRepository.search(parseStatus(status), from, to, templateKey, pageable)
+                .map(EmailLogView::from);
+    }
+
+    // -------------------------------------------------------------------
+    // GET /log/{id} — detail, including the rendered content_html snapshot
+    // that was actually sent (or attempted) for this row.
+    // -------------------------------------------------------------------
+
+    @GetMapping("/log/{id}")
+    public EmailLogView getLog(@PathVariable Long id) {
+        return emailLogRepository.findById(id)
+                .map(EmailLogView::from)
+                .orElseThrow(() -> new EntityNotFoundException("Email log not found: id=" + id));
+    }
+
+    // -------------------------------------------------------------------
+    // POST /log/{id}/resend — admin-forced resend (design §5). Loads the row
+    // FIRST so a missing id 404s cleanly, THEN bypasses the normal retry-count
+    // bookkeeping by resetting retry_count=0/next_attempt_at=null and saving
+    // that reset, and only THEN calls EmailService#resend — which reloads the
+    // (now-reset) row, re-sends from its snapshot, and stays count-neutral
+    // itself (T5/T6 contract). This ordering is what lets an admin force a
+    // terminal (retry_count == max) FAILED row back into a retryable state.
+    // -------------------------------------------------------------------
+
+    @PostMapping("/log/{id}/resend")
+    public EmailLogView resendLog(@PathVariable Long id) {
+        EmailLog logRow = emailLogRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Email log not found: id=" + id));
+        logRow.setRetryCount(0);
+        logRow.setNextAttemptAt(null);
+        emailLogRepository.save(logRow);
+        return EmailLogView.from(emailService.resend(id));
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
 
@@ -293,6 +366,24 @@ public class AdminEmailController {
     private EmailTemplate requireTemplate(Long id) {
         return emailTemplateRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Email template not found: id=" + id));
+    }
+
+    /**
+     * {@code null}/blank -> no filter (matches every row on this field).
+     * An unrecognized value throws {@link IllegalArgumentException}, which
+     * {@code GlobalExceptionHandler.handleBadRequest} maps to {@code 400} —
+     * a bad {@code status} query param must never reach the repository as
+     * a raw {@code 500}.
+     */
+    private static EmailStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        try {
+            return EmailStatus.valueOf(status);
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid status: " + status);
+        }
     }
 
     /** Applies every editable column except {@code templateKey} (immutable post-create). */

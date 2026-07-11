@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.controller.admin;
 import com.ecoatm.salesplatform.model.email.EmailLog;
 import com.ecoatm.salesplatform.model.email.EmailStatus;
 import com.ecoatm.salesplatform.model.email.EmailTemplate;
+import com.ecoatm.salesplatform.repository.email.EmailLogRepository;
 import com.ecoatm.salesplatform.repository.email.EmailTemplateRepository;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
@@ -73,10 +74,11 @@ class AdminEmailControllerTemplatesIT {
     @MockBean private TemplateRenderer templateRenderer;
     @MockBean private UploadRateLimiter uploadRateLimiter;
 
-    // AdminEmailController also depends on these T7 collaborators — @WebMvcTest
-    // needs every constructor dependency mocked even though this suite never
-    // exercises the SMTP endpoints.
+    // AdminEmailController also depends on these T7/T9 collaborators —
+    // @WebMvcTest needs every constructor dependency mocked even though this
+    // suite never exercises the SMTP or /log endpoints.
     @MockBean private com.ecoatm.salesplatform.service.email.SmtpConfigService smtpConfigService;
+    @MockBean private EmailLogRepository emailLogRepository;
 
     @BeforeEach
     void rateLimiterAllowsByDefault() {
