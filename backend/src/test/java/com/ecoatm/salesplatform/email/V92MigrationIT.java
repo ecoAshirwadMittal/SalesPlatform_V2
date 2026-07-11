@@ -90,9 +90,15 @@ class V92MigrationIT extends PostgresIntegrationTest {
     @Test
     @DisplayName("Surviving email.smtp_config is the new design shape — no encrypted_password / username column")
     void smtpConfigIsNewDesignShapeNotV35() {
-        // V35's smtp_config carried encrypted_password + username (D2 forbids a
-        // password anywhere in the DB). Their absence proves the table Flyway
-        // left behind is V92's design table, not V35's leftover.
+        // These encrypted_password / username absence checks are defense-in-depth
+        // for D2 (no password column in the DB) — NOT proof of supersession. V46
+        // (V46__remove_integration_credentials.sql) already dropped both columns
+        // from V35's live smtp_config two migrations earlier, so these checks
+        // would pass even if V92's DROP had never run. The drop-and-recreate is
+        // justified by structural incompatibility with V35 — no id=1 singleton
+        // CHECK, no template_key, status allowed QUEUED/ERROR, missing
+        // next_attempt_at / source_module / source_id, BIGSERIAL vs
+        // BIGINT DEFAULT 1 — not a live D2 violation.
         assertThat(columnCount("email", "smtp_config", "encrypted_password"))
             .as("design smtp_config must not carry a password column (D2)")
             .isZero();
@@ -100,8 +106,10 @@ class V92MigrationIT extends PostgresIntegrationTest {
             .as("design smtp_config must not carry a username column (D2)")
             .isZero();
 
-        // Positive confirmation: the new design-only columns are present
-        // (V35 had updated_date, not changed_date, and no changed_by_id FK).
+        // THIS is the supersession proof: changed_date / changed_by_id exist only
+        // on V92's design table. V35's smtp_config had updated_date (not
+        // changed_date) and no actor FK, and no later migration adds these to
+        // V35's table — so their presence can only come from V92's CREATE.
         assertThat(columnCount("email", "smtp_config", "changed_date")).isEqualTo(1);
         assertThat(columnCount("email", "smtp_config", "changed_by_id")).isEqualTo(1);
     }
