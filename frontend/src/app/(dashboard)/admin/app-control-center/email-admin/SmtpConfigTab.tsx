@@ -169,13 +169,16 @@ export function SmtpConfigTab({ onBanner }: { onBanner: (b: Banner) => void }) {
         <div className={s.toggleRow}>
           <button
             type="button"
-            aria-label="Email Sending Enabled"
+            aria-label="SMTP Config Enabled"
             className={`${s.toggleSwitch} ${cfg.enabled ? s.toggleSwitchOn : ''}`}
             onClick={() => set('enabled', !cfg.enabled)}
           />
-          <span className={s.toggleLabel}>Email Sending Enabled</span>
+          <span className={s.toggleLabel}>SMTP Config Enabled</span>
         </div>
       </div>
+      <p className={e.countLabel} style={{ marginTop: -12, marginBottom: 20 }}>
+        Configuration flag only — live email sending is controlled by deployment configuration in Phase 1.
+      </p>
 
       <div className={e.formGrid}>
         <div className={s.formGroup}>

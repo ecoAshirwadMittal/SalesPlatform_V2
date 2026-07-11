@@ -33,7 +33,11 @@ public class EmailSmtpValidator {
     private final Environment environment;
 
     public EmailSmtpValidator(
-            // T4/T7: Task 4/7 may repoint this to smtp_config.enabled once SmtpConfigService lands
+            // Intentionally deferred to Phase 2 (see design
+            // docs/tasks/email-management-design-2026-07-10.md §4, line 50; wiring
+            // an admin-writable host to the env-sourced SMTP credential needs a
+            // credential-exfil guard first) — stays on pws.email.enabled rather than
+            // smtp_config.enabled even though SmtpConfigService has since landed.
             @Value("${pws.email.enabled:false}") boolean enabled,
             @Value("${spring.mail.password:}") String password,
             Environment environment) {

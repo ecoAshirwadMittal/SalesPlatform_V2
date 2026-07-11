@@ -22,6 +22,7 @@ import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -67,12 +68,16 @@ import java.util.Map;
  * (V92) via {@link EmailTemplateRepository}, plus two render-only actions:
  * {@code POST /templates/{id}/preview} (bypasses the {@code enabled} check —
  * an admin must be able to preview a disabled template before flipping it
- * back on, mirroring {@code AdminPartialCreditController.previewEmailTemplate})
+ * back on; renders a template with sample vars without persisting anything)
  * and {@code POST /templates/{id}/send-test} (a real outbound send via
  * {@link EmailService#sendTemplated}, so it is rate-limited — keyed by the
  * authenticated user id rather than {@link UploadRateLimiter#clientIp},
  * because {@code X-Forwarded-For} is spoofable and this endpoint always has
- * a verified JWT principal; security review 2026-07-10).
+ * a verified JWT principal; security review 2026-07-10). Duplicate {@code
+ * templateKey} on create is guarded twice: a check-then-act 409 for the
+ * common case, and a {@link DataIntegrityViolationException} catch around
+ * the {@code UNIQUE} constraint for the concurrent-request race the check
+ * alone cannot close (final review batch, fix #7).
  *
  * <p><b>Task 9 — log:</b> paged, filtered listing over {@code email.log}
  * (V92) via {@link EmailLogRepository#search}, a detail fetch that includes
@@ -84,6 +89,9 @@ import java.util.Map;
  * auto-retry cap (T6 {@code EmailRetryWorker}) can be forced back into a
  * retry-eligible state. {@link EmailService#resend} itself stays
  * count-neutral (T5/T6 contract) — only this admin path resets the count.
+ * Resend is a third real outbound-mail trigger alongside {@code /smtp/test}
+ * and {@code /send-test}, so it is rate-limited the same way — user-keyed,
+ * checked before the log row is even loaded (final review batch, fix #2).
  */
 @RestController
 @RequestMapping("/api/v1/admin/email")
@@ -94,6 +102,9 @@ public class AdminEmailController {
 
     /** Prefix for the send-test rate-limit bucket key — see the class Javadoc. */
     private static final String SEND_TEST_RATE_LIMIT_PREFIX = "email-send-test:";
+
+    /** Prefix for the log-resend rate-limit bucket key — mirrors send-test (final review batch, fix #2). */
+    private static final String RESEND_RATE_LIMIT_PREFIX = "email-resend:";
 
     private final SmtpConfigService smtpConfigService;
     private final UploadRateLimiter uploadRateLimiter;
@@ -188,6 +199,14 @@ public class AdminEmailController {
     // findByTemplateKey before any write). Audit columns (created/changed
     // date + by) are stamped from the server clock and the JWT principal,
     // never from the request body.
+    //
+    // The findByTemplateKey check-then-act above narrows the duplicate-key
+    // race window but cannot close it: two concurrent creates for the same
+    // key can both pass the check and then both attempt the INSERT. The DB
+    // UNIQUE constraint on template_key (V92) is the real guarantee, so the
+    // save() below is wrapped to translate its DataIntegrityViolationException
+    // into the same 409 the check-then-act path returns, instead of letting
+    // it fall through to the generic 500 handler (final review batch, fix #7).
     // -------------------------------------------------------------------
 
     @PostMapping("/templates")
@@ -205,7 +224,11 @@ public class AdminEmailController {
         entity.setChangedDate(now);
         entity.setCreatedById(principal);
         entity.setChangedById(principal);
-        return EmailTemplateView.from(emailTemplateRepository.save(entity));
+        try {
+            return EmailTemplateView.from(emailTemplateRepository.save(entity));
+        } catch (DataIntegrityViolationException ex) {
+            throw new IllegalStateException("Email template key already exists: " + body.templateKey());
+        }
     }
 
     // -------------------------------------------------------------------
@@ -253,10 +276,10 @@ public class AdminEmailController {
 
     // -------------------------------------------------------------------
     // POST /templates/{id}/preview — renders subject/html/text against the
-    // supplied vars. Deliberately bypasses the `enabled` check (unlike
-    // EmailService.sendTemplated) — an admin disabling a template must
-    // still be able to preview it before flipping it back on, mirroring
-    // AdminPartialCreditController.previewEmailTemplate.
+    // supplied vars without persisting anything. Deliberately bypasses the
+    // `enabled` check (unlike EmailService.sendTemplated) — an admin
+    // disabling a template must still be able to preview it before
+    // flipping it back on.
     // -------------------------------------------------------------------
 
     @PostMapping("/templates/{id}/preview")
@@ -332,23 +355,30 @@ public class AdminEmailController {
     }
 
     // -------------------------------------------------------------------
-    // POST /log/{id}/resend — admin-forced resend (design §5). Loads the row
-    // FIRST so a missing id 404s cleanly, THEN bypasses the normal retry-count
-    // bookkeeping by resetting retry_count=0/next_attempt_at=null and saving
-    // that reset, and only THEN calls EmailService#resend — which reloads the
-    // (now-reset) row, re-sends from its snapshot, and stays count-neutral
-    // itself (T5/T6 contract). This ordering is what lets an admin force a
-    // terminal (retry_count == max) FAILED row back into a retryable state.
+    // POST /log/{id}/resend — admin-forced resend (design §5). A real
+    // outbound-mail trigger like /smtp/test and /send-test, so the rate-limit
+    // gate runs FIRST — before even loading the log row — keyed by the
+    // authenticated user id, same reasoning as /send-test (final review
+    // batch, fix #2). Once past the gate: loads the row so a missing id 404s
+    // cleanly, THEN bypasses the normal retry-count bookkeeping by resetting
+    // retry_count=0/next_attempt_at=null and saving that reset, and only THEN
+    // calls EmailService#resend — which reloads the (now-reset) row, re-sends
+    // from its snapshot, and stays count-neutral itself (T5/T6 contract).
+    // This ordering is what lets an admin force a terminal (retry_count ==
+    // max) FAILED row back into a retryable state.
     // -------------------------------------------------------------------
 
     @PostMapping("/log/{id}/resend")
-    public EmailLogView resendLog(@PathVariable Long id) {
+    public ResponseEntity<EmailLogView> resendLog(@PathVariable Long id, Authentication auth) {
+        if (!uploadRateLimiter.tryAcquire(RESEND_RATE_LIMIT_PREFIX + principalUserId(auth))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
         EmailLog logRow = emailLogRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Email log not found: id=" + id));
         logRow.setRetryCount(0);
         logRow.setNextAttemptAt(null);
         emailLogRepository.save(logRow);
-        return EmailLogView.from(emailService.resend(id));
+        return ResponseEntity.ok(EmailLogView.from(emailService.resend(id)));
     }
 
     // -------------------------------------------------------------------

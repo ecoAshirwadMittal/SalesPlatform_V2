@@ -163,6 +163,17 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   does not flip the `Round3InitStatus`. The admin `/reinit-r3` recovery
   endpoint is unaffected.
 
+## Email retry worker config
+- `email.retry.fixed-delay-ms` — default `120000` (2 min); `EmailRetryWorker`
+  scheduled-tick cadence. Each tick rescues stale-PENDING rows and re-drives
+  due `FAILED` rows (design doc §5 "Auto-retry worker (D3)" —
+  `docs/tasks/email-management-design-2026-07-10.md`).
+- `email.retry.stale-pending-min` — default `5`; a `PENDING` `email.log` row
+  older than this many minutes with no resolution is treated as orphaned
+  (app crashed between the log insert and the send attempt) and flipped to
+  `FAILED` with `next_attempt_at=now` so it falls into the same tick's retry
+  pass.
+
 ## Partial credit review-completed email config
 - `partial-credit.review-completed-email.enabled` — default `false`; when
   `false`, `ReviewCompletedEmailListener` logs the intended send (slf4j INFO)

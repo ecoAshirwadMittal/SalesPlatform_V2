@@ -31,7 +31,11 @@ public class SmtpEmailSender implements EmailSender {
 
     public SmtpEmailSender(
             JavaMailSender mailSender,
-            // T4: switch static from/host to SmtpConfigService
+            // Intentionally deferred to Phase 2 (see design
+            // docs/tasks/email-management-design-2026-07-10.md §4, line 50; wiring
+            // an admin-writable host to the env-sourced SMTP credential needs a
+            // credential-exfil guard first) — stays on the static property rather
+            // than SmtpConfigService even though SmtpConfigService has since landed.
             @Value("${pws.email.from}") String fromAddress) {
         this.mailSender = mailSender;
         this.fromAddress = fromAddress;
@@ -47,7 +51,9 @@ public class SmtpEmailSender implements EmailSender {
             MimeMessage mime = mailSender.createMimeMessage();
             // multipart=true → enables HTML body + optional plain-text alternative
             MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
-            // T4: switch static from/host to SmtpConfigService
+            // fromAddress fallback below still intentionally reads the static
+            // property, not SmtpConfigService — see the constructor comment above
+            // (Phase 2 deferral).
             // T5: blank-guard (not just null) — defense-in-depth for any caller that
             // builds an EmailMessage directly instead of through EmailService, whose
             // own recipient/from resolution already guarantees from/replyTo are

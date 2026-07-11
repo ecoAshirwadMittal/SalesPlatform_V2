@@ -111,7 +111,7 @@ describe('Email Admin — SMTP tab', () => {
     expect(body).not.toHaveProperty('encryptedPassword');
   });
 
-  it('toggling "Email Sending Enabled" flips the saved payload', async () => {
+  it('toggling "SMTP Config Enabled" flips the saved payload', async () => {
     global.fetch = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse(200, SAMPLE_CONFIG))
@@ -120,7 +120,7 @@ describe('Email Admin — SMTP tab', () => {
     render(<SmtpConfigTab onBanner={vi.fn()} />);
     await screen.findByDisplayValue('smtp.example.com');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Email Sending Enabled' }));
+    fireEvent.click(screen.getByRole('button', { name: 'SMTP Config Enabled' }));
     fireEvent.click(screen.getByRole('button', { name: /Save Configuration/i }));
 
     await waitFor(() => expect(fetchCalls()).toHaveLength(2));

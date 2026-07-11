@@ -11,6 +11,7 @@ import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.email.EmailService;
 import com.ecoatm.salesplatform.service.email.SmtpConfigService;
 import com.ecoatm.salesplatform.service.email.TemplateRenderer;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -35,6 +36,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.inOrder;
@@ -57,6 +59,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * than 500ing, detail exposes the rendered {@code contentHtml} snapshot, and
  * resend resets {@code retryCount}/{@code nextAttemptAt} and saves BEFORE
  * calling {@link EmailService#resend} (the admin count-bypass, design §5).
+ * Resend is also user-keyed rate-limited (final review batch, fix #2),
+ * mirroring {@code /send-test} — see {@link #rateLimiterAllowsByDefault()}.
  */
 @WebMvcTest(AdminEmailController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class})
@@ -81,6 +85,11 @@ class AdminEmailControllerLogIT {
     @MockBean private TemplateRenderer templateRenderer;
     @MockBean private SmtpConfigService smtpConfigService;
     @MockBean private UploadRateLimiter uploadRateLimiter;
+
+    @BeforeEach
+    void rateLimiterAllowsByDefault() {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
+    }
 
     // -------------------------------------------------------------------
     // GET /api/v1/admin/email/log — filtered + paged list
@@ -214,6 +223,21 @@ class AdminEmailControllerLogIT {
 
         assertThat(savedCaptor.getValue().getRetryCount()).isEqualTo(0);
         assertThat(savedCaptor.getValue().getNextAttemptAt()).isNull();
+
+        // User-keyed, not IP-keyed — same convention as /send-test (final review batch, fix #2).
+        verify(uploadRateLimiter).tryAcquire(eq("email-resend:" + ADMIN_USER_ID));
+    }
+
+    @Test
+    void resendLog_rateLimited_returns429_andSkipsFindByIdAndEmailServiceResend() throws Exception {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(false);
+
+        mvc.perform(post("/api/v1/admin/email/log/5/resend").with(admin()))
+           .andExpect(status().isTooManyRequests());
+
+        verify(emailLogRepository, never()).findById(any());
+        verify(emailLogRepository, never()).save(any());
+        verify(emailService, never()).resend(any());
     }
 
     @Test
