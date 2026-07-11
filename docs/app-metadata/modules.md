@@ -83,7 +83,7 @@ Inventory of major modules and their primary entities.
   S3-backed photos, `PartialCredit_*` role-tier promotion, email
   template versioning
 
-## Unified Email Management (admin surface complete — Tasks 7-9; Task 10 frontend wiring + Task 11 Partial Credit migration still open)
+## Unified Email Management (admin surface + frontend complete — Tasks 7-10; Task 11 Partial Credit migration still open)
 - Schema: `email` (V92)
 - Primary tables: `smtp_config` (singleton id=1 row — server host/port/
   protocol, from/reply-to address, ssl/tls, enabled, retry + timeout;
@@ -134,3 +134,21 @@ Inventory of major modules and their primary entities.
   (`PSQLException: could not determine data type of parameter $N`),
   caught by the real-Postgres `EmailRepositoryIT` rather than the mocked
   controller slice
+- **Task 10 (frontend):** `frontend/src/app/(dashboard)/admin/app-control-center/email-admin/`
+  — `page.tsx` is a thin shell; `SmtpConfigTab.tsx` / `TemplatesTab.tsx` /
+  `TemplateDetailEditor.tsx` / `EmailLogTab.tsx` own each tab's fetching +
+  UI, backed by the typed client `frontend/src/lib/adminEmailClient.ts`.
+  M-3 (unsanitized `dangerouslySetInnerHTML` on the log-detail HTML
+  preview) is closed with `DOMPurify.sanitize(...)` (real `dompurify`,
+  not `isomorphic-dompurify` — the SSR path never calls `.sanitize()`
+  since it's gated behind `useEffect`-populated state).
+- **Known issue (observed 2026-07-11, not yet root-caused):** all three
+  `GET /api/v1/admin/email/{smtp,templates,log}` endpoints 500
+  (`"Internal server error"`, no further detail in the response) against
+  the local dev DB, reproduced directly against port 8080 (not a
+  frontend/proxy issue) with a valid seeded `smtp_config` row present.
+  Not the JPQL casting issue above (that's `/log`-specific; this hits
+  `/smtp` and `/templates` too, suggesting something controller- or
+  security-config-wide). The Task 10 frontend catches and displays the
+  error correctly either way (verified in a real logged-in browser
+  session) — this is a backend follow-up, not a frontend defect.

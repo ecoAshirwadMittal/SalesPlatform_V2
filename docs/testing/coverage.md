@@ -163,3 +163,26 @@ Backend email-admin sweep: **52/52 green** (`AdminEmailControllerLogIT` 11 +
 `LoggingEmailSenderTest` 1, `EmailMessageTest` 8,
 `ReviewCompletedEmailListenerTest` 7 — 47 total) stayed green, confirming
 no collateral behavior change.
+
+---
+
+## emailadmin.frontend (new 2026-07-11, Task 10)
+RTL coverage for the Email Admin frontend (`frontend/src/app/(dashboard)/admin/app-control-center/email-admin/`), each tab component rendered in isolation. 13 cases across 3 files:
+
+| Surface | Key tests |
+|---|---|
+| `SmtpConfigTab` | `emailAdmin.smtp.test.tsx` (4) — loads `GET /smtp` and renders camelCase fields with no Username/Password inputs (D2); `PUT /smtp` body is asserted `.toEqual(...)` against the exact `SmtpConfigUpdate` shape plus explicit `not.toHaveProperty` guards against snake_case/password leakage; `Enabled` toggle flips the saved payload; `Test Connection` posts to `/smtp/test` and surfaces `{success, message}` via the `onBanner` callback |
+| `TemplatesTab` + `TemplateDetailEditor` | `emailAdmin.templates.test.tsx` (5) — lists via `GET /templates`; edit sends a camelCase `PUT .../templates/{id}` body (`EmailTemplateUpsert` shape, guarded against `template_name`/`content_html`/`has_attachment`); create sends `POST` with `templateKey` + `contentHtml` populated (the stub's create flow had neither field wired and would have 400'd on every attempt); delete confirms then `DELETE`s; Preview renders `{subject, html, text}` and Send Test posts `{toAddress, vars}` to `/templates/{id}/send-test` — both previously entirely unwired |
+| `EmailLogTab` | `emailAdmin.log.test.tsx` (4) — lists from the `Page<EmailLogView>` envelope (`.content`/`.totalElements`); status filter re-fetches with the real `PENDING`/`SENT`/`FAILED` enum (the stub used the non-existent `SENT/QUEUED/FAILED/ERROR`); **M-3** — opening a detail row sanitizes `contentHtml` via `DOMPurify.sanitize`, asserting a `<script>` tag and a dangling `onerror` attribute are both absent from the rendered DOM (`container.querySelector('script')` / `'[onerror]'` are `null`); `Resend` posts to `POST /log/{id}/resend` and reloads the list |
+
+`npm test -- emailAdmin`: **13/13 green**. Full frontend suite: 291/293 (2
+pre-existing `apiFetch-guard.test.ts` failures predate this task and are
+unrelated — verified none of the violation files were touched here).
+`npm run build`'s TypeScript gate is currently blocked by pre-existing,
+unrelated errors in `partial-credit/[id]/AdminReviewClient.tsx` and
+`/wholesale/partial-credit/new` (confirmed via `git stash` to reproduce
+on `HEAD` with this task's changes removed); this task's own files carry
+**zero** errors under a full `tsc --noEmit` sweep and were confirmed to
+render correctly end-to-end in a real authenticated browser session
+(Playwright) — see `docs/tasks/email-management-implementation-plan-2026-07-10.md`
+Task 10 for detail.
