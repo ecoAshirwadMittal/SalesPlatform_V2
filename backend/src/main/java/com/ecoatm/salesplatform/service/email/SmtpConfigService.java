@@ -68,10 +68,17 @@ public class SmtpConfigService {
      * invalidates the cache so the next {@link #get()} reloads the fresh
      * row instead of serving the pre-update snapshot.
      *
-     * <p>Fields left {@code null} on {@code patch} are left unchanged —
-     * mirrors {@code EmailTemplateServiceImpl.update}'s null-means-unchanged
-     * convention. The admin SMTP settings form only needs to submit the
-     * fields the admin actually edited.
+     * <p>This is a {@code PUT} with deliberate null-means-unchanged
+     * (partial-patch) semantics: the brief fixed the verb at {@code PUT},
+     * and null-coalescing each field to its current value avoids nulling a
+     * NOT-NULL column (server_port, protocol) from a partial admin-form
+     * submit. The admin SMTP settings form only needs to send the fields
+     * the admin actually edited. (This differs from a strict full-replace
+     * PUT; it is not a {@code @PatchMapping} — the null-coalescing shape
+     * happens to resemble the {@code @PatchMapping} services
+     * {@code EmailTemplateServiceImpl.update}/{@code StatusConfigService
+     * .update}, but those are PATCH endpoints and are not the precedent for
+     * the verb here.)
      *
      * <p>{@code changedByUserId} MUST be resolved by the caller from the
      * authenticated principal (see {@code AdminEmailController}) — this

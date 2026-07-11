@@ -97,3 +97,17 @@ test sweep covers each surface end-to-end.
 
 Full backend partial-credit sweep: **124/124 green** (was 41 pre-Sprint-4).
 Frontend RTL: 30 new component cases across the four Sprint 4 test files.
+
+---
+
+## email.admin-smtp (new 2026-07-11, Task 7)
+Target 85%+. First admin surface of the unified email module — the
+security-critical assertions carry the weight.
+
+| Surface | Key tests |
+|---|---|
+| `AdminEmailController` SMTP endpoints | `AdminEmailControllerSmtpIT` (9, `@WebMvcTest` + imported `SecurityConfig`) — D2: GET never returns `password`/`encryptedPassword`; PUT structurally drops a client-supplied `password`/`encryptedPassword` (ArgumentCaptor equals the 11 real fields only); `@Valid` rejects `serverPort:0` as 400 without calling the service; authz matrix — Bidder→403 on GET **and** PUT **and** `/smtp/test`, plus no-token→401; `/smtp/test` rate-limit denial→429; `/smtp/test` graceful no-`JavaMailSender`-bean branch→`{success:false,"SMTP is not configured"}` |
+| `SmtpConfigService.update` | `SmtpConfigServiceTest` (+3, now 7 total) — full-patch + audit-stamp + cache-invalidation (findById called 3×: prime + update + post-update reload), all-null patch leaves columns unchanged, missing-singleton-row guard throws |
+
+Backend email-admin sweep: **16/16 green** (`AdminEmailControllerSmtpIT`
+9 + `SmtpConfigServiceTest` 7).

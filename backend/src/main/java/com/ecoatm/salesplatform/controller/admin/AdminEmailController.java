@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.dto.email.SmtpConfigView;
 import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.email.SmtpConfigService;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -79,7 +80,7 @@ public class AdminEmailController {
     // -------------------------------------------------------------------
 
     @PutMapping("/smtp")
-    public SmtpConfigView updateSmtp(@RequestBody SmtpConfigUpdate patch, Authentication auth) {
+    public SmtpConfigView updateSmtp(@Valid @RequestBody SmtpConfigUpdate patch, Authentication auth) {
         return SmtpConfigView.from(smtpConfigService.update(patch, principalUserId(auth)));
     }
 

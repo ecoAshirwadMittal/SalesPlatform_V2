@@ -125,18 +125,57 @@ class AdminEmailControllerSmtpIT {
                 false, true, true, 3, 10000));
     }
 
+    @Test
+    void putSmtp_invalidServerPort_returns400_andSkipsService() throws Exception {
+        // serverPort 0 violates @Min(1). @Valid must reject it as a 400 before
+        // the service is ever called — a bad port (or maxRetryAttempts:0, which
+        // would silently disable email.log retry for every module) must never
+        // reach the DB. Bean-validation failure maps to 400 via
+        // GlobalExceptionHandler.handleValidation.
+        String bodyWithBadPort = "{\"serverPort\":0}";
+
+        mvc.perform(put("/api/v1/admin/email/smtp").with(admin())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(bodyWithBadPort))
+           .andExpect(status().isBadRequest());
+
+        verify(smtpConfigService, never()).update(any(SmtpConfigUpdate.class), any());
+    }
+
     // -------------------------------------------------------------------
-    // Authz — non-admin never reaches this surface
+    // Authz — non-admin never reaches this surface; every verb + no-token
     // -------------------------------------------------------------------
 
     @Test
-    void nonAdmin_returns403() throws Exception {
+    void getSmtp_asBidder_returns403() throws Exception {
         mvc.perform(get("/api/v1/admin/email/smtp").with(bidder()))
            .andExpect(status().isForbidden());
     }
 
+    @Test
+    void putSmtp_asBidder_returns403() throws Exception {
+        mvc.perform(put("/api/v1/admin/email/smtp").with(bidder())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"serverHost\":\"evil.example.com\"}"))
+           .andExpect(status().isForbidden());
+
+        verify(smtpConfigService, never()).update(any(SmtpConfigUpdate.class), any());
+    }
+
+    @Test
+    void testSmtp_asBidder_returns403() throws Exception {
+        mvc.perform(post("/api/v1/admin/email/smtp/test").with(bidder()))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void getSmtp_unauthenticated_returns401() throws Exception {
+        mvc.perform(get("/api/v1/admin/email/smtp"))
+           .andExpect(status().isUnauthorized());
+    }
+
     // -------------------------------------------------------------------
-    // POST /api/v1/admin/email/smtp/test — rate limited
+    // POST /api/v1/admin/email/smtp/test — rate limited + graceful no-sender
     // -------------------------------------------------------------------
 
     @Test
@@ -146,8 +185,22 @@ class AdminEmailControllerSmtpIT {
         mvc.perform(post("/api/v1/admin/email/smtp/test").with(admin()))
            .andExpect(status().isTooManyRequests());
 
+        // The rate-limit gate is checked (and denied) — that plus the 429 status
+        // is the real proof. The controller never touches smtpConfigService in
+        // any /smtp/test branch, so asserting that would be vacuous.
         verify(uploadRateLimiter).tryAcquire(anyString());
-        verify(smtpConfigService, never()).get();
+    }
+
+    @Test
+    void test_noMailSenderBean_returnsNotConfigured() throws Exception {
+        // This @WebMvcTest slice has no JavaMailSender bean, so the controller's
+        // ObjectProvider<JavaMailSender>.getIfAvailable() returns null and the
+        // graceful branch fires instead of the context failing to boot. Rate
+        // limiter allows by default (@BeforeEach), so we reach the branch.
+        mvc.perform(post("/api/v1/admin/email/smtp/test").with(admin()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.success").value(false))
+           .andExpect(jsonPath("$.message").value("SMTP is not configured"));
     }
 
     // -------------------------------------------------------------------
