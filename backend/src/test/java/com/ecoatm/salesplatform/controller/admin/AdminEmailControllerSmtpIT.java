@@ -2,11 +2,14 @@ package com.ecoatm.salesplatform.controller.admin;
 
 import com.ecoatm.salesplatform.dto.email.SmtpConfigUpdate;
 import com.ecoatm.salesplatform.model.email.SmtpConfig;
+import com.ecoatm.salesplatform.repository.email.EmailTemplateRepository;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
 import com.ecoatm.salesplatform.security.UploadRateLimiter;
+import com.ecoatm.salesplatform.service.email.EmailService;
 import com.ecoatm.salesplatform.service.email.SmtpConfigService;
+import com.ecoatm.salesplatform.service.email.TemplateRenderer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -60,6 +63,14 @@ class AdminEmailControllerSmtpIT {
 
     @MockBean private SmtpConfigService smtpConfigService;
     @MockBean private UploadRateLimiter uploadRateLimiter;
+
+    // AdminEmailController's constructor also depends on these Task 8
+    // collaborators — @WebMvcTest needs every constructor dependency
+    // satisfied even though this suite never exercises the /templates
+    // endpoints (see AdminEmailControllerTemplatesIT for those).
+    @MockBean private EmailTemplateRepository emailTemplateRepository;
+    @MockBean private TemplateRenderer templateRenderer;
+    @MockBean private EmailService emailService;
 
     @BeforeEach
     void rateLimiterAllowsByDefault() {
