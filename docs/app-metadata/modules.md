@@ -82,3 +82,29 @@ Inventory of major modules and their primary entities.
   auto-creation for accepted encumbered lines, Oracle write-back,
   S3-backed photos, `PartialCredit_*` role-tier promotion, email
   template versioning
+
+## Unified Email Management (in progress — Task 7 adds the first admin surface)
+- Schema: `email` (V92)
+- Primary tables: `smtp_config` (singleton id=1 row — server host/port/
+  protocol, from/reply-to address, ssl/tls, enabled, retry + timeout;
+  **no password column** — the SMTP password is env-only,
+  `spring.mail.password`), `template` (keyed by `template_key`, HTML +
+  plain body, from/reply-to/cc/bcc defaults; seeded from the live
+  Partial Credit templates), `log` (one row per send attempt — status
+  `PENDING`/`SENT`/`FAILED`, `retry_count`, `next_attempt_at`, source
+  module/id)
+- Admin surface so far (Task 7 — SMTP config only): `GET`/`PUT
+  /api/v1/admin/email/smtp` + `POST /api/v1/admin/email/smtp/test`
+  (rate-limited), `Administrator`-only. Templates + log admin surfaces
+  are separate, later tasks — not built yet. See
+  `docs/api/rest-endpoints.md` § "Unified Email Management — Admin SMTP
+  Config"
+- Security (design decision D2): the SMTP password is env-only and MUST
+  NEVER appear in a request body, response, or DB column. Enforced
+  structurally — `SmtpConfigView`/`SmtpConfigUpdate` have no password
+  component for Jackson to populate or bind into
+- `JavaMailSender` is injected as `ObjectProvider<JavaMailSender>` (not
+  a hard dependency) because `spring.mail.host` is unset in this app
+  today, so no bean exists yet; `/smtp/test` degrades to
+  `{success:false, message:"SMTP is not configured"}` instead of
+  failing the app to boot

@@ -1368,3 +1368,43 @@ FROM   partial_credit.email_audit
 ORDER  BY sent_at DESC
 LIMIT  10;
 ```
+
+## Unified Email Management — Admin SMTP Config (Task 7)
+
+`Administrator`-only. Backs the admin SMTP settings screen for the
+`email.smtp_config` singleton row (V92). Email-templates and email-log
+admin surfaces for this module are separate, later tasks — not covered
+here.
+
+### Admin surface — SMTP configuration
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/admin/email/smtp` | Current config. Response is `SmtpConfigView` |
+| `PUT` | `/api/v1/admin/email/smtp` | Update config. Body: `SmtpConfigUpdate`. Fields left `null` are left unchanged |
+| `POST` | `/api/v1/admin/email/smtp/test` | Live connection check against the env-configured mail sender. Rate-limited (per-IP, shares `UploadRateLimiter`) — `429` when denied |
+
+**Security — password never in the DB or API (design decision D2):** the
+SMTP password is env-only (`spring.mail.password`).
+`email.smtp_config` has no password column, and neither `SmtpConfigView`
+(GET/PUT response) nor `SmtpConfigUpdate` (PUT request body) declares a
+password field. If a client's PUT body includes `password` or
+`encryptedPassword` anyway, Jackson silently drops it — there is no
+component on the record to bind into, so there is no code path that could
+ever persist or echo one. `POST /smtp/test` only exercises the
+env-supplied `JavaMailSender` bean; it never reads anything from the
+request body.
+
+**Authorization:** covered by both an explicit `SecurityConfig` matcher
+(`/api/v1/admin/email/**` → `hasRole("Administrator")`) and a class-level
+`@PreAuthorize("hasRole('Administrator')")` on `AdminEmailController`
+(defense-in-depth).
+
+**Audit:** `PUT /smtp` stamps `changed_date`/`changed_by_id` from the
+authenticated JWT principal — never from a request field.
+
+**Boots without mail configured:** `JavaMailSender` is injected as
+`ObjectProvider<JavaMailSender>` rather than a hard dependency, because
+`spring.mail.host` is unset in this app today so no `JavaMailSender` bean
+exists. `POST /smtp/test` returns `{success:false, message:"SMTP is not
+configured"}` in that case instead of failing to boot.
