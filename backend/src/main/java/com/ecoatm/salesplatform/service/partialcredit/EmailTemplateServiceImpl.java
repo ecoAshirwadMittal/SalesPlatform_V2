@@ -3,9 +3,8 @@ package com.ecoatm.salesplatform.service.partialcredit;
 import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplateUpdate;
 import com.ecoatm.salesplatform.model.partialcredit.EmailTemplate;
 import com.ecoatm.salesplatform.repository.partialcredit.EmailTemplateRepository;
+import com.ecoatm.salesplatform.service.email.TemplateRenderer;
 import jakarta.persistence.EntityNotFoundException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,20 +14,16 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Service
 public class EmailTemplateServiceImpl implements EmailTemplateService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmailTemplateServiceImpl.class);
-
-    /** Matches {@code {{name}}} or {@code {{!name}}}. Group 1 is the
-     *  raw-escape marker (present iff the variable opts out of HTML
-     *  escaping); group 2 is the variable name. */
-    private static final Pattern VAR_PATTERN = Pattern.compile("\\{\\{(!)?([A-Za-z0-9_]+)\\}\\}");
-
     private final EmailTemplateRepository repository;
+
+    /** Shared {@code {{var}}}/{@code {{!var}}} substitution engine — see
+     *  {@link TemplateRenderer} for the (byte-identical) rendering rules
+     *  this class used to implement inline. */
+    private final TemplateRenderer templateRenderer;
 
     /** In-process cache. Tiny (≤ 10 keys), single point of write
      *  (update), so a ConcurrentHashMap with explicit invalidation is
@@ -36,8 +31,9 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
      *  rows. */
     private final ConcurrentMap<String, EmailTemplate> cache = new ConcurrentHashMap<>();
 
-    public EmailTemplateServiceImpl(EmailTemplateRepository repository) {
+    public EmailTemplateServiceImpl(EmailTemplateRepository repository, TemplateRenderer templateRenderer) {
         this.repository = repository;
+        this.templateRenderer = templateRenderer;
     }
 
     @Override
@@ -59,11 +55,11 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
     public RenderedEmail render(String templateKey, Map<String, Object> variables) {
         EmailTemplate template = get(templateKey);
         Map<String, Object> vars = variables == null ? Map.of() : variables;
-        String subject = substitute(template.getSubject(), vars, false);
-        String bodyHtml = substitute(template.getBodyHtml(), vars, true);
+        String subject = templateRenderer.renderPlain(template.getSubject(), vars);
+        String bodyHtml = templateRenderer.render(template.getBodyHtml(), vars);
         String bodyText = template.getBodyText() == null
                 ? null
-                : substitute(template.getBodyText(), vars, false);
+                : templateRenderer.renderPlain(template.getBodyText(), vars);
         return new RenderedEmail(subject, bodyHtml, bodyText);
     }
 
@@ -105,48 +101,12 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
         return repository.findByTemplateKey(templateKey).map(template -> {
             Map<String, Object> vars = variables == null ? Map.of() : variables;
             return new RenderedEmail(
-                    substitute(template.getSubject(), vars, false),
-                    substitute(template.getBodyHtml(), vars, true),
+                    templateRenderer.renderPlain(template.getSubject(), vars),
+                    templateRenderer.render(template.getBodyHtml(), vars),
                     template.getBodyText() == null
                             ? null
-                            : substitute(template.getBodyText(), vars, false));
+                            : templateRenderer.renderPlain(template.getBodyText(), vars));
         });
-    }
-
-    /**
-     * Apply {@code {{varName}}} substitution. {@code escapeHtml=true}
-     * escapes the substituted value unless the placeholder uses the
-     * {@code {{!varName}}} raw-escape form. Missing variables substitute
-     * to empty string + emit a warn log so they're observable.
-     */
-    private String substitute(String template, Map<String, Object> variables, boolean escapeHtml) {
-        if (template == null || template.isEmpty()) {
-            return template;
-        }
-        Matcher matcher = VAR_PATTERN.matcher(template);
-        StringBuilder out = new StringBuilder(template.length() + 64);
-        while (matcher.find()) {
-            boolean raw = matcher.group(1) != null;
-            String name = matcher.group(2);
-            Object rawValue = variables.get(name);
-            String value;
-            if (rawValue == null) {
-                if (!variables.containsKey(name)) {
-                    log.warn(
-                            "Email template variable '{}' has no value supplied — rendering as empty string",
-                            name);
-                }
-                value = "";
-            } else {
-                value = String.valueOf(rawValue);
-            }
-            if (escapeHtml && !raw) {
-                value = escapeHtml(value);
-            }
-            matcher.appendReplacement(out, Matcher.quoteReplacement(value));
-        }
-        matcher.appendTail(out);
-        return out.toString();
     }
 
     private EmailTemplate ensureEnabled(EmailTemplate template) {
@@ -155,13 +115,5 @@ public class EmailTemplateServiceImpl implements EmailTemplateService {
                     "Email template is disabled: " + template.getTemplateKey());
         }
         return template;
-    }
-
-    private static String escapeHtml(String s) {
-        return s.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
     }
 }

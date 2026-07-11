@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.ecoatm.salesplatform.dto.partialcredit.EmailTemplateUpdate;
 import com.ecoatm.salesplatform.model.partialcredit.EmailTemplate;
 import com.ecoatm.salesplatform.repository.partialcredit.EmailTemplateRepository;
+import com.ecoatm.salesplatform.service.email.TemplateRenderer;
 import com.ecoatm.salesplatform.service.partialcredit.EmailTemplateService.RenderedEmail;
 import jakarta.persistence.EntityNotFoundException;
 import java.util.HashMap;
@@ -48,7 +49,10 @@ class EmailTemplateServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new EmailTemplateServiceImpl(repository);
+        // Real TemplateRenderer (not mocked): the whole point of this
+        // regression suite is proving the render behavior is unchanged
+        // now that EmailTemplateServiceImpl delegates to it.
+        service = new EmailTemplateServiceImpl(repository, new TemplateRenderer());
     }
 
     @Test
