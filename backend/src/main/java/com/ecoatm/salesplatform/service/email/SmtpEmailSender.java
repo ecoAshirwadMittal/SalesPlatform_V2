@@ -48,9 +48,14 @@ public class SmtpEmailSender implements EmailSender {
             // multipart=true → enables HTML body + optional plain-text alternative
             MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
             // T4: switch static from/host to SmtpConfigService
-            String effectiveFrom = message.from() != null ? message.from() : fromAddress;
+            // T5: blank-guard (not just null) — defense-in-depth for any caller that
+            // builds an EmailMessage directly instead of through EmailService, whose
+            // own recipient/from resolution already guarantees from/replyTo are
+            // never blank (real address or null).
+            String effectiveFrom =
+                    message.from() != null && !message.from().isBlank() ? message.from() : fromAddress;
             helper.setFrom(effectiveFrom);
-            if (message.replyTo() != null) {
+            if (message.replyTo() != null && !message.replyTo().isBlank()) {
                 helper.setReplyTo(message.replyTo());
             }
             helper.setTo(message.to().toArray(String[]::new));

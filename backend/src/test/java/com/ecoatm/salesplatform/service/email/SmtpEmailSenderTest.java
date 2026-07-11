@@ -50,6 +50,18 @@ class SmtpEmailSenderTest {
     }
 
     @Test
+    @DisplayName("uses the configured fallback From when the message's From is blank, not just null (T5 guard)")
+    void usesFallbackFrom_whenMessageFromIsBlank() throws Exception {
+        EmailMessage msg = new EmailMessage(
+                List.of("buyer@example.com"), List.of(), List.of(),
+                "   ", null, "Subject", "<p>hi</p>", null);
+
+        MimeMessage sent = captureSend(msg);
+
+        assertThat(addressesOf(sent.getFrom())).containsExactly(FALLBACK_FROM);
+    }
+
+    @Test
     @DisplayName("prefers the message's own From over the configured fallback")
     void prefersMessageFrom_overFallback() throws Exception {
         EmailMessage msg = new EmailMessage(
@@ -78,6 +90,18 @@ class SmtpEmailSenderTest {
     void omitsReplyTo_whenAbsent() throws Exception {
         EmailMessage msg = EmailMessage.of(
                 List.of("buyer@example.com"), List.of(), "Subject", "<p>hi</p>", null);
+
+        MimeMessage sent = captureSend(msg);
+
+        assertThat(sent.getHeader("Reply-To")).isNull();
+    }
+
+    @Test
+    @DisplayName("omits the Reply-To header when the message's Reply-To is blank, not just null (T5 guard)")
+    void omitsReplyTo_whenBlank() throws Exception {
+        EmailMessage msg = new EmailMessage(
+                List.of("buyer@example.com"), List.of(), List.of(),
+                null, "   ", "Subject", "<p>hi</p>", null);
 
         MimeMessage sent = captureSend(msg);
 
