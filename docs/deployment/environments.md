@@ -21,7 +21,7 @@ produce customer-facing mail.
 | `spring.mail.host` | `localhost` | SMTP relay host. |
 | `spring.mail.port` | `25` | SMTP relay port. |
 | `spring.mail.username` | _(empty)_ | SMTP auth user. Leave blank for unauthenticated relays. |
-| `spring.mail.password` | _(empty)_ | SMTP auth password. Inject via env/secret manager, never commit. |
+| `spring.mail.password` | _(empty)_ | SMTP auth password, sourced from `EMAIL_SMTP_PASSWORD` (design decision D2 — password only ever from env, never DB/API). Inject via env/secret manager, never commit. `EmailSmtpValidator` refuses to start in production when `pws.email.enabled=true` and this is blank. |
 
 ### Enabling in an environment
 
@@ -31,7 +31,7 @@ produce customer-facing mail.
    export MAIL_HOST=smtp.office365.com
    export MAIL_PORT=587
    export MAIL_USERNAME=pws-notifier@ecoatm.com
-   export MAIL_PASSWORD=<from secret manager>
+   export EMAIL_SMTP_PASSWORD=<from secret manager>
    export PWS_EMAIL_FROM=noreply@ecoatmdirect.com
    export PWS_EMAIL_SALES=sales@ecoatmdirect.com
    export PWS_EMAIL_COUNTER_OFFER_URL=https://buy.ecoatmdirect.com/p/counter-offer/

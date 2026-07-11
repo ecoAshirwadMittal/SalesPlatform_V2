@@ -31,6 +31,7 @@ public class SmtpEmailSender implements EmailSender {
 
     public SmtpEmailSender(
             JavaMailSender mailSender,
+            // T4: switch static from/host to SmtpConfigService
             @Value("${pws.email.from}") String fromAddress) {
         this.mailSender = mailSender;
         this.fromAddress = fromAddress;
@@ -46,10 +47,18 @@ public class SmtpEmailSender implements EmailSender {
             MimeMessage mime = mailSender.createMimeMessage();
             // multipart=true → enables HTML body + optional plain-text alternative
             MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
-            helper.setFrom(fromAddress);
+            // T4: switch static from/host to SmtpConfigService
+            String effectiveFrom = message.from() != null ? message.from() : fromAddress;
+            helper.setFrom(effectiveFrom);
+            if (message.replyTo() != null) {
+                helper.setReplyTo(message.replyTo());
+            }
             helper.setTo(message.to().toArray(String[]::new));
             if (!message.cc().isEmpty()) {
                 helper.setCc(message.cc().toArray(String[]::new));
+            }
+            if (!message.bcc().isEmpty()) {
+                helper.setBcc(message.bcc().toArray(String[]::new));
             }
             helper.setSubject(message.subject());
             // Spring picks the right alternative order when both are supplied

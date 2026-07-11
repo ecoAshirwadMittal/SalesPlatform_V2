@@ -138,7 +138,7 @@ public class ReviewCompletedEmailListener {
                 : TEMPLATE_DECLINED;
         RenderedEmail rendered = emailTemplateService.render(templateKey, variablesFor(cr, event.outcome()));
 
-        EmailMessage message = new EmailMessage(
+        EmailMessage message = EmailMessage.of(
                 recipients,
                 List.of(),
                 rendered.subject(),

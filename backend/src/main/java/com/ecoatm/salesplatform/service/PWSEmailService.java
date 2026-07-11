@@ -91,7 +91,7 @@ public class PWSEmailService {
             BigDecimal total = nullSafe(offer.getTotalPrice());
             String html = render("email/pws-offer-confirmation",
                     baseContext(user.fullName(), offer, company, rows, total));
-            return new EmailMessage(
+            return EmailMessage.of(
                     List.of(user.email()),
                     List.of(),
                     "Offer Confirmation — " + displayOfferRef(offer),
@@ -117,7 +117,7 @@ public class PWSEmailService {
             BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
             String html = render("email/pws-order-confirmation",
                     baseContext(firstOr(recipients).fullName(), offer, company, rows, total));
-            return new EmailMessage(
+            return EmailMessage.of(
                     recipients.stream().map(RecipientUser::email).toList(),
                     List.of(),
                     "Order Confirmation — " + displayOfferRef(offer),
@@ -143,7 +143,7 @@ public class PWSEmailService {
             BigDecimal total = rows.stream().map(ItemRow::totalPrice).reduce(BigDecimal.ZERO, BigDecimal::add);
             String html = render("email/pws-pending-order",
                     baseContext(firstOr(recipients).fullName(), offer, company, rows, total));
-            return new EmailMessage(
+            return EmailMessage.of(
                     recipients.stream().map(RecipientUser::email).toList(),
                     List.of(salesAddress),
                     "Order Pending — " + displayOfferRef(offer),
@@ -170,7 +170,7 @@ public class PWSEmailService {
             Context ctx = baseContext(firstOr(recipients).fullName(), offer, company, rows, total);
             ctx.setVariable("counterOfferUrl", counterOfferUrl);
             String html = render("email/pws-counter-offer", ctx);
-            return new EmailMessage(
+            return EmailMessage.of(
                     recipients.stream().map(RecipientUser::email).toList(),
                     List.of(),
                     "Counter Offer — " + displayOfferRef(offer),

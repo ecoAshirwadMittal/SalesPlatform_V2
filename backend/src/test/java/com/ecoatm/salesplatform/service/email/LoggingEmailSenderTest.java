@@ -17,7 +17,7 @@ class LoggingEmailSenderTest {
     @Test
     @DisplayName("logs recipients, subject, and body sizes")
     void logs_messageSummary(CapturedOutput output) {
-        EmailMessage m = new EmailMessage(
+        EmailMessage m = EmailMessage.of(
                 List.of("buyer@example.com"),
                 List.of("cc@example.com"),
                 "Test Subject",
