@@ -39,6 +39,28 @@ Inventory of major modules and their primary entities.
 - Admin recovery: `POST /admin/auctions/scheduling-auctions/{id}/preprocess-r3` and `.../reinit-r3`
 - Snowflake sync: none — R3 QBC/report rows are not pushed to Snowflake (same policy as R2)
 
+## Manual Qualification Override (gap 2.4 sub-feature 2 — modern `_New` path)
+- Source module: AuctionUI (`NF_OnIncludedChanged_New`)
+- Surface: admin QBC grid PATCH `/api/v1/admin/qualified-buyer-codes/{id}`
+  (`Administrator`, `SalesOps`) — flips `included` and forces
+  `qualification_type=Manual` (unchanged), now with a round-status guard + event
+- Service: `service/admin/QualifiedBuyerCodeAdminService.updateIncluded` loads
+  the QBC's `auctions.scheduling_auctions` row (by `scheduling_auction_id`) and,
+  if `round_status == Closed`, throws `RoundClosedException` ("Round cannot be
+  modified if it is closed") **before any persist/audit/event** → HTTP **409**
+  (the exception extends `IllegalStateException`, reusing the existing
+  `GlobalExceptionHandler` 409 mapping). A missing SA (data-integrity fault) → 404
+- Event: every SUCCESSFUL override publishes
+  `event.buyermgmt.QualificationOverriddenEvent(qualifiedBuyerCodeId,
+  buyerCodeId, schedulingAuctionId, included, roundStatus, changedByUserId,
+  occurredAt)` inside the committing transaction. The event carries facts only;
+  the manual-qualification email (Task 4) attaches an `AFTER_COMMIT` listener and
+  emails only when `roundStatus == Started && included == true`
+- Locked scope: modern single-path `_New` only — **no** bid-data re-seed (that
+  lived in the legacy `_Legacy` path), **no** Snowflake push, **no** Flyway
+  migration
+- Business-logic guide: legacy `NF_OnIncludedChanged_New` in `migration_context/`
+
 ## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12; email migrated onto the unified module by Task 11, 2026-07-11)
 - Source module: `ecoatm_partialcredit` (Mendix)
 - Schema: `partial_credit` (V89 + V90)

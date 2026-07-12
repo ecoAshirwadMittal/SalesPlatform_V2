@@ -369,3 +369,24 @@ real-Postgres IT can prove — the listener's `@Transactional(REQUIRES_NEW)` is
 
 RMA approval-email sweep: **9/9 green** (`RmaApprovedEmailListenerTest` 6 +
 `RmaApprovedEmailMigrationIT` 2 + `V93MigrationIT` 1).
+
+---
+
+## buyersusers.qualification-override-guard (new 2026-07-12 · gap 2.4 sub-feature 2 · NF_OnIncludedChanged_New)
+Target 85%+. Adds the modern `_New` round-status guard to the QBC manual
+include-override plus a published `QualificationOverriddenEvent` for the Task 4
+manual-qualification email. Load-bearing branches: the `Closed`-round guard
+rejecting before any persist/audit/event (→ 409 via `RoundClosedException extends
+IllegalStateException`, reusing the existing handler); every successful override
+publishing the event inside the committing tx regardless of `included` /
+`roundStatus` (Task 4's listener owns the email decision); and the exact event
+field shape Task 4 depends on. **No** bid-data re-seed, Snowflake, or migration.
+
+| Surface | Key tests |
+|---|---|
+| `QualifiedBuyerCodeAdminService.updateIncluded` | `QualifiedBuyerCodeAdminServiceTest` (9, Mockito; +3 new + 4 existing extended to stub the `SchedulingAuctionRepository` load) — Closed round → `RoundClosedException` + `verify(never())` on `qbcRepo.save`/`auditRepo.save`/`eventPublisher.publishEvent`; Started + included=true → `ArgumentCaptor` asserts all 7 event fields (`qualifiedBuyerCodeId`/`buyerCodeId`/`schedulingAuctionId`/`included`/`roundStatus=Started`/`changedByUserId`/`occurredAt`); included=false on a non-closed round → still persists + still publishes (`included()==false`); unknown id → `QualifiedBuyerCodeNotFoundException` + no event |
+| End-to-end guard + status mapping (real Postgres) | `QualifiedBuyerCodeAdminControllerIT` (2, `@AutoConfigureMockMvc` + `@Transactional`, extends `PostgresIntegrationTest`) — seeds auction → scheduling_auction → QBC via `JdbcTemplate` (mirrors `BidDataScenario` column sets); PATCH on a `Started`-round QBC → **200** + response `qualificationType=Manual` + `included=false` (proves the native-query read-back reflects the write); PATCH on a `Closed`-round QBC → **409** + body message "Round cannot be modified if it is closed" |
+
+QBC qualification-override sweep: **11/11 green** (`QualifiedBuyerCodeAdminServiceTest`
+9 + `QualifiedBuyerCodeAdminControllerIT` 2). Run:
+`./mvnw test -Dtest=QualifiedBuyerCodeAdminServiceTest,QualifiedBuyerCodeAdminControllerIT -Dspring.profiles.active=pg-test`.
