@@ -1,7 +1,9 @@
 package com.ecoatm.salesplatform.service.auctions.purchaseorder;
 
+import com.ecoatm.salesplatform.model.auctions.PurchaseOrder;
 import com.ecoatm.salesplatform.model.mdm.Week;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.PurchaseOrderRepository;
 import com.ecoatm.salesplatform.repository.mdm.WeekRepository;
 import org.springframework.stereotype.Component;
 
@@ -14,11 +16,14 @@ public class PurchaseOrderValidator {
 
     private final WeekRepository weekRepo;
     private final BuyerCodeRepository buyerCodeRepo;
+    private final PurchaseOrderRepository purchaseOrderRepo;
 
     public PurchaseOrderValidator(WeekRepository weekRepo,
-                                  BuyerCodeRepository buyerCodeRepo) {
+                                  BuyerCodeRepository buyerCodeRepo,
+                                  PurchaseOrderRepository purchaseOrderRepo) {
         this.weekRepo = weekRepo;
         this.buyerCodeRepo = buyerCodeRepo;
+        this.purchaseOrderRepo = purchaseOrderRepo;
     }
 
     public record WeekRange(Week from, Week to) {}
@@ -50,5 +55,38 @@ public class PurchaseOrderValidator {
                     "Unknown buyer codes referenced: " + String.join(", ", missing),
                     missing);
         }
+    }
+
+    /**
+     * VAL_WeekRange_PO (gap 0.1) — reject a candidate week range that overlaps
+     * ANY existing PO's range. Scope is GLOBAL (no buyer/product/grade
+     * filter); see {@link PurchaseOrderRepository#findOverlappingWeekRange} for
+     * the rationale (exact legacy parity + 4C floor-collision prevention).
+     *
+     * <p>Call AFTER {@link #resolveWeekRange} on both create and update. On
+     * update, pass the edited PO's id as {@code excludePoId} so it is not
+     * flagged as overlapping itself; pass {@code null} on create.
+     *
+     * @throws PurchaseOrderValidationException with code
+     *         {@code OVERLAPPING_WEEK_RANGE} naming the first conflicting PO
+     *         and its weeks.
+     */
+    public void requireNonOverlappingWeekRange(WeekRange range, Long excludePoId) {
+        // Compare by the business weekId (chronological), NOT the surrogate
+        // week id — see PurchaseOrderRepository#findOverlappingWeekRange.
+        List<PurchaseOrder> overlaps = purchaseOrderRepo.findOverlappingWeekRange(
+                range.from().getWeekId(), range.to().getWeekId(), excludePoId);
+        if (overlaps.isEmpty()) {
+            return;
+        }
+        PurchaseOrder conflict = overlaps.get(0);
+        String candidate = range.from().getWeekDisplay() + " - " + range.to().getWeekDisplay();
+        String existing = conflict.getWeekFrom().getWeekDisplay() + " - "
+                + conflict.getWeekTo().getWeekDisplay();
+        throw new PurchaseOrderValidationException("OVERLAPPING_WEEK_RANGE",
+                "Week range " + candidate + " overlaps existing purchase order "
+                        + conflict.getId() + " (" + existing + "). A given week may be "
+                        + "covered by at most one purchase order.",
+                List.of(String.valueOf(conflict.getId())));
     }
 }
