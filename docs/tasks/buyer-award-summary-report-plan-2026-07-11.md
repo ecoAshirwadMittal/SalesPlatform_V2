@@ -2,6 +2,54 @@
 
 > Execute with superpowers:subagent-driven-development (Opus agents + review gate).
 
+---
+
+## ⛔ DECISION 2026-07-12 — REPORT DEFERRED (research outcome)
+
+After data-source reconnaissance, the human decided to **defer the Buyer Award
+Summary report** until a device-allocation engine exists. The tasks below are
+**NOT built**. Summary of why:
+
+- **`round3_buyer_data_reports` cannot supply awards.** Its `total_quantity` /
+  `total_payout` / `buyer_code` columns are **NULL for every row the modern app
+  writes** — the only modern writer (`Round3BuyerDataReportRepository.bulkInsertForSchedulingAuction`)
+  stores only `(scheduling_auction_id, company_name, buyer_codes, dates)`. It is a
+  **pre-R3 qualification snapshot**, not award data.
+- **The only modern award signal is `auctions.bid_data` R3 winners**
+  (`bid_round=3 AND round3_bid_rank=1`; buyer/company/qty/payout/`merged_grade`
+  all denormalized on the row; week via `bid_data.week_id == mdm.week.id`).
+- **But that is bid RANKING, not ALLOCATION.** Legacy `SalesQty`/`Amount` were
+  outputs of the `EcoATM_DA` device-allocation engine (final units allotted per
+  buyer under limited inventory) — a domain **not ported**. A rank-1-winner
+  quantity is only an approximation of "awarded", and would mislead. Hence the
+  deferral: **revisit once allocation is built.**
+- **Tie-break decision (for when revisited):** rank-1 can be shared by multiple
+  buyers on equal bids; the human chose **tie-break to the earliest-submitted
+  bid** (deterministic, no inventory double-count) — verify against the live
+  auction's real tie rule at build time.
+- **GradeDetails** (if/when built): `bid_data.merged_grade` grade→qty rollup
+  (best-effort; no legacy Brand/Model enrichment).
+- **Authz reminder:** `/api/v1/admin/reports/**` has **no** SecurityConfig
+  matcher today → it would fall through to the `/api/v1/admin/**` Administrator-
+  only catch-all and silently block SalesOps. Add
+  `.requestMatchers("/api/v1/admin/reports/**").hasAnyRole("Administrator","SalesOps")`
+  above that catch-all when the endpoint is built (mirror `Round3ReportController`).
+
+### Dead `/cohort-mapping` tile — NOT removed (finding)
+The plan assumed the `Cohort Mapping` tile
+(`admin/auctions-data-center/page.tsx`) was a stray dead link. It is **not** —
+the page's docstring intentionally renders all ~19 QA tiles, several of which
+404 until their page is ported (QA muscle-memory parity). Cohort Mapping is one
+such not-yet-ported placeholder. Removing only it would be inconsistent with the
+design, so it was **left in place**. Remove it only if the Cohort Mapping report
+family is confirmed permanently abandoned (then reconsider the other unported
+tiles too, for consistency).
+
+**Net #5 deliverable this pass:** research + this documented deferral. No code
+change shipped.
+
+---
+
 **Date:** 2026-07-11 · Source: `docs/gap-analysis/_partials/reports.md` gap #1, `implementation-plan.md` §3.1. Legacy nodes: `PG_BuyerAwardsSummaryReport` / `SUB_LoadBuyerAwardsSummaryReport` / `SUB_GetBuyerAwardSummaryReportForWeek` / `PG_BuyerAwardSummaryReportReview` (drill-down) / `JSON_BuyerAwardsSummaryReport`.
 
 **Goal:** A weekly, per-buyer award-summary report (backend endpoint + admin page) — the single most-cited missing report — plus removal of the dead `/cohort-mapping` launcher link.
