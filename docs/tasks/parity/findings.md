@@ -79,7 +79,9 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 - **Options:** (a) user disables demo users in Studio Pro (App Security → demo users) — removes
   it at the source, preferred; (b) standing legacy-local-side mask in the harness with a
   `masks.registry.json` entry.
-- **Status:** open — **decision needed (user)**
+- **Status:** **DECIDED 2026-07-12: option (a)** — user will disable demo users in Studio Pro
+  and re-run the app. The harness's `legacyLocalHideCss` stays as belt-and-braces until the
+  widget is confirmed gone from a fresh legacy capture, then gets removed.
 
 ### RBL-D1 — reserve_bid row count off by 2 — RESOLVED AS CATALOGUED DELTA 2026-07-12
 - Diagnosis (impl agent, `docs/tasks/parity/impl/reserve-bids-data-fixes.md`): exactly the two
@@ -139,7 +141,11 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   content area + green status dot; new: white bar with "Admin User" + avatar, logo in sidebar.
   Prior audits called some of these "intentional (token brief)" — each needs an ADR ref to move to
   `acceptedDivergences`, else it's a fix.
-- **Status:** open — needs product/ADR pass
+- **RULED 2026-07-12 (user, all four):** match legacy exactly — (1) add Credit Requests nav to
+  BOTH shells, (2) remove the white top bar (logo in content, green dot, person identity per
+  legacy), (3) Admin section collapsed + single highlight, (4) in-content Switch-Buyer-Code card.
+  ADR superseding the token-brief divergences to be written by the impl agent.
+- **Status:** in-progress — shell-parity agent dispatched 2026-07-12 (also covers BDD-P2/BDD-P3)
 
 ### POL-D1 — purchase-order data parity verified at count level
 - **Date:** 2026-07-12 · **Page:** admin-purchase-orders-list · **Layer:** data · **Severity:** — · **Class:** verification note
