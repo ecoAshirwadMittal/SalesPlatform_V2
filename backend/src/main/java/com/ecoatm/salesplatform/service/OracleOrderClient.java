@@ -92,9 +92,58 @@ public class OracleOrderClient {
         }
 
         try {
-            return postCreateOrder(client, config, token, jsonPayload, timeout);
+            return postToOracle(client, config, token, jsonPayload, timeout,
+                    config.getCreateOrderPath(), "create order");
         } catch (Exception e) {
             log.error("Oracle create order request failed", e);
+            return errorResponse("Oracle API call failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Send a prepared JSON payload to Oracle's Create RMA endpoint.
+     *
+     * <p>Mendix parity: {@code SUB_RMA_SendRMAToOracle} — same token flow as the
+     * order path, but POSTs to {@link OracleConfig#getCreateRmaPath()} (CWS
+     * {@code CWS_PostCreateRMA}). Never throws; the toggle-off / missing-config
+     * branch reuses {@link #offlineOrErrorResponse()} (SIM in local dev, else
+     * fail-closed) and token/create failures reuse {@link #errorResponse(String)}
+     * — identical gate logic to {@link #submitOrder(String)}, deliberately
+     * sharing the hardened helpers rather than duplicating them.
+     *
+     * <p>Consumed by the RMA review Oracle-create listener and the admin
+     * {@code /resubmit-oracle} recovery endpoint (Task B0).
+     */
+    public OracleResponse submitRma(String jsonPayload) {
+        OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);
+
+        if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {
+            return offlineOrErrorResponse();
+        }
+
+        int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;
+        HttpClient client = HttpClient.newBuilder()
+                .connectTimeout(Duration.ofMillis(timeout))
+                .build();
+
+        String token;
+        try {
+            token = fetchOracleToken(client, config, timeout);
+        } catch (Exception e) {
+            log.error("Oracle token request failed", e);
+            return errorResponse("No Token Generated: " + e.getMessage());
+        }
+
+        if (token == null || token.isBlank()) {
+            log.error("Oracle returned empty token");
+            return errorResponse("No Token Generated");
+        }
+
+        try {
+            return postToOracle(client, config, token, jsonPayload, timeout,
+                    config.getCreateRmaPath(), "create RMA");
+        } catch (Exception e) {
+            log.error("Oracle create RMA request failed", e);
             return errorResponse("Oracle API call failed: " + e.getMessage());
         }
     }
@@ -190,24 +239,28 @@ public class OracleOrderClient {
     }
 
     /**
-     * POST order payload to Oracle create order endpoint.
-     * Mendix: CWS_PostCreateOrder — POST to PWSConfiguration.OracleAPIPathCreateOrder (createOrderPath)
-     * with Bearer token and JSON body. Parses both camelCase and PascalCase
-     * response keys to match observed Oracle behavior.
+     * POST a prepared JSON payload to an Oracle create endpoint with the Bearer
+     * token, and parse the response. Shared by the create-order
+     * ({@code CWS_PostCreateOrder}) and create-RMA ({@code CWS_PostCreateRMA})
+     * paths — both carry the same request shape and response envelope, so the
+     * only differences are the target {@code path} and the log {@code label}.
+     * Parses both camelCase and PascalCase response keys to match observed
+     * Oracle behavior.
      */
-    private OracleResponse postCreateOrder(HttpClient client, OracleConfig config,
-                                           String token, String jsonPayload, int timeout) throws Exception {
+    private OracleResponse postToOracle(HttpClient client, OracleConfig config,
+                                        String token, String jsonPayload, int timeout,
+                                        String path, String label) throws Exception {
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(config.getCreateOrderPath()))
+                .uri(URI.create(path))
                 .timeout(Duration.ofMillis(timeout))
                 .header("Content-Type", "application/json")
                 .header("Authorization", "Bearer " + token)
                 .POST(HttpRequest.BodyPublishers.ofString(jsonPayload))
                 .build();
 
-        log.info("Oracle create order request → {}", config.getCreateOrderPath());
+        log.info("Oracle {} request → {}", label, path);
         HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-        log.info("Oracle create order response HTTP {} body={}", response.statusCode(), response.body());
+        log.info("Oracle {} response HTTP {} body={}", label, response.statusCode(), response.body());
 
         OracleResponse oracleResponse = new OracleResponse();
         oracleResponse.setHttpCode(response.statusCode());

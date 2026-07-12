@@ -117,4 +117,33 @@ class OracleOrderClientTest {
     void devProfile_toggleOff_simulatesSuccess() {
         assertSimulatedSuccess(clientWithNoConfig("dev").submitOrder("{}"));
     }
+
+    // ── submitRma reuses the SAME offlineOrErrorResponse() gate ──────────
+    // Task B0: the RMA create path must fail closed in deployed environments
+    // and SIM only in local dev, identically to submitOrder — proving it
+    // shares the hardened helper rather than re-implementing the toggle.
+
+    @Test
+    @DisplayName("submitRma: qa profile + toggle off → fails closed (blank returnCode)")
+    void submitRma_qaProfile_toggleOff_failsClosed() {
+        assertFailedClosed(clientWithNoConfig("qa").submitRma("{}"));
+    }
+
+    @Test
+    @DisplayName("submitRma: production profile + inactive config → fails closed")
+    void submitRma_productionProfile_inactiveConfig_failsClosed() {
+        assertFailedClosed(clientWithInactiveConfig("production").submitRma("{}"));
+    }
+
+    @Test
+    @DisplayName("submitRma: no active profile (mvn spring-boot:run default) → simulated success")
+    void submitRma_defaultProfile_toggleOff_simulatesSuccess() {
+        assertSimulatedSuccess(clientWithNoConfig().submitRma("{}"));
+    }
+
+    @Test
+    @DisplayName("submitRma: dev profile + toggle off → simulated success")
+    void submitRma_devProfile_toggleOff_simulatesSuccess() {
+        assertSimulatedSuccess(clientWithNoConfig("dev").submitRma("{}"));
+    }
 }
