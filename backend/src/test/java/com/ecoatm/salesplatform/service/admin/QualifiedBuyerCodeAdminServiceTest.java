@@ -2,11 +2,15 @@ package com.ecoatm.salesplatform.service.admin;
 
 import com.ecoatm.salesplatform.dto.QualifiedBuyerCodeAdminListResponse;
 import com.ecoatm.salesplatform.dto.QualifiedBuyerCodeAdminRow;
+import com.ecoatm.salesplatform.event.buyermgmt.QualificationOverriddenEvent;
+import com.ecoatm.salesplatform.model.auctions.SchedulingAuction;
+import com.ecoatm.salesplatform.model.auctions.SchedulingAuctionStatus;
 import com.ecoatm.salesplatform.model.buyermgmt.QualificationType;
 import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCode;
 import com.ecoatm.salesplatform.model.buyermgmt.QualifiedBuyerCodeAudit;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeAuditRepository;
 import com.ecoatm.salesplatform.repository.QualifiedBuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.auctions.SchedulingAuctionRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,9 +20,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.lang.reflect.Field;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +36,9 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link QualifiedBuyerCodeAdminService} — the P8 Lane 3B
- * admin Qualified Buyer Codes service. Six scenarios cover:
+ * admin Qualified Buyer Codes service, extended by gap-analysis 2.4
+ * sub-feature 2 with a round-status guard + override event.
+ *
  * <ul>
  *   <li>list filters by schedulingAuctionId + JOINs buyer_codes for human code</li>
  *   <li>updateIncluded flips included=false and forces qualification_type=Manual</li>
@@ -40,6 +46,11 @@ import static org.mockito.Mockito.when;
  *   <li>updateIncluded writes an audit row capturing old vs new values</li>
  *   <li>updateIncluded throws QualifiedBuyerCodeNotFoundException for unknown ids</li>
  *   <li>updateIncluded persists changedDate + changedById on the parent row</li>
+ *   <li>updateIncluded on a Closed round rejects (no persist, no audit, no event)</li>
+ *   <li>updateIncluded on a Started round publishes {@link QualificationOverriddenEvent}
+ *       with the full fact shape</li>
+ *   <li>updateIncluded still publishes the event when included=false (Task 4
+ *       owns the email decision)</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +58,8 @@ class QualifiedBuyerCodeAdminServiceTest {
 
     @Mock private QualifiedBuyerCodeRepository qbcRepo;
     @Mock private QualifiedBuyerCodeAuditRepository auditRepo;
+    @Mock private SchedulingAuctionRepository saRepo;
+    @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private EntityManager em;
     @Mock private Query query;
 
@@ -54,7 +67,7 @@ class QualifiedBuyerCodeAdminServiceTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        service = new QualifiedBuyerCodeAdminService(qbcRepo, auditRepo);
+        service = new QualifiedBuyerCodeAdminService(qbcRepo, auditRepo, saRepo, eventPublisher);
         Field f = QualifiedBuyerCodeAdminService.class.getDeclaredField("em");
         f.setAccessible(true);
         f.set(service, em);
@@ -96,6 +109,7 @@ class QualifiedBuyerCodeAdminServiceTest {
     void updateIncluded_uncheck_setsManualAndFalse() {
         QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, true, QualificationType.Qualified);
         when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
         when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
         // Stub the followup list() invocation that the service uses to build
         // the response shape.
@@ -116,6 +130,7 @@ class QualifiedBuyerCodeAdminServiceTest {
     void updateIncluded_check_setsManualAndTrue() {
         QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, false, QualificationType.Not_Qualified);
         when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
         when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
         stubListReturning(new Object[]{1L, 200L, 55L, "AA600WHL", "Manual", true, false});
 
@@ -134,6 +149,7 @@ class QualifiedBuyerCodeAdminServiceTest {
     void updateIncluded_writesAuditWithDelta() {
         QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, true, QualificationType.Qualified);
         when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
         when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
         stubListReturning(new Object[]{1L, 200L, 55L, "AA600WHL", "Manual", false, false});
 
@@ -153,7 +169,7 @@ class QualifiedBuyerCodeAdminServiceTest {
     }
 
     @Test
-    @DisplayName("updateIncluded throws QualifiedBuyerCodeNotFoundException for unknown ids")
+    @DisplayName("updateIncluded throws QualifiedBuyerCodeNotFoundException for unknown ids (no event)")
     void updateIncluded_throwsWhenMissing() {
         when(qbcRepo.findById(999L)).thenReturn(Optional.empty());
 
@@ -162,6 +178,7 @@ class QualifiedBuyerCodeAdminServiceTest {
 
         verify(qbcRepo, never()).save(any());
         verify(auditRepo, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -169,6 +186,7 @@ class QualifiedBuyerCodeAdminServiceTest {
     void updateIncluded_stampsChangedDateAndById() {
         QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, true, QualificationType.Qualified);
         when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
         when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
         stubListReturning(new Object[]{1L, 200L, 55L, "AA600WHL", "Manual", false, false});
 
@@ -178,6 +196,69 @@ class QualifiedBuyerCodeAdminServiceTest {
         verify(qbcRepo).save(cap.capture());
         assertThat(cap.getValue().getChangedById()).isEqualTo(9L);
         assertThat(cap.getValue().getChangedDate()).isNotNull();
+    }
+
+    // -----------------------------------------------------------------------
+    // gap-analysis 2.4 sub-feature 2 — round-status guard + override event
+    // -----------------------------------------------------------------------
+
+    @Test
+    @DisplayName("updateIncluded on a Closed round throws RoundClosedException and persists nothing (no save, no audit, no event)")
+    void updateIncluded_closedRound_rejectsAndPublishesNoEvent() {
+        QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, true, QualificationType.Qualified);
+        when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Closed)));
+
+        assertThatThrownBy(() -> service.updateIncluded(1L, false, 9L))
+                .isInstanceOf(RoundClosedException.class)
+                .hasMessageContaining("closed");
+
+        verify(qbcRepo, never()).save(any());
+        verify(auditRepo, never()).save(any());
+        verify(eventPublisher, never()).publishEvent(any());
+    }
+
+    @Test
+    @DisplayName("updateIncluded on a Started round with included=true publishes QualificationOverriddenEvent with the full fact shape")
+    void updateIncluded_startedIncludedTrue_publishesEvent() {
+        QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, false, QualificationType.Not_Qualified);
+        when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
+        when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubListReturning(new Object[]{1L, 200L, 55L, "AA600WHL", "Manual", true, false});
+
+        service.updateIncluded(1L, true, 9L);
+
+        ArgumentCaptor<QualificationOverriddenEvent> cap =
+                ArgumentCaptor.forClass(QualificationOverriddenEvent.class);
+        verify(eventPublisher).publishEvent(cap.capture());
+        QualificationOverriddenEvent ev = cap.getValue();
+        assertThat(ev.qualifiedBuyerCodeId()).isEqualTo(1L);
+        assertThat(ev.buyerCodeId()).isEqualTo(55L);
+        assertThat(ev.schedulingAuctionId()).isEqualTo(200L);
+        assertThat(ev.included()).isTrue();
+        assertThat(ev.roundStatus()).isEqualTo(SchedulingAuctionStatus.Started);
+        assertThat(ev.changedByUserId()).isEqualTo(9L);
+        assertThat(ev.occurredAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("updateIncluded with included=false on a non-closed round still persists and still publishes the event (Task 4 owns the email decision)")
+    void updateIncluded_includedFalse_stillPublishesEvent() {
+        QualifiedBuyerCode qbc = qbc(1L, 200L, 55L, true, QualificationType.Qualified);
+        when(qbcRepo.findById(1L)).thenReturn(Optional.of(qbc));
+        when(saRepo.findById(200L)).thenReturn(Optional.of(sa(SchedulingAuctionStatus.Started)));
+        when(qbcRepo.save(any(QualifiedBuyerCode.class))).thenAnswer(inv -> inv.getArgument(0));
+        stubListReturning(new Object[]{1L, 200L, 55L, "AA600WHL", "Manual", false, false});
+
+        service.updateIncluded(1L, false, 9L);
+
+        verify(qbcRepo).save(any(QualifiedBuyerCode.class));
+        ArgumentCaptor<QualificationOverriddenEvent> cap =
+                ArgumentCaptor.forClass(QualificationOverriddenEvent.class);
+        verify(eventPublisher).publishEvent(cap.capture());
+        assertThat(cap.getValue().included()).isFalse();
+        assertThat(cap.getValue().roundStatus()).isEqualTo(SchedulingAuctionStatus.Started);
     }
 
     // -----------------------------------------------------------------------
@@ -202,5 +283,12 @@ class QualifiedBuyerCodeAdminServiceTest {
         q.setQualificationType(type);
         q.setSpecialTreatment(false);
         return q;
+    }
+
+    private static SchedulingAuction sa(SchedulingAuctionStatus status) {
+        SchedulingAuction s = new SchedulingAuction();
+        s.setId(200L);
+        s.setRoundStatus(status);
+        return s;
     }
 }
