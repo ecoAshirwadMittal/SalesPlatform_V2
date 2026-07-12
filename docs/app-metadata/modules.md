@@ -291,3 +291,31 @@ Inventory of major modules and their primary entities.
   `enabled` column gates production delivery; a disabled `RMA_Approved` row
   makes `sendTemplated` throw, which is swallowed
 - Snowflake sync: none — RMA emails are not pushed to Snowflake
+
+## Sales Representatives — Write CRUD (gap 2.4, sub-feature 1)
+- Source module: `ecoatm_buyermanagement` (Mendix `Act_SaveSaleRep`,
+  `ACT_DeleteSalesRep`)
+- Primary table: `buyer_mgmt.sales_representatives` (V8 DDL / V18 seed — **no
+  new migration**; the entity gained the previously-unmapped
+  `created_date`/`changed_date`/`owner_id`/`changed_by_id` audit columns)
+- Purpose: admin management of internal sales reps — create, edit
+  (names/active), and guarded delete — with the legacy duplicate-name and
+  offer-reference guards
+- Admin surface: `/api/v1/admin/sales-representatives/**` — GET list, POST
+  create, PUT `/{id}`, DELETE `/{id}`. **Dedicated namespace**, deliberately
+  NOT under `/api/v1/admin/buyers/**` (which admits `Compliance`); gated
+  `Administrator` + `SalesOps` via an explicit `SecurityConfig` matcher
+  (above the `/api/v1/admin/**` catch-all) + class-level `@PreAuthorize`
+- Guards: case-insensitive `(first,last)` duplicate → 409 (create checks all
+  reps; update excludes self); delete blocked when any `pws.offer.sales_rep_id`
+  references the rep → 409; unknown id → 404; blank name → 400
+- Identity: owner (create) / changer (update) stamped from the JWT principal
+  (`Authentication#getPrincipal` → caller user id), never a request field. The
+  PK has no sequence, so `SalesRepresentativeRepository#nextId` (`MAX(id)+1`)
+  assigns it
+- Service: `SalesRepService` (constructor injection, immutable DTOs —
+  `SalesRepCreateRequest`/`SalesRepUpdateRequest`/`SalesRepResponse`)
+- Snowflake sync: none in this task — the app is moving to a scheduled batch
+  Snowflake sync (separate effort); no live push listener added
+- Business-logic guide: covered inline (small surface); see
+  `docs/api/rest-endpoints.md` § "Sales Representatives (Admin)"
