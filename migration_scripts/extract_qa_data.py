@@ -62,10 +62,23 @@ def fetch_all(conn, sql):
         return cur.fetchall()
 
 
+class RawSql:
+    """Marker for a raw SQL expression emitted verbatim inside a VALUES row
+    (not quoted). Used to resolve a foreign key whose target surrogate id is
+    unknown at generation time — e.g. mdm.week rows are seeded by Flyway V65,
+    so their ids only exist at migrate time; the week FK is emitted as an
+    apply-time scalar subquery."""
+
+    def __init__(self, expr):
+        self.expr = expr
+
+
 def sql_val(v):
     """Convert a Python value to a SQL literal."""
     if v is None:
         return "NULL"
+    if isinstance(v, RawSql):
+        return v.expr
     if isinstance(v, bool):
         return "true" if v else "false"
     if isinstance(v, (int, float)):
@@ -93,6 +106,61 @@ def batch_inserts(table, columns, rows, batch_size=200):
         parts.append(f"INSERT INTO {table} ({col_list}) VALUES\n" + ",\n".join(values) + "\nON CONFLICT DO NOTHING;\n")
 
     return "\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Auctions-domain helpers (V95–V98) — see
+# docs/tasks/parity/impl/auctions-data-migration.md
+# ---------------------------------------------------------------------------
+def parse_int(v):
+    """Legacy biddata display-rank columns are VARCHAR ('1','2',...) but the new
+    schema types them INTEGER. Parse, returning None for empty/non-numeric."""
+    if v is None:
+        return None
+    try:
+        return int(str(v).strip())
+    except (ValueError, TypeError):
+        return None
+
+
+def derive_sa_status(round_num, round_status, r2_closed):
+    """Derive the V82/V83/V84 lifecycle status columns (which do NOT exist in
+    the Mendix source) from the legacy round state. Faithful to how the modern
+    services write them (verified against BidRankingService/TargetPriceRecalc/
+    R2BuyerAssignmentService/R3InitService):
+      • RANKING + TARGET_PRICE run on a *closed* round 1|2 → SUCCESS there.
+      • R2_INIT runs when round 2 starts → SUCCESS on the round-2 SA.
+      • R3_PREPROCESS runs when round 2 closes → SUCCESS on the round-3 SA.
+      • R3_INIT runs when round 3 starts → SUCCESS on the round-3 SA (else PENDING).
+    Every *_error / *_started_at / *_finished_at stays NULL (the snapshot has no
+    recalc-run audit trail to fabricate one from). Returns the 5 status strings."""
+    is_closed = round_status == "Closed"
+    started_or_closed = round_status in ("Started", "Closed")
+    ranking = "SUCCESS" if (round_num in (1, 2) and is_closed) else "PENDING"
+    target_price = "SUCCESS" if (round_num in (1, 2) and is_closed) else "PENDING"
+    r2_init = "SUCCESS" if (round_num == 2 and started_or_closed) else "PENDING"
+    r3_preprocess = "SUCCESS" if (round_num == 3 and r2_closed) else "PENDING"
+    r3_init = "SUCCESS" if (round_num == 3 and started_or_closed) else "PENDING"
+    return ranking, target_price, r2_init, r3_preprocess, r3_init
+
+
+def brsf_qualification(v):
+    """Map legacy regularbuyerqualification onto the new CHECK domain (empty
+    string on the round-3 row → the schema default)."""
+    return v if v in ("Only_Qualified", "All_Buyers") else "Only_Qualified"
+
+
+def brsf_inventory(v):
+    """Map legacy regularbuyerinventoryoptions onto the new CHECK domain, fixing
+    the legacy 'ShowAllINventory' typo and defaulting empty strings."""
+    v = "ShowAllInventory" if v == "ShowAllINventory" else v
+    return v if v in ("InventoryRound1QualifiedBids", "ShowAllInventory") else "InventoryRound1QualifiedBids"
+
+
+def factor_type(v):
+    """r2/r3 target-price factor type: NULL or one of the two enum values
+    (empty string → NULL so the CHECK passes)."""
+    return v if v in ("Percentage_Factor", "Flat_Amount") else None
 
 
 class MigrationGenerator:
@@ -1280,33 +1348,45 @@ class MigrationGenerator:
             "qualified_buyer_code_id", "buyer_code_id"
         ], data, batch_size=500))
 
-        # --- QBC ↔ Scheduling Auction (FK deferred) ---
+        # --- QBC ↔ Scheduling Auction (FK REMAPPED into auctions.scheduling_auctions id space) ---
+        # Historical fix (2026-07-12): previously these junction rows carried
+        # raw Mendix SchedulingAuction ids ("kept as-is"), so V72's orphan
+        # delete — which checks `scheduling_auction_id NOT IN (SELECT id FROM
+        # auctions.scheduling_auctions)` — wiped ALL 378,755 QBC rows on a
+        # fresh chain (the raw ids never existed in the new id space). We now
+        # remap through the "scheduling_auctions" map built by gen_v95 and drop
+        # links whose SA was not migrated (dangling / purged parent SA in the
+        # snapshot). Result: only QBCs bound to one of the 3 live scheduling
+        # auctions carry a resolvable FK. See
+        # docs/tasks/parity/impl/auctions-data-migration.md.
         rows = fetch_all(self.conn, """
             SELECT "ecoatm_buyermanagement$qualifiedbuyercodesid" AS qbc_id,
                    "auctionui$schedulingauctionid" AS sa_id
             FROM "ecoatm_buyermanagement$qualifiedbuyercodes_schedulingauction"
             ORDER BY 1, 2
         """)
-        data = [(self._map_id("qbc", r["qbc_id"]), r["sa_id"])
-                for r in rows if self._map_id("qbc", r["qbc_id"])]
-        lines.append("-- QBC ↔ Scheduling Auction (auction IDs kept as-is, FK deferred)")
+        data = [(self._map_id("qbc", r["qbc_id"]), self._map_id("scheduling_auctions", r["sa_id"]))
+                for r in rows
+                if self._map_id("qbc", r["qbc_id"]) and self._map_id("scheduling_auctions", r["sa_id"])]
+        lines.append("-- QBC ↔ Scheduling Auction (SA ids remapped into auctions.scheduling_auctions)")
         lines.append(batch_inserts("buyer_mgmt.qbc_scheduling_auctions", [
             "qualified_buyer_code_id", "scheduling_auction_id"
-        ], data))
+        ], data, batch_size=500))
 
-        # --- QBC ↔ Bid Round (FK deferred) ---
+        # --- QBC ↔ Bid Round (FK REMAPPED into auctions.bid_rounds id space) ---
         rows = fetch_all(self.conn, """
             SELECT "ecoatm_buyermanagement$qualifiedbuyercodesid" AS qbc_id,
                    "auctionui$bidroundid" AS br_id
             FROM "ecoatm_buyermanagement$qualifiedbuyercodes_bidround"
             ORDER BY 1, 2
         """)
-        data = [(self._map_id("qbc", r["qbc_id"]), r["br_id"])
-                for r in rows if self._map_id("qbc", r["qbc_id"])]
-        lines.append("-- QBC ↔ Bid Round (auction IDs kept as-is, FK deferred)")
+        data = [(self._map_id("qbc", r["qbc_id"]), self._map_id("bid_rounds", r["br_id"]))
+                for r in rows
+                if self._map_id("qbc", r["qbc_id"]) and self._map_id("bid_rounds", r["br_id"])]
+        lines.append("-- QBC ↔ Bid Round (bid-round ids remapped into auctions.bid_rounds)")
         lines.append(batch_inserts("buyer_mgmt.qbc_bid_rounds", [
             "qualified_buyer_code_id", "bid_round_id"
-        ], data))
+        ], data, batch_size=500))
 
         return "\n".join(lines)
 
@@ -1602,6 +1682,582 @@ class MigrationGenerator:
 
         return "\n".join(lines)
 
+    # =======================================================================
+    # AUCTIONS DOMAIN (V95–V98) — snapshot-derived, replacing the empty
+    # fixture state that produced parity finding BDD-D1.
+    #
+    # Generation-order contract: gen_v95/96/97 build the
+    # "scheduling_auctions" / "bid_rounds" / "agg_inventory" id maps and MUST
+    # run before gen_v23 (which now remaps the QBC junctions through those
+    # maps) and before gen_v98 (QBC survivor reseed). Flyway apply-order is by
+    # filename (V95–V98 run last, after V72). See
+    # docs/tasks/parity/impl/auctions-data-migration.md.
+    #
+    # Scope (bounded by the snapshot itself, no arbitrary cap):
+    #   • 1 auction  ("Auction 2026 / Wk13", Started)
+    #   • 3 scheduling_auctions (the only rows in auctionui$schedulingauction;
+    #     4 further SA ids referenced by bidround junctions are DANGLING —
+    #     their parent SA was purged — so their bidrounds are excluded)
+    #   • 27 bid_rounds (those whose scheduling auction still exists)
+    #   • bid_data / aggregated_inventory scoped to those 27 bid_rounds:
+    #     162,086 bid_data rows and 10,951 aggregated_inventory rows — both
+    #     well under the 500K cap, so migrated in full.
+    # =======================================================================
+
+    def _week_temp_table_sql(self, legacy_week_ids):
+        """Emit a per-file TEMP table mapping a legacy ecoatm_mdm$week id to the
+        Flyway-V65-seeded mdm.week surrogate id, resolved at APPLY time by
+        (year, week_number). The surrogate ids don't exist until V65 runs, so
+        the auction/agg-inventory week FK is emitted as a subquery against this
+        table (see RawSql). Flyway wraps each migration in its own transaction,
+        so each file that needs the map creates its own copy."""
+        lines = ["-- Resolve legacy week ids -> V65-seeded mdm.week ids at apply time",
+                 "DROP TABLE IF EXISTS _wk;",
+                 "CREATE TEMP TABLE _wk (legacy_id BIGINT PRIMARY KEY, new_id BIGINT);"]
+        if legacy_week_ids:
+            id_list = ",".join(str(w) for w in legacy_week_ids)
+            rows = fetch_all(self.conn,
+                f'SELECT id, year, weeknumber FROM "ecoatm_mdm$week" WHERE id IN ({id_list})')
+            vals = []
+            for r in rows:
+                vals.append(
+                    f"  ({r['id']}, (SELECT id FROM mdm.week "
+                    f"WHERE year = {r['year']} AND week_number = {r['weeknumber']}))")
+            if vals:
+                lines.append("INSERT INTO _wk (legacy_id, new_id) VALUES\n" + ",\n".join(vals) + ";")
+        return "\n".join(lines)
+
+    def _week_ref(self, legacy_week_id):
+        """RawSql week FK value resolved against the _wk temp table, or None."""
+        if legacy_week_id is None:
+            return None
+        return RawSql(f"(SELECT new_id FROM _wk WHERE legacy_id = {legacy_week_id})")
+
+    # -----------------------------------------------------------------------
+    # V95: Auctions core — auctions, scheduling_auctions (+ derived status),
+    #      bid_rounds, bid_round_selection_filters.
+    # -----------------------------------------------------------------------
+    def gen_v95(self):
+        lines = [
+            "-- =============================================================================",
+            "-- V95: Data migration — Auctions core (auction, scheduling auctions, bid rounds,",
+            "--      round selection filters). Fixes parity finding BDD-D1.",
+            f"-- Generated from QA database on {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "-- Source: auctionui$auction / $schedulingauction / $bidround /",
+            "--         $bidroundselectionfilter (+ their collapsed junctions).",
+            "-- Clears the empty fixture state (DELETE-first) so a fresh chain converges",
+            "-- on snapshot data. V82/V83/V84 lifecycle status columns are DERIVED (see the",
+            "-- generator's derive_sa_status + the impl doc) — Mendix has no such columns.",
+            "-- =============================================================================",
+            "",
+            "-- Clear existing auction-core rows (empty on a fresh chain; also removes the",
+            "-- V86/V87-seeded round-filter rows this migration replaces).",
+            "DELETE FROM auctions.bid_data;",
+            "DELETE FROM auctions.aggregated_inventory;",
+            "DELETE FROM auctions.bid_rounds;",
+            "DELETE FROM auctions.bid_round_selection_filters;",
+            "DELETE FROM auctions.scheduling_auctions;",
+            "DELETE FROM auctions.auctions;",
+            "",
+        ]
+
+        # --- Auctions + auction->week junction ---
+        auctions = fetch_all(self.conn, """
+            SELECT id, auctiontitle, auctionstatus, createdby, updatedby,
+                   createddate, changeddate, "system$owner", "system$changedby"
+            FROM "auctionui$auction" ORDER BY id
+        """)
+        self._build_map("auctions", [r["id"] for r in auctions])
+
+        aw = fetch_all(self.conn, """
+            SELECT "auctionui$auctionid" AS auction_id, "ecoatm_mdm$weekid" AS week_id
+            FROM "auctionui$auction_week"
+        """)
+        auction_week = {r["auction_id"]: r["week_id"] for r in aw}
+        week_ids = sorted({w for w in auction_week.values() if w})
+        lines.append(self._week_temp_table_sql(week_ids))
+        lines.append("")
+
+        adata = []
+        for r in auctions:
+            adata.append((
+                self._map_id("auctions", r["id"]),
+                r["id"],
+                r["auctiontitle"],
+                r["auctionstatus"] or "Unscheduled",
+                self._week_ref(auction_week.get(r["id"])),
+                r["createdby"], r["updatedby"],
+                r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+            ))
+        lines.append("-- Auctions")
+        lines.append(batch_inserts("auctions.auctions", [
+            "id", "legacy_id", "auction_title", "auction_status", "week_id",
+            "created_by", "updated_by", "created_date", "changed_date",
+            "owner_id", "changed_by_id"
+        ], adata))
+
+        # --- Scheduling auctions (+ derived lifecycle status) ---
+        sas = fetch_all(self.conn, """
+            SELECT id, auction_week_year, round, name, start_datetime, end_datetime,
+                   isstartnotificationsent, isendnotificationsent, isremindernotificationsent,
+                   roundstatus, round3initstatus, emailreminders, hasround,
+                   notificationsenabled, snowflakejson, createdby, updatedby,
+                   createddate, changeddate, "system$owner", "system$changedby"
+            FROM "auctionui$schedulingauction" ORDER BY round, id
+        """)
+        self._build_map("scheduling_auctions", [r["id"] for r in sas])
+
+        saa = fetch_all(self.conn, """
+            SELECT "auctionui$schedulingauctionid" AS sa_id, "auctionui$auctionid" AS auction_id
+            FROM "auctionui$schedulingauction_auction"
+        """)
+        sa_auction = {r["sa_id"]: r["auction_id"] for r in saa}
+        r2_closed = any(r["round"] == 2 and r["roundstatus"] == "Closed" for r in sas)
+
+        sdata = []
+        for r in sas:
+            ranking, target, r2i, r3p, r3i = derive_sa_status(r["round"], r["roundstatus"], r2_closed)
+            sdata.append((
+                self._map_id("scheduling_auctions", r["id"]),
+                r["id"],
+                self._map_id("auctions", sa_auction.get(r["id"])),
+                r["name"], r["round"], r["auction_week_year"],
+                r["start_datetime"], r["end_datetime"],
+                r["roundstatus"] or "Unscheduled",
+                r["round3initstatus"] or "Pending",
+                r["emailreminders"] or "NoneSent",
+                r["hasround"] if r["hasround"] is not None else True,
+                bool(r["isstartnotificationsent"]),
+                bool(r["isendnotificationsent"]),
+                bool(r["isremindernotificationsent"]),
+                r["notificationsenabled"] if r["notificationsenabled"] is not None else True,
+                r["snowflakejson"], r["createdby"], r["updatedby"],
+                r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+                # V82 recalc status (derived)
+                ranking, None, None, None, target, None, None, None,
+                # V83 R2 init status (derived)
+                r2i, None, None, None,
+                # V84 R3 lifecycle status (derived)
+                r3p, None, None, None, r3i, None, None, None,
+            ))
+        lines.append("-- Scheduling auctions (V82/V83/V84 status columns DERIVED — see impl doc)")
+        lines.append(batch_inserts("auctions.scheduling_auctions", [
+            "id", "legacy_id", "auction_id", "name", "round", "auction_week_year",
+            "start_datetime", "end_datetime", "round_status", "round3_init_status",
+            "email_reminders", "has_round", "is_start_notification_sent",
+            "is_end_notification_sent", "is_reminder_notification_sent",
+            "notifications_enabled", "snowflake_json", "created_by", "updated_by",
+            "created_date", "changed_date", "owner_id", "changed_by_id",
+            "ranking_status", "ranking_error", "ranking_started_at", "ranking_finished_at",
+            "target_price_status", "target_price_error", "target_price_started_at", "target_price_finished_at",
+            "r2_init_status", "r2_init_error", "r2_init_started_at", "r2_init_finished_at",
+            "r3_preprocess_status", "r3_preprocess_error", "r3_preprocess_started_at", "r3_preprocess_finished_at",
+            "r3_init_status", "r3_init_error", "r3_init_started_at", "r3_init_finished_at",
+        ], sdata))
+
+        # --- Bid rounds (only those whose scheduling auction survives) ---
+        valid_sa = ",".join(str(x) for x in self.id_map["scheduling_auctions"].keys())
+        # direct-user set actually migrated by V19 (guards the submitted_by FK)
+        du_ids = {r["id"] for r in fetch_all(self.conn,
+            'SELECT id FROM "ecoatm_usermanagement$ecoatmdirectuser"')
+            if self._map_id("users", r["id"])}
+        br_rows = fetch_all(self.conn, f"""
+            SELECT br.id, br.submitted, br.submitteddatatime, br.uploadedtosharepoint,
+                   br.uploadtosharepointdatetime, br.note, br.isdeprecated,
+                   br.createddate, br.changeddate, br."system$owner", br."system$changedby",
+                   brsa."auctionui$schedulingauctionid" AS sa_id,
+                   brbc."ecoatm_buyermanagement$buyercodeid" AS bc_id,
+                   brsb."ecoatm_usermanagement$ecoatmdirectuserid" AS submitted_by
+            FROM "auctionui$bidround_schedulingauction" brsa
+            JOIN "auctionui$bidround" br ON br.id = brsa."auctionui$bidroundid"
+            LEFT JOIN "auctionui$bidround_buyercode" brbc ON brbc."auctionui$bidroundid" = br.id
+            LEFT JOIN "auctionui$bidround_submittedby" brsb ON brsb."auctionui$bidroundid" = br.id
+            WHERE brsa."auctionui$schedulingauctionid" IN ({valid_sa})
+            ORDER BY br.id
+        """)
+        self._build_map("bid_rounds", [r["id"] for r in br_rows])
+        brdata = []
+        skipped_br = 0
+        for r in br_rows:
+            bc = self._map_id("buyer_codes", r["bc_id"])
+            if not bc:
+                skipped_br += 1
+                continue  # bid_rounds.buyer_code_id is NOT NULL
+            submitter = r["submitted_by"]
+            sub_uid = self._map_id("users", submitter) if submitter in du_ids else None
+            brdata.append((
+                self._map_id("bid_rounds", r["id"]),
+                r["id"],
+                self._map_id("scheduling_auctions", r["sa_id"]),
+                bc,
+                None,  # week_id: no scoped bid_round carries a week link
+                sub_uid,
+                bool(r["submitted"]),
+                r["submitteddatatime"],
+                bool(r["uploadedtosharepoint"]),
+                r["uploadtosharepointdatetime"],
+                r["note"],
+                bool(r["isdeprecated"]),
+                r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+            ))
+        lines.append("-- Bid rounds")
+        lines.append(batch_inserts("auctions.bid_rounds", [
+            "id", "legacy_id", "scheduling_auction_id", "buyer_code_id", "week_id",
+            "submitted_by_user_id", "submitted", "submitted_datetime",
+            "uploaded_to_sharepoint", "upload_to_sharepoint_datetime", "note",
+            "is_deprecated", "created_date", "changed_date", "owner_id", "changed_by_id"
+        ], brdata))
+        if skipped_br:
+            print(f"  Note: {skipped_br} bid_rounds skipped (buyer code did not map)")
+
+        # --- Bid round selection filters (replace the V86/V87 seed) ---
+        brsf = fetch_all(self.conn, """
+            SELECT id, round, targetpercent, targetvalue, totalvaluefloor,
+                   mergedgrade1, mergedgrade2, mergedgrade3,
+                   regularbuyerqualification, regularbuyerinventoryoptions,
+                   stballowallbuyersoverride, stbincludeallinventory,
+                   bidpercentagevariation, bidamountvariation, rankqualificationlimit,
+                   createddate, changeddate
+            FROM "auctionui$bidroundselectionfilter" ORDER BY round, id
+        """)
+        self._build_map("brsf", [r["id"] for r in brsf])
+        fdata = []
+        for r in brsf:
+            fdata.append((
+                self._map_id("brsf", r["id"]),
+                r["id"], r["round"],
+                r["targetpercent"], r["targetvalue"], r["totalvaluefloor"],
+                r["mergedgrade1"] or None, r["mergedgrade2"] or None, r["mergedgrade3"] or None,
+                bool(r["stballowallbuyersoverride"]), bool(r["stbincludeallinventory"]),
+                brsf_qualification(r["regularbuyerqualification"]),
+                brsf_inventory(r["regularbuyerinventoryoptions"]),
+                r["createddate"], r["changeddate"],
+                r["bidpercentagevariation"], r["bidamountvariation"], r["rankqualificationlimit"],
+            ))
+        lines.append("-- Bid round selection filters")
+        lines.append(batch_inserts("auctions.bid_round_selection_filters", [
+            "id", "legacy_id", "round", "target_percent", "target_value", "total_value_floor",
+            "merged_grade1", "merged_grade2", "merged_grade3",
+            "stb_allow_all_buyers_override", "stb_include_all_inventory",
+            "regular_buyer_qualification", "regular_buyer_inventory_options",
+            "created_date", "changed_date",
+            "bid_percentage_variation", "bid_amount_variation", "rank_qualification_limit"
+        ], fdata))
+
+        # --- Sequence resets ---
+        lines.append("")
+        for ent, seq in [("auctions", "auctions.auctions_id_seq"),
+                         ("scheduling_auctions", "auctions.scheduling_auctions_id_seq"),
+                         ("bid_rounds", "auctions.bid_rounds_id_seq"),
+                         ("brsf", "auctions.bid_round_selection_filters_id_seq")]:
+            mx = max(self.id_map.get(ent, {0: 0}).values()) if self.id_map.get(ent) else 0
+            lines.append(f"SELECT setval('{seq}', {max(mx, 1)}, true);")
+
+        print(f"  V95: {len(auctions)} auctions, {len(sas)} scheduling_auctions, "
+              f"{len(brdata)} bid_rounds, {len(fdata)} selection_filters")
+        return "\n".join(lines)
+
+    # -----------------------------------------------------------------------
+    # V96: Aggregated inventory (scoped to the current auction's bid data).
+    # -----------------------------------------------------------------------
+    def gen_v96(self):
+        lines = [
+            "-- =============================================================================",
+            "-- V96: Data migration — Aggregated inventory (device x week grade rollup).",
+            f"-- Generated from QA database on {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "-- Source: auctionui$aggregatedinventory, scoped to the rows referenced by the",
+            "-- bid_data of the current auction's bid rounds (10,951 rows). brand_id/model_id/",
+            "-- carrier_id are left NULL (the legacy junctions target ecoatm_mdm$brand, a",
+            "-- different id space than mdm.brand seeded by V21 from ecoatm_pwsmdm$brand) —",
+            "-- the denormalized brand/model/carrier TEXT columns carry display values. See",
+            "-- docs/tasks/parity/impl/auctions-data-migration.md.",
+            "-- =============================================================================",
+            "",
+            "DELETE FROM auctions.aggregated_inventory;",
+            "",
+        ]
+        valid_br = ",".join(str(x) for x in self.id_map["bid_rounds"].keys())
+        rows = fetch_all(self.conn, f"""
+            SELECT ai.* FROM "auctionui$aggregatedinventory" ai
+            WHERE ai.id IN (
+                SELECT DISTINCT aij."auctionui$aggregatedinventoryid"
+                FROM "auctionui$biddata_aggregatedinventory" aij
+                JOIN "auctionui$biddata_bidround" bb
+                    ON bb."auctionui$biddataid" = aij."auctionui$biddataid"
+                WHERE bb."auctionui$bidroundid" IN ({valid_br})
+            )
+            ORDER BY ai.id
+        """)
+        self._build_map("agg_inventory", [r["id"] for r in rows])
+
+        # agg-inventory -> week junction (all scoped rows are 2026/Wk13)
+        aiw = fetch_all(self.conn, """
+            SELECT "auctionui$aggregatedinventoryid" AS ai_id, "ecoatm_mdm$weekid" AS week_id
+            FROM "auctionui$aggregatedinventory_week"
+        """)
+        ai_week = {r["ai_id"]: r["week_id"] for r in aiw}
+        week_ids = sorted({ai_week[r["id"]] for r in rows if ai_week.get(r["id"])})
+        lines.append(self._week_temp_table_sql(week_ids))
+        lines.append("")
+
+        data = []
+        for r in rows:
+            data.append((
+                self._map_id("agg_inventory", r["id"]),
+                r["id"],
+                str(r["ecoid2"]) if r["ecoid2"] is not None else None,
+                r["name"], r["deviceid"], r["category"],
+                r["brand"], r["model"], r["carrier"],
+                None, None, None,  # brand_id/model_id/carrier_id (see header note)
+                self._week_ref(ai_week.get(r["id"])),
+                r["mergedgrade"],
+                (r["datawipe"] == "DW"),
+                bool(r["istotalquantitymodified"]),
+                False,  # is_deprecated (not in legacy)
+                r["totalquantity"] or 0, r["dwtotalquantity"] or 0,
+                r["avgpayout"], r["totalpayout"], r["dwavgpayout"], r["dwtotalpayout"],
+                r["avgtargetprice"], r["dwavgtargetprice"],
+                r["round1targetprice"], r["round2targetprice"], r["round3targetprice"],
+                r["round1targetprice_dw"],
+                r["round1maxbid"], r["round2maxbid"],
+                r["round1maxbidbuyercode"], r["round2maxbidbuyercode"],
+                r["r2targetpricefactor"], r["r3targetpricefactor"],
+                factor_type(r["r2targetpricefactortype"]), factor_type(r["r3targetpricefactortype"]),
+                r["round2ebfortarget"], r["round3ebfortarget"],
+                r["r2pomaxbuyercode"], r["r2pomaxbid"], None,  # r2_po_max_bid_week_id
+                r["r3pomaxbuyercode"], r["r3pomaxbid"], None,  # r3_po_max_bid_week_id
+                r["createdat"], r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+            ))
+        lines.append("-- Aggregated inventory")
+        lines.append(batch_inserts("auctions.aggregated_inventory", [
+            "id", "legacy_id", "ecoid2", "name", "device_id", "category",
+            "brand", "model", "carrier", "brand_id", "model_id", "carrier_id",
+            "week_id", "merged_grade", "datawipe", "is_total_quantity_modified", "is_deprecated",
+            "total_quantity", "dw_total_quantity",
+            "avg_payout", "total_payout", "dw_avg_payout", "dw_total_payout",
+            "avg_target_price", "dw_avg_target_price",
+            "round1_target_price", "round2_target_price", "round3_target_price", "round1_target_price_dw",
+            "round1_max_bid", "round2_max_bid", "round1_max_bid_buyer_code", "round2_max_bid_buyer_code",
+            "r2_target_price_factor", "r3_target_price_factor",
+            "r2_target_price_factor_type", "r3_target_price_factor_type",
+            "round2_eb_for_target", "round3_eb_for_target",
+            "r2_po_max_buyer_code", "r2_po_max_bid", "r2_po_max_bid_week_id",
+            "r3_po_max_buyer_code", "r3_po_max_bid", "r3_po_max_bid_week_id",
+            "created_at", "created_date", "changed_date", "owner_id", "changed_by_id"
+        ], data, batch_size=500))
+
+        mx = max(self.id_map.get("agg_inventory", {0: 0}).values()) if self.id_map.get("agg_inventory") else 0
+        lines.append("")
+        lines.append(f"SELECT setval('auctions.aggregated_inventory_id_seq', {max(mx, 1)}, true);")
+        print(f"  V96: {len(data)} aggregated_inventory rows")
+        return "\n".join(lines)
+
+    # -----------------------------------------------------------------------
+    # V97: Bid data fact rows (scoped to the current auction's bid rounds).
+    # -----------------------------------------------------------------------
+    def gen_v97(self):
+        lines = [
+            "-- =============================================================================",
+            "-- V97: Data migration — Bid data fact rows.",
+            f"-- Generated from QA database on {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "-- Source: auctionui$biddata scoped to the 27 bid_rounds whose scheduling",
+            "-- auction survives (162,086 rows — the full set for the current auction; the",
+            "-- 1.37M rows tied to purged/dangling scheduling auctions are intentionally",
+            "-- excluded). FK columns collapsed from biddata_bidround / _buyercode /",
+            "-- _aggregatedinventory junctions. See the impl doc.",
+            "-- =============================================================================",
+            "",
+            "DELETE FROM auctions.bid_data;",
+            "",
+        ]
+        valid_br = ",".join(str(x) for x in self.id_map["bid_rounds"].keys())
+        rows = fetch_all(self.conn, f"""
+            SELECT bd.id, bd.ecoid, bd.bidquantity, bd.bidamount, bd.targetprice,
+                   bd.merged_grade, bd.mergedgrade, bd.buyercodetype, bd.maximumquantity,
+                   bd."user" AS submit_user, bd.bidround, bd.code, bd.companyname,
+                   bd.previousroundbidquantity, bd.weekid, bd.previousroundbidamount,
+                   bd.payout, bd.margin, bd.submitdatetime, bd.highestbid, bd.submitteddatetime,
+                   bd.submittedbidamount, bd.submittedbidquantity, bd.tempdabidamount,
+                   bd.rejected, bd.ischanged, bd.rejectreason, bd.acceptreason,
+                   bd.changeddate, bd."system$owner", bd."system$changedby", bd.createddate,
+                   bd.data_wipe_quantity, bd.lastvalidbidquantity, bd.lastvalidbidamount,
+                   bd.displayround3bidrank, bd.displayround2bidrank, bd.round2bidrank, bd.round3bidrank,
+                   bb."auctionui$bidroundid" AS bid_round_id,
+                   bc."ecoatm_buyermanagement$buyercodeid" AS buyer_code_id,
+                   ai."auctionui$aggregatedinventoryid" AS agg_inv_id
+            FROM "auctionui$biddata_bidround" bb
+            JOIN "auctionui$biddata" bd ON bd.id = bb."auctionui$biddataid"
+            LEFT JOIN "auctionui$biddata_buyercode" bc ON bc."auctionui$biddataid" = bd.id
+            LEFT JOIN "auctionui$biddata_aggregatedinventory" ai ON ai."auctionui$biddataid" = bd.id
+            WHERE bb."auctionui$bidroundid" IN ({valid_br})
+            ORDER BY bd.id
+        """)
+        data = []
+        skipped = 0
+        for r in rows:
+            br = self._map_id("bid_rounds", r["bid_round_id"])
+            bc = self._map_id("buyer_codes", r["buyer_code_id"])
+            if not br or not bc:
+                skipped += 1
+                continue  # bid_round_id + buyer_code_id are NOT NULL
+            data.append((
+                r["id"],
+                br, bc,
+                self._map_id("agg_inventory", r["agg_inv_id"]),
+                str(r["ecoid"]) if r["ecoid"] is not None else None,
+                r["merged_grade"], r["mergedgrade"],
+                r["code"], r["companyname"],
+                r["bidquantity"],
+                r["bidamount"] if r["bidamount"] is not None else 0,
+                r["targetprice"], r["payout"], r["maximumquantity"], r["margin"],
+                r["buyercodetype"],
+                r["previousroundbidquantity"], r["previousroundbidamount"],
+                r["submitdatetime"], r["submitteddatetime"],
+                r["submittedbidamount"], r["submittedbidquantity"], r["tempdabidamount"],
+                r["lastvalidbidquantity"], r["lastvalidbidamount"],
+                bool(r["highestbid"]),
+                parse_int(r["displayround2bidrank"]), parse_int(r["displayround3bidrank"]),
+                r["round2bidrank"], r["round3bidrank"],
+                r["bidround"], r["weekid"],
+                r["data_wipe_quantity"] or 0,
+                bool(r["rejected"]), bool(r["ischanged"]),
+                r["rejectreason"], r["acceptreason"], False,  # is_deprecated
+                r["submit_user"],
+                r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+            ))
+        lines.append("-- Bid data (id omitted -> BIGSERIAL assigns; nothing FKs bid_data.id)")
+        lines.append(batch_inserts("auctions.bid_data", [
+            "legacy_id", "bid_round_id", "buyer_code_id", "aggregated_inventory_id",
+            "ecoid", "merged_grade", "merged_grade_text", "code", "company_name",
+            "bid_quantity", "bid_amount", "target_price", "payout", "maximum_quantity", "margin",
+            "buyer_code_type", "previous_round_bid_quantity", "previous_round_bid_amount",
+            "submit_datetime", "submitted_datetime", "submitted_bid_amount", "submitted_bid_quantity",
+            "temp_da_bid_amount", "last_valid_bid_quantity", "last_valid_bid_amount",
+            "highest_bid", "display_round2_bid_rank", "display_round3_bid_rank",
+            "round2_bid_rank", "round3_bid_rank", "bid_round", "week_id",
+            "data_wipe_quantity", "rejected", "is_changed", "reject_reason", "accept_reason",
+            "is_deprecated", "submit_user", "created_date", "changed_date", "owner_id", "changed_by_id"
+        ], data, batch_size=1000))
+
+        lines.append("")
+        lines.append(f"SELECT setval('auctions.bid_data_id_seq', {max(len(data), 1)}, true);")
+        if skipped:
+            print(f"  Note: {skipped} bid_data rows skipped (unmapped bid_round/buyer_code)")
+        print(f"  V97: {len(data)} bid_data rows")
+        return "\n".join(lines)
+
+    # -----------------------------------------------------------------------
+    # V98: Qualified buyer code SURVIVOR reseed.
+    #
+    # V72 (which runs at position 72, before this file) flattens the QBC
+    # junctions and orphan-deletes every QBC because auctions.scheduling_auctions
+    # is still empty at V72 time on a pure Flyway chain (the auction core lands
+    # here, at V95+). The gen_v23 junction remap makes V72 SEMANTICALLY correct
+    # (it would preserve exactly these rows if the auction core preceded it), but
+    # cannot beat the file-number ordering. So this migration authoritatively
+    # re-establishes the QBC snapshot state AFTER the auction core exists — one
+    # row per (surviving scheduling auction, buyer code) pair: 1,644 rows
+    # (548 codes x 3 live rounds). See the impl doc §"QBC ordering".
+    # -----------------------------------------------------------------------
+    def gen_v98(self):
+        lines = [
+            "-- =============================================================================",
+            "-- V98: Data migration — Qualified buyer code survivor reseed.",
+            f"-- Generated from QA database on {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "-- Re-establishes buyer_mgmt.qualified_buyer_codes to its snapshot state after",
+            "-- the auction core (V95) exists. V72 empties the table on a fresh chain because",
+            "-- auctions.scheduling_auctions is not yet populated at V72's position; this file",
+            "-- reloads exactly the rows that would have survived V72 had the auction core",
+            "-- preceded it — one row per (live scheduling auction, buyer code) pair.",
+            "-- =============================================================================",
+            "",
+            "-- Clear any residue, then reload the survivors with resolved direct FKs.",
+            "DELETE FROM buyer_mgmt.qbc_bid_rounds;",
+            "DELETE FROM buyer_mgmt.qualified_buyer_codes;",
+            "",
+        ]
+        rows = fetch_all(self.conn, """
+            SELECT q.id, q.qualificationtype, q.included, q.submitted, q.submitteddatetime,
+                   q.openeddashboard, q.openeddashboarddatetime, q.isspecialtreatment,
+                   q.createddate, q.changeddate, q."system$owner", q."system$changedby",
+                   saj."auctionui$schedulingauctionid" AS sa_id,
+                   bcj."ecoatm_buyermanagement$buyercodeid" AS bc_id
+            FROM "ecoatm_buyermanagement$qualifiedbuyercodes" q
+            JOIN "ecoatm_buyermanagement$qualifiedbuyercodes_schedulingauction" saj
+                ON saj."ecoatm_buyermanagement$qualifiedbuyercodesid" = q.id
+            JOIN "auctionui$schedulingauction" vs
+                ON vs.id = saj."auctionui$schedulingauctionid"
+            LEFT JOIN "ecoatm_buyermanagement$qualifiedbuyercodes_buyercode" bcj
+                ON bcj."ecoatm_buyermanagement$qualifiedbuyercodesid" = q.id
+            ORDER BY q.id
+        """)
+        survivor_map = {}   # legacy qbc id -> new sequential id
+        data = []
+        skipped = 0
+        for r in rows:
+            sa = self._map_id("scheduling_auctions", r["sa_id"])
+            bc = self._map_id("buyer_codes", r["bc_id"])
+            if not sa or not bc:
+                skipped += 1
+                continue  # scheduling_auction_id + buyer_code_id are NOT NULL
+            new_id = len(data) + 1
+            survivor_map[r["id"]] = new_id
+            data.append((
+                new_id, sa, bc,
+                r["qualificationtype"] or "Not_Qualified",
+                bool(r["included"]),
+                bool(r["submitted"]),
+                r["submitteddatetime"],
+                bool(r["openeddashboard"]),
+                r["openeddashboarddatetime"],
+                bool(r["isspecialtreatment"]),
+                r["createddate"], r["changeddate"],
+                self._map_id("users", r["system$owner"]),
+                self._map_id("users", r["system$changedby"]),
+            ))
+        lines.append("-- Qualified buyer codes (survivors: live SA x buyer code)")
+        lines.append(batch_inserts("buyer_mgmt.qualified_buyer_codes", [
+            "id", "scheduling_auction_id", "buyer_code_id", "qualification_type",
+            "included", "submitted", "submitted_datetime", "opened_dashboard",
+            "opened_dashboard_datetime", "is_special_treatment",
+            "created_date", "changed_date", "owner_id", "changed_by_id"
+        ], data, batch_size=500))
+
+        # --- QBC <-> bid round links for the survivors ---
+        br_rows = fetch_all(self.conn, """
+            SELECT "ecoatm_buyermanagement$qualifiedbuyercodesid" AS qbc_id,
+                   "auctionui$bidroundid" AS br_id
+            FROM "ecoatm_buyermanagement$qualifiedbuyercodes_bidround"
+            ORDER BY 1, 2
+        """)
+        brlinks = []
+        for r in br_rows:
+            nq = survivor_map.get(r["qbc_id"])
+            nb = self._map_id("bid_rounds", r["br_id"])
+            if nq and nb:
+                brlinks.append((nq, nb))
+        lines.append("-- QBC <-> bid round links (survivors)")
+        lines.append(batch_inserts("buyer_mgmt.qbc_bid_rounds", [
+            "qualified_buyer_code_id", "bid_round_id"
+        ], brlinks))
+
+        lines.append("")
+        lines.append(f"SELECT setval('buyer_mgmt.qualified_buyer_codes_id_seq', {max(len(data), 1)}, true);")
+        if skipped:
+            print(f"  Note: {skipped} QBC survivor rows skipped (unmapped SA/buyer_code)")
+        print(f"  V98: {len(data)} qualified_buyer_codes survivors, {len(brlinks)} qbc_bid_round links")
+        return "\n".join(lines)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Extract Mendix QA data and generate Flyway migrations")
@@ -1617,6 +2273,12 @@ def main():
     conn = connect(args.source_db)
     gen = MigrationGenerator(conn)
 
+    # NOTE: iteration order == GENERATION order (drives id_map availability),
+    # which is independent of the Flyway apply order (== filename V-number).
+    # The auctions generators (V95–V98) build the scheduling_auctions / bid_rounds
+    # / agg_inventory id maps and therefore MUST run before gen_v23 (whose QBC
+    # junction remap consumes those maps) and before gen_v98. They still write to
+    # V95–V98 files that Flyway applies last.
     migrations = OrderedDict([
         ("V16__data_identity_core.sql",       gen.gen_v16),
         ("V17__data_identity_users.sql",      gen.gen_v17),
@@ -1625,6 +2287,10 @@ def main():
         ("V20__data_sso_config.sql",          gen.gen_v20),
         ("V21__data_mdm.sql",                 gen.gen_v21),
         ("V22__data_pws.sql",                 gen.gen_v22),
+        ("V95__data_auctions_core.sql",       gen.gen_v95),
+        ("V96__data_aggregated_inventory.sql", gen.gen_v96),
+        ("V97__data_bid_data.sql",            gen.gen_v97),
+        ("V98__data_qbc_reseed.sql",          gen.gen_v98),
         ("V23__data_qualified_buyer_codes.sql", gen.gen_v23),
         ("V24__data_integration_config.sql",  gen.gen_v24),
         ("V34__data_rma.sql",                  gen.gen_v34),
