@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -39,6 +40,12 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin/reserve-bids")
+// L-6 (security review 2026-07-10): defense-in-depth. The SecurityConfig
+// "/api/v1/admin/reserve-bids/**" matcher already requires Administrator;
+// this class-level @PreAuthorize re-asserts it at the method layer so the
+// reserve-bid floor-price CRUD + Snowflake sync surface can never be exposed
+// to a lesser role by a future matcher change.
+@PreAuthorize("hasRole('Administrator')")
 public class ReserveBidController {
 
     private final ReserveBidService service;

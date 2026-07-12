@@ -99,14 +99,14 @@ describe('UserguideConfigurationPage', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(/Only PDF files are accepted/i);
   });
 
-  it('shows error for file exceeding 20 MB', async () => {
+  it('shows error for file exceeding 10 MB', async () => {
     mockEmptyList();
     render(<UserguideConfigurationPage />);
     await screen.findByText(/No guide has been uploaded yet/i);
 
     const input = screen.getByLabelText('Choose PDF file to upload');
-    // Create a 21 MB file (client-side check)
-    const bigBytes = new Uint8Array(21 * 1024 * 1024 + 1);
+    // Create an 11 MB file (client-side check)
+    const bigBytes = new Uint8Array(11 * 1024 * 1024 + 1);
     bigBytes[0] = 0x25; bigBytes[1] = 0x50; bigBytes[2] = 0x44; bigBytes[3] = 0x46; bigBytes[4] = 0x2D;
     const file = new File([bigBytes], 'big.pdf', { type: 'application/pdf' });
     fireEvent.change(input, { target: { files: [file] } });

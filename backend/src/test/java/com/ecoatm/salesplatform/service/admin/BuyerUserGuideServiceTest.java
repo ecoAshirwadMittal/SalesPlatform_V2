@@ -100,9 +100,9 @@ class BuyerUserGuideServiceTest {
     }
 
     @Test
-    @DisplayName("upload rejects file exceeding 20 MB")
+    @DisplayName("upload rejects file exceeding 10 MB")
     void upload_tooLarge_throws() {
-        // Just over 20 MB
+        // Just over the configured cap (10 MB — L-12, security review 2026-07-10)
         byte[] large = new byte[(int) BuyerUserGuideService.MAX_BYTE_SIZE + 1];
         large[0] = 0x25; large[1] = 0x50; large[2] = 0x44; large[3] = 0x46; large[4] = 0x2D;
         MockMultipartFile file = new MockMultipartFile(

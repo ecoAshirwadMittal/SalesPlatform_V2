@@ -40,8 +40,18 @@ public class BuyerUserGuideService {
 
     private static final Logger log = LoggerFactory.getLogger(BuyerUserGuideService.class);
 
-    /** 20 MB hard cap — matches the task spec. */
-    static final long MAX_BYTE_SIZE = 20L * 1024 * 1024;
+    /**
+     * 10 MB hard cap.
+     *
+     * <p>L-12 (security review 2026-07-10): originally 20 MB per the task
+     * spec, but {@code spring.servlet.multipart.max-file-size} (application.yml)
+     * is the global ceiling at 10 MB — Spring's multipart parser rejects
+     * anything larger before a request body ever reaches this service, so a
+     * 20 MB service-level cap was dead code that could never fire. Aligned to
+     * 10 MB so the two limits agree; if the global ceiling is ever raised
+     * again, revisit whether this service should keep its own tighter cap.
+     */
+    static final long MAX_BYTE_SIZE = 10L * 1024 * 1024;
 
     /** Magic bytes for PDF (%PDF-). */
     private static final byte[] PDF_MAGIC = new byte[]{0x25, 0x50, 0x44, 0x46, 0x2D};
@@ -92,7 +102,7 @@ public class BuyerUserGuideService {
      *
      * <ol>
      *   <li>Validate Content-Type header.</li>
-     *   <li>Validate byte size ≤ 20 MB.</li>
+     *   <li>Validate byte size ≤ 10 MB.</li>
      *   <li>Read the first 5 bytes and verify the PDF magic header.</li>
      *   <li>Write the file to {@link #uploadDir}.</li>
      *   <li>Atomically flip {@code is_active}: deactivate any existing active
@@ -192,7 +202,7 @@ public class BuyerUserGuideService {
     private void validateByteSize(MultipartFile file) {
         if (file.getSize() > MAX_BYTE_SIZE) {
             throw new IllegalArgumentException(
-                    "File too large: maximum is 20 MB, got " + file.getSize() + " bytes");
+                    "File too large: maximum is 10 MB, got " + file.getSize() + " bytes");
         }
         if (file.getSize() == 0) {
             throw new IllegalArgumentException("File is empty");

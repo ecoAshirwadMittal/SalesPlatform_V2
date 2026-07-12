@@ -40,7 +40,11 @@ interface GuideListResponse {
 // ── Constants ──────────────────────────────────────────────────────────────────
 
 const API = '/api/v1/admin/buyer-user-guide';
-const MAX_BYTES = 20 * 1024 * 1024; // 20 MB
+// L-12 (security review 2026-07-10): matches BuyerUserGuideService.MAX_BYTE_SIZE
+// and the global spring.servlet.multipart.max-file-size (10 MB) — all three
+// must agree, otherwise the client would accept a file the server silently
+// rejects.
+const MAX_BYTES = 10 * 1024 * 1024; // 10 MB
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -112,7 +116,7 @@ export default function UserguideConfigurationPage() {
       return;
     }
     if (file.size > MAX_BYTES) {
-      setFileError(`File too large (${formatBytes(file.size)}). Maximum is 20 MB.`);
+      setFileError(`File too large (${formatBytes(file.size)}). Maximum is 10 MB.`);
       setSelectedFile(null);
       return;
     }
@@ -216,7 +220,7 @@ export default function UserguideConfigurationPage() {
               {data?.active ? 'Replace Current Guide' : 'Upload Buyer User Guide'}
             </h3>
             <p style={{ fontSize: 13, color: '#555', marginBottom: 12 }}>
-              Accepted format: PDF only. Maximum size: 20 MB.
+              Accepted format: PDF only. Maximum size: 10 MB.
               Uploading a new file immediately replaces the currently active guide.
             </p>
 
