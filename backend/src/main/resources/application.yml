@@ -274,6 +274,13 @@ rma:
     enabled: ${RMA_DEPOSCO_SYNC_ENABLED:false}
     fixed-delay-ms: 1800000          # 30 min poll cadence
     client: logging                  # logging (default, no-op) | http (future real client)
+  oracle-create:
+    # When true (default), an APPROVED RMA review triggers the AFTER_COMMIT
+    # RmaOracleCreateListener → Oracle create (submitRma). Disable to suppress
+    # auto-create in an environment while leaving the manual /resubmit-oracle
+    # recovery endpoint working. The Oracle call itself still fails closed in
+    # deployed profiles when the OracleConfig toggle is off (SIM only in local dev).
+    enabled: ${RMA_ORACLE_CREATE_ENABLED:true}
 
 ---
 # ─────────────────────────────────────

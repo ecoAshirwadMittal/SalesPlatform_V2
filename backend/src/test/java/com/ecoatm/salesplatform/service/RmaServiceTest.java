@@ -4,6 +4,8 @@ import com.ecoatm.salesplatform.dto.RmaDetailResponse;
 import com.ecoatm.salesplatform.dto.RmaResponse;
 import com.ecoatm.salesplatform.dto.RmaSubmitResponse;
 import com.ecoatm.salesplatform.dto.RmaSummaryResponse;
+import com.ecoatm.salesplatform.event.rma.RmaReviewCompletedEvent;
+import com.ecoatm.salesplatform.event.rma.RmaReviewOutcome;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.mdm.Grade;
 import com.ecoatm.salesplatform.model.pws.ImeiDetail;
@@ -53,6 +55,7 @@ class RmaServiceTest {
     @Mock private ImeiDetailRepository imeiDetailRepository;
     @Mock private OrderRepository orderRepository;
     @Mock private BuyerCodeLookupService buyerCodeLookup;
+    @Mock private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     private RmaService rmaService;
 
@@ -60,7 +63,7 @@ class RmaServiceTest {
     void setUp() {
         rmaService = new RmaService(rmaRepository, rmaItemRepository,
                 rmaStatusRepository, rmaReasonRepository, deviceRepository,
-                imeiDetailRepository, orderRepository, buyerCodeLookup);
+                imeiDetailRepository, orderRepository, buyerCodeLookup, eventPublisher);
     }
 
     // --- Helpers ---
@@ -385,6 +388,18 @@ class RmaServiceTest {
             assertThat(rma.getSystemStatus()).isEqualTo("Approved");
             assertThat(rma.getApprovalDate()).isNotNull();
             verify(rmaRepository, atLeastOnce()).save(rma);
+
+            // Publishes an APPROVED RmaReviewCompletedEvent carrying the rmaId +
+            // JWT-derived reviewer so the AFTER_COMMIT Oracle-create listener
+            // (and later email/Snowflake listeners) can react.
+            ArgumentCaptor<RmaReviewCompletedEvent> captor =
+                    ArgumentCaptor.forClass(RmaReviewCompletedEvent.class);
+            verify(eventPublisher).publishEvent(captor.capture());
+            RmaReviewCompletedEvent event = captor.getValue();
+            assertThat(event.rmaId()).isEqualTo(1L);
+            assertThat(event.outcome()).isEqualTo(RmaReviewOutcome.APPROVED);
+            assertThat(event.reviewedByUserId()).isEqualTo(5L);
+            assertThat(event.occurredAt()).isNotNull();
         }
 
         @Test
@@ -403,6 +418,14 @@ class RmaServiceTest {
 
             assertThat(rma.getSystemStatus()).isEqualTo("Declined");
             assertThat(rma.getApprovalDate()).isNull();
+
+            // Declined reviews still publish — a DECLINED event so downstream
+            // listeners (Snowflake sync in a later task) see it; the
+            // Oracle-create listener filters it out.
+            ArgumentCaptor<RmaReviewCompletedEvent> captor =
+                    ArgumentCaptor.forClass(RmaReviewCompletedEvent.class);
+            verify(eventPublisher).publishEvent(captor.capture());
+            assertThat(captor.getValue().outcome()).isEqualTo(RmaReviewOutcome.DECLINED);
         }
 
         @Test

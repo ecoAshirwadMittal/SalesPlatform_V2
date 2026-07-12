@@ -42,7 +42,7 @@ BEGIN
 END $$;
 
 -- ══════════════════════════════════════════════════════════════════════════════
--- updated_date trigger (pws, mdm, integration, email schemas)
+-- updated_date trigger (pws, mdm, integration schemas)
 -- Finding 14: Consolidate trigger logic for all tables with updated_date
 -- ══════════════════════════════════════════════════════════════════════════════
 
@@ -85,6 +85,8 @@ BEGIN
         ('integration', 'deposco_config')
         -- V92's email tables (smtp_config / template / log) carry changed_date
         -- stamped by the application services, not updated_date — no trigger.
+        -- (A BEFORE UPDATE trigger setting NEW.updated_date on those tables
+        -- throws at runtime: the column does not exist.)
     LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_update_updated_date ON %I.%I;

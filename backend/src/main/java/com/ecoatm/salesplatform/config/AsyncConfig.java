@@ -22,6 +22,7 @@ public class AsyncConfig {
 
     public static final String EMAIL_EXECUTOR = "emailExecutor";
     public static final String SNOWFLAKE_EXECUTOR = "snowflakeExecutor";
+    public static final String ORACLE_EXECUTOR = "oracleExecutor";
 
     @Bean(name = EMAIL_EXECUTOR)
     public Executor emailExecutor() {
@@ -50,6 +51,26 @@ public class AsyncConfig {
         executor.setThreadNamePrefix("snowflake-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
+        executor.initialize();
+        return executor;
+    }
+
+    /**
+     * Dedicated pool for the RMA → Oracle create side-effect
+     * ({@code RmaOracleCreateListener}). Kept separate from the email +
+     * Snowflake pools so a slow Oracle round-trip cannot starve those, and so
+     * this integration's load is independently observable ({@code oracle-rma-*}
+     * threads).
+     */
+    @Bean(name = ORACLE_EXECUTOR)
+    public Executor oracleExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(1);
+        executor.setMaxPoolSize(3);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("oracle-rma-");
+        executor.setWaitForTasksToCompleteOnShutdown(true);
+        executor.setAwaitTerminationSeconds(30);
         executor.initialize();
         return executor;
     }

@@ -178,3 +178,48 @@ Inventory of major modules and their primary entities.
   security-config-wide). The Task 10 frontend catches and displays the
   error correctly either way (verified in a real logged-in browser
   session) — this is a backend follow-up, not a frontend defect.
+
+## RMA — Oracle Create + Resubmit (RMA #3 Task B0, event-driven core)
+- Source modules: `ecoatm_rma` (`ACT_RMADetails_CompleteReview`,
+  `SUB_RMA_PrepareContentAndSendToOracle`, `SUB_RMA_PrepareOraclePayload`,
+  `SUB_RMA_SendRMAToOracle`, `ACT_RMA_ReSubmitToOracle`)
+- Primary tables: `pws.rma` (`oracle_number` / `oracle_id` /
+  `oracle_http_code` / `oracle_json_response` / `oracle_rma_status` /
+  `is_successful` / `json_content` — all scaffolded by V33/V34, no new
+  migration), `pws.rma_item`
+- Purpose: an Approved RMA review creates the RMA order in Oracle and records
+  the response; a failed create leaves the RMA Approved with a failed Oracle
+  status recoverable via the admin resubmit endpoint
+- Event: `RmaService.completeReview` publishes
+  `event.rma.RmaReviewCompletedEvent(rmaId, outcome, reviewedByUserId,
+  occurredAt)` — `outcome` is `event.rma.RmaReviewOutcome` (`APPROVED` /
+  `DECLINED`). Published inside the completing transaction so AFTER_COMMIT
+  listeners fire only on commit. **Deliberately the shared seam for the two
+  follow-on tasks** (approval email, Snowflake sync) — they attach as
+  additional `@TransactionalEventListener(AFTER_COMMIT)` subscribers, no change
+  to this module
+- Listener: `listener/rma/RmaOracleCreateListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(ORACLE_EXECUTOR)`. Acts
+  only on `outcome == APPROVED`; delegates to
+  `service/rma/RmaOracleService.createRmaInOracle` (the shared build → submit →
+  write-`oracle_*` core, `@Transactional(REQUIRES_NEW)` and **not** `readOnly`).
+  Swallows all exceptions — a failed Oracle create never rolls back the review
+- Oracle client: `OracleOrderClient.submitRma(jsonPayload)` — mirrors
+  `submitOrder`, POSTs to `OracleConfig.getCreateRmaPath()`, reuses the shared
+  `offlineOrErrorResponse()` (SIM in local dev, fail-closed in qa/staging/prod)
+  + `errorResponse()` helpers
+- Payload: `service/rma/RmaOraclePayloadBuilder` mirrors
+  `SUB_RMA_PrepareOraclePayload` — header (`originSystemOrderId` / `orderType`
+  = `PWS-RMA` / `orderDate` / `buyerCode` / `originSystemUser`) + one
+  `rmaLineItem` per APPROVED item. Exact JSON key casing is a documented
+  best-effort (not recoverable from `migration_context/`; dev runs SIM)
+- Admin recovery: `POST /api/v1/pws/rma/{rmaId}/resubmit-oracle` — internal
+  roles only (`Administrator` / `SalesOps` / `SalesRep`; explicit SecurityConfig
+  matcher precedes the broad `/api/v1/pws/rma/**` rule so Bidder is excluded,
+  plus method `@PreAuthorize`); rebuilds the payload, re-runs `submitRma`,
+  rewrites the `oracle_*` columns
+- Config: `rma.oracle-create.enabled` (default `true`; env
+  `RMA_ORACLE_CREATE_ENABLED`) — disables auto-create while leaving resubmit working
+- Snowflake sync: none here — owned by the follow-on Task D
+- Not built here (later tasks): approval email (Task C, owns the V93 template
+  migration), Snowflake RMA sync (Task D)

@@ -38,6 +38,7 @@ class RmaControllerTest {
     @MockBean private RmaService rmaService;
     @MockBean private com.ecoatm.salesplatform.service.BuyerCodeService buyerCodeService;
     @MockBean private com.ecoatm.salesplatform.security.UploadRateLimiter uploadRateLimiter;
+    @MockBean private com.ecoatm.salesplatform.service.rma.RmaOracleService rmaOracleService;
 
     @org.junit.jupiter.api.BeforeEach
     void ownershipAllowedByDefault() {
@@ -247,6 +248,79 @@ class RmaControllerTest {
         mockMvc.perform(put("/api/v1/pws/rma/1/items/approve-all")
                         .header("Authorization", "Bearer " + bidderToken))
                 .andExpect(status().isForbidden());
+    }
+
+    // --- POST /api/v1/pws/rma/{rmaId}/resubmit-oracle (Task B0) ---
+
+    private com.ecoatm.salesplatform.model.pws.Rma rmaWithOracle(
+            Long id, boolean successful, String status, String number, Integer httpCode) {
+        com.ecoatm.salesplatform.model.pws.Rma rma = new com.ecoatm.salesplatform.model.pws.Rma();
+        rma.setId(id);
+        rma.setIsSuccessful(successful);
+        rma.setOracleRmaStatus(status);
+        rma.setOracleNumber(number);
+        rma.setOracleHttpCode(httpCode);
+        return rma;
+    }
+
+    @Test
+    void resubmitOracle_withInternalToken_returns200WithOracleStatus() throws Exception {
+        when(rmaOracleService.createRmaInOracle(7L))
+                .thenReturn(rmaWithOracle(7L, true, "simulated", "SIM-123", 200));
+
+        mockMvc.perform(post("/api/v1/pws/rma/7/resubmit-oracle")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rmaId").value(7))
+                .andExpect(jsonPath("$.successful").value(true))
+                .andExpect(jsonPath("$.oracleNumber").value("SIM-123"))
+                .andExpect(jsonPath("$.oracleHttpCode").value(200));
+
+        verify(rmaOracleService).createRmaInOracle(7L);
+    }
+
+    // A failed Oracle create is still a 200 — the resubmit ran, Oracle rejected.
+    @Test
+    void resubmitOracle_oracleFailure_returns200WithSuccessFalse() throws Exception {
+        when(rmaOracleService.createRmaInOracle(7L))
+                .thenReturn(rmaWithOracle(7L, false, "Oracle API is disabled", null, null));
+
+        mockMvc.perform(post("/api/v1/pws/rma/7/resubmit-oracle")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.successful").value(false))
+                .andExpect(jsonPath("$.oracleRmaStatus").value("Oracle API is disabled"));
+    }
+
+    // Wrong-role: a Bidder must never reach the internal Oracle resubmit action.
+    // Denied by BOTH the SecurityConfig matcher (Bidder excluded) and the
+    // method-level @PreAuthorize (defense-in-depth) → 403.
+    @Test
+    void resubmitOracle_withBidderRole_returns403() throws Exception {
+        String bidderToken = jwtService.generateToken(
+                9L, "bidder@buyerco.com", List.of("Bidder"), false);
+
+        mockMvc.perform(post("/api/v1/pws/rma/7/resubmit-oracle")
+                        .header("Authorization", "Bearer " + bidderToken))
+                .andExpect(status().isForbidden());
+
+        verify(rmaOracleService, never()).createRmaInOracle(anyLong());
+    }
+
+    @Test
+    void resubmitOracle_withoutToken_returns401() throws Exception {
+        mockMvc.perform(post("/api/v1/pws/rma/7/resubmit-oracle"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resubmitOracle_rmaNotFound_returns404() throws Exception {
+        when(rmaOracleService.createRmaInOracle(999L))
+                .thenThrow(new IllegalArgumentException("RMA not found: 999"));
+
+        mockMvc.perform(post("/api/v1/pws/rma/999/resubmit-oracle")
+                        .header("Authorization", "Bearer " + validToken()))
+                .andExpect(status().isNotFound());
     }
 
     // --- POST /api/v1/pws/rma/submit — M-6 size + content-type gate ---

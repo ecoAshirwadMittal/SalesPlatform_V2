@@ -1,9 +1,11 @@
 package com.ecoatm.salesplatform.controller;
 
 import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.model.pws.Rma;
 import com.ecoatm.salesplatform.security.UploadRateLimiter;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.service.RmaService;
+import com.ecoatm.salesplatform.service.rma.RmaOracleService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,9 @@ import java.util.Set;
 @PreAuthorize("hasAnyRole('Bidder','SalesRep','SalesOps','Administrator')")
 public class RmaController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(RmaController.class);
+
     private static final Set<String> INTERNAL_ROLES =
             Set.of("ROLE_Administrator", "ROLE_SalesOps", "ROLE_SalesRep");
 
@@ -45,12 +50,15 @@ public class RmaController {
     private final RmaService rmaService;
     private final BuyerCodeService buyerCodeService;
     private final UploadRateLimiter uploadRateLimiter;
+    private final RmaOracleService rmaOracleService;
 
     public RmaController(RmaService rmaService, BuyerCodeService buyerCodeService,
-                         UploadRateLimiter uploadRateLimiter) {
+                         UploadRateLimiter uploadRateLimiter,
+                         RmaOracleService rmaOracleService) {
         this.rmaService = rmaService;
         this.buyerCodeService = buyerCodeService;
         this.uploadRateLimiter = uploadRateLimiter;
+        this.rmaOracleService = rmaOracleService;
     }
 
     /** List RMAs. Buyers see only their own buyer code; the all-view is internal. */
@@ -189,6 +197,35 @@ public class RmaController {
             @PathVariable Long rmaId, Authentication auth) {
         long reviewerId = (Long) auth.getPrincipal();
         return ResponseEntity.ok(rmaService.completeReview(rmaId, reviewerId));
+    }
+
+    /**
+     * Re-run the Oracle create for an RMA whose prior create failed
+     * ({@code ACT_RMA_ReSubmitToOracle}). Rebuilds the payload, re-POSTs via
+     * {@code OracleOrderClient.submitRma}, and rewrites the {@code oracle_*}
+     * columns; returns the refreshed Oracle status. Internal-only (no Bidder) —
+     * gated by both the {@code SecurityConfig} matcher for the
+     * {@code POST .../resubmit-oracle} path and this method-level
+     * {@code @PreAuthorize}. Identity is JWT-derived (the internal-role
+     * requirement is proven from the authenticated principal, never a request
+     * param). A {@code successful=false} body is a normal 200 response — the
+     * resubmit ran but Oracle rejected it; a missing RMA is a 404.
+     */
+    @PostMapping("/{rmaId}/resubmit-oracle")
+    @PreAuthorize("hasAnyRole('Administrator','SalesOps','SalesRep')")
+    public ResponseEntity<RmaOracleResubmitResponse> resubmitOracle(
+            @PathVariable Long rmaId, Authentication auth) {
+        // Caller identity is JWT-derived (defense-in-depth with the role gate
+        // above); the RMA is internal-scoped, so no per-buyer ownership check
+        // applies. Logged for an audit trail of who triggered the resubmit.
+        long callerId = (Long) auth.getPrincipal();
+        log.info("RMA {} Oracle resubmit requested by userId={}", rmaId, callerId);
+        try {
+            Rma updated = rmaOracleService.createRmaInOracle(rmaId);
+            return ResponseEntity.ok(RmaOracleResubmitResponse.from(updated));
+        } catch (IllegalArgumentException notFound) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
     }
 
     private boolean hasInternalRole(Authentication auth) {
