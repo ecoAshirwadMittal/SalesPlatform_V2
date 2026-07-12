@@ -72,6 +72,9 @@ public class PurchaseOrderService {
     @Transactional
     public PurchaseOrderRow create(PurchaseOrderRequest req) {
         var range = validator.resolveWeekRange(req.weekFromId(), req.weekToId());
+        // VAL_WeekRange_PO (gap 0.1): a new PO must not overlap any existing
+        // PO's week range (GLOBAL scope) so 4C never double-counts a PO floor.
+        validator.requireNonOverlappingWeekRange(range, null);
         PurchaseOrder po = new PurchaseOrder();
         po.setWeekFrom(range.from());
         po.setWeekTo(range.to());
@@ -91,6 +94,10 @@ public class PurchaseOrderService {
                 new PurchaseOrderException("PURCHASE_ORDER_NOT_FOUND",
                         "Purchase order " + id + " not found"));
         var range = validator.resolveWeekRange(req.weekFromId(), req.weekToId());
+        // VAL_WeekRange_PO (gap 0.1): excluding this PO's own id so an
+        // unchanged-range re-save is allowed, reject a range that now overlaps
+        // any OTHER PO (GLOBAL scope).
+        validator.requireNonOverlappingWeekRange(range, id);
         po.setWeekFrom(range.from());
         po.setWeekTo(range.to());
         po.setWeekRangeLabel(buildRangeLabel(range.from().getWeekDisplay(),

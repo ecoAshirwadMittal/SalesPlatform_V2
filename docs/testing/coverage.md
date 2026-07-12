@@ -17,6 +17,23 @@ Target 85%+. Upload + push paths are the load-bearing branches; see
 
 ---
 
+## auctions.purchaseorder.weekrange-overlap (new 2026-07-11, gap 0.1)
+Target 85%+. VAL_WeekRange_PO — GLOBAL week-range overlap guard rejecting a
+create/update whose `[weekFrom, weekTo]` intersects ANY existing PO's range
+(no product/grade/buyer scoping), so 4C never sees two PO floor candidates for
+one (product, grade, week). Load-bearing branches: the inclusive-interval
+overlap predicate, GLOBAL scope (overlap flagged across different
+buyer/product/grade), non-overlap allowed, and exclude-self on update. The
+guard compares the **business `weekId`** (chronological), not the surrogate
+`mdm.week.id` (the V65 seed does not assign the surrogate in calendar order —
+proved during development). See `PurchaseOrderValidatorTest` (+3 unit cases:
+overlap-throws / non-overlap-passes / update-forwards-exclude-id) and
+`PurchaseOrderOverlapRepositoryIT` (6 cases on real Postgres — weekId-is-
+chronological diagnostic + same-span + global-across-buyer/product/grade +
+boundary-shared-week + non-overlap + update-excludes-self).
+
+---
+
 ## auctions.recalc (new 2026-04-30)
 Target 85%+. RANKING + TARGET_PRICE are the load-bearing branches; see
 `BidRankingRepositoryIT` + `TargetPriceRecalcRepositoryIT` +
