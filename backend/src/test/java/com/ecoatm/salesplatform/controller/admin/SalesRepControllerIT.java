@@ -20,6 +20,7 @@ import java.util.List;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -90,6 +91,19 @@ class SalesRepControllerIT extends PostgresIntegrationTest {
            .andExpect(jsonPath("$.id").isNumber())
            .andExpect(jsonPath("$.firstName").value("Sops"))
            .andExpect(jsonPath("$.active").value(true));
+    }
+
+    // ── list ──────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("Administrator may list reps (200, array)")
+    void adminCanList() throws Exception {
+        Long repId = seedRep("Listable", "Reptest");
+
+        mvc.perform(get("/api/v1/admin/sales-representatives").with(admin()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$").isArray())
+           .andExpect(jsonPath("$[?(@.id == " + repId + ")].firstName").value("Listable"));
     }
 
     // ── create ────────────────────────────────────────────────────────

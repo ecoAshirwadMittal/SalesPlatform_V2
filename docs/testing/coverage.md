@@ -384,10 +384,10 @@ SalesOps only — NOT under the Compliance-admitting `/admin/buyers/**`).
 | Surface | Key tests |
 |---|---|
 | `SalesRepService` (Mockito) | `SalesRepServiceTest` (9) — create trims + stamps owner/changer/dates + honours `active` default/explicit; create rejects a case-insensitive dup (never saves); update excludes self in the dup check + stamps changer; update rejects a cross-rep collision; update/delete missing-id → `EntityNotFoundException`; delete throws `SalesRepHasOffersException` when an offer references the rep (never deletes) + short-circuits before the offer count on missing id; delete succeeds when none |
-| `SalesRepController` (real Postgres) | `SalesRepControllerIT` (8, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`; Long-principal auth via the `authentication(...)` post-processor mirroring `AdminEmailControllerSmokeIT`) — 403 matrix (Bidder → 403 on create/update/delete); unauth → 401; Administrator **and** SalesOps create → 201; create trims + stamps; case-insensitive duplicate → 409; blank name → 400; delete-with-offers → 409; delete-clean → 204. Owner FK satisfied via seeded dev user ids (9001 admin / 9003 salesops) |
+| `SalesRepController` (real Postgres) | `SalesRepControllerIT` (9, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`; Long-principal auth via the `authentication(...)` post-processor mirroring `AdminEmailControllerSmokeIT`) — GET list → 200 array; 403 matrix (Bidder → 403 on create/update/delete); unauth → 401; Administrator **and** SalesOps create → 201; create trims + stamps; case-insensitive duplicate → 409; blank name → 400; delete-with-offers → 409; delete-clean → 204. Owner FK satisfied via seeded dev user ids (9001 admin / 9003 salesops) |
 
-Sales-rep CRUD sweep: **17/17 green** (`SalesRepServiceTest` 9 +
-`SalesRepControllerIT` 8). Run:
+Sales-rep CRUD sweep: **18/18 green** (`SalesRepServiceTest` 9 +
+`SalesRepControllerIT` 9). Run:
 `./mvnw test -Dtest=SalesRepServiceTest,SalesRepControllerIT
 -Dspring.flyway.validate-on-migrate=false`. The IT boots the full Spring
 context against the shared dev Postgres (pg-test profile, which already sets
