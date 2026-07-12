@@ -284,3 +284,39 @@ Snowflake `VW_SALE_ORDER_SHIPMENT` reader — the local chain carries the
 IMEI→device/price data, is the faithful legacy port, and is seedable in a
 Postgres IT; the Snowflake reader is order-number-scoped, returns empty in dev,
 and cannot be seeded in a Postgres IT.
+
+---
+
+## rma.oracle-create (new 2026-07-12 · RMA #3 Task B0)
+Target 85%+. Makes an Approved RMA review create the RMA order in Oracle,
+event-driven so the follow-on approval-email + Snowflake tasks attach to the
+same `RmaReviewCompletedEvent`. Load-bearing branches: the event publish +
+outcome mapping in `completeReview`; `submitRma` reusing the hardened
+fail-closed/SIM gate; the `oracle_*` column write on success (`returnCode "00"`
+→ number/id/http/json/status + `is_successful=true`) vs failure (blank code →
+status captured, `is_successful=false`, no number, review NOT rolled back); the
+listener's outcome/enabled/null-id guards + exception swallow; and the secured
+resubmit endpoint (wrong-role → 403).
+
+| Surface | Key tests |
+|---|---|
+| `RmaService.completeReview` event publish | `RmaServiceTest$CompleteReview` — APPROVED and DECLINED both publish an `RmaReviewCompletedEvent` (ArgumentCaptor asserts rmaId/outcome/reviewerUserId/occurredAt) |
+| `OracleOrderClient.submitRma` | `OracleOrderClientTest` (+4, now 12) — qa/production fail-closed + no-profile/dev SIM success, reusing the same `offlineOrErrorResponse()` gate as `submitOrder` |
+| `RmaOraclePayloadBuilder` | `RmaOraclePayloadBuilderTest` (3) — header + approved-line JSON shape, empty-line array, null price/SKU → empty strings |
+| `RmaOracleService.createRmaInOracle` | `RmaOracleServiceTest` (4) — success writes SIM columns; failure captures status w/o number (no throw); only-approved lines feed the payload; RMA-not-found throws before `submitRma` |
+| `RmaOracleCreateListener` | `RmaOracleCreateListenerTest` (5) — APPROVED triggers create; DECLINED/disabled/null-id skip; a thrown create is swallowed (never rethrows) |
+| Resubmit endpoint | `RmaControllerTest` (+6, now 25) — 200 rewrites oracle_* (success + oracle-failure body), Bidder → 403 (matcher + `@PreAuthorize`), no-token → 401, not-found → 404 |
+| Real-Postgres column write | `RmaOracleCreateIT` (1, `dev` profile → SIM) — seeds an approved RMA, calls `createRmaInOracle`, asserts `oracle_*` + `json_content` persist on the real schema |
+
+Full RMA + Oracle backend sweep: **87/87 green** (`RmaControllerTest` 25 +
+`RmaServiceTest` 25 + `OracleOrderClientTest` 12 + `RmaDeposcoSyncServiceTest`
+10 + `RmaOracleCreateListenerTest` 5 + `RmaOracleServiceTest` 4 +
+`RmaOraclePayloadBuilderTest` 3 + `RmaSubmitOfferItemMatchIT` 2 +
+`RmaOracleCreateIT` 1). `OfferServiceTest` 36 green (order path unaffected by
+the shared `postToOracle` refactor).
+
+> **Environment note:** running any `PostgresIntegrationTest` required fixing a
+> pre-existing repeatable-migration bug — `R__apply_triggers.sql` referenced
+> `email.email_template` (dropped by V92, which created `email.template`),
+> failing every fresh-DB Flyway run. One-line fix shipped in this task's branch
+> (`fix(email):`); it also unblocks the previously-green `RmaSubmitOfferItemMatchIT`.

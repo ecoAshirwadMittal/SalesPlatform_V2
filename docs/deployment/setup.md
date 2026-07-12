@@ -193,3 +193,12 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   pure REST API; lazy-load-outside-tx patterns would surface as
   `LazyInitializationException`, but the full controller IT sweep confirms
   none exist today.
+
+## RMA Oracle create config (RMA #3 Task B0)
+- `rma.oracle-create.enabled` — default `true`; when `false`, the
+  `RmaOracleCreateListener` short-circuits on an APPROVED
+  `RmaReviewCompletedEvent` and does NOT create the RMA in Oracle. The admin
+  `POST /api/v1/pws/rma/{rmaId}/resubmit-oracle` recovery endpoint is
+  unaffected. Env override: `RMA_ORACLE_CREATE_ENABLED=false`. Independent of
+  the Oracle client's own toggle (`OracleConfig.is_active` + the profile gate,
+  which SIM-succeeds only in local dev and fails closed in qa/staging/prod).

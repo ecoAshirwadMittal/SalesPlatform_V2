@@ -1540,3 +1540,39 @@ admin path resets the count, and only right before invoking it.
 `SecurityConfig` matcher (added in Task 7 — no change needed for `/log`)
 plus the class-level `@PreAuthorize("hasRole('Administrator')")` on
 `AdminEmailController` (defense-in-depth).
+
+---
+
+## RMA — Oracle Create + Resubmit (RMA #3 Task B0)
+
+Completing an RMA review (`PUT /api/v1/pws/rma/{rmaId}/complete-review`)
+publishes `RmaReviewCompletedEvent`; for an APPROVED outcome an AFTER_COMMIT
+listener creates the RMA in Oracle and writes the `oracle_*` columns. A failed
+create leaves the RMA Approved with a failed Oracle status, recoverable via:
+
+### POST /api/v1/pws/rma/{rmaId}/resubmit-oracle
+
+Re-runs the Oracle create for an RMA whose prior create failed
+(`ACT_RMA_ReSubmitToOracle`): rebuilds the payload, re-POSTs via
+`OracleOrderClient.submitRma`, and rewrites the `oracle_*` columns.
+
+- **Roles**: internal only — `Administrator`, `SalesOps`, `SalesRep` (a
+  `Bidder` gets **403**). Enforced by an explicit `SecurityConfig` matcher for
+  `POST /api/v1/pws/rma/*/resubmit-oracle` (precedes the broad
+  `/api/v1/pws/rma/**` rule) **and** a method-level `@PreAuthorize`
+  (defense-in-depth). Caller identity is JWT-derived.
+- **Path**: `rmaId` — the RMA to resubmit.
+- **Response** `200`:
+  ```json
+  {
+    "rmaId": 42,
+    "successful": true,
+    "oracleRmaStatus": "…",
+    "oracleNumber": "SIM-1783837118285",
+    "oracleHttpCode": 200
+  }
+  ```
+  `successful: false` with a populated `oracleRmaStatus` is a **normal 200** —
+  the resubmit ran but Oracle rejected it; the admin can retry.
+- **Errors**: `404` if the RMA does not exist; `401` unauthenticated; `403`
+  wrong role.

@@ -77,3 +77,19 @@ CTEs compute the qualified-code id sets in Java, then a single bulk
 INSERT writes one row per active WH/DW code with derived
 `qualification_type` and `is_special_treatment` columns. The legacy
 junctions no longer exist.
+
+---
+
+## pws.rma (Oracle create columns — RMA #3 Task B0)
+The `oracle_*` columns scaffolded by V33/V34 are written by
+`RmaOracleService.createRmaInOracle` after an APPROVED review:
+`oracle_number` (Oracle RMA number; `SIM-…` in local dev), `oracle_id`,
+`oracle_http_code`, `oracle_json_response` (raw response body),
+`oracle_rma_status` (return message), `is_successful` (`returnCode == "00"`),
+and `json_content` (the request payload built by `RmaOraclePayloadBuilder`). No
+new migration — the columns already exist. A failed create leaves the row
+Approved with `is_successful=false`; the admin `/resubmit-oracle` endpoint
+rewrites these columns on retry. The RMA lifecycle status
+(`rma_status`/`system_status`) is set by the review itself and is not changed
+by the Oracle create (an Approved RMA carrying an `oracle_number` is what the
+Deposco status sync polls).
