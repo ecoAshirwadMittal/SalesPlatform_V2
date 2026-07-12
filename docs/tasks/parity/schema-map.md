@@ -132,7 +132,7 @@ query-level equality with the legacy snapshot:
 
 | Domain | New tables | Seeded by | Validation approach |
 |---|---|---|---|
-| Auctions core | `auctions.scheduling_auctions`, `bid_data`, `aggregated_inventory`, weeks, rounds | hand-authored fixtures (V58–V64, V86–V87) | **Fixture-driven**: seed *matching* state on the Mendix side (or pick a legacy SA and mirror it into fixtures), then compare page output. Pixel layer uses DATA masks + text-diff otherwise |
+| Auctions core | `auctions.auctions`, `scheduling_auctions`, `bid_rounds`, `bid_data`, `aggregated_inventory`, `bid_round_selection_filters` | **snapshot-derived since 2026-07-12** (V95–V98 from `extract_qa_data.py`; V23 remaps QBC junctions) | Scoped to the snapshot's 3 live scheduling auctions (2026/Wk13; ~1.37M bid_data/agg rows pointing at purged SAs are excluded — logged in file headers). QBC fresh-chain count: **1,644**. Business keys: auction (year, week); rounds by (SA, round no.) |
 | Reserve bids (EB) | `auctions.reserve_bid` | V77 data seed | **Provenance verified 2026-07-12:** qa-0327-derived (`legacy_id` present; 73/A_YYY = 888.79 both sides) but **2 rows short** (14,657 vs 14,659 — RBL-D1) and `product_id` is **VARCHAR** (lexicographic sort — RBL-D2). Business key: (product_id, grade) |
 | Purchase orders | `auctions.purchase_order`, `po_detail` | V81 data seed | Same as reserve bids — legacy source `ecoatm_po$*` |
 | Partial credit | `partial_credit.*` | V89/V90 (schema + status/template seeds only) | Legacy `ecoatm_partialcredit$*` **data is not migrated** — legacy-only claims are an expected delta; parity is structural/flow, not row-level |
@@ -171,12 +171,19 @@ query-level equality with the legacy snapshot:
     Exclude with `WHERE legacy_id IS NOT NULL`.
 11. **PartialCredit roles:** V90 seeds 4 `PartialCredit_*` roles (`_Buyer/_SalesRep/_SalesOps/_Admin`)
     with no legacy peer. Exclude with `WHERE name NOT LIKE 'PartialCredit_%'`.
-12. **QBC is EMPTY on a fresh chain (by design):** V72 deletes **all** V23-seeded
+12. **[SUPERSEDED 2026-07-12 — see §3 Auctions core]** QBC fresh-chain count is now **1,644**
+    (V95–V98 + V23 junction remap); the 377,111 excluded legacy rows are true orphans pointing at
+    purged scheduling auctions. Original entry kept for history:
+    **QBC was EMPTY on a fresh chain (by design):** V72 deletes **all** V23-seeded
     `qualified_buyer_codes` rows because the V23 junction carried raw Mendix scheduling-auction
     ids that were never remapped into `auctions.scheduling_auctions` (V64 added the FK `NOT VALID`
     for exactly this reason). The table is rewritten per scheduling auction by the R2/R3 services
     at runtime → QBC belongs to the **fixture-driven** contract (§3), not snapshot equality.
     *(Verified 2026-07-11: legacy 378,755 vs new 0.)*
+13. **Reserve-bid duplicate business keys:** legacy holds two duplicate `(productid, grade)`
+    pairs (13038/F_NYN/H_NNN, 16456/E_YYN), each twin with an **identical bid**; the new
+    `UNIQUE(product_id, grade)` keeps the most-recent row → new = legacy − 2 (14,657 vs 14,659).
+    No values lost. *(Diagnosed 2026-07-12, `docs/tasks/parity/impl/reserve-bids-data-fixes.md`.)*
 
 ---
 

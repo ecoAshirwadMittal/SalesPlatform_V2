@@ -38,10 +38,14 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   overlay `diff-parity-login-buyer.png`.
 - **Fix:** match legacy's card position/size/split ratio exactly (measure via
   `getComputedStyle`/`getBoundingClientRect` on `:8082` per the audit playbook).
-- **Status:** in-progress — impl branch merged 2026-07-12 (46161e3c): card frame now exact
-  (900×609 @ y=124, 50/50 split, footer added); harness re-run shows residual element-level
-  deltas (~8–14px vertical offsets in the form stack, input box heights, photo-scale edge
-  ghosting, footer x-offsets, Contact-Us size) — agent iterating to ±1px per element
+- **Status:** **FIXED + VERIFIED 2026-07-12** across four convergence passes (commits 46161e3c,
+  dcbd139e-era pass 2, 7dbed04f, f233bf4c). Final harness overlay: structure, photo, headings,
+  inputs, borders, buttons, footer all clean; ~361 solid px of documented irreducibles remain
+  (1px Mendix photo-column overflow, eye-icon pixel-grid straddle, sub-pixel label AA) —
+  recorded in `pages/auth-login.yaml` (status: green) + impl doc Pass 4. Notable root causes
+  fixed en route: proxy.ts 307'd all /fonts/ on unauthenticated pages (cross-cutting — page
+  rendered in Arial); missing Founders Grotesk assets; asymmetric legacy card radii (17/22/22/13);
+  the input border is Atlas #898787, not the theme's #534F4C (render > source).
 
 ### LOGIN-P2 — login heading rendered in the wrong typeface (premise CORRECTED 2026-07-12)
 - **Date:** 2026-07-11, corrected 2026-07-12 · **Page:** `/login` · **Layer:** pixel · **Severity:** HIGH · **Class:** style-fix (font) → frontend
@@ -62,7 +66,9 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 - **Actual (new):** no footer at all.
 - **Evidence:** same H0 pair.
 - **Fix:** add the footer row with identical copy, link target, and placement.
-- **Status:** open
+- **Status:** **FIXED + VERIFIED 2026-07-12** — footer added (real href
+  `https://www.ecoatm.com/pages/privacy-policy`, dynamic © year mirroring legacy's
+  `formatDateTime`) and pixel-clean in the final harness overlay.
 
 ### ENV-1 — Studio Pro demo-user widget pollutes every legacy-local capture
 - **Date:** 2026-07-11 · **Page:** all legacy-local pages (first seen on `/p/login/web`) · **Layer:** env · **Severity:** LOW (but touches every capture) · **Class:** env-noise → harness/user decision
@@ -75,19 +81,23 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   `masks.registry.json` entry.
 - **Status:** open — **decision needed (user)**
 
-### RBL-D1 — reserve_bid row count off by 2 (14,657 new vs 14,659 legacy)
-- **Date:** 2026-07-12 (H1 run) · **Page:** admin-reserve-bids-list · **Layer:** data · **Severity:** MEDIUM · **Class:** data-fix → backend
-- Spot-check passed (73/A_YYY = $888.79 both sides; `legacy_id` present) — V77 is qa-0327-derived,
-  but 2 legacy rows are missing (likely duplicate (product_id, grade) pairs collapsed by a unique
-  constraint). Identify the 2 and either restore or catalogue.
-- **Status:** open
+### RBL-D1 — reserve_bid row count off by 2 — RESOLVED AS CATALOGUED DELTA 2026-07-12
+- Diagnosis (impl agent, `docs/tasks/parity/impl/reserve-bids-data-fixes.md`): exactly the two
+  duplicate `(product_id, grade)` pairs the new UNIQUE constraint legitimately collapses —
+  13038/F_NYN/H_NNN and 16456/E_YYN, each twin carrying an **identical bid**, most-recent row
+  survived. No price data lost; no migration change. Catalogued (schema-map §4 #13).
+- **Status:** accepted (catalogued delta)
 
 ### RBL-D2 — `product_id` is VARCHAR in `auctions.reserve_bid` → lexicographic sort/filter semantics
 - **Date:** 2026-07-12 · **Page:** admin-reserve-bids-list (+ anywhere product_id sorts/filters) · **Layer:** data+function · **Severity:** HIGH · **Class:** data-fix → backend
 - Legacy `productid` is numeric; new column is text — ascending sort yields '1','10206','10211',
   …,'73' instead of 1,73,76…; numeric comparators ("=", ">") behave differently too.
 - **Evidence:** `evidence/h1-2026-07-12/` grid pair; `information_schema` check.
-- **Status:** open
+- **Status:** **fixed 2026-07-12** — V94 (`product_id` → BIGINT, verified on reseeded dev DB)
+  + full Java/TS ripple incl. `::text` casts at the 4 recalc ecoid-join sites and
+  `FilterColumn.PRODUCT_ID` → NUMERIC. RBL-P1 fixed in the same branch: default order =
+  `legacy_id ASC NULLS LAST, id ASC` (verified: yields legacy's 73, 76, 78, 79, 496 — plain
+  `id ASC` would NOT have matched because V77 seeded in product_id order).
 
 ### RBL-P1 — default grid ordering differs from legacy
 - **Date:** 2026-07-12 · **Page:** admin-reserve-bids-list · **Layer:** pixel+function · **Severity:** HIGH · **Class:** style-fix → frontend/backend
@@ -149,13 +159,38 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   `extract_qa_data.py` to migrate the auction tables). Until then this page can only compare the
   no-auction branch.
 - **Evidence:** `evidence/h1-2026-07-12/*bidder-dashboard__default.png`.
-- **Status:** open
+- **Status:** **RESOLVED (data layer) 2026-07-12** — V95–V98 merged (auctions core, 162,086
+  bid_data incl. HN's 10,951 round-1 bids, 10,951 agg-inventory, QBC re-established at 1,644);
+  verified on the reseeded dev DB. The visible gap remains because of app behavior, not data —
+  re-scoped into BDD-P1: the new dashboard doesn't select/render the most-recent ENDED auction
+  (legacy shows "Auction 2026 / Wk13" + "Download your Round 1 Bids"; new shows "No scheduled
+  auction is available" even with the data present). BDD-P1 is now the actionable finding.
 
 ### BDD-P1 — ended-state UI diverges (panel, heading, download button)
 - **Date:** 2026-07-12 · **Page:** bidder-dashboard · **Layer:** pixel+function · **Severity:** HIGH · **Class:** style-fix/feature-gap → frontend (re-triage after BDD-D1)
 - Legacy renders the state inside a large bordered panel with the auction heading above and a
   "Download your Round 1 Bids" pill button; new renders two bare centered text lines — no panel,
   no heading, no download affordance.
+- **RE-SCOPED 2026-07-12 (post data-fix):** with identical auction data on both sides, the root
+  cause is the new app's **auction-selection logic ignoring ended auctions** (legacy renders the
+  most-recent ended one; new only looks for live/scheduled) plus the impoverished ended-state UI.
+  Note: the snapshot's round-3 SA is 'Scheduled' with a long-past window and legacy STILL shows
+  the ended state — selection must follow the legacy microflows, not status alone.
+- **Status:** **FIXED + VERIFIED 2026-07-12** (merged commit 6e009dc2, harness-confirmed on the
+  live pair). Selection now mirrors the cited legacy microflows (`ACT_OpenBidderDashboard` /
+  `ACT_GetMostRecentAuction` / `ACT_GetActiveSchedulingAuction`): most-recent auction by
+  created_date; pivot = any round `Started`, else the ended/download page — heading
+  "Auction {yr} / Wk{wk}", panel, per-participated-round "Download your Round N Bids" wired to
+  the ownership-guarded export (live-verified: HN → 626KB xlsx of 10,951 R1 bids; R2 → 404;
+  wrong-tenant → 403). Notes: subtitle copy + per-round visibility rule are inferred (not in the
+  extracted microflows — matches the HN evidence; revisit if a multi-round auction surfaces).
+  Residual pixel deltas on this page belong to BDD-P2/BDD-P3.
+
+### SEC-1 — authenticated wrong-role on bidder endpoints returns 401, not 403
+- **Date:** 2026-07-12 (found during BDD-P1 verification) · **Layer:** function/security-hygiene · **Severity:** LOW (denial holds either way) · **Class:** route → SecurityConfig owner
+- Live-verified: salesops with a valid cookie → **401** on `/api/v1/bidder/**` (expected 403 per
+  the repo's own DoD language); admin → 200. Pre-existing, app-wide bidder-controller behavior —
+  not introduced by BDD-P1. Wrong status-code semantics only.
 - **Status:** open
 
 ### BDD-P2 — buyer shell missing "Credit Requests" nav item
@@ -218,10 +253,12 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 (`extract_qa_data.py` uses `or 0`). Catalogued as schema-map §4 #9. Watch item: if any UI surface
 renders these devices, "—"-vs-"$0.00" becomes a text-layer finding on that page.
 
-### DATA-2 — `qualified_buyer_codes` is empty on a fresh chain — ACCEPTED (by design)
-V72 deletes all 378,755 V23-seeded rows (legacy scheduling-auction ids were never remapped;
-V64 added the FK `NOT VALID` for exactly this reason). QBC is rewritten per scheduling auction by
-the R2/R3 services → fixture-driven parity contract (schema-map §3, §4 #12).
+### DATA-2 — `qualified_buyer_codes` empty on fresh chain — SUPERSEDED 2026-07-12
+Original state: V72 deleted all 378,755 V23 rows (SA ids never remapped). **Superseded by the
+auctions data migration (V95–V98 + V23 remap):** a fresh chain now converges on **1,644** QBC
+rows (548 codes × 3 live rounds; 377,111 legacy rows are true orphans pointing at purged
+scheduling auctions — excluded by design, logged in the V-file headers). The auctions domain is
+no longer fixture-driven; schema-map §3/§4 updated.
 
 ---
 
