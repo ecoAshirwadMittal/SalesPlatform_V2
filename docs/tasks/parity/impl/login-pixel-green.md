@@ -350,3 +350,100 @@ land far lower.
 4. `src/proxy.ts` also lacks a `reset-password` exclusion (unauthenticated
    reset links bounce to /login). Out of scope here — flagged for the
    auth owner; not changed.
+
+---
+
+# Pass 3 (2026-07-12) — control-level convergence (final)
+
+Pass 3 targets the last residue the pass-2 overlay showed **inside** the
+otherwise-aligned card: the placeholder/label text ghosted while the boxes
+matched, the input frame a shade off, and the photo-side corner arcs. Method
+is the same loop as pass 2 — PIL band-profile the harness legacy PNG for exact
+ink extents / border pixel colours, render the build headlessly on a throwaway
+`:13000`, iterate until the bands match. Every value below is a **PIL sample of
+the harness legacy capture**, not a theme-CSS re-read (pass-1/2 had inverted two
+of them from the theme source; the render is the spec).
+
+## 0. Baseline note — this worktree did not contain pass 1/2
+
+The agent worktree branch (`worktree-agent-…`, an RMA line) was **not** branched
+from the pass-2 tip — it had the pass-0 login (Brandon font, `12px 16px`
+padding, native checkbox) and neither the parity doc nor the Founders/Brandon
+font assets. `main` (`dcbd139e`) carries the complete pass-1/2 work. Pass 3
+first imported the exact pass-2 state of the login files from `main`
+(`git checkout main -- <login.module.css, LoginForm.tsx, globals.css, proxy.ts,
+public/fonts/**, wholesale-buyer-login.spec.ts, this doc>`), verified `proxy.ts`
+and `globals.css` diverged from `main` **only** by the login-parity additions
+(no RMA-branch collateral), then applied the pass-3 deltas on top. The commit on
+this branch therefore contains pass 1 + 2 + 3.
+
+## 1. Root causes fixed (all PIL-sampled off the harness legacy PNG)
+
+| # | Symptom (pass-2 overlay) | Legacy sample | Was (pass 2) | Fix |
+|---|---|---|---|---|
+| 1 | "Email"/"Password" placeholder ink doubled | ink x-start **1001** | `padding: 8px 12px` → ink x-start 1005 (+4px) | input `padding: 8px 8px` (the Atlas `.form-control` value; pass-2's 12px left was wrong) |
+| 1 | "Remember me?" label doubled | ink x-start **1020** | checkbox `margin-right:13px` → 1024 (+4px) | checkbox `margin-right: 9px` (13px was an Atlas-class guess, not measured) |
+| 2 | Input frame red on all four sides | border pixel **(137,135,135) = #898787**, solid 1px, no spill | `border:1px #534F4C` → rendered (83,79,76) | `border: 1px solid var(--color-input-border-dark)` (#898787). The theme's `.logininput .mx-textbox-input {#534F4C}` override does **not** take effect in the captured page — the frame is the plain Atlas `.form-control` #898787 |
+| 3 | Card **left** (photo) corner arcs red | left photo arc reaches the straight edge **12px** below the card top; right cream arc **16px** (asymmetric — legacy clips the photo ~4px tighter than the cream) | uniform `border-radius:22px` → left arc 16px (4px too round) | `border-radius: 17px 22px 22px 17px` (left corners tighter). Reproduces the legacy arc within ±1px, no cream sliver (card cream clips to the same left radius as the photo) |
+
+Button labels (Login / Employee Login / Contact Us) were **already** matched in
+pass 2 (dX 0–1) — their overlay "ghosting" was cross-rasterizer glyph AA, not a
+position error. Confirmed by band-profile: Login dX+1, Employee/Contact dX0.
+
+## 2. Per-element before/after (harness legacy PNG vs headless `:13000` render, 1920×1080)
+
+| Element | Legacy | Pass 2 (before) | Pass 3 (after) |
+|---|---|---|---|
+| Email placeholder ink | x1001..1037 | x1005..1041 (**dX +4**) | **x1001..1037 (dX 0)** ✓ |
+| Password placeholder ink | x1001..1067 | x1005..1071 (**dX +4**) | **x1001..1067 (dX 0)** ✓ |
+| Input border pixel | (137,135,135) | (83,79,76) #534F4C | **(137,135,135) #898787** ✓ |
+| Remember-me label ink | x1020 | x1024 (**dX +4**) | x1021 (dX +1, AA) |
+| Forgot Password ink | x1255..1379 | x1255..1379 | x1255..1379 (dX 0) ✓ |
+| Login / Employee / Contact | matched | dX 0–1 | dX 0–1 ✓ (AA) |
+| Top-left photo arc (x per y124..136) | 522→510 | 526→510 (**+4px rounder**) | 522→510 (**±1px**) ✓ |
+| Bottom-left photo arc | (17px radius) | 22px (too round) | 17px ✓ |
+| Top-right cream arc | 1392→1409 | 1392→1409 | 1392→1409 (identical) ✓ |
+
+## 3. Residuals left faithful (sub-pixel / cross-rasterizer — not chased)
+
+These remain because they are at/below the rasterizer noise floor **and** the
+render here is a different Chromium build than the harness's pinned one (the
+pass-2 caveat). Tuning them to my-Chromium-vs-harness-legacy risks *de-tuning*
+the harness's same-Chromium-both-sides compare, and the CSS is already faithful:
+
+1. **Eye icon ±1px** — legacy ink x1347..1368 y388..404; render x1348..1368
+   y387..404. The **right and bottom edges coincide**; only the faint top-left AA
+   pixel differs by 1. The toggle CSS (`top:11px`, `right:10px` from the input
+   edge) is the exact legacy `.passwordicon .toggle-password-button {top:11px;
+   right:25px}` translated for the 390px control — not adjusted.
+2. **Photo bottom edge 1px** — the photo fills to y732 vs legacy y733 at x700
+   (card-bottom sub-pixel). Forcing it would mean a fractional card height /
+   photo overflow that shifts the footer; left at the faithful 609px.
+3. **Glyph AA** — every text run shows a thin hollow red outline in the
+   local-vs-harness overlay (0.6%-class, same as pass 2). Zero solid/doubled
+   ghosts remain; the harness's pinned-Chromium-both-sides compare erases this.
+
+## 4. Files changed in pass 3
+
+| File | Change |
+|---|---|
+| `src/app/(auth)/login/login.module.css` | `.input` padding `8px 12px`→`8px 8px` + border `#534F4C`→`var(--color-input-border-dark)` (#898787); `.checkbox` margin-right `13px`→`9px`; `.loginCard` border-radius `22px`→`17px 22px 22px 17px` (asymmetric — tighter photo-side corners) |
+| (imported from `main`) | `LoginForm.tsx`, `globals.css`, `proxy.ts`, `public/fonts/**` (13 OTFs), `wholesale-buyer-login.spec.ts`, this doc — the pass-1/2 baseline this worktree lacked |
+
+## 5. Verification
+
+- **`npx tsc --noEmit`:** 31 errors, **all pre-existing** and none in a login
+  file (partial-credit `*.test.tsx` + the two known e2e specs
+  `admin-purchase-orders.spec.ts` / `wholesale-submit-bids.spec.ts`). Pass-3
+  touches only `login.module.css` (a CSS module — no TS surface), so **zero new
+  errors**.
+- **Headless render** (`next dev -p 13000`, standalone `@playwright/test`
+  chromium at deviceScaleFactor 1 — the main `:3000`/`:8080`/`:8082` untouched):
+  band profiles above; `document.fonts` shows Founders 400/500 loaded, all
+  `/fonts/**` HTTP 200 (proxy `fonts/` exclusion intact), input computed
+  `padding:8px` / `border rgb(137,135,135)`.
+- **Local diff overlay** (my-Chromium render vs harness legacy PNG, tol 24, photo
+  interior masked): the pass-2 red input-frame boxes and top-left corner arc are
+  **gone**; remaining red is glyph-edge AA (expected, environmental) + the two
+  ≤1px residuals in §3. Final `reg-cli` sign-off belongs to the orchestrator's
+  same-Chromium harness.

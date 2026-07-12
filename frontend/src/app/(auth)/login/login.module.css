@@ -21,11 +21,18 @@
   font-family: var(--font-family-pws);
 }
 
-/* Legacy .newlogincard — 900×609 fixed, 22px radius, cream, NO drop shadow
-   (the legacy class declares none). margin 100px top / 10px bottom. */
+/* Legacy .newlogincard — 900×609 fixed, cream, NO drop shadow (the legacy class
+   declares none). margin 100px top / 10px bottom.
+   Radius: the card CSS is `border-radius:22px`, but the legacy RENDER clips the
+   photo (left) corners ~4px tighter than the cream (right) corners — PIL traces
+   the left photo arc reaching the straight edge 12px below the card top vs 16px
+   on the right. The mechanism is the Mendix photo-column clip; reproduced here
+   with an asymmetric radius (left 17px → ~12px rendered arc, right 22px), which
+   matches the legacy left arc within ±1px, no cream sliver (the card cream clips
+   to the same left radius as the photo). PASS 3. */
 .loginCard {
   background-color: var(--color-surface-cream);
-  border-radius: 22px;
+  border-radius: 17px 22px 22px 17px;
   width: 900px;
   height: 609px;
   margin: 100px 0 10px;
@@ -113,17 +120,25 @@
   width: 100%;
 }
 
-/* Legacy .logininput: width 420px, radius 5px, border #534F4C, bg #F7F7F7,
-   Founders Grotesk 18px, placeholder #1C1B1C. */
+/* Legacy visible input is the Atlas `.form-control` (`.mx-textbox-input`).
+   PASS 3 corrections (PIL-sampled off the harness legacy PNG):
+   - padding is `8px 8px`, NOT `8px 12px` — pass-2's 12px left pushed the
+     "Email"/"Password" placeholder ink +4px right of legacy (sampled ink
+     x-start 1001 legacy vs 1005 new).
+   - border is a solid 1px #898787 (the Atlas `.form-control` default), NOT
+     #534F4C. The harness legacy frame samples as (137,135,135)=#898787 with no
+     spill to neighbours; the theme's `.logininput .mx-textbox-input {#534F4C}`
+     override does not take effect in the captured page. #534F4C rendered
+     (83,79,76) — far too dark, the red border box in the overlay. */
 .input {
   width: 100%;
   height: 44px;
-  padding: 8px 12px;
+  padding: 8px 8px;
   font-size: 18px;
   font-family: var(--font-family-pws);
   color: var(--color-text-body);
   background-color: var(--color-bg-body);
-  border: 1px solid #534F4C;
+  border: 1px solid var(--color-input-border-dark);
   /* 3px: the visible input (.form-control) uses Atlas $border-radius-default;
      the 5px in .logininput sits on the invisible formgroup wrapper. */
   border-radius: 3px;
@@ -201,12 +216,13 @@
 
 /* Measured legacy checkbox: 20×20 at the input's left edge, 1px #898787
    border (Atlas $gray-primary), ~3px radius, transparent interior (card cream
-   shows through — NOT the native white). Label sits 13px right of it
-   (spacing-outer-left-medium @ ≥992px). */
+   shows through — NOT the native white). PASS 3: the gap to the label is 9px,
+   not the 13px pass-2 assumed from the Atlas spacing class — the harness legacy
+   "Remember me?" ink starts x1020, pass-2's 13px pushed it to x1024 (+4px). */
 .checkbox {
   appearance: none;
   -webkit-appearance: none;
-  margin: 0 13px 0 0;
+  margin: 0 9px 0 0;
   width: 20px;
   height: 20px;
   border: 1px solid var(--color-input-border-dark);
