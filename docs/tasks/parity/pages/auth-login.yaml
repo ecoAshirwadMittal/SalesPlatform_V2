@@ -1,0 +1,24 @@
+pageId: auth-login
+title: Login (buyer/marketing entry)
+surface: auth
+auth: { legacy: none, new: none }
+legacy:
+  path: /p/login/web
+new:
+  path: /login
+ready:
+  legacy: 'input[placeholder="Email"]'
+  new: 'input[placeholder="Email"]'
+states:
+  - id: default
+masks: []
+findings: [LOGIN-P1, LOGIN-P2, LOGIN-P3, ENV-1]
+status: signed-off
+# SIGNED OFF by the user 2026-07-12 (first page of the program to close).
+# GREEN 2026-07-12 (passes 1-4, evidence/login-final-2026-07-12/). Documented irreducible
+# residue (~361 solid px, all explained — see impl/login-pixel-green.md Pass 4):
+#   - 1px photo-column overflow line (Mendix fractional inter-column height; every clean fix
+#     regresses another region)
+#   - eye icon pixel-grid straddle (±0.5px, all CSS values land identically)
+#   - sub-pixel button-label centering AA (0 solid px)
+# Human sign-off pending → then status: signed-off.

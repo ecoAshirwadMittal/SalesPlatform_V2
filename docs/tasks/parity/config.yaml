@@ -1,0 +1,15 @@
+# Parity harness global config — consumed by tools/parity (schema.ts validates).
+legacyBase: http://localhost:8082          # local Mendix (primary reference)
+legacyHostedBase: https://buy-qa.ecoatmdirect.com   # certification/fallback lane
+newBase: http://localhost:3000
+
+viewport: { width: 1920, height: 1080 }    # sign-off viewport (plan §2.3)
+fixedTime: "2026-07-11T12:00:00-05:00"     # Date-freeze on both sides (clock.setFixedTime)
+settleMs: 750                              # post-ready settle before screenshot
+
+# CSS injected ONLY on legacy-local captures: hides Studio Pro dev-runtime chrome
+# that hosted QA never shows (ENV-1 in findings.md — pending user decision to
+# disable demo users at the source; this keeps captures clean meanwhile).
+legacyLocalHideCss: >
+  .demo-users, [class*="demoUser" i], [class*="demousers" i],
+  [id*="DemoUser" i], .dev-mode-widget { display: none !important; }
