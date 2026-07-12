@@ -34,6 +34,51 @@ boundary-shared-week + non-overlap + update-excludes-self).
 
 ---
 
+## auctions.recalc.po-floor-weekmatch (new 2026-07-12, task #37)
+Target 85%+. Fixes the 4C target-price PO-floor week-match bug — the *consumer*
+side of the same week-model bug gap 0.1 fixed on the PO-overlap producer side.
+Both `TargetPriceRecalcRepository` SQL constants (`TARGET_PRICE_SQL_R1_TO_R2`,
+`TARGET_PRICE_SQL_R2_TO_R3`) matched a PO to the auction week with
+`p.week_id BETWEEN po.week_from_id AND po.week_to_id` — a range test on the
+non-chronological surrogate `mdm.week.id`. Fixed to resolve the auction week's
+business `weekId` (`mdm.week.week_id`) in the `params` CTE and compare it in
+`po_max` (`JOIN mdm.week` for the PO from/to weeks; `p.week_biz_id BETWEEN
+wf.week_id AND wt.week_id`). The surrogate-EQUALITY joins (`p.week_id =
+bd.week_id`, `ai.week_id = p.week_id`) are correct and unchanged.
+
+- `TargetPriceRecalcRepositoryIT` (+1 case, now 9, real Postgres) —
+  `po_floor_matches_auction_week_by_business_weekId_not_surrogate`: scrambled
+  surrogate order (auction Wk21 surrogate is highest); a covering PO whose
+  business range [Wk20..Wk22] contains the auction week but whose surrogate
+  range does not, plus a decoy PO with the inverse — asserts the recalc uses the
+  covering PO's floor (5000), which the pre-fix surrogate `BETWEEN` got wrong
+  (8000). Fails pre-fix, passes post-fix; the 8 existing cases stay green.
+
+Sibling audit (`PurchaseOrderRepository`, same surrogate-range bug class):
+- `findActiveOnDate` — **fixed** (no production caller; only a repo test). Now
+  compares business `weekId` (`po.weekFrom.weekId`/`weekTo.weekId`).
+  `PurchaseOrderRepositoryTest` (+1 case `findActiveOnDateMatchesByBusinessWeekIdNotSurrogate`,
+  now 3, real Postgres via `-Dspring.profiles.active=pg-test`) seeds a
+  scrambled-surrogate covering PO + decoy and asserts only the covering PO is
+  returned (verified to fail on the pre-fix surrogate query); the existing
+  active-PO case now passes the business weekId.
+- `findFiltered` — **reported, NOT changed**: its `:weekFromId`/`:weekToId` are
+  surrogate ids from the frontend `WeekSelect` dropdowns (`value = week.id`), so
+  fixing it to business `weekId` would break the filter contract without a
+  coordinated frontend change. Same bug class; left as a documented follow-up.
+
+> **Environment note:** the shared local dev DB had drifted `auctions.reserve_bid.product_id`
+> to `bigint`; the committed V76 defines it `VARCHAR(100)` (and all join partners
+> — `bid_data.ecoid`, `aggregated_inventory.ecoid2`, `po_detail.product_id` — are
+> `varchar(100)`), so the recalc `eb` join was already broken on this DB. Reconciled
+> in place (`ALTER ... TYPE varchar(100)`) to run the ITs — a stale-dev-DB fix, no
+> migration/code change (a fresh Testcontainers/CI DB already has `varchar`).
+> `PurchaseOrderRepositoryTest` also needs `-Dspring.profiles.active=pg-test` locally
+> because the default profile's strict Flyway `validate-on-migrate` rejects the
+> drifted dev DB.
+
+---
+
 ## auctions.recalc (new 2026-04-30)
 Target 85%+. RANKING + TARGET_PRICE are the load-bearing branches; see
 `BidRankingRepositoryIT` + `TargetPriceRecalcRepositoryIT` +

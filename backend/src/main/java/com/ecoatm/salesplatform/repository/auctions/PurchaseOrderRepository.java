@@ -9,10 +9,29 @@ import org.springframework.data.repository.query.Param;
 
 public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, Long> {
 
+    /**
+     * PO-lifecycle helper: every PO whose stored week range
+     * {@code [weekFrom, weekTo]} contains the given target week — i.e. the POs
+     * that are ACTIVE for that week.
+     *
+     * <p><b>Comparison is on the business {@code weekId}</b> (mdm.week.week_id,
+     * {@code year*100 + weekNumber}), NOT the surrogate {@code mdm.week.id}. The
+     * surrogate is not chronologically ordered — the V65 seed assigns it via
+     * {@code GROUP BY} with no {@code ORDER BY} — so a range test on the
+     * surrogate {@code weekFrom.id}/{@code weekTo.id} can wrongly include or
+     * exclude a multi-week PO. This mirrors gap 0.1's
+     * {@link #findOverlappingWeekRange} (the overlap producer side) and the 4C
+     * target-price {@code po_max} fix (task #37, the recalc consumer side) — the
+     * same week-model rule everywhere a PO week range is compared
+     * chronologically.
+     *
+     * <p><b>Callers MUST pass the business {@code weekId}</b> of the target week
+     * (e.g. {@code week.getWeekId()}), NOT the surrogate {@code week.getId()}.
+     */
     @Query("""
         SELECT po FROM PurchaseOrder po
-        WHERE po.weekFrom.id <= :weekId
-          AND po.weekTo.id   >= :weekId
+        WHERE po.weekFrom.weekId <= :weekId
+          AND po.weekTo.weekId   >= :weekId
         ORDER BY po.changedDate DESC
         """)
     Page<PurchaseOrder> findActiveOnDate(@Param("weekId") Long weekId, Pageable pageable);
