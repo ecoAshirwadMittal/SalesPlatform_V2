@@ -1,10 +1,20 @@
 -- V33: RMA (Return Merchandise Authorization) module tables
 -- Source: ecoatm_rma schema from Mendix (migration_context/database/schema-ecoatm_rma.md)
 
+-- V29 created placeholder rma_status / rma_reason with a different column set
+-- (status_group vs status_grouped_to, valid_reason vs valid_reasons), which made
+-- the IF NOT EXISTS creates below silent no-ops and broke this file's seeds on a
+-- fresh migration chain. Drop the placeholders so the authoritative shapes +
+-- production seeds below always apply. DBs that already ran V33 never re-run it.
+DROP TABLE IF EXISTS pws.rma_item CASCADE;
+DROP TABLE IF EXISTS pws.rma CASCADE;
+DROP TABLE IF EXISTS pws.rma_reason CASCADE;
+DROP TABLE IF EXISTS pws.rma_status CASCADE;
+
 -- ============================================================
 -- 1. rma_status — lookup table for RMA workflow statuses
 -- ============================================================
-CREATE TABLE IF NOT EXISTS pws.rma_status (
+CREATE TABLE pws.rma_status (
     id                           BIGSERIAL PRIMARY KEY,
     system_status                VARCHAR(50)  NOT NULL UNIQUE,
     internal_status_text         VARCHAR(200),
