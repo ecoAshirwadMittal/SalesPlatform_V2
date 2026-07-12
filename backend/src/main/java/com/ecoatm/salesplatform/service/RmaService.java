@@ -1,9 +1,12 @@
 package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.event.rma.RmaReviewCompletedEvent;
+import com.ecoatm.salesplatform.event.rma.RmaReviewOutcome;
 import com.ecoatm.salesplatform.model.mdm.Device;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import com.ecoatm.salesplatform.model.pws.ImeiDetail;
 import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.model.pws.Order;
@@ -20,6 +23,7 @@ import com.ecoatm.salesplatform.repository.pws.RmaRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaStatusRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +55,7 @@ public class RmaService {
     private final ImeiDetailRepository imeiDetailRepository;
     private final OrderRepository orderRepository;
     private final BuyerCodeLookupService buyerCodeLookup;
+    private final ApplicationEventPublisher eventPublisher;
 
     public RmaService(RmaRepository rmaRepository,
                       RmaItemRepository rmaItemRepository,
@@ -59,7 +64,8 @@ public class RmaService {
                       DeviceRepository deviceRepository,
                       ImeiDetailRepository imeiDetailRepository,
                       OrderRepository orderRepository,
-                      BuyerCodeLookupService buyerCodeLookup) {
+                      BuyerCodeLookupService buyerCodeLookup,
+                      ApplicationEventPublisher eventPublisher) {
         this.rmaRepository = rmaRepository;
         this.rmaItemRepository = rmaItemRepository;
         this.rmaStatusRepository = rmaStatusRepository;
@@ -68,6 +74,7 @@ public class RmaService {
         this.imeiDetailRepository = imeiDetailRepository;
         this.orderRepository = orderRepository;
         this.buyerCodeLookup = buyerCodeLookup;
+        this.eventPublisher = eventPublisher;
     }
 
     /** List RMAs for a buyer code, optionally filtered by status group. */
@@ -259,6 +266,19 @@ public class RmaService {
 
         log.info("RMA {} review completed — status: {}, approved: {}, declined: {}",
                 rma.getNumber(), newStatus, approved, declined);
+
+        // Publish inside the completing transaction so every
+        // @TransactionalEventListener(AFTER_COMMIT) subscriber (Oracle create
+        // here; approval email + Snowflake sync in follow-on tasks) fires only
+        // once this review has durably committed. STATUS_DECLINED maps to
+        // DECLINED; STATUS_APPROVED and the mixed/partial case both map to
+        // APPROVED (mirrors ACT_RMADetails_CompleteReview: partial approve is
+        // still an Oracle-bound approval).
+        RmaReviewOutcome outcome = STATUS_DECLINED.equals(newStatus)
+                ? RmaReviewOutcome.DECLINED
+                : RmaReviewOutcome.APPROVED;
+        eventPublisher.publishEvent(new RmaReviewCompletedEvent(
+                rmaId, outcome, reviewedByUserId, Instant.now()));
 
         return getRmaDetail(rmaId);
     }
