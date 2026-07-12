@@ -47,7 +47,10 @@ public class JdbcReserveBidSnowflakeReader implements ReserveBidSnowflakeReader 
                   + "FROM AUCTIONS.RESERVE_BID",
                     (rs, rowNum) -> {
                         ReserveBid rb = new ReserveBid();
-                        rb.setProductId(rs.getString("PRODUCT_ID"));
+                        // product_id is BIGINT (RBL-D2). getLong coerces a Snowflake
+                        // NUMBER or a numeric-string column alike; product_id is
+                        // NOT NULL upstream so the 0-on-SQL-NULL case never applies.
+                        rb.setProductId(rs.getLong("PRODUCT_ID"));
                         rb.setGrade(rs.getString("GRADE"));
                         rb.setBrand(rs.getString("BRAND"));
                         rb.setModel(rs.getString("MODEL"));

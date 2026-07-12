@@ -15,7 +15,9 @@ public class ReserveBid {
     private Long id;
 
     @Column(name = "legacy_id", unique = true) private Long legacyId;
-    @Column(name = "product_id", nullable = false, length = 100) private String productId;
+    // RBL-D2: product_id is BIGINT (V94) — legacy ecoatm_eb$reservebid.productid
+    // was INTEGER; VARCHAR sorted/compared lexicographically ('1','10206',…,'73').
+    @Column(name = "product_id", nullable = false) private Long productId;
     @Column(nullable = false, length = 200) private String grade;
     @Column(length = 200) private String brand;
     @Column(length = 200) private String model;
@@ -38,8 +40,8 @@ public class ReserveBid {
     public void setId(Long id) { this.id = id; }
     public Long getLegacyId() { return legacyId; }
     public void setLegacyId(Long legacyId) { this.legacyId = legacyId; }
-    public String getProductId() { return productId; }
-    public void setProductId(String productId) { this.productId = productId; }
+    public Long getProductId() { return productId; }
+    public void setProductId(Long productId) { this.productId = productId; }
     public String getGrade() { return grade; }
     public void setGrade(String grade) { this.grade = grade; }
     public String getBrand() { return brand; }

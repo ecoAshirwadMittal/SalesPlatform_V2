@@ -1,6 +1,13 @@
 -- Fixture for 4C recalc tests. All IDs use the 999000+ range to avoid
 -- colliding with seeded production-style data in dev DB.
 --
+-- RBL-D2 note: the two reserve_bid-joined devices use NUMERIC ecoids
+-- ('1001' = the former 'ECO-A'; '1004' = the former 'ECO-D') because V94 made
+-- auctions.reserve_bid.product_id a BIGINT — a symbolic 'ECO-A' can no longer be
+-- inserted into that column. The non-reserve-bid devices stay symbolic
+-- ('ECO-B', 'ECO-C'). All arithmetic/rankings are unchanged; only the ecoid
+-- label for those two devices moved.
+--
 -- Seeds:
 --   • 1 mdm.week (id 999001, week_number 14, year 2026)
 --   • 1 auctions.auctions (id 999001) tied to that week
@@ -50,8 +57,8 @@ UPDATE auctions.bid_ranking_config
 -- 6 aggregated_inventory rows
 INSERT INTO auctions.aggregated_inventory (id, ecoid2, week_id, merged_grade, total_quantity, dw_total_quantity)
 VALUES
-  (999001, 'ECO-A', 999001, 'A', 100, 50),
-  (999002, 'ECO-A', 999001, 'B', 100, 50),
+  (999001, '1001', 999001, 'A', 100, 50),
+  (999002, '1001', 999001, 'B', 100, 50),
   (999003, 'ECO-B', 999001, 'A', 100, 50),
   (999004, 'ECO-B', 999001, 'B', 100, 50),
   (999005, 'ECO-C', 999001, 'A', 100, 50),
@@ -68,12 +75,12 @@ INSERT INTO auctions.bid_data
    submitted_bid_amount, bid_round, week_id)
 VALUES
   -- (ECO-A, A): tie at 500 between DW01 and SCWC, 300 from SCPO, below-min 50 from ACCPPO
-  (999001, 999001, 1, 'ECO-A', 'A', 'DW01',   'TestCo1', 'Wholesale', 500.00, 1, 999001),
-  (999002, 999001, 2, 'ECO-A', 'A', 'SCWC',   'TestCo2', 'Wholesale', 500.00, 1, 999001),
-  (999003, 999002, 3, 'ECO-A', 'A', 'SCPO',   'TestCo3', 'Wholesale', 300.00, 1, 999001),
-  (999004, 999003, 4, 'ECO-A', 'A', 'ACCPPO', 'TestCo4', 'Wholesale',  50.00, 1, 999001),
+  (999001, 999001, 1, '1001', 'A', 'DW01',   'TestCo1', 'Wholesale', 500.00, 1, 999001),
+  (999002, 999001, 2, '1001', 'A', 'SCWC',   'TestCo2', 'Wholesale', 500.00, 1, 999001),
+  (999003, 999002, 3, '1001', 'A', 'SCPO',   'TestCo3', 'Wholesale', 300.00, 1, 999001),
+  (999004, 999003, 4, '1001', 'A', 'ACCPPO', 'TestCo4', 'Wholesale',  50.00, 1, 999001),
   -- (ECO-A, B): single bidder
-  (999005, 999001, 1, 'ECO-A', 'B', 'DW01',   'TestCo1', 'Wholesale', 200.00, 1, 999001),
+  (999005, 999001, 1, '1001', 'B', 'DW01',   'TestCo1', 'Wholesale', 200.00, 1, 999001),
   -- (ECO-B, A): three rank tiers
   (999006, 999001, 1, 'ECO-B', 'A', 'DW01',   'TestCo1', 'Wholesale', 800.00, 1, 999001),
   (999007, 999002, 2, 'ECO-B', 'A', 'SCWC',   'TestCo2', 'Wholesale', 600.00, 1, 999001),
@@ -89,8 +96,8 @@ VALUES
 -- reserve_bid rows
 INSERT INTO auctions.reserve_bid (id, product_id, grade, brand, model, bid)
 VALUES
-  (999001, 'ECO-A', 'A', 'BrandX', 'ModelX', 700.0000),
-  (999002, 'ECO-D', 'A', 'BrandY', 'ModelY', 999.0000);
+  (999001, '1001', 'A', 'BrandX', 'ModelX', 700.0000),
+  (999002, '1004', 'A', 'BrandY', 'ModelY', 999.0000);
 
 -- target_price_factors — three bands matching round 2 and round 3 filters
 -- low (0-200) +10%, mid (200-1000) +5 flat, high (1000+) +2%
@@ -122,7 +129,7 @@ VALUES (999001, 999001, 999001, 'Wk14 2026', TRUE, 2);
 INSERT INTO auctions.po_detail (id, purchase_order_id, buyer_code_id, product_id, grade, model_name, price, qty_cap)
 VALUES
   -- ECO-A grade A: PO floor 750 → wins over MaxBid+factor (505) AND reserve_bid (700)
-  (999001, 999001, 1, 'ECO-A', 'A', 'ModelX', 750.0000, 50),
+  (999001, 999001, 1, '1001', 'A', 'ModelX', 750.0000, 50),
   -- ECO-B grade A: PO floor 100 (below; MaxBid+factor 805 wins)
   (999002, 999001, 1, 'ECO-B', 'A', 'ModelY', 100.0000, 25);
 
@@ -131,4 +138,4 @@ INSERT INTO auctions.purchase_order (id, week_from_id, week_to_id, week_range_la
 VALUES (999002, 999002, 999002, 'Wk12 2026 (inactive)', TRUE, 1);
 
 INSERT INTO auctions.po_detail (id, purchase_order_id, buyer_code_id, product_id, grade, model_name, price, qty_cap)
-VALUES (999003, 999002, 1, 'ECO-A', 'A', 'ModelX', 9999.0000, 1);
+VALUES (999003, 999002, 1, '1001', 'A', 'ModelX', 9999.0000, 1);

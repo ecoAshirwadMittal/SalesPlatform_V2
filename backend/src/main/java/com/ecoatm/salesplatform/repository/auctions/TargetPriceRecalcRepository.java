@@ -70,7 +70,7 @@ public class TargetPriceRecalcRepository {
             JOIN params p ON brf.round = p.closed_round + 1
         ),
         eb AS (
-          SELECT product_id AS ecoid, grade AS merged_grade,
+          SELECT product_id::text AS ecoid, grade AS merged_grade,
                  bid AS reserve_value
             FROM auctions.reserve_bid
         ),
@@ -159,7 +159,7 @@ public class TargetPriceRecalcRepository {
             JOIN params p ON brf.round = p.closed_round + 1
         ),
         eb AS (
-          SELECT product_id AS ecoid, grade AS merged_grade, bid AS reserve_value
+          SELECT product_id::text AS ecoid, grade AS merged_grade, bid AS reserve_value
             FROM auctions.reserve_bid
         ),
         po_max AS (

@@ -40,7 +40,7 @@ class ReserveBidSnowflakePushListenerTest {
     @Test
     void upsertEvent_invokesWriter() {
         ReserveBid rb = new ReserveBid();
-        rb.setId(1L); rb.setProductId("1"); rb.setGrade("A_YYY");
+        rb.setId(1L); rb.setProductId(1L); rb.setGrade("A_YYY");
         rb.setBid(new BigDecimal("10"));
         when(repo.findAllById(List.of(1L))).thenReturn(List.of(rb));
 

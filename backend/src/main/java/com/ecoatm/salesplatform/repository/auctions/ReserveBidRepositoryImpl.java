@@ -162,7 +162,18 @@ public class ReserveBidRepositoryImpl implements ReserveBidRepositoryCustom {
     }
 
     private String renderOrderBy(Sort sort) {
-        if (sort == null || sort.isUnsorted()) return "";
+        if (sort == null || sort.isUnsorted()) {
+            // RBL-P1: the default list order must reproduce the legacy Mendix
+            // object/insert order, whose first screen starts at product 73
+            // (verified: legacy `ORDER BY id` = 73,76,78,79,496…). The new
+            // table's serial `id` is NOT that order — V77 seeded rows in
+            // product_id order, so `ORDER BY id` starts at product 1. The
+            // preserved `legacy_id` (= Mendix id) is the faithful insertion-order
+            // proxy. NULLS LAST keeps app-created rows (legacy_id NULL, e.g. after
+            // a Snowflake pull) after the seeded set; `id ASC` is a stable
+            // tiebreak. A client-supplied sort still overrides this default.
+            return "ORDER BY rb.legacy_id ASC NULLS LAST, rb.id ASC";
+        }
         StringBuilder sb = new StringBuilder("ORDER BY ");
         boolean first = true;
         for (Sort.Order order : sort) {

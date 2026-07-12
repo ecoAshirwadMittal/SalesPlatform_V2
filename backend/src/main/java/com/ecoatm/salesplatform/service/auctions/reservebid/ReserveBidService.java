@@ -222,7 +222,19 @@ public class ReserveBidService {
                 continue;
             }
 
-            java.util.Optional<ReserveBid> existing = repo.findByProductIdAndGrade(row.productId(), row.grade());
+            // RBL-D2: product_id is BIGINT — the raw cell string must parse to a
+            // numeric id. Non-numeric rows are reported (row echoed verbatim) and
+            // skipped rather than aborting the whole upload.
+            final long productIdNum;
+            try {
+                productIdNum = Long.parseLong(row.productId().trim());
+            } catch (NumberFormatException ex) {
+                errors.add(new com.ecoatm.salesplatform.dto.ReserveBidUploadResult.UploadError(
+                        row.rowNumber(), row.productId(), row.grade(), "INVALID_PRODUCT_ID"));
+                continue;
+            }
+
+            java.util.Optional<ReserveBid> existing = repo.findByProductIdAndGrade(productIdNum, row.grade());
             ReserveBid rb;
             if (existing.isPresent()) {
                 rb = existing.get();
@@ -250,7 +262,7 @@ public class ReserveBidService {
                 updated++;
             } else {
                 rb = new ReserveBid();
-                rb.setProductId(row.productId());
+                rb.setProductId(productIdNum);
                 rb.setGrade(row.grade());
                 rb.setModel(row.modelName());
                 rb.setBid(row.price());

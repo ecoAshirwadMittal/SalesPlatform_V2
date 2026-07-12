@@ -5,7 +5,7 @@ import java.time.Instant;
 
 public record ReserveBidRow(
         long id,
-        String productId,
+        long productId,
         String grade,
         String brand,
         String model,

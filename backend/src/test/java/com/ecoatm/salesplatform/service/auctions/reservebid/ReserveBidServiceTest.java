@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -51,7 +52,7 @@ class ReserveBidServiceTest {
 
     @Test
     void create_persistsRowAndPublishesEvent() {
-        when(repo.existsByProductIdAndGrade("77101", "A_YYY")).thenReturn(false);
+        when(repo.existsByProductIdAndGrade(77101L, "A_YYY")).thenReturn(false);
         when(repo.save(any(ReserveBid.class))).thenAnswer(inv -> {
             ReserveBid rb = inv.getArgument(0);
             rb.setId(42L);
@@ -59,7 +60,7 @@ class ReserveBidServiceTest {
         });
 
         ReserveBidRow created = service.create(99L,
-                new ReserveBidRequest("77101", "A_YYY", "Apple", "iPhone",
+                new ReserveBidRequest(77101L, "A_YYY", "Apple", "iPhone",
                         new BigDecimal("10"), null, null, null));
 
         assertThat(created.id()).isEqualTo(42L);
@@ -73,10 +74,10 @@ class ReserveBidServiceTest {
 
     @Test
     void create_rejectsDuplicateProductGrade() {
-        when(repo.existsByProductIdAndGrade("77102", "A_YYY")).thenReturn(true);
+        when(repo.existsByProductIdAndGrade(77102L, "A_YYY")).thenReturn(true);
 
         assertThatThrownBy(() -> service.create(99L,
-                new ReserveBidRequest("77102", "A_YYY", null, null, BigDecimal.ONE, null, null, null)))
+                new ReserveBidRequest(77102L, "A_YYY", null, null, BigDecimal.ONE, null, null, null)))
                 .isInstanceOf(ReserveBidException.class)
                 .hasFieldOrPropertyWithValue("code", "DUPLICATE_PRODUCT_GRADE");
     }
@@ -85,14 +86,14 @@ class ReserveBidServiceTest {
     void update_writesAuditOnPriceChange() {
         ReserveBid existing = new ReserveBid();
         existing.setId(5L);
-        existing.setProductId("77103");
+        existing.setProductId(77103L);
         existing.setGrade("A_YYY");
         existing.setBid(new BigDecimal("10.00"));
         when(repo.findById(5L)).thenReturn(Optional.of(existing));
         when(repo.save(any(ReserveBid.class))).thenReturn(existing);
 
         service.update(99L, 5L,
-                new ReserveBidRequest("77103", "A_YYY", null, null,
+                new ReserveBidRequest(77103L, "A_YYY", null, null,
                         new BigDecimal("12.00"), null, null, null));
 
         verify(auditRepo).save(argThat(a ->
@@ -104,14 +105,14 @@ class ReserveBidServiceTest {
     void update_skipsAuditWhenPriceUnchanged() {
         ReserveBid existing = new ReserveBid();
         existing.setId(6L);
-        existing.setProductId("77104");
+        existing.setProductId(77104L);
         existing.setGrade("A_YYY");
         existing.setBid(new BigDecimal("10.00"));
         when(repo.findById(6L)).thenReturn(Optional.of(existing));
         when(repo.save(any(ReserveBid.class))).thenReturn(existing);
 
         service.update(99L, 6L,
-                new ReserveBidRequest("77104", "A_YYY", "NewBrand", null,
+                new ReserveBidRequest(77104L, "A_YYY", "NewBrand", null,
                         new BigDecimal("10.00"), null, null, null));
 
         verify(auditRepo, never()).save(any());
@@ -142,9 +143,9 @@ class ReserveBidServiceTest {
 
     @Test
     void upload_createsNewRowsAndAuditsPriceChanges() throws Exception {
-        when(repo.findByProductIdAndGrade("10001", "A_YYY")).thenReturn(Optional.of(existing("10001", "A_YYY", "40")));
-        when(repo.findByProductIdAndGrade("10002", "A_YYY")).thenReturn(Optional.empty());
-        when(repo.findByProductIdAndGrade("10003", "B_NYY")).thenReturn(Optional.empty());
+        when(repo.findByProductIdAndGrade(10001L, "A_YYY")).thenReturn(Optional.of(existing("10001", "A_YYY", "40")));
+        when(repo.findByProductIdAndGrade(10002L, "A_YYY")).thenReturn(Optional.empty());
+        when(repo.findByProductIdAndGrade(10003L, "B_NYY")).thenReturn(Optional.empty());
         when(repo.save(any(ReserveBid.class))).thenAnswer(inv -> {
             ReserveBid r = inv.getArgument(0);
             if (r.getId() == null) r.setId(100L);
@@ -168,7 +169,7 @@ class ReserveBidServiceTest {
 
     @Test
     void upload_reportsErrorsWithoutAborting() throws Exception {
-        when(repo.findByProductIdAndGrade(anyString(), anyString())).thenReturn(Optional.empty());
+        when(repo.findByProductIdAndGrade(anyLong(), anyString())).thenReturn(Optional.empty());
         when(repo.save(any(ReserveBid.class))).thenAnswer(inv -> {
             ReserveBid r = inv.getArgument(0);
             if (r.getId() == null) r.setId(200L);
@@ -312,8 +313,9 @@ class ReserveBidServiceTest {
 
     private static ReserveBid existing(String pid, String grade, String bid) {
         ReserveBid r = new ReserveBid();
-        r.setId(Long.parseLong(pid));
-        r.setProductId(pid);
+        long id = Long.parseLong(pid);
+        r.setId(id);
+        r.setProductId(id);
         r.setGrade(grade);
         r.setBid(new java.math.BigDecimal(bid));
         return r;

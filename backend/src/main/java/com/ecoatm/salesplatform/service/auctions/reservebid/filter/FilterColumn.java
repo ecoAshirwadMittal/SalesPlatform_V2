@@ -11,12 +11,12 @@ import java.util.Set;
  * {@link FilterOp}s — e.g. CONTAINS is not legal on a numeric column.
  */
 public enum FilterColumn {
-    // product_id is VARCHAR(100) in the DB schema, not numeric — matches the
-    // Mendix legacy where the column carries arbitrary identifier strings.
-    // Kind.TEXT here means EQ/NEQ are string equality (case-insensitive),
-    // and `>`/`<` would be lexicographic. The frontend can choose to surface
-    // a constrained ops menu so users don't accidentally compare lexically.
-    PRODUCT_ID("product_id", Kind.TEXT),
+    // RBL-D2: product_id is BIGINT (V94), matching the Mendix legacy INTEGER
+    // productid. Kind.NUMERIC gives numeric EQ/NEQ and true numeric </> ordering
+    // (73 < 100, not lexicographic '73' > '100'). NUMERIC is also required for
+    // correctness now the column is BIGINT: the TEXT branch of the dynamic-WHERE
+    // builder wraps the column in LOWER(...), which errors on a bigint column.
+    PRODUCT_ID("product_id", Kind.NUMERIC),
     GRADE("grade", Kind.TEXT),
     BRAND("brand", Kind.TEXT),
     MODEL("model", Kind.TEXT),

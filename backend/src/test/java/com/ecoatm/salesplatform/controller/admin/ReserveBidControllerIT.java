@@ -83,18 +83,19 @@ class ReserveBidControllerIT {
     @Test
     @WithMockUser(roles = "Administrator")
     void create_andFetchById() throws Exception {
-        ReserveBidRow row = new ReserveBidRow(1L, "88001", "A_YYY", "Test", "T1",
+        ReserveBidRow row = new ReserveBidRow(1L, 88001L, "A_YYY", "Test", "T1",
                 new BigDecimal("5.00"), Instant.now(), null, null, null, Instant.now());
         when(service.create(anyLong(), any())).thenReturn(row);
 
+        // productId is a JSON number now (BIGINT, RBL-D2).
         String body = """
-                {"productId":"88001","grade":"A_YYY","brand":"Test","model":"T1",
+                {"productId":88001,"grade":"A_YYY","brand":"Test","model":"T1",
                  "bid":5.00,"lastAwardedMinPrice":null,"lastAwardedWeek":null,"bidValidWeekDate":null}
                 """;
         mvc.perform(post("/api/v1/admin/reserve-bids")
                 .contentType(MediaType.APPLICATION_JSON).content(body))
            .andExpect(status().isCreated())
-           .andExpect(jsonPath("$.productId").value("88001"));
+           .andExpect(jsonPath("$.productId").value(88001));
     }
 
     @Test
