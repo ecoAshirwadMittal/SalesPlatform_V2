@@ -33,10 +33,15 @@ export function proxy(request: NextRequest) {
  *  - /forgot-password
  *  - /api/* (backend proxy — Spring handles its own auth)
  *  - /_next/* (static assets, HMR)
- *  - /images/*, /favicon.ico, etc. (public assets)
+ *  - /images/*, /fonts/*, /favicon.ico, etc. (public assets)
+ *
+ * fonts/ exclusion is load-bearing: without it every @font-face request from
+ * an unauthenticated context (e.g. the login page itself) 307-redirects to
+ * /login, the font fails to decode, and the entire page falls back to Arial
+ * (root cause of parity finding LOGIN-P2's "fallback face").
  */
 export const config = {
   matcher: [
-    '/((?!login|forgot-password|api/|_next/|images/|favicon\\.ico|next\\.svg|vercel\\.svg|qa_).*)',
+    '/((?!login|forgot-password|api/|_next/|images/|fonts/|favicon\\.ico|next\\.svg|vercel\\.svg|qa_).*)',
   ],
 };

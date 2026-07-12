@@ -5,10 +5,11 @@ Implementation record for parity task #1 (`docs/tasks/parity/findings.md`
 pixel-parity with the legacy Mendix buyer login (`/p/login/web` ·
 `EcoATM_UserManagement.Login_New`).
 
-**Status: implemented + self-verified green** (headless capture on a
-throwaway port matched every legacy metric to the pixel — see
-§ Verification). Final strict `reg-cli` sign-off still belongs to the
-orchestrator's H-capture harness.
+**Status: pass-2 converged — every element box matches the harness legacy
+capture to ±1px** (see § Pass 2 at the bottom for the per-element
+before/after table). Residual strict-diff is 0.63% of the frame, all
+cross-rasterizer glyph antialiasing. Final `reg-cli` sign-off belongs to
+the orchestrator's harness (same pinned Chromium both sides).
 
 Fix order per the task: **P2 (fonts, cross-cutting) → P1 (geometry) → P3
 (footer)**.
@@ -240,3 +241,112 @@ output at capture time: **"© 2026 ecoATM, LLC. All Rights Reserved."**
    Atlas desktop spacing values read from `theme.compiled.css`
    (`-large`=24px, `-medium`=13px). Any sub-pixel residue here is what the
    orchestrator's strict `reg-cli` pass will surface, if anything.
+
+---
+
+# Pass 2 (2026-07-12) — per-element convergence after the first harness re-run
+
+The first harness re-run (post-merge 46161e3c) showed the card frame /
+50-50 split / footer presence aligned but element-level ghosting inside
+the form pane, the footer, and the photo. Pass 2 measured every element
+off the harness PNG pair with a PIL band profiler
+(`tools`: scratchpad `measure_login.py` — row-profile of non-background
+ink inside the form pane + footer white-text clusters + photo-pane
+shift correlation), fixed root causes, and re-rendered headlessly on a
+throwaway `:13000` until every band matched.
+
+## Root cause #1 — fonts NEVER loaded anywhere (the real LOGIN-P2)
+
+`document.fonts` diagnostics on the rendered page showed every custom
+FontFace in `status: error` and all `/fonts/**` requests answering
+**HTTP 307**. `src/proxy.ts`'s auth matcher excluded `images/`, `qa_*`,
+`favicon.ico` — but **not `fonts/`** — so on any unauthenticated page
+(the login page itself, every harness capture) each @font-face fetch
+redirected to `/login`, failed decode, and the page fell back to
+**Arial** (4th in the stack — that is what "thinner fallback face" in
+the original finding actually was; it was never a missing-weight issue).
+Fix: `fonts/` added to the matcher exclusion (public static assets,
+exactly parallel to `images/`). One line; cross-cutting — every
+unauthenticated surface now renders the branded fonts.
+
+With fonts loading, canvas metrics confirmed identity with legacy:
+"Premium Wholesale &" @ Founders 500 30px = 271.9px (legacy ink 271);
+"© 2026 …Reserved." @ Founders 400 18px = 303.4px (legacy ink 303).
+
+## Root cause #2 — logo rendered at 180×60 (natural is 200×40)
+
+The legacy asset is byte-identical (md5) to `public/qa_logo.png`,
+natural 200×40; legacy renders it at natural size (glyph box 195×34 @
+y174). The component passed `width={180} height={60}` → scaled 176×31.
+Fixed to 200×40 → glyph box lands exactly at legacy's 1087..1281 ×
+174..207.
+
+## Root cause #3 — measured-vs-theme geometry deltas
+
+| Item | Legacy (measured off harness PNG) | Was | Fix |
+|---|---|---|---|
+| Input border box | **390px** wide (x 990..1379) — the 420px `.logininput` formgroup carries 15px side padding | 420 | `.formGroup`/`.actions` width 390 |
+| Input radius | ~3px (Atlas `$border-radius-default` on the `.form-control`; the 5px sits on the invisible formgroup) | 5px | 3px |
+| Password box height | **43px** (legacy fractional layout rounds it 1px shorter than the 44px email box — bottom border rows 416..417) | 44 | `.inputWithToggle` height 43px (+1 compensation in `.actions` margin-top) |
+| Buttons' x | pills at **1063..1312** = pane center +3px (Mendix `.btn` side margin) | 1060..1309 | `margin-left: 6px` on `.loginbutton`/`.loginbuttonemployee` |
+| Remember row | checkbox top = password border +3px; Login top = password border +48px; row is 22px (forgot's 22px line-height dominates); label line-height 100% | −12/13 margins, label lh ~1.5 | `.actions` margin `-13px/11px`; `.checkboxLabel` line-height 1 |
+| Checkbox | **20×20, 1px #898787 border, 3px radius, transparent interior** (pixel-sampled) | native 16px white | appearance:none custom box (+ a checked style, not in capture) |
+| Employee label y | glyph top = button top + 12 (padding-top 9 + 18px line-height-1 cap inset) | flex-center, default lh | `align-items:flex-start; padding-top:9px; line-height:1` |
+| Divider span | full 450px pane (x 960..1410) | 420 (formBody width) | formBody → width:100%, rows self-size at 390 |
+| Contact gap | subheader 5px bottom margin COLLAPSES with contact's 13px top margin in legacy block flow (net 13) | 5+13=18 in flex | subheader margin-bottom 0 |
+| Eye icon | legacy `font_awesome_icon_2.svg` (23×20, fill #7D7B7A), same asset for BOTH toggle states, at top 11px / right edge 10px inside the input border | hand-drawn 20px SVG, centered | exact legacy path inlined, `.passwordToggle` top:11px right:10px |
+| Photo | top-anchored width-fit (747×1013 → 450×610.2, ~1px bottom clip) | cover centered (dy −1 ghost) | `object-position: top` |
+
+## Per-element before/after (harness legacy PNG vs headless render)
+
+All coordinates at 1920×1080; "before" = first harness re-run capture.
+
+| Element | Legacy | Before (pass 1) | After (pass 2) |
+|---|---|---|---|
+| Logo glyphs | y174..207 x1087..1281 | y167..197 x1097..1272 | **y174..207 x1087..1281** ✓ |
+| Heading L1 | y238..256 x1050..1320 | y223..244 x1038..1332 | **y238..256 x1050..1320** ✓ |
+| Heading L2 | y268..291 x1081..1288 | y253..280 x1075..1293 | **y268..291 x1081..1288** ✓ |
+| Email box | y315..358 x990..1379 | y304..347 x975..1394 | **y315..358 x990..1379** ✓ |
+| Password box | y375..417 x990..1379 | y364..407 x975..1394 | **y375..417 x990..1379** ✓ |
+| Eye icon band | y387..404 | y390..405 (own SVG) | **y387..404** ✓ (exact legacy SVG) |
+| Checkbox | y422..423 x990..1009, #898787/3px/transparent | white native 16px | **identical box + style** ✓ |
+| Remember/Forgot | y428..441 | y421..436 | y427..441 (±1 glyph AA) |
+| Login pill | y467..511 x1063..1312 | y468..512 x1060..1309 | **y467..511 x1063..1312** ✓ |
+| Employee label | y537..551 x1129..1246 | y538..554 x1122..1248 | **y537..551 x1129..1246** ✓ |
+| Divider | y590 x≥965..1404 | y591 x975..1394 | **y590 x≥965..1404** ✓ |
+| "Interested…" | y617..629 x1030..1339 | y615..629 x1019..1351 | y617..629 x1030..1340 (±1) |
+| Contact pill | y652..696 x1063..1312 | y658..702 x1060..1309 | **y652..696 x1063..1312** ✓ |
+| Footer texts | y766..780; privacy x510..608; © x1107..1409 | y765..781; x510..621; x1066..1407 | y766..780; **x510..608** ✓; © x1108..1408 (±1) |
+| Photo shift | — | dy=1 ghost (contour) | **dy=0** ✓ |
+
+Strict masked pixel diff (tol 16/channel, ENV-1 demo-user region masked):
+13,164 px = **0.63%** of the frame — thin hollow glyph outlines and photo
+resampling speckle only, i.e. rasterizer-level AA between my local
+Chromium and the harness's pinned build. Zero solid/doubled ghosts
+remain; the harness's same-Chromium-both-sides compare is expected to
+land far lower.
+
+## Files changed in pass 2
+
+| File | Change |
+|---|---|
+| `src/proxy.ts` | `fonts/` added to the matcher exclusions (root cause #1) |
+| `src/app/(auth)/login/LoginForm.tsx` | logo 200×40; both hand-drawn eye SVGs replaced by the exact legacy `font_awesome_icon_2.svg` path (single icon, both states — matching legacy) |
+| `src/app/(auth)/login/login.module.css` | all root-cause-#3 rows above |
+| `src/app/globals.css` | Founders family completed with the legacy-served Light(200)/RegularItalic(400i)/Bold(700) faces |
+| `public/fonts/FoundersGrotesk/` | +3 OTFs (Bold/Light/RegularItalic — md5-identical to the files :8082 serves) |
+
+## Pass-2 ambiguities (explicit)
+
+1. The `.actions` margins (−13/11) and the +6px button `margin-left` are
+   **empirical** — the rendered legacy page is the spec; plain Atlas
+   spacing-class arithmetic does not reproduce it (Mendix widget default
+   margins account for the residue).
+2. The password input is deliberately 1px shorter (43px) than the email
+   input — mirroring legacy's own fractional-layout rounding, not a
+   design token.
+3. The checkbox **checked** state is not in the capture; unchecked is
+   pixel-matched, checked got a sensible midnight-green fill + check.
+4. `src/proxy.ts` also lacks a `reset-password` exclusion (unauthenticated
+   reset links bounce to /login). Out of scope here — flagged for the
+   auth owner; not changed.
