@@ -1,6 +1,18 @@
 @import "tailwindcss";
 
-/* Founders Grotesk — primary font for PWS pages (from QA: buy-qa.ecoatmdirect.com) */
+/* Founders Grotesk — primary font for PWS pages. Full legacy family, mirroring
+   the live theme's founders-grotesk-font.css mapping EXACTLY (curled from
+   http://localhost:8082/resources/fonts/FoundersGrotesk/): Light=200 (legacy's
+   mapping, not 300), Regular=400 (+ italic), Medium=500, Bold=700. Files are
+   byte-identical to the legacy-served OTFs (md5-verified). */
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Light.otf') format('opentype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+
 @font-face {
   font-family: 'Founders Grotesk';
   src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Regular.otf') format('opentype');
@@ -11,8 +23,24 @@
 
 @font-face {
   font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-RegularItalic.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Founders Grotesk';
   src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Medium.otf') format('opentype');
   font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Founders Grotesk';
+  src: url('/fonts/FoundersGrotesk/FoundersGrotesk-Bold.otf') format('opentype');
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }

@@ -48,6 +48,11 @@
 
 .leftImage {
   object-fit: cover;
+  /* Legacy: img { max-width:100%; height:auto } top-anchored in an
+     overflow-hidden col — 747×1013 natural in a 450px pane is a width-fit
+     scale (450×610.2) with ~1px clipped at the bottom. cover alone centers
+     (measured photo ghost dy=1); adding `top` replicates legacy exactly. */
+  object-position: top;
   width: 100%;
   height: 100%;
 }
@@ -60,12 +65,13 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 0 15px;
+  padding: 0;
 }
 
-/* Form column is 420px (legacy .logininput width) centered in the 450px pane. */
+/* Full pane width; the 390px rows center themselves inside. The divider must
+   span the whole 450px pane (measured legacy divider x 960..1410). */
 .formBody {
-  width: 420px;
+  width: 100%;
   margin-top: 24px; /* legacy spacing-outer-top-large: heading → first input */
   display: flex;
   flex-direction: column;
@@ -92,8 +98,11 @@
   font-family: var(--font-family-pws);
 }
 
+/* Measured legacy input border box is 390px wide (x 990..1379 at 1080p): the
+   420px .logininput formgroup carries 15px side padding, so the visible
+   control is 390. The row itself is sized at 390 here. */
 .formGroup {
-  width: 100%;
+  width: 390px;
   margin-bottom: 16px; /* legacy $form-group-margin-bottom */
 }
 
@@ -115,7 +124,9 @@
   color: var(--color-text-body);
   background-color: var(--color-bg-body);
   border: 1px solid #534F4C;
-  border-radius: 5px;
+  /* 3px: the visible input (.form-control) uses Atlas $border-radius-default;
+     the 5px in .logininput sits on the invisible formgroup wrapper. */
+  border-radius: 3px;
   transition: border-color 0.15s;
 }
 
@@ -129,31 +140,33 @@
   border: 2px solid var(--color-brand-teal);
 }
 
-/* Password field needs right-side padding to avoid text underlapping the toggle */
+/* Password field needs right-side padding to avoid text underlapping the toggle.
+   Height 43px: legacy's fractional layout rounds the password box 1px shorter
+   than the email box (measured bottom border 416..417 vs 375 top → 43px). */
 .inputWithToggle {
   padding-right: 44px;
+  height: 43px;
 }
 
+/* Legacy .toggle-password-button sits at top:11px with its right edge 10px
+   inside the input's right border (right:25px of the 420px formgroup). */
 .passwordToggle {
   position: absolute;
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 10px;
+  top: 11px;
   background: none;
   border: none;
-  color: var(--color-text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   /* Keyboard-accessible — tabIndex default (0), removed the old tabIndex={-1} */
   border-radius: 4px;
-  transition: color 0.15s;
 }
 
 .passwordToggle:hover {
-  color: var(--color-brand-teal-dark);
+  opacity: 0.8;
 }
 
 .passwordToggle:focus-visible {
@@ -161,21 +174,24 @@
   outline-offset: 2px;
 }
 
+/* Exact legacy icon box (font_awesome_icon_2.svg natural size). */
 .toggleIcon {
-  width: 20px;
+  width: 23px;
   height: 20px;
   display: block;
 }
 
-/* Remember-me (left) + Forgot Password (right). Legacy layoutGrid3 .btm-margin
-   pulls the row up 12px toward the password field. */
+/* Remember-me (left) + Forgot Password (right). Margins are empirical from the
+   rendered legacy page (theme-class arithmetic alone does not reproduce it):
+   checkbox top = password border + 3px; Login top = password border + 48px
+   (row is 22px tall — forgot link's 22px line-height dominates). */
 .actions {
-  width: 100%;
+  width: 390px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: -8px;
-  margin-bottom: 13px;
+  margin-top: -13px; /* −14 compensated +1 for the 43px password box above */
+  margin-bottom: 11px;
 }
 
 .checkboxContainer {
@@ -183,21 +199,50 @@
   align-items: center;
 }
 
+/* Measured legacy checkbox: 20×20 at the input's left edge, 1px #898787
+   border (Atlas $gray-primary), ~3px radius, transparent interior (card cream
+   shows through — NOT the native white). Label sits 13px right of it
+   (spacing-outer-left-medium @ ≥992px). */
 .checkbox {
-  margin: 0 8px 0 0;
-  width: 16px;
-  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0 13px 0 0;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--color-input-border-dark);
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-/* Legacy .remember-me-text: Founders 400, 16px, #1C1B1C. */
+/* Checked state is not part of the parity capture (legacy default is
+   unchecked); a midnight-green fill + white check keeps it usable. */
+.checkbox:checked {
+  background-color: #102E33;
+  border-color: #102E33;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.5 8.5l3 3 6-6' stroke='%23F0EBE3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-size: 14px 14px;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.checkbox:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid);
+  outline-offset: 2px;
+}
+
+/* Legacy .remember-me-text: Founders 400, 16px, line-height 100%, #1C1B1C. */
 .checkboxLabel {
   font-size: 16px;
+  line-height: 1;
   color: #1C1B1C;
 }
 
-/* Legacy .forgotpassword: Founders 500, 17px, Sea Green #407874, no underline. */
+/* Legacy .forgotpassword: Founders 500, 17px/22px, Sea Green #407874, no underline. */
 .forgotPassword {
   font-size: 17px;
+  line-height: 22px;
   color: var(--color-brand-teal);
   text-decoration: none;
   font-weight: 500;
@@ -218,6 +263,7 @@
   box-sizing: border-box;
   padding: 0 24px;
   font-size: 18px;
+  line-height: 1; /* legacy .loginbutton line-height 100% */
   font-family: var(--font-family-pws);
   font-weight: 500;
   border-radius: 33px;
@@ -226,6 +272,10 @@
   border: none;
   cursor: pointer;
   margin-top: 13px; /* legacy container8 spacing-outer-top-medium */
+  /* Measured: legacy pills sit at x 1063..1312 — 3px right of the pane's
+     geometric center (Mendix .btn default side margin). 6px left margin in a
+     centering flex column shifts the center by exactly +3px. */
+  margin-left: 6px;
   transition: opacity 0.2s;
 }
 
@@ -238,15 +288,18 @@
 }
 
 /* Legacy .loginbuttonemployee: 250×40, Founders 500 18px, Sea Green #407874,
-   cream bg (blends into card), no border. */
+   cream bg (blends into card), no border. Legacy positions the label with
+   padding-top:9px (not flex-centering) — replicated via flex-start. */
 .loginbuttonemployee {
   width: 250px;
   height: 40px;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   box-sizing: border-box;
+  padding-top: 9px;
   font-size: 18px;
+  line-height: 1; /* legacy .loginbuttonemployee line-height 100% */
   font-family: var(--font-family-pws);
   font-weight: 500;
   color: var(--color-brand-teal);
@@ -255,6 +308,7 @@
   cursor: pointer;
   margin-top: 13px;
   margin-bottom: 5px;
+  margin-left: 6px; /* same +3px center shift as .loginbutton (measured) */
 }
 
 .loginbuttonemployee:hover {
@@ -270,7 +324,10 @@
   margin-bottom: 0;
 }
 
-/* Legacy .subheadertext: Founders 500, 20px, line-height 33px, 15px/5px margins. */
+/* Legacy .subheadertext: Founders 500, 20px, line-height 33px, margin 15px/5px.
+   In legacy block flow the 5px bottom margin COLLAPSES with the contact
+   button's 13px top margin (net 13); flex prevents collapse, so the bottom
+   margin is dropped here to reproduce the collapsed 13px gap. */
 .subHeaderText {
   font-size: 20px;
   line-height: 33px;
@@ -278,7 +335,7 @@
   font-weight: 500;
   text-align: center;
   margin-top: 15px;
-  margin-bottom: 5px;
+  margin-bottom: 0;
 }
 
 /* ── Footer (legacy .policy-footer — sibling BELOW the card, on the gradient) ──
