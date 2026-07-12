@@ -5,185 +5,116 @@ import com.ecoatm.salesplatform.model.integration.OracleConfig;
 import com.ecoatm.salesplatform.repository.integration.OracleConfigRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.core.env.Environment;
-import org.springframework.mock.env.MockEnvironment;
+import org.springframework.core.env.StandardEnvironment;
 
-import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Unit tests for {@link OracleOrderClient}'s profile-gated toggle-off behaviour
- * (RMA-functional plan open-Q3 / Task A,
- * {@code docs/tasks/rma-functional-plan-2026-07-11.md}).
+ * Fail-closed profile gate for the Oracle toggle-off / missing-config path.
  *
- * <p>Contract under test:
- * <ul>
- *   <li>dev / no profile + toggle-off / missing-config → simulated success
- *       ({@code returnCode="00"}, {@code SIM-…} order number).</li>
- *   <li>{@code production} profile + toggle-off / missing-config → error
- *       ({@code returnCode} null, {@code returnMessage} populated,
- *       {@code orderNumber} null) so the caller routes to Pending, never
- *       fake-creating a real order/RMA.</li>
- *   <li>An active config is never short-circuited to the SIM branch — the real
- *       HTTP path is attempted; a genuine token failure returns a real error in
- *       both profiles (dev does NOT downgrade a genuine failure to a SIM).</li>
- * </ul>
+ * <p>Why: QA is a REAL Oracle environment (Oracle is active there; local will
+ * later point at the Oracle QA config too). A simulated "success" response in
+ * any deployed environment would fabricate an order number and silently drop a
+ * real order, so the SIM stub is scoped to LOCAL DEVELOPMENT ONLY: the default
+ * (no active profile — how {@code mvn spring-boot:run} runs locally) plus the
+ * {@code local} / {@code dev} profiles. Every other profile
+ * ({@code production} / {@code qa} / {@code staging} / any named profile)
+ * fails closed — a blank {@code returnCode} routes the caller to Pending_Order
+ * instead of fake-creating the order.
  */
-@ExtendWith(MockitoExtension.class)
-@DisplayName("OracleOrderClient — dev-only simulated success (open-Q3 Task A)")
 class OracleOrderClientTest {
 
-    @Mock
-    private OracleConfigRepository oracleConfigRepository;
+    private static final String DISABLED_MESSAGE = "Oracle API is disabled";
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private OracleOrderClient client(Environment environment) {
-        return new OracleOrderClient(oracleConfigRepository, objectMapper, environment);
+    /** No Oracle config row present → the toggle-off / missing-config branch. */
+    private static OracleOrderClient clientWithNoConfig(String... profiles) {
+        OracleConfigRepository repo = mock(OracleConfigRepository.class);
+        when(repo.findAll()).thenReturn(List.of());
+        return new OracleOrderClient(repo, new ObjectMapper(), envWithProfiles(profiles));
     }
 
-    private MockEnvironment envWithProfiles(String... profiles) {
-        MockEnvironment env = new MockEnvironment();
-        if (profiles.length > 0) {
-            env.setActiveProfiles(profiles);
-        }
+    /** Config row present but {@code is_active = false} → same toggle-off branch. */
+    private static OracleOrderClient clientWithInactiveConfig(String... profiles) {
+        OracleConfig inactive = new OracleConfig();
+        inactive.setIsActive(false);
+        OracleConfigRepository repo = mock(OracleConfigRepository.class);
+        when(repo.findAll()).thenReturn(List.of(inactive));
+        return new OracleOrderClient(repo, new ObjectMapper(), envWithProfiles(profiles));
+    }
+
+    private static StandardEnvironment envWithProfiles(String... profiles) {
+        StandardEnvironment env = new StandardEnvironment();
+        env.setActiveProfiles(profiles);
         return env;
     }
 
-    private OracleConfig inactiveConfig() {
-        OracleConfig c = new OracleConfig();
-        c.setIsActive(false);
-        return c;
+    private static void assertFailedClosed(OracleResponse r) {
+        // blank returnCode is the "not a success" signal the caller keys on
+        assertThat(r.getReturnCode()).isNullOrEmpty();
+        assertThat(r.getReturnMessage()).isEqualTo(DISABLED_MESSAGE);
+        // no fabricated SIM order number leaks out of a deployed environment
+        assertThat(r.getOrderNumber()).isNull();
     }
 
-    private OracleConfig activeConfig(String authPath) {
-        OracleConfig c = new OracleConfig();
-        c.setIsActive(true);
-        c.setAuthPath(authPath);
-        c.setCreateOrderPath("http://oracle.example.test/order");
-        c.setTimeoutMs(1000);
-        return c;
+    private static void assertSimulatedSuccess(OracleResponse r) {
+        assertThat(r.getReturnCode()).isEqualTo("00");
+        assertThat(r.getOrderNumber()).startsWith("SIM-");
     }
 
-    // ── toggle-off / missing-config: dev → SIM ─────────────────────────────
+    // ── fail-closed: every deployed environment ──────────────────────────
 
-    @Nested
-    @DisplayName("dev / no profile — toggle-off simulates success")
-    class DevToggleOff {
-
-        @Test
-        @DisplayName("dev profile, toggle OFF → returnCode=00 + SIM- order number")
-        void devProfile_toggleOff_returnsSim() {
-            when(oracleConfigRepository.findAll()).thenReturn(List.of(inactiveConfig()));
-
-            OracleResponse r = client(envWithProfiles("dev")).submitOrder("{}");
-
-            assertThat(r.getReturnCode()).isEqualTo("00");
-            assertThat(r.getOrderNumber()).startsWith("SIM-");
-        }
-
-        @Test
-        @DisplayName("no active profile, toggle OFF → returnCode=00 + SIM- order number")
-        void noProfile_toggleOff_returnsSim() {
-            when(oracleConfigRepository.findAll()).thenReturn(List.of(inactiveConfig()));
-
-            OracleResponse r = client(envWithProfiles()).submitOrder("{}");
-
-            assertThat(r.getReturnCode()).isEqualTo("00");
-            assertThat(r.getOrderNumber()).startsWith("SIM-");
-        }
-
-        @Test
-        @DisplayName("dev profile, config missing (null) → simulated success")
-        void devProfile_configMissing_returnsSim() {
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
-
-            OracleResponse r = client(envWithProfiles("dev")).submitOrder("{}");
-
-            assertThat(r.getReturnCode()).isEqualTo("00");
-            assertThat(r.getOrderNumber()).startsWith("SIM-");
-        }
+    @Test
+    @DisplayName("qa profile + toggle off → fails closed (blank returnCode)")
+    void qaProfile_toggleOff_failsClosed() {
+        assertFailedClosed(clientWithNoConfig("qa").submitOrder("{}"));
     }
 
-    // ── toggle-off / missing-config: production → error (never SIM) ─────────
-
-    @Nested
-    @DisplayName("production — toggle-off / missing-config returns error, never SIM")
-    class ProductionToggleOff {
-
-        @Test
-        @DisplayName("production profile, toggle OFF → error: no returnCode, populated returnMessage, no orderNumber")
-        void productionProfile_toggleOff_returnsError() {
-            when(oracleConfigRepository.findAll()).thenReturn(List.of(inactiveConfig()));
-
-            OracleResponse r = client(envWithProfiles("production")).submitOrder("{}");
-
-            assertThat(r.getReturnCode()).isNull();
-            assertThat(r.getReturnMessage()).isNotNull();
-            assertThat(r.getOrderNumber()).isNull();
-        }
-
-        @Test
-        @DisplayName("production profile, config missing (null) → same error contract")
-        void productionProfile_configMissing_returnsError() {
-            when(oracleConfigRepository.findAll()).thenReturn(Collections.emptyList());
-
-            OracleResponse r = client(envWithProfiles("production")).submitOrder("{}");
-
-            assertThat(r.getReturnCode()).isNull();
-            assertThat(r.getReturnMessage()).isNotNull();
-            assertThat(r.getOrderNumber()).isNull();
-        }
+    @Test
+    @DisplayName("qa profile + inactive config → fails closed")
+    void qaProfile_inactiveConfig_failsClosed() {
+        assertFailedClosed(clientWithInactiveConfig("qa").submitOrder("{}"));
     }
 
-    // ── real (isActive=true) path untouched; genuine failures stay errors ──
+    @Test
+    @DisplayName("production profile + toggle off → fails closed")
+    void productionProfile_toggleOff_failsClosed() {
+        assertFailedClosed(clientWithNoConfig("production").submitOrder("{}"));
+    }
 
-    @Nested
-    @DisplayName("active config — real HTTP path attempted (SIM branch bypassed)")
-    class ActiveConfigRealPath {
+    @Test
+    @DisplayName("staging profile + toggle off → fails closed")
+    void stagingProfile_toggleOff_failsClosed() {
+        assertFailedClosed(clientWithNoConfig("staging").submitOrder("{}"));
+    }
 
-        // An authPath with an illegal character makes URI.create throw
-        // synchronously inside fetchOracleToken — no live network call — so the
-        // token-fetch branch is provably reached. Only the real path yields a
-        // "No Token Generated" message; the config-off branch never would.
-        private static final String INVALID_AUTH_PATH = "http://oracle host/token";
+    @Test
+    @DisplayName("unknown named profile + toggle off → fails closed (default deny)")
+    void unknownProfile_toggleOff_failsClosed() {
+        assertFailedClosed(clientWithNoConfig("some-other-env").submitOrder("{}"));
+    }
 
-        @Test
-        @DisplayName("production profile, active config + token failure → error (not SIM)")
-        void productionProfile_activeConfig_tokenFailure_returnsError() {
-            when(oracleConfigRepository.findAll())
-                    .thenReturn(List.of(activeConfig(INVALID_AUTH_PATH)));
+    // ── SIM allowed: local development only ──────────────────────────────
 
-            OracleResponse r = client(envWithProfiles("production")).submitOrder("{}");
+    @Test
+    @DisplayName("no active profile (mvn spring-boot:run default) + toggle off → simulated success")
+    void defaultProfile_toggleOff_simulatesSuccess() {
+        assertSimulatedSuccess(clientWithNoConfig().submitOrder("{}"));
+    }
 
-            assertThat(r.getReturnCode()).isNull();
-            assertThat(r.getOrderNumber()).isNull();
-            assertThat(r.getReturnMessage()).startsWith("No Token Generated");
-        }
+    @Test
+    @DisplayName("local profile + toggle off → simulated success")
+    void localProfile_toggleOff_simulatesSuccess() {
+        assertSimulatedSuccess(clientWithNoConfig("local").submitOrder("{}"));
+    }
 
-        @Test
-        @DisplayName("dev profile, active config + genuine token failure → real error, NOT a SIM")
-        void devProfile_activeConfig_genuineFailure_returnsErrorNotSim() {
-            when(oracleConfigRepository.findAll())
-                    .thenReturn(List.of(activeConfig(INVALID_AUTH_PATH)));
-
-            OracleResponse r = client(envWithProfiles("dev")).submitOrder("{}");
-
-            // Proves both: (1) the real path was attempted — an active config is
-            // NOT short-circuited to the config-off SIM branch; and (2) under dev
-            // a genuine failure surfaces the real error, never a SIM (only the
-            // toggle-off/missing-config branch is profile-gated to SIM in dev).
-            assertThat(r.getReturnMessage()).startsWith("No Token Generated");
-            assertThat(r.getReturnCode()).isNull();
-            assertThat(r.getOrderNumber()).isNull();
-        }
+    @Test
+    @DisplayName("dev profile + toggle off → simulated success")
+    void devProfile_toggleOff_simulatesSuccess() {
+        assertSimulatedSuccess(clientWithNoConfig("dev").submitOrder("{}"));
     }
 }

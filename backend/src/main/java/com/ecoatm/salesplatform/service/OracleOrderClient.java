@@ -18,6 +18,7 @@ import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 
 /**
  * HTTP client for Oracle ERP Create Order integration.
@@ -32,28 +33,11 @@ import java.util.Base64;
  * (docs/tasks/simplification-phase5-plan.md). Keeps OfferService focused
  * on workflow orchestration; makes the HTTP surface independently
  * testable with MockRestServiceServer / wiremock.
- *
- * <p><b>Toggle-off is DEV-ONLY simulated success</b> (RMA-functional plan
- * open-Q3, {@code docs/tasks/rma-functional-plan-2026-07-11.md}): when the
- * config is missing / {@code is_active=false}, the legacy behaviour of
- * returning a {@code SIM-…}/{@code returnCode="00"} stub is kept ONLY under
- * the {@code local}/{@code dev} profile so local flows exercise the full
- * happy path. Under the {@code production} profile the same toggle-off
- * returns an <em>error</em> response (empty {@code returnCode}, populated
- * {@code returnMessage}) so the caller routes to {@code Pending_Order}
- * rather than fake-creating a real order/RMA. A genuine token/network
- * failure always returns a real error (both profiles) — only the
- * toggle-off/missing-config branch is profile-gated to SIM. Mirrors the
- * {@code JwtSecretValidator}/{@code EmailSmtpValidator} production-profile
- * check idiom.
  */
 @Component
 public class OracleOrderClient {
 
     private static final Logger log = LoggerFactory.getLogger(OracleOrderClient.class);
-
-    /** Reason surfaced (as {@code returnMessage} in prod, SIM note in dev) when Oracle is toggled off. */
-    private static final String REASON_DISABLED = "Oracle API is disabled";
 
     private final OracleConfigRepository oracleConfigRepository;
     private final ObjectMapper objectMapper;
@@ -76,21 +60,17 @@ public class OracleOrderClient {
     /**
      * Send a prepared JSON payload to Oracle's Create Order endpoint.
      * Never throws — failures are returned as an {@link OracleResponse} with
-     * a populated {@code returnMessage} so the caller can route to the
-     * Pending_Order branch.
-     *
-     * <p>Toggle-off / missing-config is profile-gated via
-     * {@link #offlineOrErrorResponse(String)}: dev/local returns the
-     * {@code SIM-…}/{@code returnCode="00"} stub so the happy path stays
-     * exercised; production returns an error so the caller never fake-creates
-     * a real order. Genuine token/create failures always return a real error
-     * ({@link #errorResponse(String)}) in both profiles.
+     * a populated {@code returnMessage} (and blank {@code returnCode}) so the
+     * caller can route to the Pending_Order branch. The toggle-off / missing-
+     * config path is handled by {@link #offlineOrErrorResponse()}: a simulated
+     * success in local development only, and a fail-closed error response in
+     * every deployed environment.
      */
     public OracleResponse submitOrder(String jsonPayload) {
         OracleConfig config = oracleConfigRepository.findAll().stream().findFirst().orElse(null);
 
         if (config == null || !Boolean.TRUE.equals(config.getIsActive())) {
-            return offlineOrErrorResponse(REASON_DISABLED);
+            return offlineOrErrorResponse();
         }
 
         int timeout = config.getTimeoutMs() != null ? config.getTimeoutMs() : 30000;
@@ -120,44 +100,66 @@ public class OracleOrderClient {
     }
 
     /**
-     * Response for the toggle-off / missing-config branch.
+     * Toggle-off / missing-config response.
      *
-     * <p>Production ({@code production} profile active) returns an error
-     * {@link #errorResponse(String)} so the caller routes to Pending and never
-     * fake-creates a real order/RMA. Dev/local returns the legacy simulated
-     * success so local flows exercise the full happy path. This is the ONLY
-     * path that can produce a SIM stub — routing every branch's error through
-     * {@link #errorResponse(String)} keeps the SIM path impossible under
-     * production. Mirrors the {@code JwtSecretValidator}/{@code EmailSmtpValidator}
-     * {@code getActiveProfiles().contains("production")} idiom.
+     * <p>In local development ({@link #isSimulatedOracleAllowed()}) this returns
+     * a stubbed success (returnCode {@code "00"}, {@code SIM-} order number) so
+     * the happy-path workflow stays exercised without a live Oracle. In every
+     * deployed environment it fails CLOSED with an error response (blank
+     * returnCode), so the caller routes the offer to Pending_Order instead of
+     * fabricating an order number.
+     *
+     * <p>Why fail-closed-by-default (allowlist) rather than {@code production}-only
+     * (denylist): QA is a REAL Oracle environment — Oracle is active there, and
+     * local will later point at the Oracle QA config too. A fake success in QA
+     * would silently drop a real order. This is an intentional divergence from
+     * the repo's {@code production}-gated secret validators
+     * ({@code JwtSecretValidator} / {@code DbPasswordValidator} /
+     * {@code EmailSmtpValidator}): those guard a secret with a benign weak
+     * default, whereas Oracle order-creation is a live integration in QA, so the
+     * SIM fake-success is scoped to local dev only.
+     *
+     * <p>Shared helper: a future {@code submitRma} toggle-off path reuses this
+     * unchanged (do not change its signature).
      */
-    private OracleResponse offlineOrErrorResponse(String reason) {
-        if (isProduction()) {
-            log.warn("Oracle API is toggled off or config missing (production) — returning error so caller routes to Pending");
-            return errorResponse(reason);
+    private OracleResponse offlineOrErrorResponse() {
+        if (isSimulatedOracleAllowed()) {
+            log.warn("Oracle API is toggled off or config missing — "
+                    + "simulating success (local development only)");
+            OracleResponse r = new OracleResponse();
+            r.setReturnCode("00");
+            r.setReturnMessage("Oracle API disabled — simulated success (local development only)");
+            r.setOrderNumber("SIM-" + System.currentTimeMillis());
+            return r;
         }
-        log.warn("Oracle API is toggled off or config missing (dev/local) — simulating success");
-        OracleResponse r = new OracleResponse();
-        r.setReturnCode("00");
-        r.setReturnMessage(reason + " — simulated success");
-        r.setOrderNumber("SIM-" + System.currentTimeMillis());
-        return r;
+        log.warn("Oracle API is toggled off or config missing — failing closed "
+                + "(deployed environment); routing to Pending_Order");
+        return errorResponse("Oracle API is disabled");
     }
 
     /**
-     * Build an error {@link OracleResponse}: no {@code returnCode} and no
-     * {@code orderNumber}, only a {@code returnMessage}. A null {@code returnCode}
-     * routes callers ({@code OfferService.handleOracleResponse}) to Pending_Order,
-     * never Ordered — the response is never mistaken for a real create.
+     * True ONLY for local development: no active profile (the default when the
+     * app runs via {@code mvn spring-boot:run}), or an explicit {@code local} /
+     * {@code dev} profile. Every other profile ({@code production}, {@code qa},
+     * {@code staging}, or any named profile) returns false, so the Oracle
+     * toggle-off path fails closed.
      */
-    private OracleResponse errorResponse(String reason) {
-        OracleResponse r = new OracleResponse();
-        r.setReturnMessage(reason);
-        return r;
+    private boolean isSimulatedOracleAllowed() {
+        List<String> active = Arrays.asList(environment.getActiveProfiles());
+        return active.isEmpty() || active.contains("local") || active.contains("dev");
     }
 
-    private boolean isProduction() {
-        return Arrays.asList(environment.getActiveProfiles()).contains("production");
+    /**
+     * Build an error {@link OracleResponse}: a blank {@code returnCode} is the
+     * "not a success" signal the caller keys on to route the offer to
+     * Pending_Order. Shared by the fail-closed toggle-off branch and the genuine
+     * token-fetch / create-call failure paths (which fail this way in ALL
+     * profiles, local dev included — a real failure is never simulated away).
+     */
+    private OracleResponse errorResponse(String message) {
+        OracleResponse r = new OracleResponse();
+        r.setReturnMessage(message);
+        return r;
     }
 
     /**
