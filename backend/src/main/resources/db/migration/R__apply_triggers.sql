@@ -85,7 +85,7 @@ BEGIN
         ('integration', 'deposco_config'),
         -- email schema
         ('email', 'smtp_config'),
-        ('email', 'email_template')
+        ('email', 'template')
     LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_update_updated_date ON %I.%I;
