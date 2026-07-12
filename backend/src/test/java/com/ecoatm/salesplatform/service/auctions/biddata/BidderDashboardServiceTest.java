@@ -70,14 +70,99 @@ class BidderDashboardServiceTest {
     }
 
     @Test
-    void landingRoute_noActiveAuction_returnsError() {
+    void landingRoute_noSchedulingAuctionAtAll_returnsError() {
+        // No Started round AND no most-recent auction → truly-empty error page
+        // (legacy Error_Auction_Not_Found). This is the ONLY path to Error now.
         when(saRepo.findFirstByRoundStatusOrderByStartDatetimeDesc(SchedulingAuctionStatus.Started))
                 .thenReturn(Optional.empty());
+        when(auctionRepo.findFirstByOrderByCreatedDateDesc()).thenReturn(Optional.empty());
 
         BidderDashboardLandingResult result = service.landingRoute(USER_ID, BUYER_CODE_ID);
 
         assertThat(result).isInstanceOf(BidderDashboardLandingResult.Error.class);
         assertThat(((BidderDashboardLandingResult.Error) result).reason()).isEqualTo("AUCTION_NOT_FOUND");
+    }
+
+    @Test
+    void landingRoute_mostRecentAuctionHasNoRounds_returnsError() {
+        when(saRepo.findFirstByRoundStatusOrderByStartDatetimeDesc(SchedulingAuctionStatus.Started))
+                .thenReturn(Optional.empty());
+        Auction auction = new Auction();
+        auction.setId(AUCTION_ID);
+        auction.setAuctionTitle("Auction 2026 / Wk13");
+        when(auctionRepo.findFirstByOrderByCreatedDateDesc()).thenReturn(Optional.of(auction));
+        when(saRepo.findByAuctionIdOrderByRoundAsc(AUCTION_ID)).thenReturn(List.of());
+
+        BidderDashboardLandingResult result = service.landingRoute(USER_ID, BUYER_CODE_ID);
+
+        assertThat(result).isInstanceOf(BidderDashboardLandingResult.Error.class);
+    }
+
+    @Test
+    void landingRoute_endedAuctionNoStartedRound_returnsEndedWithParticipatedRounds() {
+        // HN's shape: rounds 1/2/3 all Closed (no Started round); buyer bid in R1 only.
+        // Legacy routes to BidDownloadOnBuyerCodeSelect ("Bidding has ended.").
+        when(saRepo.findFirstByRoundStatusOrderByStartDatetimeDesc(SchedulingAuctionStatus.Started))
+                .thenReturn(Optional.empty());
+        Auction auction = new Auction();
+        auction.setId(AUCTION_ID);
+        auction.setAuctionTitle("Auction 2026 / Wk13");
+        when(auctionRepo.findFirstByOrderByCreatedDateDesc()).thenReturn(Optional.of(auction));
+
+        SchedulingAuction r1 = newSa(R1_SA_ID, AUCTION_ID, 1, SchedulingAuctionStatus.Closed);
+        SchedulingAuction r2 = newSa(R2_SA_ID, AUCTION_ID, 2, SchedulingAuctionStatus.Closed);
+        SchedulingAuction r3 = newSa(R3_SA_ID, AUCTION_ID, 3, SchedulingAuctionStatus.Closed);
+        when(saRepo.findByAuctionIdOrderByRoundAsc(AUCTION_ID)).thenReturn(List.of(r1, r2, r3));
+
+        BidRound r1BidRound = new BidRound();
+        ReflectionTestUtils.setField(r1BidRound, "id", BID_ROUND_ID);
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(R1_SA_ID, BUYER_CODE_ID))
+                .thenReturn(Optional.of(r1BidRound));
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(R2_SA_ID, BUYER_CODE_ID))
+                .thenReturn(Optional.empty());
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(R3_SA_ID, BUYER_CODE_ID))
+                .thenReturn(Optional.empty());
+
+        BidderDashboardLandingResult result = service.landingRoute(USER_ID, BUYER_CODE_ID);
+
+        assertThat(result).isInstanceOf(BidderDashboardLandingResult.Ended.class);
+        BidderDashboardLandingResult.Ended ended = (BidderDashboardLandingResult.Ended) result;
+        assertThat(ended.auctionTitle()).isEqualTo("Auction 2026 / Wk13");
+        assertThat(ended.downloadRounds()).containsExactly(1);
+    }
+
+    @Test
+    void findDownloadableRoundBidRoundId_closedRoundWithBidRound_returnsId() {
+        SchedulingAuction r1 = newSa(R1_SA_ID, AUCTION_ID, 1, SchedulingAuctionStatus.Closed);
+        when(saRepo.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(1, SchedulingAuctionStatus.Closed))
+                .thenReturn(Optional.of(r1));
+        BidRound br = new BidRound();
+        ReflectionTestUtils.setField(br, "id", BID_ROUND_ID);
+        when(bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(R1_SA_ID, BUYER_CODE_ID))
+                .thenReturn(Optional.of(br));
+
+        assertThat(service.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 1))
+                .contains(BID_ROUND_ID);
+    }
+
+    @Test
+    void findDownloadableRoundBidRoundId_noClosedRound_returnsEmpty() {
+        when(saRepo.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(2, SchedulingAuctionStatus.Closed))
+                .thenReturn(Optional.empty());
+
+        assertThat(service.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 2)).isEmpty();
+    }
+
+    @Test
+    void findDownloadableRoundBidRoundId_notOwner_throwsForbidden() {
+        // Ownership guard runs before any lookup → BidDataSubmissionException
+        // (NOT_YOUR_BID_DATA), which the controller maps to 403.
+        when(jdbc.queryForObject(anyString(), eq(Long.class), eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(0L);
+
+        assertThatThrownBy(() -> service.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 1))
+                .isInstanceOf(BidDataSubmissionException.class)
+                .extracting("code").isEqualTo("NOT_YOUR_BID_DATA");
     }
 
     @Test

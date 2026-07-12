@@ -104,6 +104,7 @@ describe('loadDashboard', () => {
       secondsUntilEnd: 327600,
       active: true,
     },
+    download: null,
   };
 
   it('parses the GRID response and hits the correct URL', async () => {
@@ -128,6 +129,7 @@ describe('loadDashboard', () => {
       rows: [],
       totals: null,
       timer: null,
+      download: null,
     };
     fetchMock.mockResolvedValueOnce(jsonResponse(404, errorBody));
 
@@ -135,6 +137,24 @@ describe('loadDashboard', () => {
 
     expect(result.mode).toBe('ERROR_AUCTION_NOT_FOUND');
     expect(result.rows).toEqual([]);
+  });
+
+  it('parses the DOWNLOAD ended-state body including the download payload (BDD-P1)', async () => {
+    const downloadBody: BidderDashboardResponse = {
+      mode: 'DOWNLOAD',
+      auction: null,
+      bidRound: null,
+      rows: [],
+      totals: null,
+      timer: null,
+      download: { auctionTitle: 'Auction 2026 / Wk13', rounds: [1] },
+    };
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, downloadBody));
+
+    const result = await loadDashboard(84);
+
+    expect(result.mode).toBe('DOWNLOAD');
+    expect(result.download).toEqual({ auctionTitle: 'Auction 2026 / Wk13', rounds: [1] });
   });
 });
 

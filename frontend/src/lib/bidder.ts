@@ -20,7 +20,10 @@ import { apiFetch } from './apiFetch';
 /**
  * Landing mode the backend assigns to a `GET /dashboard` call.
  * `GRID` — render the bid-data grid for the active round.
- * `DOWNLOAD` — Round 2 "download inventory" landing.
+ * `DOWNLOAD` — ended-auction / download landing (legacy
+ *   BidDownloadOnBuyerCodeSelect). Carries the `download` payload (heading +
+ *   per-round download list) for the ended state; `download` is null on the
+ *   live-path download branches (buyer-not-included / R2-download).
  * `ERROR_AUCTION_NOT_FOUND` — no scheduled auction for this user. Served
  *   with HTTP 404 + this enum in the body.
  * `ALL_ROUNDS_DONE` — every round for the active auction already closed.
@@ -102,6 +105,19 @@ export const RoundTimerStateSchema = z.object({
 });
 export type RoundTimerState = z.infer<typeof RoundTimerStateSchema>;
 
+/**
+ * DOWNLOAD-mode payload for the ended-auction state (legacy
+ * BidDownloadOnBuyerCodeSelect). `auctionTitle` is the "Auction {year} /
+ * Wk{week}" heading; `rounds` are the rounds this buyer code can download
+ * (one "Download your Round {N} Bids" button each). Null on the live-path
+ * download branches (buyer-not-included / R2-download).
+ */
+export const DownloadStatePayloadSchema = z.object({
+  auctionTitle: z.string(),
+  rounds: z.array(z.number().int()),
+});
+export type DownloadStatePayload = z.infer<typeof DownloadStatePayloadSchema>;
+
 export const BidderDashboardResponseSchema = z.object({
   mode: LandingModeSchema,
   auction: SchedulingAuctionSummarySchema.nullable(),
@@ -109,6 +125,7 @@ export const BidderDashboardResponseSchema = z.object({
   rows: z.array(BidDataRowSchema),
   totals: BidDataTotalsSchema.nullable(),
   timer: RoundTimerStateSchema.nullable(),
+  download: DownloadStatePayloadSchema.nullable(),
 });
 export type BidderDashboardResponse = z.infer<typeof BidderDashboardResponseSchema>;
 
@@ -367,16 +384,17 @@ export function exportBidRound(id: number, buyerCodeId: number): void {
 }
 
 /**
- * GET /api/v1/bidder/download-round-1?buyerCodeId={buyerCodeId}
+ * GET /api/v1/bidder/download-round/{round}?buyerCodeId={buyerCodeId}
  *
  * DOWNLOAD-mode helper: triggers a browser file download of the most
- * recently closed Round 1 bid slice for this buyer. Used only from the
- * `EndOfBiddingPanel` when the dashboard landing resolves to `DOWNLOAD`
- * mode. Returns 404 if no closed R1 bid_round exists for this buyer —
- * the browser will surface that to the user as a failed download.
+ * recently closed round `round` bid slice for this buyer. Used from the
+ * `EndOfBiddingPanel` "Download your Round {N} Bids" buttons when the
+ * dashboard landing resolves to `DOWNLOAD` mode. Returns 404 if no closed
+ * round `round` bid_round exists for this buyer — the browser surfaces that
+ * as a failed download.
  */
-export function downloadRound1Bids(buyerCodeId: number): void {
-  const url = `/api/v1/bidder/download-round-1?buyerCodeId=${buyerCodeId}`;
+export function downloadRoundBids(round: number, buyerCodeId: number): void {
+  const url = `/api/v1/bidder/download-round/${round}?buyerCodeId=${buyerCodeId}`;
   const a = document.createElement('a');
   a.href = url;
   a.setAttribute('download', '');

@@ -369,3 +369,30 @@ real-Postgres IT can prove — the listener's `@Transactional(REQUIRES_NEW)` is
 
 RMA approval-email sweep: **9/9 green** (`RmaApprovedEmailListenerTest` 6 +
 `RmaApprovedEmailMigrationIT` 2 + `V93MigrationIT` 1).
+
+---
+
+## auctions.bidder-dashboard.ended-state (new 2026-07-12 · parity BDD-P1)
+Target 85%+. Fixes the bidder-dashboard ended-state parity gap: `landingRoute`
+now routes a most-recent auction with **no `Started` round** to the ended
+download page (legacy `BidDownloadOnBuyerCodeSelect`) instead of
+`Error_Auction_Not_Found`, carrying the "Auction {year} / Wk{week}" heading +
+the rounds this buyer code participated in. Load-bearing branches: the
+ended-vs-truly-empty split, the participated-rounds computation, the generalised
+`/download-round/{round}` resolver, and the ownership 403.
+
+| Surface | Key tests |
+|---|---|
+| `BidderDashboardService` selection | `BidderDashboardServiceTest` (12, +5) — ended-auction → `Ended("Auction 2026 / Wk13",[1])` for the HN shape (all rounds Closed, buyer bid R1 only); no-auction / no-rounds → Error; `findDownloadableRoundBidRoundId` closed-hit / no-closed / non-owner-throws-`NOT_YOUR_BID_DATA` |
+| `BidderDashboardController` endpoint (`@WebMvcTest` + real `SecurityConfig`) | `BidderDashboardControllerTest` (10, +3 net) — Ended→`DOWNLOAD` body carrying `download.auctionTitle`/`download.rounds`; `/download-round/{round}` 200 / 404 / 403 wrong-role (`@PreAuthorize`) / 403 wrong-tenant (ownership guard → `GlobalExceptionHandler`) |
+| `EndOfBiddingPanel` (RTL) | `EndOfBiddingPanel.test.tsx` (3) — ended panel renders auction heading + "Bidding has ended." + per-round download button (click fires); bare truly-empty state has no heading/button |
+| `lib/bidder` client | `bidder.test.ts` (+1, now 13) — parses the `DOWNLOAD` body incl. the `download` payload |
+
+Backend sweep: **22/22 green** (`BidderDashboardServiceTest` 12 +
+`BidderDashboardControllerTest` 10). Frontend: `EndOfBiddingPanel.test.tsx` 3 +
+`bidder.test.ts` 13 (**16/16**), `tsc --noEmit` clean for all touched files.
+Live end-to-end verified against a `salesplatform_dev` clone (`parity_scratch_bdd`,
+backend on `SERVER_PORT=18082`, Flyway off): HN → `DOWNLOAD` +
+"Auction 2026 / Wk13" + `rounds:[1]`; `/download-round/1` → 200 xlsx (626 KB,
+10,951 R1 bids); `/download-round/2` → 404; wrong-tenant → 403. Detail:
+`docs/tasks/parity/impl/bidder-dashboard-ended-state.md`.

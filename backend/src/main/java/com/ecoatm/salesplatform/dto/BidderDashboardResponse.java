@@ -8,5 +8,6 @@ public record BidderDashboardResponse(
         BidRoundSummary bidRound,
         List<BidDataRow> rows,
         BidDataTotals totals,
-        RoundTimerState timer
+        RoundTimerState timer,
+        DownloadStatePayload download
 ) {}
