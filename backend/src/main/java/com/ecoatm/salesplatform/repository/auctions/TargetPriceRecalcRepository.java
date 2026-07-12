@@ -34,9 +34,12 @@ public class TargetPriceRecalcRepository {
 
     private static final String TARGET_PRICE_SQL_R1_TO_R2 = """
         WITH params AS (
-          SELECT a.week_id AS week_id, sa.round AS closed_round
+          SELECT a.week_id AS week_id,      -- surrogate mdm.week.id — used by the week-EQUALITY joins below
+                 w.week_id AS week_biz_id,  -- business weekId (year*100+weekNumber) — chronological; used for PO week-RANGE matching
+                 sa.round  AS closed_round
             FROM auctions.scheduling_auctions sa
             JOIN auctions.auctions a ON a.id = sa.auction_id
+            JOIN mdm.week          w ON w.id = a.week_id
            WHERE sa.id = CAST(:round_id AS bigint)
         ),
         max_bids AS (
@@ -79,8 +82,16 @@ public class TargetPriceRecalcRepository {
                  MAX(pod.price) AS po_price
             FROM auctions.po_detail pod
             JOIN auctions.purchase_order po ON po.id = pod.purchase_order_id
-            JOIN params p
-              ON p.week_id BETWEEN po.week_from_id AND po.week_to_id
+            -- Match POs to the auction week by the BUSINESS weekId (mdm.week.week_id,
+            -- chronological), NOT the surrogate mdm.week.id. The surrogate is not
+            -- calendar-ordered (V65 seeds it via GROUP BY, no ORDER BY), so a BETWEEN
+            -- on po.week_from_id/week_to_id (surrogate FKs) can miss POs that cover
+            -- the week and match POs that don't. This mirrors gap 0.1's
+            -- PurchaseOrderRepository.findOverlappingWeekRange (the PO-overlap
+            -- producer side of the same week-model bug).
+            JOIN mdm.week wf ON wf.id = po.week_from_id
+            JOIN mdm.week wt ON wt.id = po.week_to_id
+            JOIN params  p  ON p.week_biz_id BETWEEN wf.week_id AND wt.week_id
            GROUP BY pod.product_id, pod.grade
         ),
         evaluated AS (
@@ -123,9 +134,12 @@ public class TargetPriceRecalcRepository {
 
     private static final String TARGET_PRICE_SQL_R2_TO_R3 = """
         WITH params AS (
-          SELECT a.week_id AS week_id, sa.round AS closed_round
+          SELECT a.week_id AS week_id,      -- surrogate mdm.week.id — used by the week-EQUALITY joins below
+                 w.week_id AS week_biz_id,  -- business weekId (year*100+weekNumber) — chronological; used for PO week-RANGE matching
+                 sa.round  AS closed_round
             FROM auctions.scheduling_auctions sa
             JOIN auctions.auctions a ON a.id = sa.auction_id
+            JOIN mdm.week          w ON w.id = a.week_id
            WHERE sa.id = CAST(:round_id AS bigint)
         ),
         max_bids AS (
@@ -167,8 +181,16 @@ public class TargetPriceRecalcRepository {
                  MAX(pod.price) AS po_price
             FROM auctions.po_detail pod
             JOIN auctions.purchase_order po ON po.id = pod.purchase_order_id
-            JOIN params p
-              ON p.week_id BETWEEN po.week_from_id AND po.week_to_id
+            -- Match POs to the auction week by the BUSINESS weekId (mdm.week.week_id,
+            -- chronological), NOT the surrogate mdm.week.id. The surrogate is not
+            -- calendar-ordered (V65 seeds it via GROUP BY, no ORDER BY), so a BETWEEN
+            -- on po.week_from_id/week_to_id (surrogate FKs) can miss POs that cover
+            -- the week and match POs that don't. This mirrors gap 0.1's
+            -- PurchaseOrderRepository.findOverlappingWeekRange (the PO-overlap
+            -- producer side of the same week-model bug).
+            JOIN mdm.week wf ON wf.id = po.week_from_id
+            JOIN mdm.week wt ON wt.id = po.week_to_id
+            JOIN params  p  ON p.week_biz_id BETWEEN wf.week_id AND wt.week_id
            GROUP BY pod.product_id, pod.grade
         ),
         evaluated AS (
