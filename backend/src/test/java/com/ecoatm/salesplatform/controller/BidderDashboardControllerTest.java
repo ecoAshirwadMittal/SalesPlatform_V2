@@ -116,7 +116,8 @@ class BidderDashboardControllerTest {
                 round,
                 List.of(),
                 new BidDataTotals(0, BigDecimal.ZERO, BigDecimal.ZERO, 0),
-                new RoundTimerState(Instant.now(), null, null, -1, -1, true));
+                new RoundTimerState(Instant.now(), null, null, -1, -1, true),
+                null);
     }
 
     // ---------------------------------------------------------------------
@@ -184,17 +185,35 @@ class BidderDashboardControllerTest {
     }
 
     // ---------------------------------------------------------------------
-    // GET /download-round-1 — DOWNLOAD-mode support (Option B)
+    // GET /dashboard — Ended (no Started round) → DOWNLOAD + heading
     // ---------------------------------------------------------------------
 
     @Test
-    @DisplayName("GET /download-round-1 — 200 + xlsx when closed R1 bid_round exists")
-    void get_downloadRound1_200() throws Exception {
-        when(dashboardService.findDownloadableRound1BidRoundId(USER_ID, BUYER_CODE_ID))
+    @DisplayName("GET /dashboard — Ended landing → DOWNLOAD mode + auction heading + download rounds")
+    void get_dashboard_endedAuction_downloadWithHeading() throws Exception {
+        when(dashboardService.landingRoute(eq(USER_ID), eq(BUYER_CODE_ID)))
+                .thenReturn(new BidderDashboardLandingResult.Ended("Auction 2026 / Wk13", List.of(1)));
+
+        mvc.perform(get("/api/v1/bidder/dashboard")
+                        .with(jwtBidder())
+                        .param("buyerCodeId", String.valueOf(BUYER_CODE_ID)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.mode").value("DOWNLOAD"))
+                .andExpect(jsonPath("$.download.auctionTitle").value("Auction 2026 / Wk13"))
+                .andExpect(jsonPath("$.download.rounds[0]").value(1));
+    }
+
+    // ---------------------------------------------------------------------
+    // GET /download-round/{round} — ended-state per-round download
+    // ---------------------------------------------------------------------
+
+    @Test
+    @DisplayName("GET /download-round/{round} — 200 + xlsx when closed round bid_round exists")
+    void get_downloadRound_200() throws Exception {
+        when(dashboardService.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 1))
                 .thenReturn(java.util.Optional.of(BID_ROUND_ID));
         // Stub the export service's filename-resolve path the controller calls
-        // before writing the xlsx (the controller reads bidRound + sa + auction
-        // to build the filename). Minimal fixture — real bytes not asserted here.
+        // before writing the xlsx (bidRound + sa + auction). Bytes not asserted.
         when(bidRoundRepository.findById(BID_ROUND_ID))
                 .thenReturn(java.util.Optional.of(makeBidRound()));
         when(schedulingAuctionRepository.findById(anyLong()))
@@ -202,7 +221,7 @@ class BidderDashboardControllerTest {
         when(auctionRepository.findById(anyLong()))
                 .thenReturn(java.util.Optional.of(makeAuction()));
 
-        mvc.perform(get("/api/v1/bidder/download-round-1")
+        mvc.perform(get("/api/v1/bidder/download-round/1")
                         .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
                         .with(jwtBidder()))
                 .andExpect(status().isOk())
@@ -215,15 +234,43 @@ class BidderDashboardControllerTest {
     }
 
     @Test
-    @DisplayName("GET /download-round-1 — 404 when no closed R1 bid_round exists")
-    void get_downloadRound1_404() throws Exception {
-        when(dashboardService.findDownloadableRound1BidRoundId(USER_ID, BUYER_CODE_ID))
+    @DisplayName("GET /download-round/{round} — 404 when no closed round bid_round exists")
+    void get_downloadRound_404() throws Exception {
+        when(dashboardService.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 2))
                 .thenReturn(java.util.Optional.empty());
 
-        mvc.perform(get("/api/v1/bidder/download-round-1")
+        mvc.perform(get("/api/v1/bidder/download-round/2")
                         .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
                         .with(jwtBidder()))
                 .andExpect(status().isNotFound());
+
+        verify(exportService, org.mockito.Mockito.never()).export(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("GET /download-round/{round} — SalesOps role (wrong role) → 403")
+    void get_downloadRound_403_forSalesOps() throws Exception {
+        mvc.perform(get("/api/v1/bidder/download-round/1")
+                        .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
+                        .with(jwtSalesOps()))
+                .andExpect(status().isForbidden());
+
+        verify(exportService, org.mockito.Mockito.never()).export(anyLong(), anyLong(), any());
+    }
+
+    @Test
+    @DisplayName("GET /download-round/{round} — non-owner (wrong tenant) → 403")
+    void get_downloadRound_403_forNonOwner() throws Exception {
+        // The service ownership guard throws NOT_YOUR_BID_DATA before any lookup;
+        // GlobalExceptionHandler maps it to 403.
+        when(dashboardService.findDownloadableRoundBidRoundId(USER_ID, BUYER_CODE_ID, 1))
+                .thenThrow(new com.ecoatm.salesplatform.service.auctions.biddata.BidDataSubmissionException(
+                        "NOT_YOUR_BID_DATA", "User does not own buyer_code_id=" + BUYER_CODE_ID));
+
+        mvc.perform(get("/api/v1/bidder/download-round/1")
+                        .param("buyerCodeId", String.valueOf(BUYER_CODE_ID))
+                        .with(jwtBidder()))
+                .andExpect(status().isForbidden());
 
         verify(exportService, org.mockito.Mockito.never()).export(anyLong(), anyLong(), any());
     }

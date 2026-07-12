@@ -1,0 +1,105 @@
+/* Ended-auction state — legacy BidDownloadOnBuyerCodeSelect ("Bidding has
+   ended." download page). Values measured from
+   docs/tasks/parity/evidence/h1-2026-07-12/legacy-local-bidder-dashboard__default.png
+   (1920×1080) and cross-checked vs migration_context/styling/EcoAtm.css
+   (.confirmationheader = 35px/500; .confirmationheadercolor = #14AC36). */
+
+.endedRoot {
+  /* Centered column reproduces legacy's ~249px symmetric content margins:
+     the panel spans x481..1670 (1189px) inside the 232..1920 content area. */
+  max-width: 1189px;
+  margin: 0 auto;
+  padding: 24px 0 0;
+}
+
+.headingRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;                 /* ~8px gap between heading text and the divider */
+  margin: 0 0 8px;
+}
+
+.auctionTitle {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  color: var(--color-text-body);          /* #3C3C3C */
+  font-size: 32px;
+  font-weight: 500;
+  line-height: 1.1;
+}
+
+.headingDivider {
+  width: 1px;
+  height: 32px;
+  background: #dddddd;                     /* legacy thin divider after heading */
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  min-height: 592px;                       /* legacy panel y265..857 */
+  padding: 24px;
+  background: #f2f1f0;                      /* legacy panel fill */
+  border: 1px solid var(--color-input-border);  /* #D0D0D0 */
+  text-align: center;
+}
+
+.endedHeading {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  color: var(--color-text-body);           /* "has ended." #3C3C3C */
+  font-size: 35px;                          /* .confirmationheader */
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.endedHeadingAccent {
+  color: var(--color-brand-green);         /* "Bidding" #14AC36 */
+}
+
+.subtitle {
+  margin: 0;
+  font-family: var(--font-family-primary);
+  color: var(--color-text-body);           /* legacy subtitle #3C3C3C */
+  font-size: 14px;                          /* .confirmationSubHeader */
+  font-weight: 400;
+}
+
+.actionRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.downloadButton {
+  /* Outline pill — legacy "Download your Round N Bids": white-ish fill,
+     #D0D0D0 border, dark text, fully rounded (measured ~267×42). */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 8px;
+  padding: 11px 30px;
+  background: var(--color-bg-body);         /* #F7F7F7 */
+  border: 1px solid var(--color-input-border);  /* #D0D0D0 */
+  border-radius: var(--radius-pill);
+  color: var(--color-text-body);            /* #3C3C3C */
+  font-family: var(--font-family-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.downloadButton:hover {
+  border-color: var(--color-text-muted);
+}
+
+.downloadButton:focus-visible {
+  outline: 2px solid var(--color-brand-teal-mid);
+  outline-offset: 2px;
+}

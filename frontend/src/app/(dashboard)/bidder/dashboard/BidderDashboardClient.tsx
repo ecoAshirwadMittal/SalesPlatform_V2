@@ -6,7 +6,7 @@ import {
   carryoverBidRound,
   exportBidRound,
   importBidRound,
-  downloadRound1Bids,
+  downloadRoundBids,
   BidLoweredError,
   RateLimitedError,
   RoundClosedError,
@@ -18,6 +18,7 @@ import type {
   BidImportResult,
   BidRoundSummary,
   CarryoverResult,
+  DownloadStatePayload,
   RoundTimerState,
   SchedulingAuctionSummary,
 } from '@/lib/bidder';
@@ -68,6 +69,20 @@ function toGridState(response: BidderDashboardResponse): GridState | null {
   };
 }
 
+/**
+ * Ended-state subtitle, mirroring legacy "Your bids from round 1 can be found
+ * below." — singular for the one-round case (HN), joined for the rare
+ * multi-round buyer.
+ */
+function buildDownloadSubtitle(rounds: number[]): string {
+  if (rounds.length === 0) return '';
+  const label =
+    rounds.length === 1
+      ? `round ${rounds[0]}`
+      : `rounds ${rounds.slice(0, -1).join(', ')} and ${rounds[rounds.length - 1]}`;
+  return `Your bids from ${label} can be found below.`;
+}
+
 export function BidderDashboardClient({
   initial,
   buyerCodeId,
@@ -77,6 +92,11 @@ export function BidderDashboardClient({
   );
   const [grid, setGrid] = useState<GridState | null>(() =>
     initial ? toGridState(initial) : null,
+  );
+  // DOWNLOAD-mode ended-auction payload (heading + per-round download list).
+  // Null in every non-ended mode and on the live-path download branches.
+  const [downloadState, setDownloadState] = useState<DownloadStatePayload | null>(
+    initial ? initial.download : null,
   );
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -110,6 +130,7 @@ export function BidderDashboardClient({
   const applyResponse = useCallback((response: BidderDashboardResponse): void => {
     setMode(response.mode);
     setGrid(toGridState(response));
+    setDownloadState(response.download);
   }, []);
 
   // First-load fetch when the parent didn't pre-hydrate. Runs once per
@@ -288,17 +309,21 @@ export function BidderDashboardClient({
   }
 
   if (mode === 'DOWNLOAD') {
-    // Wired to GET /bidder/download-round-1 (Option B — streams the xlsx for
-    // the most recently closed R1 bid_round this buyer participated in).
-    // Copy is still provisional per Q4 — update on the next QA walkthrough
-    // that captures the DOWNLOAD state live.
+    // Ended-auction state — legacy BidDownloadOnBuyerCodeSelect. `downloadState`
+    // carries the "Auction {year} / Wk{week}" heading + the rounds this buyer
+    // participated in (one download button each). It is null on the live-path
+    // download branches (buyer-not-included / R2-download), which fall back to
+    // a heading-less Round 1 panel.
+    const rounds =
+      downloadState && downloadState.rounds.length > 0 ? downloadState.rounds : [1];
     return (
       <EndOfBiddingPanel
-        subtitle="Your bids from round 1 can be found below."
-        action={{
-          label: 'Download your Round 1 Bids',
-          onClick: () => downloadRound1Bids(buyerCodeId),
-        }}
+        auctionTitle={downloadState?.auctionTitle ?? null}
+        subtitle={buildDownloadSubtitle(rounds)}
+        actions={rounds.map((round) => ({
+          label: `Download your Round ${round} Bids`,
+          onClick: () => downloadRoundBids(round, buyerCodeId),
+        }))}
       />
     );
   }

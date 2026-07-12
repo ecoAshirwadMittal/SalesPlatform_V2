@@ -32,4 +32,13 @@ public interface AuctionRepository extends JpaRepository<Auction, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Auction a WHERE a.id = :id")
     Optional<Auction> findByIdForUpdate(Long id);
+
+    /**
+     * Bidder dashboard ended-state selection: the single most-recent auction.
+     * Mirrors Mendix {@code ACT_GetMostRecentAuction} (a bare top-1 retrieve of
+     * {@code AuctionUI.Auction}); ordered by {@code created_date DESC} so the
+     * newest auction wins when more than one row survives the
+     * {@code KEEP_LATEST_AUCTIONS} prune.
+     */
+    Optional<Auction> findFirstByOrderByCreatedDateDesc();
 }

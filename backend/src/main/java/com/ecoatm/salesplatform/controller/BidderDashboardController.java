@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.dto.BidImportResult;
 import com.ecoatm.salesplatform.dto.BidSubmissionResult;
 import com.ecoatm.salesplatform.dto.BidderDashboardResponse;
 import com.ecoatm.salesplatform.dto.CarryoverResult;
+import com.ecoatm.salesplatform.dto.DownloadStatePayload;
 import com.ecoatm.salesplatform.dto.SaveBidRequest;
 import com.ecoatm.salesplatform.model.auctions.Auction;
 import com.ecoatm.salesplatform.model.auctions.BidRound;
@@ -123,12 +124,19 @@ public class BidderDashboardController {
                 creationService.ensureRowsExist(buyerCodeId, g.bidRoundId(), userId);
                 yield ResponseEntity.ok(dashboardService.loadGrid(g.bidRoundId(), buyerCodeId));
             }
+            // Live-path download branches (buyer not included / R2 closed-and-unsubmitted):
+            // no auction heading — the frontend falls back to a Round 1 panel.
             case BidderDashboardLandingResult.Download d -> ResponseEntity.ok(
-                    new BidderDashboardResponse("DOWNLOAD", null, null, List.of(), null, null));
+                    new BidderDashboardResponse("DOWNLOAD", null, null, List.of(), null, null, null));
+            // Ended-auction page (no Started round) — carry the heading + the
+            // per-round download list (legacy BidDownloadOnBuyerCodeSelect).
+            case BidderDashboardLandingResult.Ended e -> ResponseEntity.ok(
+                    new BidderDashboardResponse("DOWNLOAD", null, null, List.of(), null, null,
+                            new DownloadStatePayload(e.auctionTitle(), e.downloadRounds())));
             case BidderDashboardLandingResult.AllDone __ -> ResponseEntity.ok(
-                    new BidderDashboardResponse("ALL_ROUNDS_DONE", null, null, List.of(), null, null));
+                    new BidderDashboardResponse("ALL_ROUNDS_DONE", null, null, List.of(), null, null, null));
             case BidderDashboardLandingResult.Error e -> ResponseEntity.status(HttpStatus.NOT_FOUND).body(
-                    new BidderDashboardResponse("ERROR_AUCTION_NOT_FOUND", null, null, List.of(), null, null));
+                    new BidderDashboardResponse("ERROR_AUCTION_NOT_FOUND", null, null, List.of(), null, null, null));
         };
     }
 
@@ -221,24 +229,35 @@ public class BidderDashboardController {
     }
 
     /**
-     * DOWNLOAD-mode helper: stream the xlsx for the most recently closed
-     * Round 1 this buyer participated in. Used by the bidder dashboard's
-     * {@code DOWNLOAD} mode, where the response lacks an explicit
-     * {@code bidRoundId} (auction/bidRound slots are null). Returns
-     * {@code 404 Not Found} when no closed R1 bid_round exists for this
-     * buyer.
+     * DOWNLOAD-mode helper: stream the xlsx for the most recently closed round
+     * {@code round} this buyer participated in. Backs the bidder dashboard's
+     * ended-state ({@code DOWNLOAD} mode) "Download your Round {N} Bids"
+     * buttons, where the response lacks an explicit {@code bidRoundId}
+     * (auction/bidRound slots are null). Returns {@code 404 Not Found} when no
+     * closed round {@code round} bid_round exists for this buyer.
      *
-     * <p>{@code GET /api/v1/bidder/download-round-1?buyerCodeId=…}
+     * <p>Identity is the JWT principal (never a param); ownership is enforced
+     * service-side in {@link BidderDashboardService#findDownloadableRoundBidRoundId}
+     * before any lookup, so a caller who does not own the buyer code gets 403.
+     * The endpoint inherits the {@code /api/v1/bidder/**} matcher + the
+     * class-level {@code @PreAuthorize} (Bidder/Administrator).
+     *
+     * <p>{@code GET /api/v1/bidder/download-round/{round}?buyerCodeId=…}
      */
-    @GetMapping("/download-round-1")
-    public void downloadRound1(@RequestParam long buyerCodeId,
-                               Authentication auth,
-                               HttpServletResponse response) throws IOException {
+    @GetMapping("/download-round/{round}")
+    public void downloadRound(@PathVariable int round,
+                              @RequestParam long buyerCodeId,
+                              Authentication auth,
+                              HttpServletResponse response) throws IOException {
         long userId = (Long) auth.getPrincipal();
-        Optional<Long> bidRoundIdOpt = dashboardService.findDownloadableRound1BidRoundId(userId, buyerCodeId);
+        Optional<Long> bidRoundIdOpt =
+                dashboardService.findDownloadableRoundBidRoundId(userId, buyerCodeId, round);
         if (bidRoundIdOpt.isEmpty()) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                    "No closed Round 1 available for download");
+            // setStatus (not sendError): a container ERROR dispatch re-runs the
+            // security chain WITHOUT the JWT filter (OncePerRequestFilter's
+            // shouldNotFilterErrorDispatch), turning a legitimate 404 into a 401
+            // in the real filter chain. setStatus commits the 404 directly.
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
         long bidRoundId = bidRoundIdOpt.get();

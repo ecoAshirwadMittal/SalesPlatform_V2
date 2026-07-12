@@ -122,7 +122,11 @@ public class BidderDashboardService {
         Optional<SchedulingAuction> activeOpt =
                 saRepo.findFirstByRoundStatusOrderByStartDatetimeDesc(SchedulingAuctionStatus.Started);
         if (activeOpt.isEmpty()) {
-            return new BidderDashboardLandingResult.Error("AUCTION_NOT_FOUND");
+            // No round is Started. Legacy ACT_OpenBidderDashboard routes to the
+            // ended download page (BidDownloadOnBuyerCodeSelect) when a
+            // most-recent auction exists, and only to Error_Auction_Not_Found
+            // when NO scheduling auction exists at all — not a blanket error.
+            return resolveEndedOrEmpty(buyerCodeId);
         }
         SchedulingAuction active = activeOpt.get();
 
@@ -159,19 +163,64 @@ public class BidderDashboardService {
     }
 
     /**
-     * DOWNLOAD-mode support: resolves the Round 1 bid_round id for the most
-     * recently closed R1 that this buyer participated in. Returns empty when
-     * no closed R1 exists, or when the buyer has no bid_round for that R1
-     * (unusual — typically means they were not included in the round's QBC
-     * set). Authorization guard ({@link #assertOwnership}) runs first.
+     * No round is {@code Started}: decide between the ended download page and
+     * the truly-empty error page. Mirrors legacy {@code ACT_OpenBidderDashboard}
+     * — the most-recent {@code Auction} ({@code ACT_GetMostRecentAuction}) that
+     * has any scheduling auction routes to {@code BidDownloadOnBuyerCodeSelect}
+     * ("Bidding has ended."); no auction / no scheduling auction at all routes
+     * to {@code Error_Auction_Not_Found}.
+     */
+    private BidderDashboardLandingResult resolveEndedOrEmpty(long buyerCodeId) {
+        Optional<Auction> auctionOpt = auctionRepo.findFirstByOrderByCreatedDateDesc();
+        if (auctionOpt.isEmpty()) {
+            return new BidderDashboardLandingResult.Error("AUCTION_NOT_FOUND");
+        }
+        Auction auction = auctionOpt.get();
+        List<SchedulingAuction> rounds = saRepo.findByAuctionIdOrderByRoundAsc(auction.getId());
+        if (rounds.isEmpty()) {
+            return new BidderDashboardLandingResult.Error("AUCTION_NOT_FOUND");
+        }
+        return new BidderDashboardLandingResult.Ended(
+                auction.getAuctionTitle(),
+                computeDownloadableRounds(rounds, buyerCodeId));
+    }
+
+    /**
+     * The rounds of the ended auction this buyer code can download — one
+     * "Download your Round {N} Bids" button each. Legacy shows a per-round
+     * button iff the buyer code has a {@code BidDataDoc} for that round; the
+     * closest faithful proxy in the ported schema is "the buyer has a
+     * {@code bid_rounds} row for that scheduling auction" (bid_data — and
+     * therefore the downloadable sheet — is created per bid_round). The input
+     * list is already round-sorted, so the result is round-ascending.
+     */
+    private List<Integer> computeDownloadableRounds(List<SchedulingAuction> rounds, long buyerCodeId) {
+        List<Integer> downloadable = new ArrayList<>();
+        for (SchedulingAuction sa : rounds) {
+            if (bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(sa.getId(), buyerCodeId).isPresent()) {
+                downloadable.add(sa.getRound());
+            }
+        }
+        return downloadable;
+    }
+
+    /**
+     * DOWNLOAD-mode support: resolves the bid_round id for the most recently
+     * closed round {@code round} that this buyer participated in — the slice
+     * the ended-state "Download your Round {N} Bids" button exports. Returns
+     * empty when no closed round {@code round} exists, or when the buyer has no
+     * bid_round for it (they were not included in that round's QBC set). The
+     * authorization guard ({@link #assertOwnership}) runs first, so a caller who
+     * does not own the buyer code gets 403 (NOT_YOUR_BID_DATA) before any
+     * lookup — mirrors legacy {@code ACT_BidDataDoc_ExportExcel_SubmittedBidSheet_RoundN}.
      */
     @Transactional(readOnly = true)
-    public Optional<Long> findDownloadableRound1BidRoundId(long userId, long buyerCodeId) {
+    public Optional<Long> findDownloadableRoundBidRoundId(long userId, long buyerCodeId, int round) {
         assertOwnership(userId, buyerCodeId);
-        Optional<SchedulingAuction> r1 = saRepo.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(
-                1, SchedulingAuctionStatus.Closed);
-        if (r1.isEmpty()) return Optional.empty();
-        return bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(r1.get().getId(), buyerCodeId)
+        Optional<SchedulingAuction> sa = saRepo.findFirstByRoundAndRoundStatusOrderByStartDatetimeDesc(
+                round, SchedulingAuctionStatus.Closed);
+        if (sa.isEmpty()) return Optional.empty();
+        return bidRoundRepo.findBySchedulingAuctionIdAndBuyerCodeId(sa.get().getId(), buyerCodeId)
                 .map(BidRound::getId);
     }
 
@@ -213,7 +262,8 @@ public class BidderDashboardService {
                 bidRoundSummary,
                 rowDtos,
                 computeTotals(rowDtos),
-                buildTimer(bidRound));
+                buildTimer(bidRound),
+                null);
     }
 
     private static boolean allRoundsSubmitted(List<QualifiedBuyerCode> buyerQbcs, int expectedRoundCount) {
