@@ -66,6 +66,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/scheduling-auctions/**").hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/buyers/**").hasAnyRole("Administrator", "Compliance")
+                // Sales-representative write CRUD (gap 2.4). DEDICATED namespace,
+                // intentionally NOT under /api/v1/admin/buyers/** above (which admits
+                // Compliance) — sales-rep writes are Administrator + SalesOps only.
+                // Explicit matcher (defense-in-depth) precedes the /api/v1/admin/**
+                // catch-all; mirrored by @PreAuthorize on SalesRepController.
+                .requestMatchers("/api/v1/admin/sales-representatives/**")
+                    .hasAnyRole("Administrator", "SalesOps")
                 .requestMatchers("/api/v1/admin/reserve-bids/**").hasRole("Administrator")
                 // Unified email management (Task 7) — SMTP config admin surface.
                 // Same effective role as the "/api/v1/admin/**" catch-all below, but
