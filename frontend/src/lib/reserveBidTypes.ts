@@ -1,6 +1,6 @@
 export interface ReserveBidRow {
   id: number;
-  productId: string;
+  productId: number;            // BIGINT (RBL-D2) — numeric device product id
   grade: string;
   brand: string | null;
   model: string | null;
@@ -13,7 +13,7 @@ export interface ReserveBidRow {
 }
 
 export interface ReserveBidRequest {
-  productId: string;
+  productId: number;            // BIGINT (RBL-D2)
   grade: string;
   brand?: string | null;
   model?: string | null;
@@ -48,7 +48,7 @@ export interface ReserveBidUploadResult {
 export interface ReserveBidAuditRow {
   id: number;
   reserveBidId: number;
-  productId: string;
+  productId: number;            // BIGINT (RBL-D2)
   grade: string;
   oldPrice: string;
   newPrice: string;

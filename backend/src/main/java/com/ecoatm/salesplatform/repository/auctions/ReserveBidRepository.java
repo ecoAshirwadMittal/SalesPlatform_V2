@@ -17,14 +17,14 @@ import java.util.Optional;
  */
 public interface ReserveBidRepository extends JpaRepository<ReserveBid, Long>, ReserveBidRepositoryCustom {
 
-    Optional<ReserveBid> findByProductIdAndGrade(String productId, String grade);
+    Optional<ReserveBid> findByProductIdAndGrade(Long productId, String grade);
 
-    boolean existsByProductIdAndGrade(String productId, String grade);
+    boolean existsByProductIdAndGrade(Long productId, String grade);
 
     @Query("SELECT MAX(rb.lastUpdateDatetime) FROM ReserveBid rb")
     Optional<Instant> findMaxLastUpdateDatetime();
 
-    List<ReserveBid> findByProductIdInAndGradeIn(List<String> productIds, List<String> grades);
+    List<ReserveBid> findByProductIdInAndGradeIn(List<Long> productIds, List<String> grades);
 
     @Modifying
     @Query(value = "DELETE FROM auctions.reserve_bid", nativeQuery = true)

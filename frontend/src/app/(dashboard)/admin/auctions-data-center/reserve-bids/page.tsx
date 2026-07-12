@@ -7,21 +7,14 @@ import type { ReserveBidRow } from "@/lib/reserveBidTypes";
 import {
   type ColumnDef,
   type FetcherArgs,
-  type FilterOp,
   DataGrid,
 } from "@/components/datagrid";
 import styles from "./reserveBidsList.module.css";
 import ReserveBidAuditModal from "./ReserveBidAuditModal";
 import ReserveBidUploadModal from "./ReserveBidUploadModal";
 
-// Product ID is VARCHAR in the DB. Show only ops that don't trip
-// SalesOps' "73 < 100" lex-vs-numeric expectations.
-const PRODUCT_ID_OPS: FilterOp[] = [
-  "eq", "neq", "contains", "startsWith", "endsWith", "empty", "notEmpty",
-];
-
 export default function ReserveBidsPage() {
-  const [auditTarget, setAuditTarget] = useState<{ id: number; productId: string } | null>(null);
+  const [auditTarget, setAuditTarget] = useState<{ id: number; productId: number } | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
@@ -69,7 +62,10 @@ export default function ReserveBidsPage() {
       sortKey: "product_id",
       numeric: true,
       accessor: (r) => r.productId,
-      filter: { kind: "text", filterKey: "productId", availableOps: PRODUCT_ID_OPS, placeholder: "Product ID" },
+      // RBL-D2: product_id is BIGINT — a numeric filter (eq/neq/gt/gte/lt/lte)
+      // matches the backend's now-numeric FilterColumn.PRODUCT_ID (73 < 100,
+      // not lexicographic).
+      filter: { kind: "numeric", filterKey: "productId", placeholder: "Product ID" },
     },
     {
       key: "grade",
@@ -160,7 +156,10 @@ export default function ReserveBidsPage() {
         rowKey={(r) => r.id}
         rowActions={rowActions}
         rowActionsLabel="Audit"
-        initialSort={{ column: "product_id", direction: "asc" }}
+        // RBL-P1: no forced default sort — the backend defaults an unsorted list
+        // to legacy insertion order (legacy_id ASC), reproducing the legacy
+        // grid's first screen (product 73, 76, 78, …). User-chosen sorts still win.
+        initialSort={null}
         emptyMessage="No reserve bids match the current filters."
         topBarSlot={topBar}
       />

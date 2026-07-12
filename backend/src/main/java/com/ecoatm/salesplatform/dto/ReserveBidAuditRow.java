@@ -6,7 +6,7 @@ import java.time.Instant;
 public record ReserveBidAuditRow(
         long id,
         long reserveBidId,
-        String productId,
+        long productId,
         String grade,
         BigDecimal oldPrice,
         BigDecimal newPrice,

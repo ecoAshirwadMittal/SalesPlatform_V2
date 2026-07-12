@@ -27,7 +27,9 @@ public class ReserveBidExcelWriter {
             for (int i = 0; i < rows.size(); i++) {
                 ReserveBid rb = rows.get(i);
                 Row r = s.createRow(i + 1);
-                r.createCell(0).setCellValue(rb.getProductId());
+                // product_id is BIGINT (RBL-D2); render as a string cell so the
+                // download's ProductID column keeps its existing text format.
+                r.createCell(0).setCellValue(String.valueOf(rb.getProductId()));
                 r.createCell(1).setCellValue(rb.getGrade());
                 if (rb.getBrand() != null) r.createCell(2).setCellValue(rb.getBrand());
                 if (rb.getModel() != null) r.createCell(3).setCellValue(rb.getModel());

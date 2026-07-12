@@ -25,7 +25,8 @@ export default function EditReserveBidPage() {
       .get(id)
       .then((r) => {
         setLoaded(r);
-        setProductId(r.productId);
+        // productId is a number (BIGINT, RBL-D2); the text input holds a string.
+        setProductId(String(r.productId));
         setGrade(r.grade);
         setBrand(r.brand ?? "");
         setModel(r.model ?? "");
@@ -42,7 +43,7 @@ export default function EditReserveBidPage() {
     setSubmitting(true);
     try {
       await reserveBidClient.update(id, {
-        productId,
+        productId: Number(productId),
         grade,
         brand,
         model,

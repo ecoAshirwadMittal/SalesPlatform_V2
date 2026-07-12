@@ -98,7 +98,7 @@ class RecalcEndToEndIT extends PostgresIntegrationTest {
 
         // Spot-check that target prices landed.
         java.math.BigDecimal target = jdbc.queryForObject(
-            "SELECT round2_target_price FROM auctions.aggregated_inventory WHERE ecoid2='ECO-A' AND merged_grade='A'",
+            "SELECT round2_target_price FROM auctions.aggregated_inventory WHERE ecoid2='1001' AND merged_grade='A'",
             java.math.BigDecimal.class);
         assertThat(target).isPositive();
 

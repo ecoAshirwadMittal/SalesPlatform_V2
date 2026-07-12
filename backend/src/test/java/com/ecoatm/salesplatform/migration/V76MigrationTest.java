@@ -73,6 +73,17 @@ class V76MigrationTest {
         assertThat(sync).isEqualTo(1);
     }
 
+    @Test
+    void productIdColumnIsBigintAfterV94() {
+        // RBL-D2 / V94: product_id was VARCHAR(100) in V76; V94 alters it to BIGINT
+        // so the admin grid sorts/filters numerically (not lexicographically).
+        String dataType = jdbc.queryForObject(
+                "SELECT data_type FROM information_schema.columns "
+              + "WHERE table_schema='auctions' AND table_name='reserve_bid' "
+              + "AND column_name='product_id'", String.class);
+        assertThat(dataType).isEqualTo("bigint");
+    }
+
     @AfterEach
     void cleanup() {
         jdbc.update("DELETE FROM auctions.reserve_bid_audit WHERE reserve_bid_id IN "

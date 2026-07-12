@@ -7,7 +7,7 @@ import styles from "./reserveBidsList.module.css";
 
 interface Props {
   reserveBidId: number;
-  productId: string;
+  productId: number;      // BIGINT (RBL-D2)
   onClose: () => void;
 }
 

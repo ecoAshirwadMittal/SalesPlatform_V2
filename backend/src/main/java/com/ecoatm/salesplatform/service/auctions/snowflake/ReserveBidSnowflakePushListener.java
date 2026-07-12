@@ -50,7 +50,11 @@ public class ReserveBidSnowflakePushListener {
                 List<ReserveBid> rows = repo.findAllById(event.changedIds());
                 List<ReserveBidSnowflakePayload.Row> payloadRows = rows.stream()
                         .map(rb -> new ReserveBidSnowflakePayload.Row(
-                                rb.getProductId(), rb.getGrade(), rb.getBrand(), rb.getModel(),
+                                // product_id is BIGINT (RBL-D2); the Snowflake
+                                // UPSERT_RESERVE_BID JSON contract stays string-typed
+                                // (payload Row.productId is String) so the stored proc
+                                // sees no wire-format change.
+                                String.valueOf(rb.getProductId()), rb.getGrade(), rb.getBrand(), rb.getModel(),
                                 rb.getBid(), rb.getLastUpdateDatetime(),
                                 rb.getLastAwardedMinPrice(), rb.getLastAwardedWeek()))
                         .toList();

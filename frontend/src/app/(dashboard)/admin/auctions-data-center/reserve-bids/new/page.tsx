@@ -19,7 +19,8 @@ export default function NewReserveBidPage() {
     setError(null);
     setSubmitting(true);
     try {
-      await reserveBidClient.create({ productId, grade, brand, model, bid });
+      // productId is BIGINT (RBL-D2) — send it as a number.
+      await reserveBidClient.create({ productId: Number(productId), grade, brand, model, bid });
       router.push("/admin/auctions-data-center/reserve-bids");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Create failed");

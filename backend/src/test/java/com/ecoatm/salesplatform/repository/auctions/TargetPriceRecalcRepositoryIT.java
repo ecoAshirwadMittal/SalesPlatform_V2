@@ -25,16 +25,16 @@ class TargetPriceRecalcRepositoryIT extends PostgresIntegrationTest {
         // (ECO-A, A): MaxBid 500 (DW01/SCWC tied), factor (Flat_Amount, 5)
         //   → MaxBid+factor = 505. EB = 700; PO = 750.
         //   GREATEST(505, 700, 750) = 750.
-        assertTargetPrice("ECO-A", "A", new BigDecimal("750.0000"));
+        assertTargetPrice("1001", "A", new BigDecimal("750.0000"));
 
         // round1_max_bid + round1_max_bid_buyer_code: DW01, SCWC tied at 500.
         // STRING_AGG with ORDER BY code → alphabetical "DW01,SCWC".
         BigDecimal maxBid = jdbc.queryForObject(
             "SELECT round1_max_bid FROM auctions.aggregated_inventory WHERE ecoid2=? AND merged_grade=?",
-            BigDecimal.class, "ECO-A", "A");
+            BigDecimal.class, "1001", "A");
         String codes = jdbc.queryForObject(
             "SELECT round1_max_bid_buyer_code FROM auctions.aggregated_inventory WHERE ecoid2=? AND merged_grade=?",
-            String.class, "ECO-A", "A");
+            String.class, "1001", "A");
         assertThat(maxBid).isEqualByComparingTo("500.00");
         assertThat(codes).isEqualTo("DW01,SCWC");
     }
@@ -45,20 +45,20 @@ class TargetPriceRecalcRepositoryIT extends PostgresIntegrationTest {
         // (fixture only has ECO-A/B/C) plus a bid_data row to drive MaxBid.
         jdbc.update("""
             INSERT INTO auctions.aggregated_inventory (id, ecoid2, week_id, merged_grade, total_quantity, dw_total_quantity)
-            VALUES (999099, 'ECO-D', 999001, 'A', 100, 50)
+            VALUES (999099, '1004', 999001, 'A', 100, 50)
             """);
 
         jdbc.update("""
             INSERT INTO auctions.bid_data
               (id, bid_round_id, buyer_code_id, ecoid, merged_grade, code, company_name,
                buyer_code_type, submitted_bid_amount, bid_round, week_id)
-            VALUES (999099, 999001, 1, 'ECO-D', 'A', 'DW01', 'TestCo1', 'Wholesale', 200.00, 1, 999001)
+            VALUES (999099, 999001, 1, '1004', 'A', 'DW01', 'TestCo1', 'Wholesale', 200.00, 1, 999001)
             """);
 
         repo.recalcClosedRound(999001L, 1);
 
         // GREATEST(max_bid_plus_factor, 999, 0) = 999.
-        assertTargetPrice("ECO-D", "A", new BigDecimal("999.0000"));
+        assertTargetPrice("1004", "A", new BigDecimal("999.0000"));
     }
 
     @Test
@@ -110,7 +110,7 @@ class TargetPriceRecalcRepositoryIT extends PostgresIntegrationTest {
         repo.recalcClosedRound(999001L, 1);
 
         // If the inactive PO leaked, ECO-A target would be 9999. Verify it's 750.
-        assertTargetPrice("ECO-A", "A", new BigDecimal("750.0000"));
+        assertTargetPrice("1001", "A", new BigDecimal("750.0000"));
     }
 
     @Test
@@ -133,12 +133,12 @@ class TargetPriceRecalcRepositoryIT extends PostgresIntegrationTest {
 
         BigDecimal r3 = jdbc.queryForObject(
             "SELECT round3_target_price FROM auctions.aggregated_inventory WHERE ecoid2=? AND merged_grade=?",
-            BigDecimal.class, "ECO-A", "A");
+            BigDecimal.class, "1001", "A");
         assertThat(r3).isEqualByComparingTo("750.0000");
 
         BigDecimal r2max = jdbc.queryForObject(
             "SELECT round2_max_bid FROM auctions.aggregated_inventory WHERE ecoid2=? AND merged_grade=?",
-            BigDecimal.class, "ECO-A", "A");
+            BigDecimal.class, "1001", "A");
         assertThat(r2max).isEqualByComparingTo("500.00");
     }
 
