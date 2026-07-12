@@ -115,7 +115,18 @@ export default function LoginForm() {
     window.location.href = '/api/v1/auth/sso?target=azuread';
   };
 
+  const handleContactUs = () => {
+    // Legacy Login_New "Contact Us" is an openLink (web schema) to the ecoATM
+    // B2B site — see EcoATM_UserManagement.Login_New.actionButtonSignIn1.
+    window.open(
+      'https://www.ecoatmb2b.com/wholesale-devices#contact-us',
+      '_blank',
+      'noopener,noreferrer',
+    );
+  };
+
   return (
+    <>
     <div className={styles.loginCard}>
       {/* Left Column Background Image */}
       <div className={styles.leftSide}>
@@ -219,12 +230,12 @@ export default function LoginForm() {
             </button>
           )}
 
-          {/* Footer Contacts Section */}
+          {/* Footer Contacts Section (legacy .contact-us-container) */}
           <div className={styles.divider}></div>
-          <span className={styles.subHeaderText}>Interested but don&apos;t have an account?</span>
-          {/* Contact URL TBD */}
+          <span className={styles.subHeaderText}>Interested but don&rsquo;t have an account?</span>
           <button
             type="button"
+            onClick={handleContactUs}
             className={`${styles.loginbutton} ${styles.loginbuttonNoMargin}`}
           >
             Contact Us
@@ -239,5 +250,23 @@ export default function LoginForm() {
         </form>
       </div>
     </div>
+
+      {/* Footer (legacy .policy-footer) — sibling below the card, on the gradient.
+          Copyright year is the current year, mirroring the legacy Mendix
+          expression: "© " + formatDateTime(currentDateTime, "yyyy") + " …". */}
+      <footer className={styles.policyFooter}>
+        <a
+          className={styles.policyText}
+          href="https://www.ecoatm.com/pages/privacy-policy"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Privacy Policy
+        </a>
+        <span className={styles.copyrightText}>
+          © {new Date().getFullYear()} ecoATM, LLC. All Rights Reserved.
+        </span>
+      </footer>
+    </>
   );
 }

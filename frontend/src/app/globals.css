@@ -17,7 +17,42 @@
   font-display: swap;
 }
 
-/* Brandon Grotesque — matches Mendix $font-family-base (Phase 0: 400 + 500 only; Phase 1+ adds weights as needed) */
+/* Brandon Grotesque — Mendix $font-family-base. Full legacy set, mirroring the
+   weight/style mapping in the live theme's Brandon_Grotesque.css EXACTLY
+   (curled from http://localhost:8082/resources/fonts/Brandon_Grotesque.css):
+   thin=100, light=200 (NOT the usual 300 — legacy maps light→200), reg=400,
+   med=500, bld=700, each in normal + italic. Legacy's own CSS does not wire
+   the Black (blk) OTFs, but the files ship in the set, so they are exposed at
+   900 for completeness (documented deviation — not used by parity pages).
+   Parity finding LOGIN-P2. */
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_thin.otf') format('opentype');
+  font-weight: 100;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_thin_it.otf') format('opentype');
+  font-weight: 100;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_light.otf') format('opentype');
+  font-weight: 200;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_light_it.otf') format('opentype');
+  font-weight: 200;
+  font-style: italic;
+  font-display: swap;
+}
 @font-face {
   font-family: 'Brandon Grotesque';
   src: url('/fonts/brandon-grotesque/Brandon_reg.otf') format('opentype');
@@ -25,7 +60,13 @@
   font-style: normal;
   font-display: swap;
 }
-
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_reg_it.otf') format('opentype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
 @font-face {
   font-family: 'Brandon Grotesque';
   src: url('/fonts/brandon-grotesque/Brandon_med.otf') format('opentype');
@@ -33,8 +74,13 @@
   font-style: normal;
   font-display: swap;
 }
-
-/* Additional weights available if Phase 1+ surfaces need them (YAGNI — leave commented until needed):
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_med_it.otf') format('opentype');
+  font-weight: 500;
+  font-style: italic;
+  font-display: swap;
+}
 @font-face {
   font-family: 'Brandon Grotesque';
   src: url('/fonts/brandon-grotesque/Brandon_bld.otf') format('opentype');
@@ -42,7 +88,27 @@
   font-style: normal;
   font-display: swap;
 }
-*/
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_bld_it.otf') format('opentype');
+  font-weight: 700;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_blk.otf') format('opentype');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brandon Grotesque';
+  src: url('/fonts/brandon-grotesque/Brandon_blk_it.otf') format('opentype');
+  font-weight: 900;
+  font-style: italic;
+  font-display: swap;
+}
 
 :root {
   /* ── Legacy tokens (kept for backwards-compat; Phase 1+ will migrate consumers) ── */
@@ -88,7 +154,16 @@
   --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.2);  /* Login card + modal surface elevation */
 
   /* Typography */
-  --font-family-primary: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  /* Brandon stack = Atlas $font-family-base. Legacy compiled EcoAtm.css declares
+     `"Brandon Grotesque", sans-serif`; Open Sans is retained as an intermediate
+     fallback (legacy loads it via all-fonts.css). Full weight set now shipped
+     (LOGIN-P2), so the fallback is effectively never hit. */
+  --font-family-primary: 'Brandon Grotesque', 'Open Sans', sans-serif;
+  /* PWS/buyer surfaces (incl. /login) use Founders Grotesk, NOT Brandon.
+     Verbatim from the live theme (theme.compiled.css): the buyer-login card
+     `.newlogincard`, `.mainheadertext`, inputs, buttons and footer are all
+     `font-family: Founders Grotesk`. Parity finding LOGIN-P2. */
+  --font-family-pws: 'Founders Grotesk', 'Brandon Grotesque', 'Helvetica Neue', Arial, sans-serif;
   --font-size-body: 16px;
   --font-weight-body: 400;
   --font-size-button-lg: 18px;          /* Submit Bids, Import, Login labels */
