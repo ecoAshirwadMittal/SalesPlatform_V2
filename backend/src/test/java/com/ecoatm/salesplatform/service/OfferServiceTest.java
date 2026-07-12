@@ -677,6 +677,40 @@ class OfferServiceTest {
         }
 
         @Test
+        @DisplayName("production Oracle toggle-off (client error response) routes offer to Pending_Order, not Ordered")
+        void productionOracleOff_routesToPendingOrder() {
+            Offer offer = createDraftOffer(1L, 100L);
+            offer.setStatus("Sales_Review");
+            offer.setOfferNumber("BC00126001");
+            OfferItem item = createOfferItem(offer, "SKU-001", 10L, 3,
+                    BigDecimal.valueOf(50));
+            item.setItemStatus("Accept");
+            offer.getItems().add(item);
+
+            when(offerRepository.findById(1L)).thenReturn(Optional.of(offer));
+
+            Device device = createDevice(10L, "SKU-001", BigDecimal.valueOf(50), 200);
+            stubDeviceMap(device);
+
+            stubResolveUserName();
+            stubSavePassthrough();
+            when(orderRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+            // Under the production profile, OracleOrderClient's toggle-off now
+            // returns an ERROR OracleResponse (no returnCode) instead of a SIM
+            // success. handleOracleResponse is returnCode-based, so this must
+            // route the offer to Pending_Order — never a fake-created Ordered.
+            OracleResponse prodOffError = new OracleResponse();
+            prodOffError.setReturnMessage("Oracle API is disabled");
+            when(oracleOrderClient.submitOrder(any())).thenReturn(prodOffError);
+
+            SubmitResponse response = offerService.submitOrder(1L, 1L);
+
+            assertThat(offer.getStatus()).isEqualTo("Pending_Order");
+            assertThat(response.isSuccess()).isFalse();
+        }
+
+        @Test
         @DisplayName("finalize status items are included in order")
         void finalizeItems_includedInOrder() {
             Offer offer = createDraftOffer(1L, 100L);
