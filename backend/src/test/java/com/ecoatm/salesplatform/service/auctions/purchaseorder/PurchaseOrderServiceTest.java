@@ -19,6 +19,8 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 
 class PurchaseOrderServiceTest {
@@ -60,6 +62,36 @@ class PurchaseOrderServiceTest {
         assertThat(row.id()).isEqualTo(42L);
         assertThat(row.weekRangeLabel()).isEqualTo("2025 / Wk1 - 2025 / Wk4");
         verify(events).publishEvent(new PurchaseOrderChangedEvent(42L,
+                PurchaseOrderChangedEvent.Action.UPSERT));
+        // gap 0.1 (VAL_WeekRange_PO): create MUST run the GLOBAL overlap guard,
+        // passing excludePoId=null (there is no self to exclude on create).
+        // Without this verify, deleting the guard call from create() leaves the
+        // whole suite green — which was the untested-wiring gap this test closes.
+        verify(validator).requireNonOverlappingWeekRange(
+                any(PurchaseOrderValidator.WeekRange.class), isNull());
+    }
+
+    @Test
+    void updateRunsOverlapGuardExcludingSelf() {
+        long id = 55L;
+        Week from = makeWeek(1L, 202501, "2025 / Wk1");
+        Week to = makeWeek(2L, 202504, "2025 / Wk4");
+        PurchaseOrder po = makePo(id);
+        when(poRepo.findById(id)).thenReturn(Optional.of(po));
+        when(validator.resolveWeekRange(1L, 2L))
+                .thenReturn(new PurchaseOrderValidator.WeekRange(from, to));
+
+        PurchaseOrderRow row = service.update(id, new PurchaseOrderRequest(1L, 2L));
+
+        assertThat(row.weekRangeLabel()).isEqualTo("2025 / Wk1 - 2025 / Wk4");
+        // gap 0.1 (VAL_WeekRange_PO): update MUST run the GLOBAL overlap guard
+        // with excludePoId = this PO's own id (self-exclusion), so an
+        // unchanged-range re-save is not flagged as overlapping itself. The
+        // eq(id) matcher — not isNull() — is what distinguishes update's wiring
+        // from create's; deleting the guard call from update() fails this verify.
+        verify(validator).requireNonOverlappingWeekRange(
+                any(PurchaseOrderValidator.WeekRange.class), eq(id));
+        verify(events).publishEvent(new PurchaseOrderChangedEvent(id,
                 PurchaseOrderChangedEvent.Action.UPSERT));
     }
 
