@@ -220,6 +220,46 @@ Inventory of major modules and their primary entities.
   rewrites the `oracle_*` columns
 - Config: `rma.oracle-create.enabled` (default `true`; env
   `RMA_ORACLE_CREATE_ENABLED`) — disables auto-create while leaving resubmit working
-- Snowflake sync: none here — owned by the follow-on Task D
+- Snowflake sync: RMA → Snowflake push, see the "RMA — Snowflake Sync" module below
 - Not built here (later tasks): approval email (Task C, owns the V93 template
-  migration), Snowflake RMA sync (Task D)
+  migration)
+
+## RMA — Snowflake Sync (RMA #3 Task D, event-driven)
+- Source modules: `ecoatm_rma` (`SUB_SendRMADetailsToSnowflake`,
+  `SUB_SendOnlyRMADetailsToSnowflake`) called from
+  `ACT_RMADetails_CompleteReview`
+- Primary tables: `pws.rma` + `pws.rma_item` (read-only — this module only
+  snapshots and pushes; no schema change, no new migration)
+- Purpose: on a review completion, push the RMA (header + line items) to
+  Snowflake so the auction/reporting warehouse mirrors the RMA outcome —
+  the modern port of the legacy `ExportXml` → stored-proc call
+- Trigger: the shared `event.rma.RmaReviewCompletedEvent` (Task B0's seam) —
+  **not** outcome-gated. Legacy `ACT_RMADetails_CompleteReview` calls
+  `SUB_SendRMADetailsToSnowflake` on **both** the approved (post-Oracle-create)
+  and declined branches, so this listener pushes on any completion (unlike the
+  Oracle-create listener, which is APPROVED-only)
+- Listener: `listener/rma/RmaSnowflakePushListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(SNOWFLAKE_EXECUTOR)`.
+  Reloads the RMA + items (via `RmaItemRepository`, not the lazy association —
+  open-in-view is off), resolves the buyer-code string
+  (`BuyerCodeLookupService`), builds an immutable `RmaSnowflakePayload`
+  snapshot, and calls `writer.push(...)`. Swallows/logs all exceptions — a
+  failed push never affects the already-committed review (no retry queue; the
+  next completion re-pushes, matching the PO listener)
+- Writer trio (mirrors the PO / recalc pattern):
+  `service/rma/RmaSnowflakeWriter` (interface, `void push(RmaSnowflakePayload)`),
+  `LoggingRmaSnowflakeWriter` (default — `@ConditionalOnProperty(rma.sync.writer,
+  havingValue=logging, matchIfMissing=true)`; a no-op that logs the would-be
+  row), `JdbcRmaSnowflakeWriter` (prod — `havingValue=jdbc`; calls the stored
+  proc via `snowflakeJdbcTemplate`)
+- Snowflake target: **`AUCTIONS.UPSERT_RMA_DATA(?)`** — a single `JSON_CONTENT`
+  argument, exactly the legacy `PWS_UpsertRMAStoredProc` constant value
+  (**confirmed** from `migration_context`, not best-effort). The Snowflake env
+  database prefix (legacy `SnowflakeEnvironmentDB`, e.g. `ECO_QA`) is supplied
+  by the connection's default DB, so it is not concatenated into the call — the
+  same convention the PO / recalc JDBC writers follow
+- Config: `rma.sync.enabled` (default `true`; env `RMA_SYNC_ENABLED` — `false`
+  short-circuits the listener) and `rma.sync.writer` (`logging` default /
+  `jdbc`). Independent of `rma.oracle-create.*`
+- Business identifiers only in logs (RMA number, item count, serialised business
+  snapshot) — no secrets, tokens, or the Snowflake connection string

@@ -320,3 +320,29 @@ the shared `postToOracle` refactor).
 > `email.email_template` (dropped by V92, which created `email.template`),
 > failing every fresh-DB Flyway run. One-line fix shipped in this task's branch
 > (`fix(email):`); it also unblocks the previously-green `RmaSubmitOfferItemMatchIT`.
+
+---
+
+## rma.snowflake-sync (new 2026-07-12 · RMA #3 Task D · SUB_SendRMADetailsToSnowflake)
+Target 85%+. On a review completion, the AFTER_COMMIT
+`RmaSnowflakePushListener` snapshots the RMA (header + items) and pushes it to
+the `AUCTIONS.UPSERT_RMA_DATA(?)` stored proc — logging no-op in dev (default),
+real JDBC in prod. Attaches to Task B0's `RmaReviewCompletedEvent`; no change to
+`RmaService`/`completeReview`. Load-bearing branches: the payload snapshot
+carries the full RMA field set + items; **pushes on any completion** (legacy
+calls the sub-microflow on both approved AND declined branches — the DECLINED
+case asserts the push still happens); the `rma.sync.enabled=false`
+short-circuit; null-id + missing-RMA guards; a writer exception swallowed (never
+rethrown); and the prod JDBC writer calling the exact legacy proc with the JSON
+snapshot as the single `JSON_CONTENT` arg.
+
+| Surface | Key tests |
+|---|---|
+| `RmaSnowflakePushListener` | `RmaSnowflakePushListenerTest` (6) — APPROVED → `writer.push` once with a full-snapshot `ArgumentCaptor` assertion (rmaId/number/buyerCode/status/salesTotal/items/imei/statusDisplay); DECLINED → still pushes (legacy pushes on both branches); `enabled=false` → no push + `verifyNoInteractions` on the repos/lookup; null-id → skip; missing RMA (`findById` empty) → skip; writer throws → swallowed (no rethrow) |
+| `LoggingRmaSnowflakeWriter` (default) | `LoggingRmaSnowflakeWriterTest` (3) — snapshot serialises to a shape carrying the RMA header + items (rmaId/rmaNumber/buyerCode/systemStatus/items/imei); `push` logs + never throws; empty-item-list tolerated |
+| `JdbcRmaSnowflakeWriter` (prod) | `JdbcRmaSnowflakeWriterTest` (2) — `push` calls `CALL AUCTIONS.UPSERT_RMA_DATA` with the JSON snapshot arg; a JDBC failure is wrapped with the proc name and rethrown for the listener to swallow |
+
+RMA Snowflake sweep: **11/11 green** (`RmaSnowflakePushListenerTest` 6 +
+`LoggingRmaSnowflakeWriterTest` 3 + `JdbcRmaSnowflakeWriterTest` 2). Snowflake
+target `AUCTIONS.UPSERT_RMA_DATA(?)` is **confirmed** from the legacy
+`PWS_UpsertRMAStoredProc` constant (`migration_context`), not best-effort.
