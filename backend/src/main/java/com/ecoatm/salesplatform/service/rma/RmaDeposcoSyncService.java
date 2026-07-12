@@ -40,13 +40,27 @@ public class RmaDeposcoSyncService {
 
     /**
      * Statuses that are terminal for the Deposco sync — an RMA in one of these
-     * is never polled or advanced. Legacy {@code ACT_UpdateRMAFromDeposco}
-     * excludes {@code Canceled}/{@code Received} (and un-pushed {@code Submitted},
-     * which by definition has no Oracle number); {@code Declined} is added here
-     * because it is a closed outcome in the modern status model
-     * ({@code rma_status.status_grouped_to = 'Declined'}).
+     * is never polled or advanced.
+     *
+     * <p>{@code Received}/{@code Canceled} are closed outcomes
+     * ({@code rma_status.status_grouped_to = 'Closed'}) — legacy
+     * {@code ACT_UpdateRMAFromDeposco} likewise excludes them.
+     *
+     * <p>{@code Submitted} is skipped as a <b>safety invariant</b>, not a data
+     * coincidence: a Submitted RMA has not been through sales review. Today it
+     * happens to have no {@code oracle_number} (so the Oracle-number filter
+     * drops it), but RMA #3 wires the Oracle push that SETS {@code oracle_number}
+     * — after which the number filter alone would no longer keep Submitted RMAs
+     * out, and polling one could advance an unreviewed RMA straight to
+     * {@code Received}, bypassing review. Excluding it by status closes that
+     * hole. Legacy also explicitly excludes {@code Submitted}.
+     *
+     * <p>{@code Declined} is treated as terminal per product decision
+     * 2026-07-12; legacy {@code ACT_UpdateRMAFromDeposco} polls Declined (and
+     * would flip Declined -> Received on physical receipt) — an intentional
+     * divergence.
      */
-    static final Set<String> TERMINAL_STATUSES = Set.of("Received", "Canceled", "Declined");
+    static final Set<String> TERMINAL_STATUSES = Set.of("Received", "Canceled", "Declined", "Submitted");
 
     private static final Logger log = LoggerFactory.getLogger(RmaDeposcoSyncService.class);
 

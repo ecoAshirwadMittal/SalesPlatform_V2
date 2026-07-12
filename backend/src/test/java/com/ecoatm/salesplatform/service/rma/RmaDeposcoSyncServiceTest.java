@@ -120,13 +120,19 @@ class RmaDeposcoSyncServiceTest {
     }
 
     @Test
-    @DisplayName("terminal RMAs (Received/Canceled/Declined) are never polled or advanced")
+    @DisplayName("terminal RMAs (Received/Canceled/Declined/Submitted) are never polled or advanced")
     void sync_terminalRmas_skipped() {
+        // M-1: both Declined (product decision 2026-07-12 — treat as terminal,
+        // a deliberate divergence from legacy which polls Declined) and Submitted
+        // (safety invariant — an unreviewed RMA must never be auto-advanced to
+        // Received, even once the Oracle push starts setting its oracle_number)
+        // must be in the skip set and never handed to the Deposco client.
         Rma received = rma(4L, "ORD-4", "Received");
         Rma canceled = rma(5L, "ORD-5", "Canceled");
         Rma declined = rma(6L, "ORD-6", "Declined");
+        Rma submitted = rma(13L, "ORD-13", "Submitted");
         when(rmaRepository.findPollableForDeposcoSync(any()))
-                .thenReturn(List.of(received, canceled, declined));
+                .thenReturn(List.of(received, canceled, declined, submitted));
 
         int advanced = enabledService().sync();
 
