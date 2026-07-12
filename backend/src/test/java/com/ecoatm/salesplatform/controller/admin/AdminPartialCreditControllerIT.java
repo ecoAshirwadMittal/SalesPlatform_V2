@@ -385,6 +385,48 @@ class AdminPartialCreditControllerIT {
            .andExpect(status().isNotFound());
     }
 
+    // L-7 (security review 2026-07-10): PATCH /statuses/{id} is tighter than the
+    // rest of the partial-credit admin surface — Administrator/Co-Admin only.
+    // These two cases pin the net effective access at both layers
+    // (SecurityConfig URL matcher + AdminPartialCreditController#updateStatus's
+    // method-level @PreAuthorize), on top of admin_patchStatus_returns200_withUpdatedRow
+    // above which already proves Administrator is allowed.
+
+    @Test
+    void patchStatus_asCoAdmin_returns200_withUpdatedRow() throws Exception {
+        // Proves the new SecurityConfig matcher lets a real Co-Admin through — it
+        // was blocked at the URL layer before this change (the broader
+        // partial-credit matcher's role list has no Co-Admin). The fabricated
+        // authority is ROLE_Co-Admin (the genuine value a real login produces),
+        // so this verifies the hyphenated hasAnyRole('Co-Admin') actually matches.
+        CreditRequestStatus updated = statusRow(2L, SystemStatus.PENDING_APPROVAL, 25, "#FF8800");
+        updated.setInternalStatusText("Awaiting review");
+        when(statusConfigService.update(eq(2L), any(StatusConfigPatch.class), any()))
+                .thenReturn(updated);
+
+        mvc.perform(patch("/api/v1/admin/partial-credit/statuses/2")
+                .with(coAdmin())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"internalStatusText\":\"Awaiting review\",\"colorHex\":\"#FF8800\",\"sortOrder\":25}"))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.id").value(2))
+           .andExpect(jsonPath("$.internalStatusText").value("Awaiting review"))
+           .andExpect(jsonPath("$.colorHex").value("#FF8800"));
+    }
+
+    @Test
+    void patchStatus_asSalesOps_returns403() throws Exception {
+        // Proves the tightening — SalesOps could edit status config before this
+        // change (broader partial-credit matcher + class-level @PreAuthorize both
+        // admitted it); now the narrower URL matcher rejects it before the
+        // method-level @PreAuthorize is even reached.
+        mvc.perform(patch("/api/v1/admin/partial-credit/statuses/2")
+                .with(salesOps())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"internalStatusText\":\"x\"}"))
+           .andExpect(status().isForbidden());
+    }
+
     // -------------------------------------------------------------------
     // GET /export.xlsx  (Chunk 7)
     // -------------------------------------------------------------------
@@ -432,6 +474,14 @@ class AdminPartialCreditControllerIT {
 
     private static RequestPostProcessor administrator() {
         return authentication(asAuth(3L, "admin@test.com", "Administrator"));
+    }
+
+    private static RequestPostProcessor coAdmin() {
+        // 'Co-Admin' is the real seeded role name (identity.user_roles; V2/V15).
+        // asAuth prepends ROLE_, so this fabricates the genuine ROLE_Co-Admin
+        // authority a real coadmin@test.com login produces — matching
+        // hasAnyRole('Co-Admin') in SecurityConfig + the method-level @PreAuthorize.
+        return authentication(asAuth(4L, "coadmin@test.com", "Co-Admin"));
     }
 
     private static RequestPostProcessor bidder() {

@@ -99,6 +99,19 @@ public class SecurityConfig {
                 // and Administrator accounts are admitted directly.
                 // Matcher precedes the broader /api/v1/admin/** rule so SalesOps
                 // is not blocked by the Administrator-only catch-all.
+                // L-7 (security review 2026-07-10): status-config edits are
+                // platform-wide (pill colours/labels) — tighter than the rest of
+                // the partial-credit admin surface. This narrower matcher must
+                // precede the broader partial-credit rule below (first-match-wins)
+                // so it actually takes effect; it admits Co-Admin (blocked by the
+                // broader rule today, whose role list has no Co-Admin) and drops
+                // SalesOps/SalesRep for this one PATCH. 'Co-Admin' is the real
+                // seeded role (identity.user_roles; V2/V15) — hasAnyRole prepends
+                // ROLE_, matching the ROLE_Co-Admin authority from
+                // JwtAuthenticationFilter. Mirrored by @PreAuthorize on
+                // AdminPartialCreditController#updateStatus (defense-in-depth).
+                .requestMatchers(HttpMethod.PATCH, "/api/v1/admin/partial-credit/statuses/**")
+                    .hasAnyRole("Administrator", "Co-Admin")
                 .requestMatchers("/api/v1/admin/partial-credit/**")
                     .hasAnyRole("PartialCredit_SalesOps", "PartialCredit_Admin", "SalesOps", "Administrator")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")

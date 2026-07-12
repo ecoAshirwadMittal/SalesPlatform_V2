@@ -352,6 +352,14 @@ public class AdminPartialCreditController {
      * replace optimistic UI state with the persisted snapshot.
      */
     @PatchMapping("/statuses/{id}")
+    // L-7 (security review 2026-07-10): status-config edits are platform-wide
+    // (pill colours/labels), so this one endpoint is tighter than the buyer-review
+    // surface — Administrator/Co-Admin only, dropping SalesOps/SalesRep. 'Co-Admin'
+    // is the real seeded role name (identity.user_roles; V2/V15) — hasAnyRole
+    // prepends ROLE_, so this matches the ROLE_Co-Admin authority granted by
+    // JwtAuthenticationFilter. (NB: the class-level @PreAuthorize's stale
+    // 'CoAdministrator' spelling is a separate pre-existing issue, out of scope.)
+    @PreAuthorize("hasAnyRole('Administrator','Co-Admin')")
     public StatusConfigRow updateStatus(
             @PathVariable Long id,
             @RequestBody StatusConfigPatch patch,
