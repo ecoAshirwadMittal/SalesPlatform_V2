@@ -118,6 +118,23 @@ test.describe('Wholesale buyer login', () => {
     await expect(page.getByRole('button', { name: /Show password|Hide password/ })).toBeVisible();
   });
 
+  // Footer parity (LOGIN-P3): Privacy Policy link (real legacy href) + copyright.
+  test('login page — footer: Privacy Policy link + copyright', async ({ page }) => {
+    await page.goto('/login');
+
+    const privacy = page.getByRole('link', { name: 'Privacy Policy' });
+    await expect(privacy).toBeVisible();
+    // Href pulled verbatim from the legacy Login_New page model (openLink action).
+    await expect(privacy).toHaveAttribute('href', 'https://www.ecoatm.com/pages/privacy-policy');
+
+    // Copyright renders the current year, mirroring the legacy Mendix expression
+    // "© " + formatDateTime(currentDateTime, "yyyy") + " ecoATM, LLC. …".
+    const year = new Date().getFullYear();
+    await expect(
+      page.getByText(`© ${year} ecoATM, LLC. All Rights Reserved.`),
+    ).toBeVisible();
+  });
+
   // Pixel compare against a Linux chromium baseline under
   // frontend/tests/e2e/__screenshots__/. Stays as fixme until the
   // baseline PNG is captured via the e2e.yml workflow with
