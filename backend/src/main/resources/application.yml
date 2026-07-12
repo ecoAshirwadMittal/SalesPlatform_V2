@@ -257,6 +257,24 @@ auctions:
   r3-init:
     enabled: ${AUCTIONS_R3_INIT_ENABLED:true}
 
+# ─────────────────────────────────────
+# RMA → Deposco status sync (gap-analysis #3 "Make RMA Functional", Task E)
+# Background job (modern port of ACT_UpdateRMAFromDeposco): polls the Deposco
+# reverse-logistics client for each in-flight RMA (non-terminal status + an
+# Oracle number) and advances it to 'Received' when Deposco reports receipt.
+#
+# enabled=false (DEFAULT) → the @Scheduled tick short-circuits before any DB
+# read; the job is fully wired but inert. No real Deposco reverse-logistics
+# endpoint exists yet, so client=logging selects LoggingDeposcoRmaClient — a
+# no-op that logs the intended poll and reports "no update". Flip enabled=true
+# and point client at a real implementation once the Deposco RMA API lands.
+# ─────────────────────────────────────
+rma:
+  deposco-sync:
+    enabled: ${RMA_DEPOSCO_SYNC_ENABLED:false}
+    fixed-delay-ms: 1800000          # 30 min poll cadence
+    client: logging                  # logging (default, no-op) | http (future real client)
+
 ---
 # ─────────────────────────────────────
 # Profile: local (override for dev convenience)
