@@ -1,0 +1,22 @@
+pageId: admin-purchase-orders-list
+title: Purchase Orders — list
+surface: admin
+auth: { legacy: admin, new: admin }
+legacy:
+  path: /index.html?profile=Responsive
+  journey:
+    - click: 'text="Purchase Order"'       # exact QA sidebar label (walkthrough §9)
+new:
+  path: /admin/auctions-data-center/purchase-orders
+ready:
+  legacy: '.widget-datagrid, .mx-datagrid'
+  new: 'table tbody tr, [role="grid"]'
+states:
+  - id: default
+masks:
+  - legacy: '.widget-datagrid .td[title*=":"]'
+    new: 'time, [data-testid="last-updated"]'
+    reason: TIMESTAMP
+    note: Timestamps may drift if V81 provenance != qa-0327 (verify)
+findings: [POL-D1, RBL-P2, RBL-P5, SHELL-P1]   # + PO walkthrough import pending
+status: diffing

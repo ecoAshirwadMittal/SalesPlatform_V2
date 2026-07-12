@@ -1,0 +1,29 @@
+pageId: bidder-dashboard
+title: Bidder Dashboard (auction bidding)
+surface: buyer
+auth: { legacy: buyer, new: bidder }
+# Both sides select the SAME auction code: nadia's buyer holds HN (Wholesale) in the
+# snapshot, and the new-side dev seed bidder@buyerco.com is wired to the same buyer —
+# resolved 2026-07-12, no legacy password reset needed (roles.yaml question closed).
+legacy:
+  path: /index.html?profile=Responsive
+  journey:
+    - waitFor: 'text="HN"'
+    - click: 'text="HN"'
+new:
+  path: /buyer-select
+  journey:
+    - waitFor: 'text="HN"'
+    - click: 'text="HN"'
+ready:
+  legacy: '.widget-datagrid, .mx-dataview-content'
+  new: '[role="grid"], main'
+states:
+  - id: default    # pre-round empty guard is the first comparable state
+masks:
+  - legacy: '.countdown-timer'
+    new: '.countdown-timer, [data-testid="server-time"]'
+    reason: TIMESTAMP
+    note: round countdown ticks every second
+findings: [BDD-D1, BDD-P1, BDD-P2, BDD-P3]   # + BD-24 import pending
+status: diffing

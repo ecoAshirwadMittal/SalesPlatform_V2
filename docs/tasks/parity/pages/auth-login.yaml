@@ -1,0 +1,16 @@
+pageId: auth-login
+title: Login (buyer/marketing entry)
+surface: auth
+auth: { legacy: none, new: none }
+legacy:
+  path: /p/login/web
+new:
+  path: /login
+ready:
+  legacy: 'input[placeholder="Email"]'
+  new: 'input[placeholder="Email"]'
+states:
+  - id: default
+masks: []
+findings: [LOGIN-P1, LOGIN-P2, LOGIN-P3, ENV-1]
+status: diffing

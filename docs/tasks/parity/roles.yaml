@@ -1,0 +1,21 @@
+# Role reconciliation: runtime roles (new app) ↔ legacy .mmd flow roles ↔ harness auth keys.
+# Harness auth keys index into tools/parity/auth/creds.local.json (gitignored).
+# TODO (Phase 0, R-14): full sign-off — Co-Admin/ecoAtmDirectAdmin have no dedicated
+# legacy flow; legacy `compliance`/`salesleader` have no runtime peer yet.
+authKeys:
+  legacy:
+    admin: { loginPath: /login.html, flow: administrator }
+    buyer: { loginPath: /p/login/web, flow: bidder }       # nadia — PWS code (NB_PWS)
+  new:
+    admin: { role: Administrator }
+    salesops: { role: SalesOps }
+    salesrep: { role: SalesRep }
+    bidder: { role: Bidder }
+    coadmin: { role: Co-Admin }
+    directadmin: { role: ecoAtmDirectAdmin }
+openQuestions: []
+# RESOLVED 2026-07-12: nadia's buyer holds auction codes HN (Wholesale) + NBDW (Data_Wipe)
+# in the snapshot — "PWS-only" was wrong (NB_PWS was just the QA default). The new-side dev
+# seed bidder@buyerco.com maps to the SAME buyer, so both sides select code "HN".
+# Legacy code-type semantics: Wholesale/Data_Wipe → auction shell (Bidder Dashboard);
+# Premium_Wholesale → PWS shell (Shop); Purchasing_Order(+_Data_Wipe) → PO flavor.

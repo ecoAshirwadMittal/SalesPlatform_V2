@@ -1112,3 +1112,29 @@ doesn't read it.
 **Spec / Plan:**
 - `docs/tasks/auction-po-module-design.md`
 - `docs/tasks/auction-po-module-plan.md`
+
+## 2026-07-11 — App-wide currency display convention: 2 decimals
+
+**Status:** Accepted (user decision, parity program R-13).
+
+**Context:** The QA-vs-local parity audits found both renderings in the
+wild — integer dollars (`$1,980,410`) and 2-decimal (`$1,876,277.65`) —
+and the parity program's format DoD gate
+(`docs/tasks/parity-program-plan-2026-07-11.md` §4, gate 3) requires one
+app-wide convention before any money-bearing page can pass.
+
+**Decision:** All currency values render with **two decimals**, US
+format: `$#,##0.00` (e.g. `$1,876,277.65`). Applies to grids, KPI
+strips, detail views, modals, xlsx exports, and email templates.
+
+**Consequences:**
+- Parity manifest `dynamicData[]` format asserts for money fields use
+  `$#,##0.00`.
+- If a legacy page provably renders integer dollars, the harness
+  surfaces it as a diff and it is escalated to the user to pick
+  match-legacy vs accepted-divergence (referencing this ADR) — never
+  silently resolved either way (parity working agreement,
+  plan §8).
+- Stored values are unaffected — the migration copies amounts verbatim,
+  and the schema-map validation queries already normalize scale via
+  `::numeric(14,2)`.
