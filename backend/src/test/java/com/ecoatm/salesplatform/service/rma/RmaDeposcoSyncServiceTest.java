@@ -37,8 +37,11 @@ import static org.mockito.Mockito.when;
  * ({@link RmaRepository}, {@link RmaStatusRepository}, {@link DeposcoRmaClient})
  * and injects a fixed {@link Clock} so the job is deterministic. Covers the
  * job's orchestration only — the finder's real SQL filtering (Oracle-number
- * present + non-terminal status via the {@code rma_status} join) is a repository
- * concern proven against real Postgres, not here.
+ * present + non-terminal status via the {@code rma_status} join, plus the
+ * {@code JOIN FETCH} that lets the caller read the status after the persistence
+ * context closes with open-in-view off) is a repository concern proven against
+ * real Postgres by
+ * {@link com.ecoatm.salesplatform.repository.pws.RmaRepositoryIT}, not here.
  */
 @ExtendWith(MockitoExtension.class)
 class RmaDeposcoSyncServiceTest {
@@ -120,13 +123,19 @@ class RmaDeposcoSyncServiceTest {
     }
 
     @Test
-    @DisplayName("terminal RMAs (Received/Canceled/Declined) are never polled or advanced")
+    @DisplayName("terminal RMAs (Received/Canceled/Declined/Submitted) are never polled or advanced")
     void sync_terminalRmas_skipped() {
+        // M-1: both Declined (product decision 2026-07-12 — treat as terminal,
+        // a deliberate divergence from legacy which polls Declined) and Submitted
+        // (safety invariant — an unreviewed RMA must never be auto-advanced to
+        // Received, even once the Oracle push starts setting its oracle_number)
+        // must be in the skip set and never handed to the Deposco client.
         Rma received = rma(4L, "ORD-4", "Received");
         Rma canceled = rma(5L, "ORD-5", "Canceled");
         Rma declined = rma(6L, "ORD-6", "Declined");
+        Rma submitted = rma(13L, "ORD-13", "Submitted");
         when(rmaRepository.findPollableForDeposcoSync(any()))
-                .thenReturn(List.of(received, canceled, declined));
+                .thenReturn(List.of(received, canceled, declined, submitted));
 
         int advanced = enabledService().sync();
 
@@ -168,6 +177,36 @@ class RmaDeposcoSyncServiceTest {
         verify(deposcoRmaClient, never()).fetchStatus("ORD-9");
         verify(rmaRepository).save(pollable);
         verify(rmaRepository, never()).save(terminal);
+    }
+
+    @Test
+    @DisplayName("a client exception on one RMA is isolated — the batch continues and later RMAs still advance")
+    void sync_clientThrowsOnOneRow_batchContinuesAndExceptionSwallowed() {
+        // I-1: a real HTTP DeposcoRmaClient can throw on a single RMA. Because
+        // candidates are ordered createdDate ASC, an unguarded throw on the oldest
+        // failing RMA would abort the whole tick and block every newer RMA behind
+        // it forever. The per-row try/catch must swallow the throw, log it, and
+        // continue so later RMAs still advance.
+        Rma throwsOnPoll = rma(11L, "ORD-11", "Receiving");
+        Rma advances = rma(12L, "ORD-12", "Receiving");
+        RmaStatus received = status("Received");
+        when(rmaRepository.findPollableForDeposcoSync(any()))
+                .thenReturn(List.of(throwsOnPoll, advances));
+        when(deposcoRmaClient.fetchStatus("ORD-11"))
+                .thenThrow(new RuntimeException("Deposco HTTP 503"));
+        when(deposcoRmaClient.fetchStatus("ORD-12"))
+                .thenReturn(Optional.of(new DeposcoRmaStatus("Received")));
+        when(rmaStatusRepository.findBySystemStatus("Received")).thenReturn(Optional.of(received));
+
+        // Must NOT propagate the row-1 exception out of sync().
+        int advanced = enabledService().sync();
+
+        assertThat(advanced).isEqualTo(1);
+        assertThat(advances.getSystemStatus()).isEqualTo("Received");
+        verify(deposcoRmaClient).fetchStatus("ORD-11");
+        verify(deposcoRmaClient).fetchStatus("ORD-12");
+        verify(rmaRepository).save(advances);
+        verify(rmaRepository, never()).save(throwsOnPoll);
     }
 
     @Test
