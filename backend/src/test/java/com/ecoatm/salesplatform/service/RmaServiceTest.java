@@ -2,13 +2,20 @@ package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.RmaDetailResponse;
 import com.ecoatm.salesplatform.dto.RmaResponse;
+import com.ecoatm.salesplatform.dto.RmaSubmitResponse;
 import com.ecoatm.salesplatform.dto.RmaSummaryResponse;
 import com.ecoatm.salesplatform.model.mdm.Device;
 import com.ecoatm.salesplatform.model.mdm.Grade;
+import com.ecoatm.salesplatform.model.pws.ImeiDetail;
+import com.ecoatm.salesplatform.model.pws.Offer;
+import com.ecoatm.salesplatform.model.pws.OfferItem;
 import com.ecoatm.salesplatform.model.pws.Rma;
 import com.ecoatm.salesplatform.model.pws.RmaItem;
+import com.ecoatm.salesplatform.model.pws.RmaReason;
 import com.ecoatm.salesplatform.model.pws.RmaStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.ImeiDetailRepository;
+import com.ecoatm.salesplatform.repository.pws.OrderRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaItemRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaReasonRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaRepository;
@@ -18,10 +25,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -40,6 +50,8 @@ class RmaServiceTest {
     @Mock private RmaStatusRepository rmaStatusRepository;
     @Mock private RmaReasonRepository rmaReasonRepository;
     @Mock private DeviceRepository deviceRepository;
+    @Mock private ImeiDetailRepository imeiDetailRepository;
+    @Mock private OrderRepository orderRepository;
     @Mock private BuyerCodeLookupService buyerCodeLookup;
 
     private RmaService rmaService;
@@ -47,7 +59,8 @@ class RmaServiceTest {
     @BeforeEach
     void setUp() {
         rmaService = new RmaService(rmaRepository, rmaItemRepository,
-                rmaStatusRepository, rmaReasonRepository, deviceRepository, buyerCodeLookup);
+                rmaStatusRepository, rmaReasonRepository, deviceRepository,
+                imeiDetailRepository, orderRepository, buyerCodeLookup);
     }
 
     // --- Helpers ---
@@ -474,6 +487,136 @@ class RmaServiceTest {
             assertThat(result.get(0).getStatus()).isEqualTo("Total");
             assertThat(result.get(0).getRmaCount()).isEqualTo(3);
             assertThat(result.get(0).getTotalPrice()).isEqualTo(800);
+        }
+    }
+
+    // --- submitRmaRequest: VAL_RMARequestFile OfferItem matching (gap 0.2) ---
+
+    @Nested
+    @DisplayName("submitRmaRequest — OfferItem validation")
+    class SubmitRmaRequest {
+
+        private static final Long BUYER_CODE_ID = 100L;
+        private static final String REASON = "Defective Battery/ Lower 69%";
+
+        private java.io.InputStream csv(String body) {
+            return new ByteArrayInputStream(
+                    ("IMEI/Serial,Return Reason\n" + body).getBytes(StandardCharsets.UTF_8));
+        }
+
+        private ImeiDetail match(String value, Long deviceId, BigDecimal finalOfferPrice) {
+            OfferItem oi = new OfferItem();
+            oi.setDeviceId(deviceId);
+            oi.setFinalOfferPrice(finalOfferPrice);
+            ImeiDetail d = new ImeiDetail();
+            d.setImeiNumber(value);
+            d.setOfferItem(oi);
+            return d;
+        }
+
+        private void stubActiveReasons() {
+            RmaReason reason = new RmaReason();
+            reason.setValidReasons(REASON);
+            reason.setIsActive(true);
+            when(rmaReasonRepository.findByIsActiveTrueOrderByValidReasonsAsc())
+                    .thenReturn(List.of(reason));
+        }
+
+        @Test
+        @DisplayName("matched lines carry deviceId + salePrice; roll-ups are non-zero")
+        void matchedLines_populateDevicePriceAndRollups() {
+            stubActiveReasons();
+            when(rmaItemRepository.findDuplicateImeis(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of());
+            when(imeiDetailRepository.findMatchesForBuyer(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of(
+                            match("111", 10L, new BigDecimal("100")),
+                            match("222", 20L, new BigDecimal("200"))));
+            when(buyerCodeLookup.findCodeById(BUYER_CODE_ID)).thenReturn("BC001");
+            when(rmaRepository.countByBuyerCode(BUYER_CODE_ID)).thenReturn(0L);
+            when(rmaStatusRepository.findBySystemStatus("Submitted"))
+                    .thenReturn(Optional.of(makeStatus("Submitted", "Pending_Approval")));
+            when(rmaRepository.save(any(Rma.class))).thenAnswer(inv -> {
+                Rma r = inv.getArgument(0);
+                if (r.getId() == null) r.setId(500L);
+                return r;
+            });
+
+            RmaSubmitResponse response = rmaService.submitRmaRequest(
+                    BUYER_CODE_ID, 7L, csv("111," + REASON + "\n222," + REASON + "\n"));
+
+            assertThat(response.isSuccess()).isTrue();
+            assertThat(response.getItemCount()).isEqualTo(2);
+
+            ArgumentCaptor<RmaItem> itemCaptor = ArgumentCaptor.forClass(RmaItem.class);
+            verify(rmaItemRepository, times(2)).save(itemCaptor.capture());
+            assertThat(itemCaptor.getAllValues())
+                    .extracting(RmaItem::getDeviceId)
+                    .containsExactlyInAnyOrder(10L, 20L);
+            assertThat(itemCaptor.getAllValues())
+                    .allSatisfy(it -> assertThat(it.getSalePrice()).isNotNull());
+
+            // Roll-ups on the persisted RMA are non-zero.
+            ArgumentCaptor<Rma> rmaCaptor = ArgumentCaptor.forClass(Rma.class);
+            verify(rmaRepository, atLeastOnce()).save(rmaCaptor.capture());
+            Rma saved = rmaCaptor.getValue();
+            assertThat(saved.getRequestQty()).isEqualTo(2);
+            assertThat(saved.getRequestSkus()).isEqualTo(2);
+            assertThat(saved.getRequestSalesTotal()).isEqualByComparingTo("300");
+        }
+
+        @Test
+        @DisplayName("matches on serial_number when imei_number differs")
+        void matchesOnSerialNumber() {
+            stubActiveReasons();
+            when(rmaItemRepository.findDuplicateImeis(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of());
+            OfferItem oi = new OfferItem();
+            oi.setDeviceId(30L);
+            oi.setFinalOfferPrice(new BigDecimal("150"));
+            ImeiDetail d = new ImeiDetail();
+            d.setImeiNumber("OTHER");
+            d.setSerialNumber("SER-9");
+            d.setOfferItem(oi);
+            when(imeiDetailRepository.findMatchesForBuyer(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of(d));
+            when(buyerCodeLookup.findCodeById(BUYER_CODE_ID)).thenReturn("BC001");
+            when(rmaRepository.countByBuyerCode(BUYER_CODE_ID)).thenReturn(0L);
+            when(rmaStatusRepository.findBySystemStatus("Submitted"))
+                    .thenReturn(Optional.of(makeStatus("Submitted", "Pending_Approval")));
+            when(rmaRepository.save(any(Rma.class))).thenAnswer(inv -> {
+                Rma r = inv.getArgument(0);
+                if (r.getId() == null) r.setId(501L);
+                return r;
+            });
+
+            RmaSubmitResponse response = rmaService.submitRmaRequest(
+                    BUYER_CODE_ID, 7L, csv("SER-9," + REASON + "\n"));
+
+            assertThat(response.isSuccess()).isTrue();
+            ArgumentCaptor<RmaItem> itemCaptor = ArgumentCaptor.forClass(RmaItem.class);
+            verify(rmaItemRepository).save(itemCaptor.capture());
+            assertThat(itemCaptor.getValue().getDeviceId()).isEqualTo(30L);
+        }
+
+        @Test
+        @DisplayName("unmatched line is rejected and nothing is persisted")
+        void unmatchedLine_rejectedNothingPersisted() {
+            stubActiveReasons();
+            when(rmaItemRepository.findDuplicateImeis(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of());
+            when(imeiDetailRepository.findMatchesForBuyer(anyList(), eq(BUYER_CODE_ID)))
+                    .thenReturn(List.of()); // no OfferItem match for this buyer code
+
+            RmaSubmitResponse response = rmaService.submitRmaRequest(
+                    BUYER_CODE_ID, 7L, csv("999," + REASON + "\n"));
+
+            assertThat(response.isSuccess()).isFalse();
+            assertThat(response.getErrors())
+                    .anySatisfy(e -> assertThat(e).contains("999").contains("does not match"));
+            // All-or-nothing: no RMA header and no RMA line are persisted.
+            verify(rmaRepository, never()).save(any(Rma.class));
+            verify(rmaItemRepository, never()).save(any(RmaItem.class));
         }
     }
 }
