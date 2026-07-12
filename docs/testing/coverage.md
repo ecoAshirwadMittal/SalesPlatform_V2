@@ -320,3 +320,26 @@ the shared `postToOracle` refactor).
 > `email.email_template` (dropped by V92, which created `email.template`),
 > failing every fresh-DB Flyway run. One-line fix shipped in this task's branch
 > (`fix(email):`); it also unblocks the previously-green `RmaSubmitOfferItemMatchIT`.
+
+---
+
+## rma.approval-email (new 2026-07-12 · RMA #3 Task C)
+Target 85%+. On an APPROVED `RmaReviewCompletedEvent`, sends the buyer the RMA
+approval email through the unified email backbone (`EmailService.sendTemplated`),
+seeded by V93 `RMA_Approved`. Attaches as a second AFTER_COMMIT listener to the
+Task-B0 event — `RmaService`/`completeReview` untouched. Load-bearing branches:
+the exact `SendOverrides(recipients,null,null)` / `SourceRef("RMA", rmaId)` shape
+and the `vars` map (incl. `$#,##0.00` money formatting + approved-only item
+summary); the APPROVED-only gate (`DECLINED` → no-op); the null-id / RMA-not-found
+/ no-recipients guards; any `sendTemplated` exception swallowed; and — only a
+real-Postgres IT can prove — the listener's `@Transactional(REQUIRES_NEW)` is
+**not** `readOnly`, so the `email.log` INSERT commits.
+
+| Surface | Key tests |
+|---|---|
+| `RmaApprovedEmailListener` → `EmailService` | `RmaApprovedEmailListenerTest` (6, Mockito) — APPROVED: `sendTemplated` called once with `eq("RMA_Approved")`, `eq(SendOverrides(recipients,null,null))`, `eq(SourceRef("RMA", rmaId))`, vars via `ArgumentCaptor` (`rmaNumber`/`buyerCode`/`approvedQty`/`approvedSkus`/`approvedTotalDisplay=="$1,234.50"`/`approvedItemsSummary` lists approved lines only); DECLINED → `verifyNoInteractions`; null-id / RMA-not-found / no-recipients → never called (+ warn logged); `sendTemplated` throwing → swallowed, never escapes |
+| V93 seed | `V93MigrationIT` (1, real Postgres) — one enabled `RMA_Approved` `email.template` row whose `subject`/`content_html` carry every `{{var}}` the listener supplies |
+| Real end-to-end wiring + non-readOnly tx | `RmaApprovedEmailMigrationIT` (2, real Postgres, mirrors `PartialCreditEmailMigrationIT`) — publishing an APPROVED event inside a committed `TransactionTemplate` tx drives the real listener → real `EmailService` → one `email.log` row (`source_module='RMA'`, `status='SENT'` via `LoggingEmailSender`); a DECLINED event writes none. `EcoATMDirectUserRepository` swapped for a `@Primary`/`@TestConfiguration` Mockito mock so no buyer/account join chain is needed |
+
+RMA approval-email sweep: **9/9 green** (`RmaApprovedEmailListenerTest` 6 +
+`RmaApprovedEmailMigrationIT` 2 + `V93MigrationIT` 1).

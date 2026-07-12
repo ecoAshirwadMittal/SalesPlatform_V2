@@ -221,5 +221,34 @@ Inventory of major modules and their primary entities.
 - Config: `rma.oracle-create.enabled` (default `true`; env
   `RMA_ORACLE_CREATE_ENABLED`) — disables auto-create while leaving resubmit working
 - Snowflake sync: none here — owned by the follow-on Task D
-- Not built here (later tasks): approval email (Task C, owns the V93 template
-  migration), Snowflake RMA sync (Task D)
+- Not built here (later tasks): Snowflake RMA sync (Task D). Approval email is
+  now built — see "RMA — Approval Email" below
+
+## RMA — Approval Email (RMA #3 Task C)
+- Source module: `ecoatm_rma` (`SUB_SendEmail_RMAApproved` — the Mendix
+  `PWSRMAApprovalEmail` template)
+- Primary tables: `email.template` (V93 seeds one row, `template_key='RMA_Approved'`,
+  `enabled=true`), `email.log` (one row per send, `source_module='RMA'`)
+- Purpose: on an APPROVED RMA review, email the buyer an approval notice through
+  the shipped unified-email backbone
+- Event: subscribes to the same `event.rma.RmaReviewCompletedEvent` published by
+  `RmaService.completeReview` (no change to that module — the event is the seam)
+- Listener: `listener/rma/RmaApprovedEmailListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)` +
+  `@Transactional(REQUIRES_NEW)` and **not** `readOnly` (the send writes
+  `email.log`; a readOnly tx would fail the INSERT — same gotcha as the
+  partial-credit `ReviewCompletedEmailListener`). Acts only on
+  `outcome == APPROVED` (`DECLINED` → no-op); reloads the RMA, resolves buyer
+  recipients via `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId`
+  (the shared PWS/partial-credit resolver), and dispatches
+  `EmailService.sendTemplated("RMA_Approved", vars, SendOverrides(recipients,
+  null, null), SourceRef("RMA", rmaId))`. `vars`: `rmaNumber`, `buyerCode`
+  (via `BuyerCodeLookupService.findCodeById`), `approvedQty`, `approvedSkus`,
+  `approvedTotalDisplay` (money, `$#,##0.00`), `approvedItemsSummary` (approved
+  lines only). Swallows all send exceptions — a failed email never rolls back
+  or surfaces from the already-committed review
+- Config: **no** local enable flag (unlike partial credit) — dev/test route
+  through `LoggingEmailSender` (logs, never sends) and the template's own
+  `enabled` column gates production delivery; a disabled `RMA_Approved` row
+  makes `sendTemplated` throw, which is swallowed
+- Snowflake sync: none — RMA emails are not pushed to Snowflake
