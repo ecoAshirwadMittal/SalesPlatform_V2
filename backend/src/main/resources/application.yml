@@ -281,6 +281,17 @@ rma:
     # recovery endpoint working. The Oracle call itself still fails closed in
     # deployed profiles when the OracleConfig toggle is off (SIM only in local dev).
     enabled: ${RMA_ORACLE_CREATE_ENABLED:true}
+  sync:
+    # RMA → Snowflake push (SUB_SendRMADetailsToSnowflake). On a review
+    # completion the AFTER_COMMIT RmaSnowflakePushListener snapshots the RMA and
+    # pushes it to the AUCTIONS.UPSERT_RMA_DATA(?) stored proc. Legacy pushes on
+    # BOTH approved and declined completions, so this is not outcome-gated.
+    # enabled=false → the listener short-circuits before any snapshot/writer call.
+    enabled: ${RMA_SYNC_ENABLED:true}
+    # Writer selection: 'logging' (default, no-op that logs the would-be-pushed
+    # row — keeps dev/test off a live Snowflake DataSource) | 'jdbc' (prod, calls
+    # the stored proc via the snowflakeJdbcTemplate).
+    writer: logging                  # logging (default) | jdbc
 
 ---
 # ─────────────────────────────────────

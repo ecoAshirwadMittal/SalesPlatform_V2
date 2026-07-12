@@ -202,3 +202,15 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   unaffected. Env override: `RMA_ORACLE_CREATE_ENABLED=false`. Independent of
   the Oracle client's own toggle (`OracleConfig.is_active` + the profile gate,
   which SIM-succeeds only in local dev and fails closed in qa/staging/prod).
+
+## RMA Snowflake sync config (RMA #3 Task D)
+- `rma.sync.enabled` — default `true`; when `false`, the
+  `RmaSnowflakePushListener` short-circuits on a `RmaReviewCompletedEvent`
+  (any outcome) before building the snapshot or invoking the writer. Env
+  override: `RMA_SYNC_ENABLED=false`.
+- `rma.sync.writer` — `logging` (default) or `jdbc`. `logging` is a no-op that
+  logs the row it would push (keeps dev/test off a live Snowflake DataSource);
+  `jdbc` calls the `AUCTIONS.UPSERT_RMA_DATA(?)` stored proc via the
+  `snowflakeJdbcTemplate` in prod. Mirrors `po.sync.writer` /
+  `recalc.snowflake.*`. Independent of `rma.oracle-create.*` — Oracle create
+  and Snowflake push are separate AFTER_COMMIT listeners on the same event.
