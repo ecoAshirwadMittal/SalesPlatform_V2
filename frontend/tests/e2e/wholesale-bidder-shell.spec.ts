@@ -225,8 +225,10 @@ test('bidder shell renders with sidebar expanded by default', async ({ page }) =
   expect(box?.width).toBeGreaterThanOrEqual(200);
   expect(box?.width).toBeLessThanOrEqual(240);
 
-  // Both nav item labels should be visible.
+  // All three nav item labels should be visible (Auction · Credit Requests ·
+  // Buyer User Guide — legacy buyer sidebar parity, BDD-P2).
   await expect(page.getByTestId('sidebar-item-auction')).toBeVisible();
+  await expect(page.getByTestId('sidebar-item-credit-requests')).toBeVisible();
   await expect(page.getByTestId('sidebar-item-buyer-user-guide')).toBeVisible();
 
   // axe a11y — WCAG 2.x AA on the shell with expanded sidebar + error-mode dashboard.
@@ -428,7 +430,7 @@ test('Switch Buyer Code link navigates to /buyer-select', async ({ page }) => {
 
   await page.goto(`/bidder/dashboard?buyerCodeId=${BUYER_CODE_ID}`);
 
-  // The Switch Buyer Code button should be visible in the chrome top-bar.
+  // The Switch Buyer Code button is rendered in the in-content card (BDD-P3).
   const switchButton = page.getByRole('button', { name: 'Switch Buyer Code' });
   await expect(switchButton).toBeVisible();
 
@@ -463,9 +465,11 @@ test('bidder shell expanded — semantic structure', async ({ page }) => {
   expect(box?.width).toBeGreaterThan(180);
   expect(box?.width).toBeLessThan(260);
 
-  // Top-bar chrome — Switch Buyer Code link, buyer code + company chip,
-  // user avatar.
+  // Chrome band — user avatar. The "Switch Buyer Code" control now lives in
+  // the in-content card below the band (BDD-P3), not the chrome top-bar; its
+  // button + the buyer code/company render in-content.
   await expect(page.getByRole('button', { name: 'Switch Buyer Code' })).toBeVisible();
+  await expect(page.getByTestId('sidebar-item-credit-requests')).toBeVisible();
 
   // Grid rendered with the QA-parity column headers.
   await expect(page.getByRole('columnheader', { name: 'Product Id' })).toBeVisible({ timeout: 15_000 });

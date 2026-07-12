@@ -24,10 +24,11 @@ import SidebarToggle from '@/components/chrome/SidebarToggle';
 import { useSidebar } from '@/components/chrome/SidebarContext';
 import { apiFetch } from '@/lib/apiFetch';
 import BidderSidebarItem from './BidderSidebarItem';
-import { GavelIcon, BookIcon } from './BidderSidebarIcons';
+import { GavelIcon, BookIcon, CreditRequestIcon } from './BidderSidebarIcons';
 import styles from './bidderSidebar.module.css';
 
 const BUYER_GUIDE_HREF = '/api/v1/bidder/docs/buyer-guide';
+const CREDIT_REQUESTS_HREF = '/wholesale/partial-credit';
 
 export default function BidderSidebar() {
   const { collapsed, toggle } = useSidebar();
@@ -48,6 +49,7 @@ export default function BidderSidebar() {
   }, []);
 
   const isAuctionActive = pathname.startsWith('/bidder/dashboard');
+  const isCreditRequestsActive = pathname.startsWith(CREDIT_REQUESTS_HREF);
 
   // Disable the link while we haven't checked yet (null) OR when we know there's no guide.
   const guideDisabled = guideAvailable === false;
@@ -73,6 +75,17 @@ export default function BidderSidebar() {
               href="/bidder/dashboard"
               collapsed={collapsed}
               isActive={isAuctionActive}
+            />
+          </li>
+          <li>
+            {/* Credit Requests — buyer-shell counterpart of the admin item
+                (SHELL-P1 / BDD-P2). Routes to the partial-credit buyer surface. */}
+            <BidderSidebarItem
+              icon={<CreditRequestIcon />}
+              label="Credit Requests"
+              href={CREDIT_REQUESTS_HREF}
+              collapsed={collapsed}
+              isActive={isCreditRequestsActive}
             />
           </li>
           <li>

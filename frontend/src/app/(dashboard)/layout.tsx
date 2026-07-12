@@ -8,6 +8,7 @@ import { apiFetch } from '@/lib/apiFetch';
 import { API_BASE } from '@/lib/apiRoutes';
 import { getAuthUser, type AuthUser } from '@/lib/session';
 import type { NavItem } from '@/lib/types';
+import SidebarToggle from '@/components/chrome/SidebarToggle';
 import styles from './dashboard.module.css';
 
 const navItems: NavItem[] = [
@@ -78,6 +79,19 @@ const navItems: NavItem[] = [
       </svg>
     ),
   },
+  // Credit Requests — legacy admin sidebar item between Auction and Reports
+  // (SHELL-P1, ruling 1). Routes to the partial-credit admin surface. The
+  // reply/return arrow mirrors the legacy Mendix glyph; rendered as a plain
+  // stroke icon to match the sibling nav items' style.
+  {
+    label: 'Credit Requests', href: '/admin/auctions-data-center/partial-credit',
+    icon: (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="9 10 4 15 9 20"/>
+        <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
+      </svg>
+    ),
+  },
   {
     label: 'Reports', href: '/reports', expandable: true,
     icon: (
@@ -127,6 +141,33 @@ const navItems: NavItem[] = [
   },
 ];
 
+/**
+ * Every navigable leaf href — top-level (non-expandable) items plus every
+ * submenu child. The active nav item is the leaf whose href is the *longest*
+ * prefix of the current path. This guarantees a single highlight: on
+ * `/admin/auctions-data-center/reserve-bids` the "Reserved Bids (EB)" leaf
+ * (len 40) wins over the "Auctions Data Center" submenu child (len 27), so the
+ * page item and the submenu entry never light up together (SHELL-P1, ruling 3).
+ */
+function collectLeafHrefs(): string[] {
+  const leaves: string[] = [];
+  for (const item of navItems) {
+    if (item.expandable && item.children && item.children.length > 0) {
+      for (const child of item.children) leaves.push(child.href);
+    } else {
+      leaves.push(item.href);
+    }
+  }
+  return leaves;
+}
+
+function computeActiveHref(pathname: string): string | null {
+  const matches = collectLeafHrefs()
+    .filter((href) => pathname === href || pathname.startsWith(href + '/'))
+    .sort((a, b) => b.length - a.length);
+  return matches[0] ?? null;
+}
+
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -134,25 +175,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // real user from localStorage only after mount to avoid hydration mismatch.
   const [user, setUser] = useState<AuthUser | null>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  // Sidebar sections start collapsed and open only on explicit click (ruling 3).
+  // No auto-expand from the current path.
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(() => new Set());
+  // Whole-sidebar collapse — mirrors the legacy chrome's top-of-sidebar toggle.
+  // Session-only (no persistence) to keep SSR hydration simple.
+  const [collapsed, setCollapsed] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setUser(getAuthUser());
   }, []);
 
-  // Auto-expand menus whose children or parent href match the current path
-  useEffect(() => {
-    navItems.forEach(item => {
-      if (item.expandable && item.children) {
-        const match = item.children.some(child => pathname.startsWith(child.href))
-          || pathname.startsWith(item.href);
-        if (match) {
-          setExpandedMenus(prev => new Set(prev).add(item.label));
-        }
-      }
-    });
-  }, [pathname]);
+  const activeHref = computeActiveHref(pathname);
 
   function toggleMenu(label: string) {
     setExpandedMenus(prev => {
@@ -174,10 +209,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Mendix SNP_UserInfoDisplay: display name = FullName || Name
-  const displayName = user?.fullName || user?.email || 'User';
-  const initials = user?.initials || displayName.slice(0, 2).toUpperCase();
-
   const handleLogout = async () => {
     try {
       await apiFetch(`${API_BASE}/auth/logout`, { method: 'POST' });
@@ -192,24 +223,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <div className={styles.dashboardContainer}>
       {/* Sidebar */}
-      <aside className={styles.sidebar}>
+      <aside className={`${styles.sidebar} ${collapsed ? styles.sidebarCollapsed : ''}`}>
+        {/* Legacy chrome: a collapse toggle sits at the top of the sidebar
+            (no logo — the logo lives in the content area, ruling 2). */}
         <div className={styles.sidebarHeader}>
-          <Image src="/images/ecoatm_logo.svg" alt="ecoATM" width={120} height={28} />
+          <SidebarToggle collapsed={collapsed} onToggle={() => setCollapsed(prev => !prev)} />
         </div>
         <nav className={styles.sidebarNav}>
           {navItems.map((item) => {
             const hasChildren = item.expandable && item.children && item.children.length > 0;
-            const isExpanded = expandedMenus.has(item.label);
-            const isActive = hasChildren
-              ? item.children!.some(c => pathname.startsWith(c.href))
-              : pathname.startsWith(item.href);
+            const isExpanded = !collapsed && expandedMenus.has(item.label);
+            // Only leaf items highlight, and only the single longest-prefix match.
+            const isActive = !hasChildren && item.href === activeHref;
 
             if (hasChildren) {
               return (
                 <div key={item.label}>
                   <button
-                    className={`${styles.navItem} ${styles.navItemButton} ${isActive ? styles.navItemActive : ''}`}
+                    className={`${styles.navItem} ${styles.navItemButton}`}
                     onClick={() => toggleMenu(item.label)}
+                    aria-expanded={isExpanded}
+                    title={collapsed ? item.label : undefined}
                   >
                     <span className={styles.navIcon}>{item.icon}</span>
                     <span className={styles.navLabel}>{item.label}</span>
@@ -223,7 +257,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <Link
                           key={child.href}
                           href={child.href}
-                          className={`${styles.subMenuItem} ${pathname.startsWith(child.href) ? styles.subMenuItemActive : ''}`}
+                          className={`${styles.subMenuItem} ${child.href === activeHref ? styles.subMenuItemActive : ''}`}
                         >
                           {child.label}
                         </Link>
@@ -239,6 +273,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 key={item.href + item.label}
                 href={item.href}
                 className={`${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+                title={collapsed ? item.label : undefined}
               >
                 <span className={styles.navIcon}>{item.icon}</span>
                 <span className={styles.navLabel}>{item.label}</span>
@@ -255,21 +290,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <div className={styles.mainArea}>
-        {/* Top bar — SNP_UserInfoDisplay: username + initials circle + dropdown */}
+        {/* Top chrome — legacy parity (ruling 2): the ecoATM DIRECT logo sits in
+            the content area top-left; a green status dot sits top-right. No
+            white bar. The dot doubles as the (click-to-open) user menu so
+            logout stays reachable — legacy shows no name/initials for admins. */}
         <header className={styles.topBar}>
+          <div className={styles.topBarLogo}>
+            <Image src="/images/ecoatm-direct-logo.png" alt="ecoATM DIRECT" width={119} height={46} priority />
+          </div>
           <div className={styles.topBarRight} ref={dropdownRef}>
-            <span className={styles.userName}>{displayName}</span>
             <button
-              className={styles.userIconWrapper}
+              className={styles.statusDot}
               onClick={() => setDropdownOpen(prev => !prev)}
-              aria-label="User menu"
-            >
-              <span className={styles.userIcon}>{initials}</span>
-            </button>
+              aria-label={user ? `User menu for ${user.fullName || user.email}` : 'User menu'}
+              aria-haspopup="true"
+              aria-expanded={dropdownOpen}
+            />
 
-            {/* Mendix: .usericon_settings_dropdown — appears on hover/focus */}
+            {/* Mendix: .usericon_settings_dropdown — appears on click */}
             {dropdownOpen && (
-              <div className={styles.userDropdown}>
+              <div className={styles.userDropdown} role="menu">
                 <button className={styles.userDropdownItem} onClick={() => { setDropdownOpen(false); router.push('/pws/order'); }}>
                   Switch to Premium
                 </button>
