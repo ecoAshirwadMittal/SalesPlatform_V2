@@ -447,3 +447,96 @@ the harness's same-Chromium-both-sides compare, and the CSS is already faithful:
   **gone**; remaining red is glyph-edge AA (expected, environmental) + the two
   ≤1px residuals in §3. Final `reg-cli` sign-off belongs to the orchestrator's
   same-Chromium harness.
+
+---
+
+# Pass 4 (2026-07-12) — convergence UNDER the harness rasterization (final)
+
+Pass 3 signed off "matched" on text bands the harness still flagged as **solid
+double-strike**, because pass 1–3 measured a **default-args** headless render.
+The harness rasterizes with `--force-color-profile=srgb --disable-lcd-text
+--font-render-hinting=none --hide-scrollbars` and context `{deviceScaleFactor:1,
+1920×1080, colorScheme:light, reducedMotion:reduce, en-US, America/New_York}`
+(`tools/parity/playwright.parity.config.ts`). Hinting/AA settings shift glyph
+placement by ~1px, so pass-3's "dX 0–1" was measured against the wrong raster.
+
+## 0. Method — the render IS the harness, proven
+
+Pass 4 renders the build with a standalone `@playwright/test` (the *same pinned
+1.59.1* the harness uses) launched with the **exact** harness args + context, on
+a throwaway `next dev -p 13000` (webpack — Turbopack rejects the cross-worktree
+`node_modules` junction; CSS-module output is pixel-identical either way). The
+main `:3000/:8080/:8082` were never touched.
+
+**Proof the loop is faithful:** the pass-4 baseline render is **pixel-identical
+to the harness's own `out/new/auth-login__default.png`** — `MYnew_vs_GTnew = 0`
+diff px at tol 24 across the whole frame. So every number below is measured
+against the true harness ground truth, not a proxy.
+
+## 1. Root causes (all PIL-measured off the harness legacy PNG, sub-pixel cross-correlation)
+
+| # | Symptom (harness overlay) | Measured | Was | Fix (login.module.css only) |
+|---|---|---|---|---|
+| 1 | "Remember me?" + "Forgot Password?" **solid** double-strike | both text runs **1.0px too HIGH** (vertical, not the estimated horizontal; `dy=+1.00`/`+1.05`). The checkbox beside them is **pixel-aligned** (`dcy=0.01`), so the row must NOT move — only the text | `.actions` centred both | `.checkboxLabel` + `.forgotPassword` each `position:relative; top:1px` (nudge the two text runs down, leave the matched checkbox) |
+| 2 | "Login"/"Employee Login"/"Contact Us" solid ghosting | labels **0.30–0.44px right** of legacy; the **pill boxes match exactly** (`dCenter +0.00`). Not a centring-method artefact (tested `text-align:center` — identical sub-pixel placement, and it perturbed vertical) — a Mendix-vs-React centred-text rounding bias | flex `justify-content:center` | `text-indent` shifts the centred label WITHOUT moving the pill: `.loginbutton` `-0.7px` (Login+Contact land `dx +0.05`), `.loginbuttonemployee` `-0.5px` (`dx −0.05`) |
+| 3 | Card top-left corner white arc | brightest NEW pixel `(150,166,164)` = the `.leftSide` **`#fff`** bg AA-blended with the gradient at the rounded-corner clip seam; legacy's corner is the dark photo edge | `#fff` | `.leftSide` bg `#fff → #5a6464` (photo's dark TL edge; the opaque photo covers everywhere but the ~1px seam, and the pink BL corner covers its own seam) |
+| 4 | Bottom-left corner arc | legacy BL photo arc detectable at **y724** (≈13px radius); pass-3's 17px arc started at y721 (~3px too round). TL is genuinely 17px (13px regressed it) — legacy left corners are **asymmetric** | `17px…17px` | card `border-radius: 17px 22px 22px 13px` (BL tightened; TL unchanged) |
+| 5 | Eye icon | `dx −0.50`; `right:10/10.5/11px` all land ~83px (the icon straddles the pixel grid at every position — inline-`svg` vs legacy raster AA) — **genuine AA floor** | — | left at `right:10px` (no gain from moving it) |
+
+## 2. Per-item before → after, measured under harness rasterization (tol 24, `legacy_vs_new`)
+
+| Region | Pass 3 (baseline = harness GT) | Pass 4 | Δ | Solid (tol 60) after |
+|---|---|---|---|---|
+| Remember me? / Forgot Password? | **1063** | **0** | −1063 | 0 |
+| "Login" pill label | 151 | 28 | −123 | **0** |
+| "Employee Login" label | 332 | 88 | −244 | **0** |
+| "Contact Us" label | 280 | 42 | −238 | **0** |
+| Eye icon | 83 | 83 | 0 | 26 (AA floor) |
+| Card top-left corner | 23 | **4** | −19 | 0 |
+| Card bottom-left corner | 61 | 35 | −26 | 25 (photo-bottom overlap) |
+| Photo bottom edge (1px line) | 402 | 387 | −15 | 334 |
+| **Full frame** | **2743** | **1030** | **−1663 (−61%)** | 361 |
+
+Sub-pixel confirmation post-fix: remember/forgot `dy 0.00`; login/contact `dx
++0.05`; employee `dx −0.05`; BL arc detectable at y724=y725 both sides.
+
+## 3. Residuals left faithful (measured, not chased)
+
+1. **Photo bottom 1px line (334px solid).** Legacy's photo column overflows the
+   card bottom by 1px (legacy photo edge **y733**, cream edge **y732**); the new
+   photo stops at the card's `overflow:hidden` clip (y732). Every clean route to
+   y733 has a worse side effect — a 610px card drops the *cream* bottom to y733
+   (legacy cream is y732) and shifts the footer; `overflow-clip-margin`/negative
+   `clip-path` inset bleed cream on the top/right or shove the BR corner down 1px.
+   It is a Mendix fractional inter-column-height quirk, left as the single
+   dominant residual (the pass-3 "faithful 609px" call, now quantified).
+2. **Photo-body resampling speckle (~350px, tol 24; ~0 at tol 60).** Mendix vs
+   Next/Chromium image resampling of the *same* asset — inherent, environmental,
+   not CSS-addressable (same class pass 2 noted).
+3. **Eye icon 26px + button labels ~158px (all tol-60-near-zero / AA).** Labels
+   now sit at `dx ≈ ±0.05` (sub-pixel-perfect); the residue is high-contrast
+   edge AA, not placement. Eye straddles the pixel grid at every `right` value.
+
+Net: **every "solid double-strike" the mission flagged (text row + all three
+button labels) is eliminated** (0 solid px at tol 60); the TL white sliver is
+gone and the BL arc matches. The 361 remaining solid px are ~99% the one 1px
+photo-overflow line.
+
+## 4. Files changed in pass 4
+
+| File | Change |
+|---|---|
+| `src/app/(auth)/login/login.module.css` | `.checkboxLabel`/`.forgotPassword` `position:relative; top:1px` (root cause 1); `.loginbutton` `text-indent:-0.7px` + `.loginbuttonemployee` `text-indent:-0.5px` (2); `.leftSide` bg `#fff→#5a6464` (3); card `border-radius` BL `17px→13px` (4). **6 declarations; `LoginForm.tsx` untouched.** |
+
+## 5. Verification
+
+- **`npx tsc --noEmit`:** 31 errors, **all pre-existing** in
+  `admin-purchase-orders.spec.ts` / `wholesale-submit-bids.spec.ts` — none in a
+  login file (pass 4 touches only the CSS module, zero TS surface).
+- **Harness-faithful render loop** (`next dev -p 13000` webpack, standalone
+  `@playwright/test` 1.59.1 with the exact harness launch args + context;
+  `:3000/:8080/:8082` untouched): the baseline render `== out/new/…png` at 0 diff
+  px (loop-fidelity proof), then every fix band-profiled to the numbers above.
+- Final `reg-cli` sign-off belongs to the orchestrator's harness (same pinned
+  Chromium both sides — expected to land at/under the local 361 solid px, itself
+  ~all the 1px photo-overflow line).

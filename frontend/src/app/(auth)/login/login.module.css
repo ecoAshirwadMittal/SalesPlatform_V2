@@ -32,7 +32,11 @@
    to the same left radius as the photo). PASS 3. */
 .loginCard {
   background-color: var(--color-surface-cream);
-  border-radius: 17px 22px 22px 17px;
+  /* TL TR BR BL. PASS 4: bottom-left tightened 17px → 13px. The harness legacy
+     BL photo arc becomes detectable at y724 (≈13px radius); the pass-3 17px arc
+     started curving at y721 (~3px too tall/round). Top-left stays 17px (its arc
+     already matches to 4px after the corner-seam colour fix above). */
+  border-radius: 17px 22px 22px 13px;
   width: 900px;
   height: 609px;
   margin: 100px 0 10px;
@@ -49,8 +53,15 @@
   min-width: 0;
   position: relative;
   overflow: hidden;
-  /* Plain white behind the hero photo — not a brand color, no token needed */
-  background-color: #fff;
+  /* PASS 4: was #fff, which AA-blended with the teal gradient at the card's
+     rounded top-left corner into a bright (150,166,164) crescent the legacy
+     capture doesn't have (legacy's corner is the dark photo edge). The opaque
+     hero photo covers this pane everywhere EXCEPT the ~1px rounded-corner clip
+     seam, so this colour only ever shows in that seam. Setting it to the photo's
+     dark top-left edge colour makes the seam read as photo→gradient (legacy),
+     not white→gradient. The pink bottom-left corner already covers its seam, so
+     this is invisible there. */
+  background-color: #5a6464;
 }
 
 .leftImage {
@@ -248,20 +259,30 @@
   outline-offset: 2px;
 }
 
-/* Legacy .remember-me-text: Founders 400, 16px, line-height 100%, #1C1B1C. */
+/* Legacy .remember-me-text: Founders 400, 16px, line-height 100%, #1C1B1C.
+   PASS 4: the label glyphs render 1.0px too HIGH vs the harness legacy capture
+   (sub-pixel cross-correlation dy=+1.00; the checkbox box beside it is pixel-
+   aligned, so the whole row must NOT move — only the text). A 1px relative nudge
+   down realigns the baseline without disturbing the matched checkbox. */
 .checkboxLabel {
   font-size: 16px;
   line-height: 1;
   color: #1C1B1C;
+  position: relative;
+  top: 1px;
 }
 
-/* Legacy .forgotpassword: Founders 500, 17px/22px, Sea Green #407874, no underline. */
+/* Legacy .forgotpassword: Founders 500, 17px/22px, Sea Green #407874, no underline.
+   PASS 4: same 1px-too-high baseline as the Remember-me label (dy=+1.05); nudged
+   down 1px to land on the harness legacy ink. */
 .forgotPassword {
   font-size: 17px;
   line-height: 22px;
   color: var(--color-brand-teal);
   text-decoration: none;
   font-weight: 500;
+  position: relative;
+  top: 1px;
 }
 
 .forgotPassword:hover {
@@ -287,6 +308,9 @@
   background-color: #102E33;
   border: none;
   cursor: pointer;
+  /* PASS 4 probe: label sits ~0.35px right of legacy; text-indent shifts the
+     centred label by indent/2 without moving the (already-matched) pill box. */
+  text-indent: -0.7px;
   margin-top: 13px; /* legacy container8 spacing-outer-top-medium */
   /* Measured: legacy pills sit at x 1063..1312 — 3px right of the pane's
      geometric center (Mendix .btn default side margin). 6px left margin in a
@@ -322,6 +346,9 @@
   background-color: var(--color-surface-cream);
   border: none;
   cursor: pointer;
+  /* PASS 4: same sub-pixel label-left nudge as .loginbutton (label sampled
+     ~0.30px right of legacy; text-indent shifts the centred label, not the box). */
+  text-indent: -0.5px;
   margin-top: 13px;
   margin-bottom: 5px;
   margin-left: 6px; /* same +3px center shift as .loginbutton (measured) */
