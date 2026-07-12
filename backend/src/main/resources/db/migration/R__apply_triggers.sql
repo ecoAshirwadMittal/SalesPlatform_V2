@@ -82,10 +82,9 @@ BEGIN
         ('mdm', 'price_history'),
         -- integration schema
         ('integration', 'oracle_config'),
-        ('integration', 'deposco_config'),
-        -- email schema
-        ('email', 'smtp_config'),
-        ('email', 'email_template')
+        ('integration', 'deposco_config')
+        -- V92's email tables (smtp_config / template / log) carry changed_date
+        -- stamped by the application services, not updated_date — no trigger.
     LOOP
         EXECUTE format(
             'DROP TRIGGER IF EXISTS trg_update_updated_date ON %I.%I;
