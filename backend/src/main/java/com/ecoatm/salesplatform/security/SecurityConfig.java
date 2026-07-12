@@ -139,6 +139,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/pws/offers/**").hasAnyRole("Bidder", "Administrator")
                 .requestMatchers("/api/v1/pws/counter-offers/**").hasAnyRole("Bidder", "Administrator")
                 .requestMatchers("/api/v1/pws/orders/**").hasAnyRole("Bidder", "Administrator")
+                // RMA Oracle resubmit — internal review recovery action only (no
+                // Bidder). Narrows the broader /api/v1/pws/rma/** rule below and
+                // MUST precede it (first-match-wins), or a Bidder would be admitted
+                // by the broad rule. Mirrored by method-level @PreAuthorize on
+                // RmaController#resubmitOracle (defense-in-depth). RMA #3 Task B0.
+                .requestMatchers(HttpMethod.POST, "/api/v1/pws/rma/*/resubmit-oracle")
+                    .hasAnyRole("Administrator", "SalesOps", "SalesRep")
                 // RMA surface — buyer submit/view-own + internal review. The
                 // review/mutation actions are further narrowed to internal roles by
                 // method-level @PreAuthorize on the controller (CR-3/C6).
