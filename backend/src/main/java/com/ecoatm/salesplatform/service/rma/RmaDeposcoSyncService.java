@@ -100,8 +100,21 @@ public class RmaDeposcoSyncService {
 
     /**
      * Polls Deposco for every candidate RMA and advances the ones Deposco
-     * reports as received. Each advance is persisted independently, so one bad
-     * row can never roll back the rest of the batch.
+     * reports as received.
+     *
+     * <p>Each RMA is handled in isolation: any exception thrown while polling or
+     * advancing a single RMA (e.g. a real HTTP {@link DeposcoRmaClient} failing
+     * on one order) is caught, logged at WARN, and the loop continues to the
+     * next candidate. This matters because candidates are ordered
+     * {@code createdDate ASC} — without per-row isolation, one persistently
+     * failing old RMA would abort the whole tick and block every newer RMA
+     * behind it on every run. Mirrors {@code EmailRetryWorker.retryFailedRows}.
+     *
+     * <p>Separately, each advance is persisted in its own transaction (this
+     * method is not {@code @Transactional}), so a later failure also cannot roll
+     * back rows already advanced this tick — but that transaction isolation is
+     * distinct from, and not a substitute for, the per-row exception isolation
+     * above.
      *
      * @return the number of RMAs advanced to {@code Received} this run
      */
@@ -113,10 +126,17 @@ public class RmaDeposcoSyncService {
             if (!isPollable(rma)) {
                 continue;
             }
-            Optional<DeposcoRmaStatus> reported = deposcoRmaClient.fetchStatus(rma.getOracleNumber());
-            if (reportsReceived(reported)) {
-                advanceToReceived(rma);
-                advanced++;
+            try {
+                Optional<DeposcoRmaStatus> reported = deposcoRmaClient.fetchStatus(rma.getOracleNumber());
+                if (reportsReceived(reported)) {
+                    advanceToReceived(rma);
+                    advanced++;
+                }
+            } catch (Exception ex) {
+                // Isolate the failing RMA so the rest of the batch still runs —
+                // number + Oracle order number are business identifiers (no PII).
+                log.warn("[{}] Deposco sync failed for RMA {} (oracle {}) — skipping to next candidate",
+                        JOB_NAME, rma.getNumber(), rma.getOracleNumber(), ex);
             }
         }
         log.info("[{}] polled {} candidate RMA(s), advanced {} to {} (startedAt={})",

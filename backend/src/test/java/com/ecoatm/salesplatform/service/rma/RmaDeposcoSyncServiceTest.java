@@ -177,6 +177,36 @@ class RmaDeposcoSyncServiceTest {
     }
 
     @Test
+    @DisplayName("a client exception on one RMA is isolated — the batch continues and later RMAs still advance")
+    void sync_clientThrowsOnOneRow_batchContinuesAndExceptionSwallowed() {
+        // I-1: a real HTTP DeposcoRmaClient can throw on a single RMA. Because
+        // candidates are ordered createdDate ASC, an unguarded throw on the oldest
+        // failing RMA would abort the whole tick and block every newer RMA behind
+        // it forever. The per-row try/catch must swallow the throw, log it, and
+        // continue so later RMAs still advance.
+        Rma throwsOnPoll = rma(11L, "ORD-11", "Receiving");
+        Rma advances = rma(12L, "ORD-12", "Receiving");
+        RmaStatus received = status("Received");
+        when(rmaRepository.findPollableForDeposcoSync(any()))
+                .thenReturn(List.of(throwsOnPoll, advances));
+        when(deposcoRmaClient.fetchStatus("ORD-11"))
+                .thenThrow(new RuntimeException("Deposco HTTP 503"));
+        when(deposcoRmaClient.fetchStatus("ORD-12"))
+                .thenReturn(Optional.of(new DeposcoRmaStatus("Received")));
+        when(rmaStatusRepository.findBySystemStatus("Received")).thenReturn(Optional.of(received));
+
+        // Must NOT propagate the row-1 exception out of sync().
+        int advanced = enabledService().sync();
+
+        assertThat(advanced).isEqualTo(1);
+        assertThat(advances.getSystemStatus()).isEqualTo("Received");
+        verify(deposcoRmaClient).fetchStatus("ORD-11");
+        verify(deposcoRmaClient).fetchStatus("ORD-12");
+        verify(rmaRepository).save(advances);
+        verify(rmaRepository, never()).save(throwsOnPoll);
+    }
+
+    @Test
     @DisplayName("scheduled entry point short-circuits when the toggle is disabled")
     void pollDeposco_disabled_shortCircuits() {
         RmaDeposcoSyncService disabled = new RmaDeposcoSyncService(
