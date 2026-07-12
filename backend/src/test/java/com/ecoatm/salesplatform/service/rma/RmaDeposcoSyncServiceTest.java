@@ -37,8 +37,11 @@ import static org.mockito.Mockito.when;
  * ({@link RmaRepository}, {@link RmaStatusRepository}, {@link DeposcoRmaClient})
  * and injects a fixed {@link Clock} so the job is deterministic. Covers the
  * job's orchestration only — the finder's real SQL filtering (Oracle-number
- * present + non-terminal status via the {@code rma_status} join) is a repository
- * concern proven against real Postgres, not here.
+ * present + non-terminal status via the {@code rma_status} join, plus the
+ * {@code JOIN FETCH} that lets the caller read the status after the persistence
+ * context closes with open-in-view off) is a repository concern proven against
+ * real Postgres by
+ * {@link com.ecoatm.salesplatform.repository.pws.RmaRepositoryIT}, not here.
  */
 @ExtendWith(MockitoExtension.class)
 class RmaDeposcoSyncServiceTest {
