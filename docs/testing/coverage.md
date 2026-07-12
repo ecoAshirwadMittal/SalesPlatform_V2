@@ -465,3 +465,27 @@ Sales-rep CRUD sweep: **18/18 green** (`SalesRepServiceTest` 9 +
 context against the shared dev Postgres (pg-test profile, which already sets
 `validate-on-migrate=false` + `baseline-on-migrate=true` for the checksum
 drift). No new migration (table exists since V8/V18); no Snowflake push.
+
+---
+
+## shell.legacy-parity (new 2026-07-12 · SHELL-P1 / BDD-P2 / BDD-P3)
+Frontend RTL for the rebuilt app-shell chrome (logo-in-content + green dot,
+Credit Requests nav on both shells, single-highlight admin nav, in-content
+Switch-Buyer-Code card). Load-bearing: the switch-code control moving out of
+the chrome into the new card, and the card keeping the "Switch Buyer Code"
+accessible name (so the bidder-shell e2e still finds it).
+
+| Surface | Key tests |
+|---|---|
+| `BuyerPortalChrome` (logo + identity only) | `BuyerPortalChrome.test.tsx` (5, rewritten) — renders the ecoATM DIRECT logo + initials + full name; asserts **no** "Switch Buyer Code" control in the chrome (moved to the card); avatar popover shows exactly the passed items |
+| `SwitchBuyerCodeCard` (in-content, BDD-P3) | `SwitchBuyerCodeCard.test.tsx` (4, new) — renders buyer name + CODE; the label is a button with accessible name `"Switch Buyer Code"`; `onSwitch` fires on click; renders nothing when `activeBuyerCode` is null |
+| Bidder shell semantic e2e | `wholesale-bidder-shell.spec.ts` — added `sidebar-item-credit-requests` visibility (BDD-P2) to the expanded-default + semantic-structure tests; corrected the "top-bar chrome" comments (switch control is now in-content) |
+
+Targeted `npx vitest run src/components/chrome src/components/bidder`: **28/28
+green** (6 files). Full frontend suite: **286/288, 32/33 files** — the only 2
+failures are the pre-existing, unrelated `apiFetch-guard.test.ts` cases
+(violation list is all `lib/*` files; none touched here). `npx tsc --noEmit`:
+0 errors in touched files (31 pre-existing errors in unrelated files remain).
+No Playwright `toHaveScreenshot` baseline is invalidated — all pixel-compare
+tests are `test.fixme` and no `*-snapshots/` baselines are committed
+(`docs/tasks/parity/impl/shell-legacy-parity.md` §4).

@@ -37,6 +37,7 @@ import { Suspense, useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SidebarProvider } from '@/components/chrome/SidebarContext';
 import BuyerPortalChrome from '@/components/chrome/BuyerPortalChrome';
+import SwitchBuyerCodeCard from '@/components/chrome/SwitchBuyerCodeCard';
 import BidderSidebar from '@/components/bidder/BidderSidebar';
 import { useActiveBuyerCode } from '@/hooks/useActiveBuyerCode';
 import { getAuthUser, type AuthUser } from '@/lib/session';
@@ -116,17 +117,18 @@ function BidderShellInner({ children }: { children: React.ReactNode }) {
       {/* Gradient sidebar */}
       <BidderSidebar />
 
-      {/* Main content area: top-bar + page content */}
+      {/* Main content area: chrome band + page content */}
       <div className={styles.shellMain}>
         <BuyerPortalChrome
-          activeBuyerCode={active}
           user={authUser}
-          onSwitchBuyerCode={handleSwitchBuyerCode}
           avatarPopoverItems={avatarPopoverItems}
         />
 
-        {/* Page content rendered below the chrome top-bar */}
+        {/* Page content rendered below the chrome band. The in-content
+            Switch-Buyer-Code card sits at the top of the content (legacy
+            parity — BDD-P3), above the page's own content. */}
         <main className={styles.shellContent}>
+          <SwitchBuyerCodeCard activeBuyerCode={active} onSwitch={handleSwitchBuyerCode} />
           {children}
         </main>
       </div>

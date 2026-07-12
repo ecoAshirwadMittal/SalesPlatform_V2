@@ -38,6 +38,31 @@ export function GavelIcon({ 'aria-hidden': ariaHidden = true }: IconProps) {
   );
 }
 
+/**
+ * Reply / return-arrow icon — used for the Credit Requests nav item.
+ * Mirrors the legacy Mendix "Credit Requests" glyph (a curved return arrow),
+ * rendered as a plain stroke icon to match the sibling nav items' style.
+ */
+export function CreditRequestIcon({ 'aria-hidden': ariaHidden = true }: IconProps) {
+  return (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden={ariaHidden}
+      focusable="false"
+    >
+      <polyline points="9 10 4 15 9 20" />
+      <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+    </svg>
+  );
+}
+
 /** Open book icon — used for the Buyer User Guide nav item. */
 export function BookIcon({ 'aria-hidden': ariaHidden = true }: IconProps) {
   return (

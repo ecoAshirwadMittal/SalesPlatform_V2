@@ -5,6 +5,86 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-07-12 — Shell chrome matches legacy exactly (supersedes token-brief divergences)
+
+**Status:** Accepted (user ruling, parity program H1).
+
+**Context:** The H1 A/B parity harness surfaced four app-shell deltas that
+multiply into every admin and buyer page (findings **SHELL-P1**, **BDD-P2**,
+**BDD-P3** in `docs/tasks/parity/findings.md`). Earlier audits had recorded
+some of these as *intentional* divergences under an informal "token brief"
+(most explicitly the **2026-05-08 Reserve Bids ADR** above — RB-26 "expose
+user identity in the top bar" and RB-25 "collapsible Admin section"). On
+2026-07-12 the user reviewed the legacy captures and **ruled that the shell
+must match the legacy Mendix chrome exactly**, superseding those divergences.
+
+**Decision (all four, per the user):**
+
+1. **Credit Requests nav item — add to both shells.** Admin sidebar: a "Credit
+   Requests" item between "Auction" and "Reports" → `/admin/auctions-data-center/partial-credit`.
+   Buyer (auction) sidebar: between "Auction" and "Buyer User Guide" →
+   `/wholesale/partial-credit`. Legacy label + a reply/return-arrow glyph
+   (rendered plain, matching the new app's sibling icon style — the
+   circle-vs-plain icon treatment is a pre-existing systemic delta outside
+   this ruling).
+
+2. **Top bar — match legacy; remove the white bar.** The ecoATM DIRECT logo
+   moves into the content area top-left (was a white "ecoATM" ghost wordmark in
+   the sidebar header). Top-right shows a **green status dot** (28px, `#14AC36`).
+   The admin shell shows **no name/initials** (legacy renders only the dot —
+   confirmed from the evidence capture); the dot stays click-to-open so Logout
+   remains reachable. The buyer shell shows the **person's full name + a green
+   initials avatar** (`#14AC36` fill, white initials). **This explicitly
+   supersedes the 2026-05-08 ADR's RB-26** ("Local exposes user identity … QA
+   renders only a status indicator … we keep the divergence").
+
+3. **Admin sidebar section — collapsed + single highlight.** "Admin"/"Reports"/
+   "Settings" are collapsed by default and expand only on click (the prior
+   auto-expand-on-path behaviour is removed). The active highlight is a
+   **single** item — the longest-prefix leaf match — so a page item and its
+   submenu entry never light up together (e.g. on
+   `/admin/auctions-data-center/reserve-bids` only "Reserved Bids (EB)"
+   highlights, not the "Auctions Data Center" submenu child). This **amends the
+   2026-05-08 ADR's RB-25**: the collapsible Admin section is *kept*, but its
+   default-expanded + double-highlight behaviour is corrected.
+
+4. **Switch-Buyer-Code widget — in-content card.** The top-bar pill is removed;
+   a "Switch Buyer Code" block renders in-content below the chrome band —
+   the label ("Switch" in brand green `#14AC36`, "Buyer Code" in body dark
+   `#3C3C3C`) over a bordered card (`#D0D0D0`, no fill, empty left cell +
+   divider) showing the buyer name small over the CODE large. The logged-in
+   user's real display name still renders wherever identity appears (the test
+   accounts differing per side — nadia vs bidder — is a harness masking
+   concern, not a product one).
+
+**Implementation seams (shell-only):** admin shell `(dashboard)/layout.tsx` +
+`dashboard.module.css`; buyer auction shell `BidderSidebar` +
+`BuyerPortalChrome` + new `SwitchBuyerCodeCard` + `chrome.module.css`;
+new logo asset `public/images/ecoatm-direct-logo.png` (extracted from the
+legacy DPR-1 capture — the two-tone "ecoATM DIRECT" asset is not reachable via
+an unauthenticated GET on `:8082`). The sibling **PWS** buyer shell
+(`app/pws/layout.tsx`) has an independent dark-top-bar chrome validated against
+a different QA surface and is **out of scope** (no parity evidence for it).
+
+**Consequences:**
+
+- Future parity audits reference this ADR; RB-26 is superseded and RB-25 is
+  amended (both from the 2026-05-08 entry). The token-brief "intentional
+  divergences" for top-bar identity, admin sub-nav highlight, and logo
+  placement no longer apply.
+- Playwright `toHaveScreenshot` baselines that captured the old chrome are
+  invalidated — they must be regenerated on the harness OS (not this Windows
+  box); listed in `docs/tasks/parity/impl/shell-legacy-parity.md`.
+- The logo ships as a raster PNG (exact legacy pixels at DPR 1). If a crisp
+  vector "ecoATM DIRECT" asset is obtained later, swap it in.
+
+**References:**
+- Findings: `docs/tasks/parity/findings.md` (SHELL-P1, BDD-P2, BDD-P3)
+- Impl doc: `docs/tasks/parity/impl/shell-legacy-parity.md`
+- Superseded/amended: 2026-05-08 Reserve Bids ADR (RB-25, RB-26) below
+
+---
+
 ## ADR — Reserve Bids: intentional divergences from QA Mendix (2026-05-08)
 
 **Status:** Accepted.
@@ -34,7 +114,6 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
-<<<<<<< HEAD
 ## ADR — Sub-project 5b: R2/R3 row visibility correctness (2026-05-07)
 
 **Status:** Accepted

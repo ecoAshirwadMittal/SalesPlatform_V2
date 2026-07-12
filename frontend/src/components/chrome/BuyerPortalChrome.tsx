@@ -1,34 +1,25 @@
 'use client';
 
 /**
- * BuyerPortalChrome — shared top-bar for all buyer portal shells.
+ * BuyerPortalChrome — shared top chrome for the buyer portal shells.
  *
- * Three regions (horizontal flex):
- *   LEFT  — ecoATM DIRECT logo
- *   MID   — "Switch Buyer Code" link + <BuyerCodeChip> (hidden when no active code)
- *   RIGHT — user full name + <UserAvatarPopover>
+ * Legacy parity (BDD-P3 / SHELL-P1, 2026-07-12): the chrome is a transparent
+ * band (no white bar, no border) holding two regions:
+ *   LEFT  — ecoATM DIRECT logo (content-area top-left)
+ *   RIGHT — logged-in person's full name + initials avatar
  *
- * When activeBuyerCode is null (e.g. during the picker flow), the middle
- * region is hidden. This keeps the chrome usable in a "logo-only" state
- * before a code is selected.
- *
- * QA reference: qa-03-bidder-dashboard-ad.png top bar.
+ * The "Switch Buyer Code" widget is NOT here — it moved to an in-content card
+ * rendered below this band (see <SwitchBuyerCodeCard>), matching legacy.
  */
 
 import Image from 'next/image';
-import type { ActiveBuyerCode } from '@/lib/activeBuyerCode';
 import type { AuthUser } from '@/lib/session';
-import BuyerCodeChip from './BuyerCodeChip';
 import UserAvatarPopover, { type AvatarMenuItem } from './UserAvatarPopover';
 import styles from './chrome.module.css';
 
 interface BuyerPortalChromeProps {
-  /** Currently active buyer code. null → middle region hidden (picker/logo-only state). */
-  activeBuyerCode: ActiveBuyerCode | null;
   /** Authenticated user — supplies full name + initials to the avatar. */
   user: AuthUser;
-  /** Click handler for the "Switch Buyer Code" link — typically router.push('/buyer-select'). */
-  onSwitchBuyerCode: () => void;
   /**
    * Items for the avatar popover. Auction shell passes:
    *   [{ label: 'Submit Feedback', onClick }, { label: 'Logout', onClick }]
@@ -38,9 +29,7 @@ interface BuyerPortalChromeProps {
 }
 
 export default function BuyerPortalChrome({
-  activeBuyerCode,
   user,
-  onSwitchBuyerCode,
   avatarPopoverItems,
 }: BuyerPortalChromeProps) {
   return (
@@ -48,32 +37,12 @@ export default function BuyerPortalChrome({
       {/* LEFT — ecoATM DIRECT logo */}
       <div className={styles.chromeLogo}>
         <Image
-          src="/images/ecoatm_logo.svg"
+          src="/images/ecoatm-direct-logo.png"
           alt="ecoATM DIRECT"
-          width={120}
-          height={28}
+          width={119}
+          height={46}
           priority
         />
-      </div>
-
-      {/* MID — Switch Buyer Code link + active code chip (hidden when no active code) */}
-      <div className={styles.chromeMid}>
-        {activeBuyerCode !== null && (
-          <>
-            <button
-              type="button"
-              className={styles.switchLink}
-              onClick={onSwitchBuyerCode}
-            >
-              Switch Buyer Code
-            </button>
-            <BuyerCodeChip
-              code={activeBuyerCode.code}
-              companyName={activeBuyerCode.buyerName}
-              variant="framed"
-            />
-          </>
-        )}
       </div>
 
       {/* RIGHT — user name + avatar popover */}
