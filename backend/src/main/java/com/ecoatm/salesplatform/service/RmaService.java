@@ -4,11 +4,16 @@ import com.ecoatm.salesplatform.dto.*;
 import com.ecoatm.salesplatform.model.mdm.Device;
 
 import java.math.BigDecimal;
+import com.ecoatm.salesplatform.model.pws.ImeiDetail;
+import com.ecoatm.salesplatform.model.pws.OfferItem;
+import com.ecoatm.salesplatform.model.pws.Order;
 import com.ecoatm.salesplatform.model.pws.Rma;
 import com.ecoatm.salesplatform.model.pws.RmaItem;
 import com.ecoatm.salesplatform.model.pws.RmaReason;
 import com.ecoatm.salesplatform.model.pws.RmaStatus;
 import com.ecoatm.salesplatform.repository.mdm.DeviceRepository;
+import com.ecoatm.salesplatform.repository.pws.ImeiDetailRepository;
+import com.ecoatm.salesplatform.repository.pws.OrderRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaItemRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaReasonRepository;
 import com.ecoatm.salesplatform.repository.pws.RmaRepository;
@@ -43,6 +48,8 @@ public class RmaService {
     private final RmaStatusRepository rmaStatusRepository;
     private final RmaReasonRepository rmaReasonRepository;
     private final DeviceRepository deviceRepository;
+    private final ImeiDetailRepository imeiDetailRepository;
+    private final OrderRepository orderRepository;
     private final BuyerCodeLookupService buyerCodeLookup;
 
     public RmaService(RmaRepository rmaRepository,
@@ -50,12 +57,16 @@ public class RmaService {
                       RmaStatusRepository rmaStatusRepository,
                       RmaReasonRepository rmaReasonRepository,
                       DeviceRepository deviceRepository,
+                      ImeiDetailRepository imeiDetailRepository,
+                      OrderRepository orderRepository,
                       BuyerCodeLookupService buyerCodeLookup) {
         this.rmaRepository = rmaRepository;
         this.rmaItemRepository = rmaItemRepository;
         this.rmaStatusRepository = rmaStatusRepository;
         this.rmaReasonRepository = rmaReasonRepository;
         this.deviceRepository = deviceRepository;
+        this.imeiDetailRepository = imeiDetailRepository;
+        this.orderRepository = orderRepository;
         this.buyerCodeLookup = buyerCodeLookup;
     }
 
@@ -301,6 +312,21 @@ public class RmaService {
             }
         }
 
+        // VAL_RMARequestFile: each uploaded IMEI/serial must match a shipped OfferItem
+        // owned by this buyer code. Build a lookup keyed by BOTH imei_number and
+        // serial_number so a row can match on either (the upload column is "IMEI/Serial").
+        Map<String, ImeiDetail> matchByValue = new HashMap<>();
+        if (!allImeis.isEmpty()) {
+            for (ImeiDetail detail : imeiDetailRepository.findMatchesForBuyer(allImeis, buyerCodeId)) {
+                if (detail.getImeiNumber() != null) {
+                    matchByValue.putIfAbsent(detail.getImeiNumber(), detail);
+                }
+                if (detail.getSerialNumber() != null) {
+                    matchByValue.putIfAbsent(detail.getSerialNumber(), detail);
+                }
+            }
+        }
+
         // Validate each row
         List<String> errors = new ArrayList<>();
         for (int i = 0; i < rows.size(); i++) {
@@ -322,6 +348,10 @@ public class RmaService {
             }
             if (duplicateImeis.contains(imei)) {
                 errors.add("Row " + rowNum + ": IMEI " + imei + " already exists in a pending RMA.");
+            }
+            if (!matchByValue.containsKey(imei)) {
+                errors.add("Row " + rowNum + ": IMEI " + imei
+                        + " does not match a shipped device for this buyer code.");
             }
             if (fileInternalDuplicates.contains(imei) && seenInFile.contains(imei)) {
                 // Only report once
@@ -356,25 +386,44 @@ public class RmaService {
         rma.setAllRmaItemsValid(true);
         rma = rmaRepository.save(rma);
 
-        // Create RMA items
+        // Create RMA items, copying device / order / sale price from the matched OfferItem
+        // (VAL_RMARequestFile: RMAItem_Device, RMAItem_Order, ShipDate, OrderNumber,
+        // SalePrice = OfferItem/FinalOfferPrice).
         Set<Long> uniqueDeviceIds = new HashSet<>();
-        int totalSalesPrice = 0;
+        BigDecimal salesTotal = BigDecimal.ZERO;
 
         for (String[] row : rows) {
             String imei = row[0].trim();
             String reason = row[1].trim();
+            OfferItem offerItem = matchByValue.get(imei).getOfferItem();
 
             RmaItem item = new RmaItem();
             item.setRma(rma);
             item.setImei(imei);
             item.setReturnReason(reason);
+            item.setDeviceId(offerItem.getDeviceId());
+            BigDecimal salePrice = offerItem.getFinalOfferPrice();
+            item.setSalePrice(salePrice);
+            resolveOrder(offerItem).ifPresent(order -> {
+                item.setOrderId(order.getId());
+                item.setOrderNumber(order.getOrderNumber());
+                item.setShipDate(order.getShipDate());
+            });
             rmaItemRepository.save(item);
+
+            if (offerItem.getDeviceId() != null) {
+                uniqueDeviceIds.add(offerItem.getDeviceId());
+            }
+            if (salePrice != null) {
+                salesTotal = salesTotal.add(salePrice);
+            }
         }
 
-        // Calculate summary: requestSkus = unique device count, requestQty = total items, requestSalesTotal
+        // Roll-ups: requestSkus = distinct device count, requestQty = total items,
+        // requestSalesTotal = sum of matched OfferItem sale prices.
         rma.setRequestQty(rows.size());
-        rma.setRequestSkus(rows.size()); // Each IMEI is unique, so skus = qty for IMEI-based RMAs
-        rma.setRequestSalesTotal(BigDecimal.ZERO); // Will be populated when devices are matched
+        rma.setRequestSkus(uniqueDeviceIds.size());
+        rma.setRequestSalesTotal(salesTotal);
         rmaRepository.save(rma);
 
         log.info("RMA {} created for buyerCodeId={} with {} items by userId={}",
@@ -420,6 +469,22 @@ public class RmaService {
         String yearSuffix = String.valueOf(Year.now().getValue()).substring(2);
         String seq = String.format("%03d", existingCount + 1);
         return "RMA" + buyerCode + yearSuffix + seq;
+    }
+
+    /**
+     * Best-effort resolve of the Order behind a matched OfferItem so the RMA line can
+     * carry order number + ship date (legacy read {@code OfferItem_Order}). The modern
+     * link is {@code offer_item.offer_id → offer ← order.offer_id}; an offer normally maps
+     * to a single order, so the oldest is taken. Returns empty when the OfferItem has no
+     * offer or the offer has no order — order fields then stay null (as before this change).
+     */
+    private Optional<Order> resolveOrder(OfferItem offerItem) {
+        if (offerItem.getOffer() == null || offerItem.getOffer().getId() == null) {
+            return Optional.empty();
+        }
+        return orderRepository.findByOfferId(offerItem.getOffer().getId())
+                .stream()
+                .findFirst();
     }
 
     /** Parse CSV input stream. Skips header row. Returns list of [imei, reason] arrays. */

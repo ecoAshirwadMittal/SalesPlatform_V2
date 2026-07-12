@@ -244,3 +244,26 @@ on `HEAD` with this task's changes removed); this task's own files carry
 render correctly end-to-end in a real authenticated browser session
 (Playwright) — see `docs/tasks/email-management-implementation-plan-2026-07-10.md`
 Task 10 for detail.
+
+---
+
+## rma.submit-offeritem-match (new 2026-07-11, gap 0.2 · VAL_RMARequestFile)
+Target 85%+. RMA submit now matches each uploaded IMEI/serial against a shipped
+`pws.offer_item` owned by the buyer code (`imei_detail → offer_item →
+offer.buyer_code_id`, the modern port of legacy `IMEIDetail → offeritem_buyercode
+→ OfferItem`), populating `device_id` / SKU (via device) / `sale_price` +
+best-effort order number + ship date on the line, and rolling up
+`request_qty` / `request_skus` (distinct devices) / `request_sales_total`.
+Unmatched IMEIs reject the whole submission (legacy all-or-nothing
+`IsValidRMA=false`).
+
+| Surface | Key tests |
+|---|---|
+| `RmaService.submitRmaRequest` matching (Mockito) | `RmaServiceTest$SubmitRmaRequest` (3) — matched lines carry `deviceId`/`salePrice` + non-zero roll-ups (qty/skus/sales-total via `ArgumentCaptor`); match-on-`serial_number` branch; unmatched line → `success=false`, error names the IMEI, and **neither** `rmaRepository.save` nor `rmaItemRepository.save` is called |
+| End-to-end match (real Postgres) | `RmaSubmitOfferItemMatchIT` (2, extends `PostgresIntegrationTest`) — seeds buyer_code + offer + offer_item + imei_detail + device + order; matched IMEI → accepted, persisted line carries `device_id`/sale price/order number/ship date, roll-ups non-zero, SKU resolves on the detail projection; unknown IMEI → rejected, RMA count unchanged |
+
+Match source decision: **local `pws.imei_detail` + `pws.offer_item`**, not the
+Snowflake `VW_SALE_ORDER_SHIPMENT` reader — the local chain carries the
+IMEI→device/price data, is the faithful legacy port, and is seedable in a
+Postgres IT; the Snowflake reader is order-number-scoped, returns empty in dev,
+and cannot be seeded in a Postgres IT.
