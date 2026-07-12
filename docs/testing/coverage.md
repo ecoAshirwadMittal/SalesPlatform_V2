@@ -441,3 +441,27 @@ backend on `SERVER_PORT=18082`, Flyway off): HN → `DOWNLOAD` +
 "Auction 2026 / Wk13" + `rounds:[1]`; `/download-round/1` → 200 xlsx (626 KB,
 10,951 R1 bids); `/download-round/2` → 404; wrong-tenant → 403. Detail:
 `docs/tasks/parity/impl/bidder-dashboard-ended-state.md`.
+
+---
+
+## buyersusers.salesrep-crud (new 2026-07-12 · gap 2.4 sub-feature 1)
+Target 85%+. Write CRUD for internal sales reps porting the legacy
+`Act_SaveSaleRep` (trim + case-insensitive dup guard, JWT-stamped owner/changer)
+and `ACT_DeleteSalesRep` (offer-reference delete guard) microflows. Load-bearing
+branches: name-trim, the case-insensitive duplicate guard (all-reps on create,
+exclude-self on update), the `pws.offer` delete guard, and the dedicated
+`/api/v1/admin/sales-representatives/**` authz namespace (Administrator +
+SalesOps only — NOT under the Compliance-admitting `/admin/buyers/**`).
+
+| Surface | Key tests |
+|---|---|
+| `SalesRepService` (Mockito) | `SalesRepServiceTest` (9) — create trims + stamps owner/changer/dates + honours `active` default/explicit; create rejects a case-insensitive dup (never saves); update excludes self in the dup check + stamps changer; update rejects a cross-rep collision; update/delete missing-id → `EntityNotFoundException`; delete throws `SalesRepHasOffersException` when an offer references the rep (never deletes) + short-circuits before the offer count on missing id; delete succeeds when none |
+| `SalesRepController` (real Postgres) | `SalesRepControllerIT` (9, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`; Long-principal auth via the `authentication(...)` post-processor mirroring `AdminEmailControllerSmokeIT`) — GET list → 200 array; 403 matrix (Bidder → 403 on create/update/delete); unauth → 401; Administrator **and** SalesOps create → 201; create trims + stamps; case-insensitive duplicate → 409; blank name → 400; delete-with-offers → 409; delete-clean → 204. Owner FK satisfied via seeded dev user ids (9001 admin / 9003 salesops) |
+
+Sales-rep CRUD sweep: **18/18 green** (`SalesRepServiceTest` 9 +
+`SalesRepControllerIT` 9). Run:
+`./mvnw test -Dtest=SalesRepServiceTest,SalesRepControllerIT
+-Dspring.flyway.validate-on-migrate=false`. The IT boots the full Spring
+context against the shared dev Postgres (pg-test profile, which already sets
+`validate-on-migrate=false` + `baseline-on-migrate=true` for the checksum
+drift). No new migration (table exists since V8/V18); no Snowflake push.

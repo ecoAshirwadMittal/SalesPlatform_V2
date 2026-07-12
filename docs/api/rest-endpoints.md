@@ -990,6 +990,39 @@ Validate a reset token and update the user's BCrypt password.
 
 ---
 
+## Sales Representatives (Admin)
+
+Base URL: `/api/v1/admin/sales-representatives`
+Role: `Administrator` or `SalesOps` (dedicated namespace — deliberately **not**
+under `/api/v1/admin/buyers/**`, which also admits `Compliance`). Write CRUD for
+internal sales reps; ports the legacy Mendix `Act_SaveSaleRep` +
+`ACT_DeleteSalesRep` guards. Identity (owner on create, changer on update) is
+derived from the JWT, never a request field. No Snowflake sync (moving to a
+scheduled batch sync).
+
+| Method | Path | Purpose |
+|---|---|---|
+| GET | `/` | Full list (active + inactive), ordered by name → `[SalesRepResponse]` |
+| POST | `/` | Create → `201` + `SalesRepResponse`. Body `SalesRepCreateRequest { firstName*, lastName*, active? }` (names trimmed; `active` defaults `true`) |
+| PUT | `/{id}` | Update names/active → `200` + `SalesRepResponse`. Body `SalesRepUpdateRequest { firstName*, lastName*, active? }` |
+| DELETE | `/{id}` | Delete → `204` |
+
+`SalesRepResponse { id, firstName, lastName, active }`.
+
+**Guards / status mapping**
+
+- Case-insensitive duplicate `(firstName, lastName)` across all other reps → `409`
+  (create checks all reps; update excludes self).
+- Delete when any `pws.offer.sales_rep_id = {id}` exists → `409`
+  ("This Sales Rep has Offers Associated with it. Cannot be Deleted.").
+- Unknown `{id}` → `404`; blank name → `400`.
+- Wrong role (e.g. Bidder) → `403`; unauthenticated → `401`.
+
+**Schema**: `buyer_mgmt.sales_representatives` (V8 table / V18 seed — no new
+migration).
+
+---
+
 ## Reserve Bids (EB)
 
 All endpoints: `/api/v1/admin/reserve-bids/**` — role `Administrator`.

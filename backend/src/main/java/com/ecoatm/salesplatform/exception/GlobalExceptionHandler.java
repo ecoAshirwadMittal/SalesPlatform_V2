@@ -114,6 +114,18 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
     }
 
+    @ExceptionHandler(DuplicateSalesRepException.class)
+    public ResponseEntity<Map<String, Object>> handleDuplicateSalesRep(DuplicateSalesRepException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
+    @ExceptionHandler(SalesRepHasOffersException.class)
+    public ResponseEntity<Map<String, Object>> handleSalesRepHasOffers(SalesRepHasOffersException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorBody(HttpStatus.CONFLICT, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(RoundValidationException.class)
     public ResponseEntity<Map<String, Object>> handleRoundValidation(RoundValidationException ex) {
         // Comma-joined error string per Mendix VAL_Schedule_Auction; the per-error
