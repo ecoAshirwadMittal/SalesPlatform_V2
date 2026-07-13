@@ -465,6 +465,52 @@ class AdminPartialCreditControllerIT {
     }
 
     // -------------------------------------------------------------------
+    // GET /{id}/export.xlsx  (gap 2.5 — per-request admin packet)
+    // -------------------------------------------------------------------
+
+    @Test
+    void exportSingleXlsx_salesOps_returns200_withAttachmentHeaderNamingTheOrder() throws Exception {
+        byte[] payload = new byte[]{0x50, 0x4B, 0x03, 0x04}; // xlsx zip header bytes.
+        when(exportService.exportSingle(100L)).thenReturn(payload);
+        CreditRequest cr = newRequest(100L, "PCR-1", "SO-1", underReviewRow.getId());
+        when(creditRequestRepository.findById(100L)).thenReturn(Optional.of(cr));
+
+        mvc.perform(get("/api/v1/admin/partial-credit/100/export.xlsx").with(salesOps()))
+           .andExpect(status().isOk())
+           .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                   .string("Content-Type",
+                           "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+           .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                   .string("Content-Disposition",
+                           org.hamcrest.Matchers.startsWith("attachment;")))
+           .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                   .string("Content-Disposition",
+                           org.hamcrest.Matchers.containsString("CR-SO-1.xlsx")));
+    }
+
+    @Test
+    void exportSingleXlsx_missingId_returns404() throws Exception {
+        when(exportService.exportSingle(999L))
+                .thenThrow(new jakarta.persistence.EntityNotFoundException("CreditRequest 999"));
+
+        mvc.perform(get("/api/v1/admin/partial-credit/999/export.xlsx").with(salesOps()))
+           .andExpect(status().isNotFound())
+           .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    void exportSingleXlsx_asBidder_returns403() throws Exception {
+        mvc.perform(get("/api/v1/admin/partial-credit/100/export.xlsx").with(bidder()))
+           .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void exportSingleXlsx_unauthenticated_returns401() throws Exception {
+        mvc.perform(get("/api/v1/admin/partial-credit/100/export.xlsx"))
+           .andExpect(status().isUnauthorized());
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
 
