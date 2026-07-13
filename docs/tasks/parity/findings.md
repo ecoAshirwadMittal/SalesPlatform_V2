@@ -179,13 +179,22 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 - **Date:** 2026-07-12 (typeface-pass observation) · **Layer:** pixel+function · **Severity:** LOW · **Class:** feature-gap → frontend
 - Legacy renders the item enabled; the new shell dims it (route `/buyer-user-guide` exists as a
   stub but the nav marks it unimplemented). Enable the nav state (and verify the stub page).
-- **Status:** open
+- **Status:** **FIXED 2026-07-12** (0b12d8b7 merged) — the bidder shell was dimming itself via a
+  mount-time HEAD probe against the backend PDF endpoint (always 404 in dev); now a normal
+  enabled Link to the stub. Label band diff 648 → 315 px. Same commit: ended-panel bottom border
+  +1px landed on legacy's y857 (border row 2372 → 2 diff px; no content re-ghost).
 
-### ICON-1 — sidebar icon glyph treatment differs (circled vs plain)
-- **Date:** 2026-07-12 · **Layer:** pixel · **Severity:** LOW · **Class:** style-fix → frontend
-- Pre-existing, explicitly outside the four SHELL rulings: new sidebar icons render with a
-  circled treatment vs legacy's plain glyphs (visible as icon ghosts on both shells).
-- **Status:** open
+### ICON-1 — sidebar icon glyphs differ (premise CORRECTED 2026-07-12)
+- **Date:** 2026-07-12, corrected same day · **Layer:** pixel · **Severity:** LOW · **Class:** style-fix → frontend (needs ruling)
+- **CORRECTION (third inverted premise after LOGIN-P2/SHELL-P2):** fresh captures prove
+  **legacy = circled** (9/13 admin, 2/3 bidder glyphs, ~34px dia thin dim ring), **new = plain**.
+  A faithful measured ring-add was implemented and REVERTED — it regressed both shells
+  (bidder icon band 763→906, admin 7002→7745) because the dominant delta is glyph
+  **shape/weight** (legacy's thin Mendix icon-font gavel/people/building/clipboard vs the app's
+  bolder clock/people/briefcase/cube). A true fix = bespoke redraw of ~11 glyphs + matched rings
+  + nulling a pre-existing 3.5px admin icon-column offset (geometry recorded in the shell impl
+  doc Pass 4). Alternative: accept plain icons as an intentional divergence (ADR).
+- **Status:** open — awaiting user ruling (bespoke redraw vs accept+ADR)
 
 ### BDD-P3 addendum — identity chip env difference (harness mask needed)
 The chip now renders real display names in legacy's style (widget parity done), but the two
