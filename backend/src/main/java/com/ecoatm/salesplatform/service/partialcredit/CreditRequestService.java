@@ -192,6 +192,24 @@ public class CreditRequestService {
         return creditRequestRepository.save(cr);
     }
 
+    /**
+     * Hard-deletes a DRAFT credit request the caller owns. Ownership +
+     * DRAFT-only are enforced server-side (the legacy Mendix flow gated
+     * DRAFT-only in the UI alone — gap 2.5 closes that): {@link #loadForUser}
+     * throws {@link SecurityException} (→ 403) for a foreign caller and
+     * {@link jakarta.persistence.EntityNotFoundException} (→ 404) for an
+     * unknown id; {@link #ensureDraft} throws {@link IllegalStateException}
+     * (→ 409) once the request has left DRAFT. Child rows (missing/wrong/
+     * encumbered lines, photos, uploads) cascade at the DB level (V89
+     * {@code ON DELETE CASCADE}), so a single {@code deleteById} is clean.
+     */
+    @Transactional
+    public void deleteDraft(Long id, Long userId, boolean isAdmin) {
+        CreditRequest cr = loadForUser(id, userId, isAdmin);
+        ensureDraft(cr);
+        creditRequestRepository.deleteById(id);
+    }
+
     @Transactional(readOnly = true)
     public CreditRequest getById(Long id, Long userId, boolean isAdmin) {
         return loadForUser(id, userId, isAdmin);

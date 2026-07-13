@@ -367,6 +367,79 @@ class CreditRequestServiceTest {
                 .save(any(CreditRequest.class));
     }
 
+    // ─── deleteDraft (gap 2.5) ─────────────────────────────────────────
+
+    @Test
+    @DisplayName("deleteDraft removes a DRAFT the caller owns")
+    void deleteDraft_ownerDraft_deletes() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+
+        service.deleteDraft(draft.getId(), USER_ID, false);
+
+        verify(creditRequestRepository).deleteById(draft.getId());
+    }
+
+    @Test
+    @DisplayName("deleteDraft blocks a non-admin who does not own the buyer code (403, no delete)")
+    void deleteDraft_foreignOwner_throwsSecurity_noDelete() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        primeBuyerCodeOwnership(false);
+
+        assertThatThrownBy(() -> service.deleteDraft(draft.getId(), USER_ID, false))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("does not own buyer_code_id=100");
+
+        org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
+                .deleteById(anyLong());
+    }
+
+    @Test
+    @DisplayName("deleteDraft on a submitted/terminal request fails with a conflict (409, no delete)")
+    void deleteDraft_nonDraft_throwsConflict_noDelete() {
+        CreditRequest submitted = newDraft();
+        submitted.setStatusId(2L);
+        when(creditRequestRepository.findById(submitted.getId())).thenReturn(Optional.of(submitted));
+        primeBuyerCodeOwnership(true);
+        primeStatusFor(2L, SystemStatus.PENDING_APPROVAL);
+
+        assertThatThrownBy(() -> service.deleteDraft(submitted.getId(), USER_ID, false))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not in DRAFT");
+
+        org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
+                .deleteById(anyLong());
+    }
+
+    @Test
+    @DisplayName("deleteDraft lets an admin delete a DRAFT they do not own (ownership bypassed)")
+    void deleteDraft_adminBypassesOwnership_deletes() {
+        CreditRequest draft = newDraft();
+        when(creditRequestRepository.findById(draft.getId())).thenReturn(Optional.of(draft));
+        // No ownership priming — admin short-circuits ensureBuyerCodeOwnership
+        // before the JdbcTemplate query (strict stubs would flag an unused stub).
+        primeStatusFor(draft.getStatusId(), SystemStatus.DRAFT);
+
+        service.deleteDraft(draft.getId(), USER_ID, true);
+
+        verify(creditRequestRepository).deleteById(draft.getId());
+    }
+
+    @Test
+    @DisplayName("deleteDraft on an unknown id throws NOT_FOUND (no delete)")
+    void deleteDraft_missingRow_throwsNotFound_noDelete() {
+        when(creditRequestRepository.findById(404L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.deleteDraft(404L, USER_ID, false))
+                .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
+
+        org.mockito.Mockito.verify(creditRequestRepository, org.mockito.Mockito.never())
+                .deleteById(anyLong());
+    }
+
     // ─── replaceXxxLines + reconciliation banner (Chunk 2) ────────────
 
     @Test
