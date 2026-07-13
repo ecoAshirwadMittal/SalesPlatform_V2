@@ -874,6 +874,35 @@
   background: #F7F5F1;
 }
 
+/* Holds the (draft-only) trash control + the view eye inline, right-aligned
+   so single-icon (non-draft) rows keep the eye in the same position. */
+.landingActionGroup {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 2px;
+}
+
+/* Trash control — button reset that matches .landingViewLink's sizing so the
+   two glyphs sit level; hover uses the declined-status red for affordance. */
+.landingDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--color-pc-text-muted, #3C3C3C);
+}
+
+.landingDeleteButton:hover,
+.landingDeleteButton:focus-visible {
+  color: #B3261E;
+  background: #F7F5F1;
+}
+
 /* Empty-state cell rendered inside the table as a full-row colspan
    message — Figma keeps the table chrome and only swaps the body. */
 .landingEmptyCell {

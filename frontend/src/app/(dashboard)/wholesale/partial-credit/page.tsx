@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { getActiveBuyerCode } from '@/lib/activeBuyerCode';
 import {
   type CreditRequestSummary,
+  deleteRequest,
   listRequests,
   type SystemStatus,
 } from '@/lib/partialCreditClient';
@@ -43,6 +44,28 @@ export default function PartialCreditLandingPage() {
       .then((data) => setRows(data))
       .catch((e) => setError(e instanceof Error ? e.message : 'Failed to load requests'));
   }, [router]);
+
+  // Hard-delete a DRAFT the buyer owns. The trash affordance is only rendered
+  // on DRAFT rows, but the server independently enforces ownership + DRAFT-only
+  // (403 / 409) — this is a UX shortcut, not the security boundary.
+  async function handleDelete(request: CreditRequestSummary) {
+    if (buyerCodeId === null) return;
+    if (
+      !window.confirm(
+        `Delete draft credit request for order ${request.orderNumber}? This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      await deleteRequest(request.id);
+      const data = await listRequests(buyerCodeId);
+      setRows(data);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to delete request');
+    }
+  }
 
   return (
     <div className={`pg-partial-credit ${styles.page}`}>
@@ -124,13 +147,25 @@ export default function PartialCreditLandingPage() {
                     <td>{formatReasons(r)}</td>
                     <td>{renderStatusPill(r.systemStatus, r.displayStatus)}</td>
                     <td className={styles.landingActionCol}>
-                      <Link
-                        href={`/wholesale/partial-credit/${r.id}`}
-                        className={styles.landingViewLink}
-                        aria-label={`View credit request ${r.requestNumber}`}
-                      >
-                        <EyeIcon />
-                      </Link>
+                      <span className={styles.landingActionGroup}>
+                        {r.systemStatus === 'DRAFT' && (
+                          <button
+                            type="button"
+                            className={styles.landingDeleteButton}
+                            onClick={() => handleDelete(r)}
+                            aria-label={`Delete draft credit request ${r.requestNumber}`}
+                          >
+                            <TrashIcon />
+                          </button>
+                        )}
+                        <Link
+                          href={`/wholesale/partial-credit/${r.id}`}
+                          className={styles.landingViewLink}
+                          aria-label={`View credit request ${r.requestNumber}`}
+                        >
+                          <EyeIcon />
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 ))
@@ -204,6 +239,31 @@ function EyeIcon() {
         r="2.5"
         stroke="currentColor"
         strokeWidth="1.5"
+      />
+    </svg>
+  );
+}
+
+/**
+ * Inline SVG trash glyph — Group 7 action column, rendered only on DRAFT
+ * rows. Sized to match {@link EyeIcon} so the two controls sit level.
+ */
+function TrashIcon() {
+  return (
+    <svg
+      viewBox="0 0 20 20"
+      width="18"
+      height="18"
+      aria-hidden="true"
+      focusable="false"
+      fill="none"
+    >
+      <path
+        d="M2.5 5h15M7.5 5V3.75A1.25 1.25 0 0 1 8.75 2.5h2.5A1.25 1.25 0 0 1 12.5 3.75V5m2.083 0-.52 9.36A1.25 1.25 0 0 1 12.816 15.5H7.184a1.25 1.25 0 0 1-1.247-1.14L5.417 5M8.333 8.333v4.167M11.667 8.333v4.167"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );
