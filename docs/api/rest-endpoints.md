@@ -1388,10 +1388,16 @@ uploads.
 | Method | Path | Purpose |
 |---|---|---|
 | `GET` | `/api/v1/admin/partial-credit/export.xlsx` | Streams the filtered landing list as a two-sheet xlsx (Requests + Lines). Same query params as the landing GET. `Content-Disposition: attachment; filename="partial-credit-YYYY-MM-DD.xlsx"` |
+| `GET` | `/api/v1/admin/partial-credit/{id}/export.xlsx` | Streams a SINGLE credit request as a two-sheet xlsx packet (the same Requests + Lines layout scoped to one request — legacy `ACT_DownloadCreditRequest`). No row cap. `404` when the request doesn't exist. `Content-Disposition: attachment; filename="CR-<orderNumber-or-id>.xlsx"` (order token allowlist-sanitised, header built via `ContentDisposition.builder`) |
 
-**Cap:** 5,000 requests. Over-cap returns `413` with
-`{"error":"too_many_rows","limit":5000,"matched":<count>}` so the UI can
-render a "narrow your filters" toast.
+**Cap:** the filtered bulk export caps at 5,000 requests. Over-cap returns
+`413` with `{"error":"too_many_rows","limit":5000,"matched":<count>}` so the
+UI can render a "narrow your filters" toast. The single-request
+`{id}/export.xlsx` has no cap (one request cannot exceed it).
+
+**Authz (both):** the `/api/v1/admin/partial-credit/**` SecurityConfig matcher
+plus the controller's class-level `@PreAuthorize` (`SalesOps` / `SalesRep` /
+`Administrator` / `CoAdministrator`) — admin-only, no buyer-code gate.
 
 ### Admin surface — email templates — RETIRED (Task 11, 2026-07-11)
 

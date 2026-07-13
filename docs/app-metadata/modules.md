@@ -120,7 +120,11 @@ Inventory of major modules and their primary entities.
 - Buyer surface: `/wholesale/partial-credit/**` — landing, 5-step
   wizard, read-only detail with post-submit photo upload + gallery
 - Admin surface: `/admin/auctions-data-center/partial-credit/**` —
-  landing with filters + status counters + xlsx export, review
+  landing with filters + status counters + xlsx export (filtered bulk
+  `GET /export.xlsx`, 5,000-row cap; plus per-request
+  `GET /{id}/export.xlsx`, no cap — the single-request review packet
+  porting legacy `ACT_DownloadCreditRequest`, both served by
+  `PartialCreditExcelExportService`), review
   detail with per-line / per-section / global decisions, Complete
   Review modal, status configuration page. The PC-specific
   email-template editor (`.../partial-credit/email-templates`) was

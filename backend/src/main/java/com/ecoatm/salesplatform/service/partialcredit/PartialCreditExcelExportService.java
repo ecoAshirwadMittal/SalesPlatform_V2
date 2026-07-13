@@ -7,11 +7,13 @@ import com.ecoatm.salesplatform.model.partialcredit.EncumberedDeviceLine;
 import com.ecoatm.salesplatform.model.partialcredit.MissingDeviceLine;
 import com.ecoatm.salesplatform.model.partialcredit.WrongDeviceLine;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestStatusRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.EncumberedDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.MissingDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.WrongDeviceLineRepository;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.AdminListFilter;
+import jakarta.persistence.EntityNotFoundException;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
@@ -64,6 +66,7 @@ public class PartialCreditExcelExportService {
     private final MissingDeviceLineRepository missingRepo;
     private final WrongDeviceLineRepository wrongRepo;
     private final EncumberedDeviceLineRepository encumberedRepo;
+    private final CreditRequestRepository creditRequestRepository;
 
     public PartialCreditExcelExportService(
             AdminCreditRequestService adminService,
@@ -71,13 +74,15 @@ public class PartialCreditExcelExportService {
             BuyerCodeRepository buyerCodeRepository,
             MissingDeviceLineRepository missingRepo,
             WrongDeviceLineRepository wrongRepo,
-            EncumberedDeviceLineRepository encumberedRepo) {
+            EncumberedDeviceLineRepository encumberedRepo,
+            CreditRequestRepository creditRequestRepository) {
         this.adminService = adminService;
         this.statusRepository = statusRepository;
         this.buyerCodeRepository = buyerCodeRepository;
         this.missingRepo = missingRepo;
         this.wrongRepo = wrongRepo;
         this.encumberedRepo = encumberedRepo;
+        this.creditRequestRepository = creditRequestRepository;
     }
 
     /**
@@ -113,6 +118,48 @@ public class PartialCreditExcelExportService {
         for (CreditRequest cr : requests) {
             requestNumberById.put(cr.getId(), cr.getRequestNumber());
         }
+
+        try (Workbook wb = new XSSFWorkbook();
+                ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            CellStyle headerStyle = headerStyle(wb);
+
+            writeRequestsSheet(wb, headerStyle, requests, statusById, buyerCodeById);
+            writeLinesSheet(wb, headerStyle, requestNumberById, missing, wrong, encumbered);
+
+            wb.write(out);
+            return out.toByteArray();
+        } catch (IOException ex) {
+            throw new RuntimeException("Failed to write xlsx", ex);
+        }
+    }
+
+    /**
+     * Build the xlsx bytes for a SINGLE credit request — the admin
+     * per-request review packet (gap 2.5, legacy
+     * {@code ACT_DownloadCreditRequest} → {@code JA_GenerateCreditRequestReview}).
+     *
+     * <p>Reuses the same two-sheet layout as {@link #export} scoped to one
+     * request: the Requests sheet carries exactly this request's single
+     * row, the Lines sheet only its lines (fetched with the per-request
+     * finders, not the bulk {@code ...In...} queries). The {@link #ROW_CAP}
+     * does not apply — a single request can never exceed it.
+     *
+     * @throws EntityNotFoundException when no request with
+     *         {@code requestId} exists; the controller maps it to
+     *         {@code 404 Not Found}.
+     */
+    public byte[] exportSingle(Long requestId) {
+        CreditRequest cr = creditRequestRepository.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("CreditRequest " + requestId));
+        List<CreditRequest> requests = List.of(cr);
+
+        Map<Long, CreditRequestStatus> statusById = loadStatusesById();
+        Map<Long, BuyerCode> buyerCodeById = loadBuyerCodesById(requests);
+        List<MissingDeviceLine> missing = missingRepo.findByCreditRequestIdOrderById(requestId);
+        List<WrongDeviceLine> wrong = wrongRepo.findByCreditRequestIdOrderById(requestId);
+        List<EncumberedDeviceLine> encumbered = encumberedRepo.findByCreditRequestIdOrderById(requestId);
+        Map<Long, String> requestNumberById = new HashMap<>();
+        requestNumberById.put(cr.getId(), cr.getRequestNumber());
 
         try (Workbook wb = new XSSFWorkbook();
                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {

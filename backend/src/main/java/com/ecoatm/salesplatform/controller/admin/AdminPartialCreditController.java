@@ -44,6 +44,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -401,6 +402,65 @@ public class AdminPartialCreditController {
                 .header(HttpHeaders.CONTENT_DISPOSITION,
                         "attachment; filename=\"" + filename + "\"")
                 .body(bytes);
+    }
+
+    // -------------------------------------------------------------------
+    // GET /{id}/export.xlsx  —  single-request xlsx packet (gap 2.5)
+    // -------------------------------------------------------------------
+
+    /**
+     * Streams a two-sheet xlsx (Requests + Lines) scoped to ONE credit
+     * request — the admin per-request review packet, porting legacy
+     * {@code ACT_DownloadCreditRequest}. {@code 404 Not Found} when the
+     * request doesn't exist (the export service owns that check).
+     *
+     * <p>Authz is the class-level {@code @PreAuthorize} plus the
+     * {@code /api/v1/admin/partial-credit/**} SecurityConfig matcher —
+     * same defense-in-depth as the sibling {@link #exportXlsx} bulk export
+     * (no per-method tightening; this endpoint is not narrower than the
+     * class default).
+     *
+     * <p>The download filename names the buyer's order (falling back to
+     * the surrogate id) and is emitted via {@link ContentDisposition}
+     * after allowlist-sanitising the order token, so a hostile order
+     * number can never inject into the header (repo Security Rule — never
+     * string-concatenate the Content-Disposition value).
+     */
+    @GetMapping("/{id}/export.xlsx")
+    public ResponseEntity<byte[]> exportSingleXlsx(@PathVariable Long id) {
+        byte[] bytes = exportService.exportSingle(id);
+        // Re-read only for the filename token; the export above already
+        // 404'd if the request was missing, so this is guaranteed present.
+        CreditRequest cr = creditRequestRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("CreditRequest " + id));
+        String filename = "CR-" + filenameToken(cr) + ".xlsx";
+        ContentDisposition disposition = ContentDisposition.builder("attachment")
+                .filename(filename)
+                .build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
+                .body(bytes);
+    }
+
+    /**
+     * Filename token for the per-request packet: the buyer's order number
+     * when present, else the surrogate id. Collapses anything outside a
+     * conservative allowlist (letters, digits, dot, dash, underscore) to
+     * {@code _} so a quote / CR-LF / path separator in an order number
+     * cannot corrupt the download name before {@link ContentDisposition}
+     * quotes it.
+     */
+    private static String filenameToken(CreditRequest cr) {
+        String order = cr.getOrderNumber();
+        if (order != null && !order.isBlank()) {
+            String cleaned = order.trim().replaceAll("[^A-Za-z0-9._-]", "_");
+            if (!cleaned.isBlank()) {
+                return cleaned;
+            }
+        }
+        return String.valueOf(cr.getId());
     }
 
     // -------------------------------------------------------------------
