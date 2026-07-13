@@ -320,9 +320,15 @@ Inventory of major modules and their primary entities.
   (`consumed_at` set — single-use). The target user is derived from
   `token.userId`, never a request field
 - Security: public endpoint — every token failure (unknown / expired /
-  consumed / dangling user row) returns the single generic message
-  `"Invalid or expired activation link"` (no account enumeration); the raw
-  token and password are never logged
+  consumed / dangling user row / already-activated account) returns the single
+  generic message `"Invalid or expired activation link"` (no account
+  enumeration); the raw token and password are never logged. Precondition guard
+  (`activation_date IS NULL`) makes activation one-time and — since the reused
+  `password_reset_tokens` table has no purpose discriminator (unlike the legacy
+  `ForgotPassword.IsSignUp` flag) — stops a `/forgot-password` token from
+  re-flipping an already-activated/deactivated buyer back to `Active`. The
+  SHA-256 token digest is shared with `PasswordResetService` via
+  `security/TokenHasher` so both flows hash byte-identically
 - **Deferred**: issuing the activation token (provisioning + email delivery) is
   a separate concern; the legacy `SUB_SendUserToSnowflake` push is out of scope
   (user replication moves to the scheduled Snowflake batch). Activation does
