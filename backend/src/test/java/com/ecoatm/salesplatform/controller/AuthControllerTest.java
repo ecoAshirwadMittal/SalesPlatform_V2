@@ -5,6 +5,7 @@ import com.ecoatm.salesplatform.dto.LoginResponse;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.service.AccountActivationService;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.service.PasswordResetService;
@@ -46,6 +47,7 @@ class AuthControllerTest {
     @MockBean private AuthService authService;
     @MockBean private BuyerCodeService buyerCodeService;
     @MockBean private PasswordResetService passwordResetService;
+    @MockBean private AccountActivationService accountActivationService;
     @MockBean private com.ecoatm.salesplatform.security.AuthRateLimiter authRateLimiter;
 
     @org.junit.jupiter.api.BeforeEach
@@ -372,6 +374,72 @@ class AuthControllerTest {
         mockMvc.perform(post("/api/v1/auth/reset-password")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"token\":\"tok\",\"newPassword\":\"Password1!\"}"))
+                .andExpect(status().isOk());
+    }
+
+    // --- activate ---
+
+    @Test
+    void activate_withValidPayload_returns200_noBodyLeaked() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"somerawtoken\",\"password\":\"ValidPass1!\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(""));
+
+        verify(accountActivationService).activate("somerawtoken", "ValidPass1!");
+    }
+
+    @Test
+    void activate_withInvalidToken_returns400_genericMessage() throws Exception {
+        doThrow(new IllegalArgumentException("Invalid or expired activation link"))
+                .when(accountActivationService).activate(anyString(), anyString());
+
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"bogus\",\"password\":\"ValidPass1!\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Invalid or expired activation link"));
+    }
+
+    @Test
+    void activate_withWeakPassword_returns400_policyMessage() throws Exception {
+        doThrow(new IllegalArgumentException(
+                "Password must be at least 8 characters and include an uppercase letter "
+                        + "and a special character (!@#$%^&*()<>)."))
+                .when(accountActivationService).activate(anyString(), anyString());
+
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"tok\",\"password\":\"weak\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Password")));
+    }
+
+    @Test
+    void activate_whenRateLimited_returns429() throws Exception {
+        when(authRateLimiter.tryAcquire(anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"tok\",\"password\":\"ValidPass1!\"}"))
+                .andExpect(status().isTooManyRequests());
+    }
+
+    @Test
+    void activate_withMissingFields_returns400() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void activate_doesNotRequireAuth() throws Exception {
+        // No cookie, no Authorization header — the endpoint must be reachable (public)
+        mockMvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"token\":\"tok\",\"password\":\"ValidPass1!\"}"))
                 .andExpect(status().isOk());
     }
 }

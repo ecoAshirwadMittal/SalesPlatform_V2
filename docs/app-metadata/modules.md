@@ -341,3 +341,47 @@ Inventory of major modules and their primary entities.
   Snowflake sync (separate effort); no live push listener added
 - Business-logic guide: covered inline (small surface); see
   `docs/api/rest-endpoints.md` § "Sales Representatives (Admin)"
+
+## Account Activation (gap 2.4 sub-feature 3, 2026-07-12)
+- Source module: `ecoatm_usermanagement` (`ACT_ActivateNewUser`,
+  `ACT_CheckPasswordRequirements_activation`, `ACT_ProcessDeepLinkForUserActivation`)
+- Primary tables: `identity.password_reset_tokens` (V75 — **reused**, the same
+  operational reset-token table; no new migration), `identity.users`
+  (BCrypt `password`), `user_mgmt.ecoatm_direct_users` (`user_status` /
+  `overall_user_status` / `inactive` / `activation_date` — all existing V7
+  columns; the `inactive` column is now mapped on the `EcoATMDirectUser`
+  entity, no migration)
+- Purpose: activate a newly-provisioned buyer-side user from an emailed link —
+  validate the one-time token, set their password, and flip their status to
+  Active. Legacy links a `ForgotPassword` token to activation, so the modern
+  port reuses the password-reset token machinery rather than inventing token
+  crypto
+- Public surface: `POST /api/v1/auth/activate` `{token, password}` — `permitAll`
+  in `SecurityConfig` (explicit matcher added to the auth allow-list), rate-limited
+  by IP via the shared `AuthRateLimiter`
+- Service: `service/AccountActivationService.activate(token, rawPassword)` —
+  `@Transactional`; password policy first (fail-fast, ported from
+  `ACT_CheckPasswordRequirements_activation`: min 8 + uppercase + special char
+  `!@#$%^&*()<>`), then token resolve via
+  `PasswordResetTokenRepository.findValidByHash` (excludes expired + consumed),
+  then set BCrypt password + flip `EcoATMDirectUser` status
+  (`user_status`/`overall_user_status='Active'`, `inactive=false`,
+  `activation_date=now()` via injected `Clock`), then consume the token
+  (`consumed_at` set — single-use). The target user is derived from
+  `token.userId`, never a request field
+- Security: public endpoint — every token failure (unknown / expired /
+  consumed / dangling user row / already-activated account) returns the single
+  generic message `"Invalid or expired activation link"` (no account
+  enumeration); the raw token and password are never logged. Precondition guard
+  (`activation_date IS NULL`) makes activation one-time and — since the reused
+  `password_reset_tokens` table has no purpose discriminator (unlike the legacy
+  `ForgotPassword.IsSignUp` flag) — stops a `/forgot-password` token from
+  re-flipping an already-activated/deactivated buyer back to `Active`. The
+  SHA-256 token digest is shared with `PasswordResetService` via
+  `security/TokenHasher` so both flows hash byte-identically
+- **Deferred**: issuing the activation token (provisioning + email delivery) is
+  a separate concern; the legacy `SUB_SendUserToSnowflake` push is out of scope
+  (user replication moves to the scheduled Snowflake batch). Activation does
+  **not** touch `identity.users.active`/`blocked` (matches legacy — provisioning
+  is expected to create the user active; login gates on those flags)
+- Business-logic guide: `docs/business-logic/user-auth.md`

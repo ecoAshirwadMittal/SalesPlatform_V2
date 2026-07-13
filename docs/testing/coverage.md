@@ -510,3 +510,35 @@ field shape Task 4 depends on. **No** bid-data re-seed, Snowflake, or migration.
 QBC qualification-override sweep: **11/11 green** (`QualifiedBuyerCodeAdminServiceTest`
 9 + `QualifiedBuyerCodeAdminControllerIT` 2). Run:
 `./mvnw test -Dtest=QualifiedBuyerCodeAdminServiceTest,QualifiedBuyerCodeAdminControllerIT -Dspring.profiles.active=pg-test`.
+
+## auth.account-activation (new 2026-07-12 · gap 2.4 sub-feature 3 · ACT_ActivateNewUser)
+Target 85%+. Public `POST /api/v1/auth/activate` that consumes a one-time
+activation token (reused password-reset-token machinery), sets the BCrypt
+password, and flips the `EcoATMDirectUser` status to Active. Load-bearing
+branches: the happy path (password set + status flip + token consumed); the
+generic enumeration-resistant reject for every token failure; the legacy
+password policy (min 8 + uppercase + special char) enforced before any DB
+work; the target user derived from the token (never a request field); and the
+public matcher (reachable without auth, 400 not 401).
+
+A precondition guard (`activation_date IS NULL`) makes activation a one-time
+provisioned→Active transition and — because the reused `password_reset_tokens`
+table carries no purpose discriminator — blocks a `/forgot-password` token from
+re-flipping an already-activated (or deactivated) buyer back to Active. The
+SHA-256 token digest is shared with `PasswordResetService` via
+`security/TokenHasher` so the two flows hash byte-identically (compile-enforced
+coupling; proven by `PasswordResetServiceTest` staying green after the extraction).
+
+| Surface | Key tests |
+|---|---|
+| `AccountActivationService.activate` (Mockito) | `AccountActivationServiceTest` (9) — valid token sets encoded password + flips `user_status`/`overall_user_status='Active'`/`inactive=false`/`activation_date` (fixed `Clock`) + consumes token (`consumed_at`); target user loaded by `token.userId` only; invalid/expired/consumed token → generic `"Invalid or expired activation link"` with no `save`/`encode`; missing identity user **and** missing direct-user profile each → same generic reject; **already-activated account (`activation_date != null`) → generic reject, no re-flip, token NOT consumed**; weak password (too short / no uppercase / no special) → policy error thrown **before** any token lookup |
+| `AuthController` `/activate` slice | `AuthControllerTest` (+6, now 35) — 200 + empty body + `activate(token,password)` invoked; invalid token → 400 generic message; weak password → 400 policy message; rate-limited → 429; missing fields → 400 (`@Valid`); reachable without auth |
+| Public endpoint end-to-end (real Postgres) | `AccountActivationControllerIT` (5, `@AutoConfigureMockMvc` + `PostgresIntegrationTest`, `-Dspring.profiles.active=pg-test`) — seeds a pending user (`activation_date` NULL) + valid token via `JdbcTemplate`; valid token → 200 and the `ecoatm_direct_users` row flips to Active with a BCrypt password on `identity.users` and the token consumed; invalid token → 400, no state change; weak password → 400, no state change **and token still live**; **already-activated-then-Disabled row + valid token → 400, status stays Disabled (no re-flip), token still live**; reachable with no auth (bad token → 400, not 401) |
+
+Account-activation sweep: **20/20 green** (`AccountActivationServiceTest` 9 +
+`AuthControllerTest` 6 new /activate cases + `AccountActivationControllerIT` 5).
+No new migration — reuses `identity.password_reset_tokens` (V75) and the existing
+`user_mgmt.ecoatm_direct_users` columns (V7; the `inactive` column is newly mapped
+on the entity). Regression: `PasswordResetServiceTest` 5 (green after the shared
+`TokenHasher` extraction), `DirectUserServiceTest` 8, `EntityCoverageTest` green
+after the entity mapping change.

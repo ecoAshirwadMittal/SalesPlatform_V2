@@ -31,6 +31,11 @@ public class EcoATMDirectUser {
     @Column(name = "user_status")
     private String userStatus;
 
+    // Maps the existing user_mgmt.ecoatm_direct_users.inactive column (V7). Account
+    // activation clears this flag (legacy ACT_ActivateNewUser sets Inactive=false).
+    @Column(name = "inactive", nullable = false)
+    private boolean inactive;
+
     @Column(name = "overall_user_status")
     private String overallUserStatus;
 

@@ -50,7 +50,11 @@ public class SecurityConfig {
                         "/api/v1/auth/logout",
                         "/api/v1/auth/sso",
                         "/api/v1/auth/forgot-password",
-                        "/api/v1/auth/reset-password"
+                        "/api/v1/auth/reset-password",
+                        // Emailed-link account activation — public by design (the caller
+                        // has no session yet). Identity is derived from the one-time
+                        // token, not the request; rate-limited like the other auth flows.
+                        "/api/v1/auth/activate"
                 ).permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
