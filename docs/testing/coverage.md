@@ -757,3 +757,27 @@ partial-credit test files). Harness-faithful throwaway `:13007` render verified
 20 rows @ 35px + the pager on-screen, both toolbar buttons, the header/​row eyes,
 and the legacy date/​pager strings (`docs/tasks/parity/impl/reserve-bids-page-parity.md`
 §5). Final strict-pixel sign-off belongs to the orchestrator's harness.
+
+---
+
+## pws.offer.sla-reminder-flags (new 2026-07-13 · gap 2.3 chunk A · V103)
+Target 85%+. Adds the three `pws.offer` flag columns (`offer_beyond_sla`,
+`first_reminder_sent`, `second_reminder_sent` — all `BOOLEAN NOT NULL DEFAULT
+false`) the SLA-tag + counter-offer reminder jobs need, and which FIX the
+currently-broken `PWSAdminController.setSLATags`/`removeSLATags` (they write
+`offer_beyond_sla`, a column that did not exist → runtime
+`column "offer_beyond_sla" does not exist`). Migration V103 (`ADD COLUMN IF NOT
+EXISTS`, idempotent); `Offer` entity maps the three booleans. No behaviour
+change beyond schema + mapping — no Snowflake, no email, no endpoint change.
+
+| Surface | Key tests |
+|---|---|
+| V103 migration (real Postgres) | `V103MigrationIT` (2, mirrors `V73MigrationIT`, `pg-test`) — all three columns exist on `pws.offer`; each is `boolean`, `NOT NULL`, `DEFAULT false` (via `information_schema.columns`) |
+| `Offer` entity round-trip + fix-proof (real Postgres) | `OfferSlaReminderFlagsIT` (3, `@Transactional`, `pg-test`) — flags default false then round-trip to true via `OfferRepository` (`em.clear()` forces a real DB read-back); the verbatim `setSLATags`/`removeSLATags` UPDATEs execute without the missing-column error (the previously-broken path); `offer_beyond_sla` is writable via raw JDBC. Note: a `BEFORE UPDATE` `updated_date` trigger (`R__apply_triggers.sql`) prevents seeding an overdue row, so the overdue-flip is not asserted — the column-write proof + round-trip cover it |
+
+pws.offer SLA-flags sweep: **5/5 green** (`V103MigrationIT` 2 +
+`OfferSlaReminderFlagsIT` 3). Run:
+`./mvnw test -Dtest=V103MigrationIT,OfferSlaReminderFlagsIT -Dspring.profiles.active=pg-test`.
+The mocked-`JdbcTemplate` `PWSAdminControllerTest` SLA cases stay green
+(unchanged — they never hit the real column); no real-DB `PWSAdminControllerIT`
+exists, so the DB-layer fix-proof lives in `OfferSlaReminderFlagsIT`.
