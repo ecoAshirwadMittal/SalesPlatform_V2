@@ -781,3 +781,32 @@ pws.offer SLA-flags sweep: **5/5 green** (`V103MigrationIT` 2 +
 The mocked-`JdbcTemplate` `PWSAdminControllerTest` SLA cases stay green
 (unchanged — they never hit the real column); no real-DB `PWSAdminControllerIT`
 exists, so the DB-layer fix-proof lives in `OfferSlaReminderFlagsIT`.
+
+## pws.bulk-offer-status (new 2026-07-13 · gap 2.3 sub-feature 3 · ACT_ChangeOfferStatus_Proceed)
+Target 85%+. Administrator-only bulk offer-status change tool (ops-correction
+lever). Load-bearing branches: the `VAL_ChargeOfferStatusHelper_IsValid` input
+guard (every invalid combination → 400); the `allPeriod` vs date-range order
+resolver; the status-change apply (allPeriod → every linked offer; date-range →
+only offers matching `fromOfferStatus`, the safety guard); the one audit row per
+invocation with the JWT-derived actor + counts; and the Administrator-only authz
+(Bidder **and** SalesOps → 403).
+
+| Surface | Key tests |
+|---|---|
+| `ChangeOfferStatusValidator` | `ChangeOfferStatusValidatorTest` (12) — allPeriod-without-order → 400; date-range without dates / with `end ≤ start` → 400; status change without `toOrderStatus` → 400; date-range status change without `fromOfferStatus` → 400 (the guard); allPeriod + selected order + target, date-range + from + to, and both metadata-only combinations → pass |
+| `BulkOfferStatusService` (Mockito) | `BulkOfferStatusServiceTest` (4) — allPeriod → **every** linked offer flipped (no guard); date-range → **only** the `fromOfferStatus`-matching offer flipped (other untouched); metadata-only → no offer write (`verifyNoInteractions(offerRepository)`), resolved orders touched, one audit row; audit row carries the JWT actor + `changedOffers` count (`contains(...)` matchers on the `JdbcTemplate` audit insert) |
+| `BulkOfferStatusController` (real Postgres) | `BulkOfferStatusControllerIT` (7, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`, Long-principal auth) — 401 unauth; 403 Bidder; 403 SalesOps (Administrator-only); 400 bad date range; allPeriod happy (offer → `CANCELLED` + audit row present); date-range happy (far-future 2099 window → deterministic against the seeded dev DB); date-range guard blocks a non-matching `fromOfferStatus` (200, `changedOffers=0`, offer unchanged) |
+
+Bulk offer-status sweep: **23/23 green** (`ChangeOfferStatusValidatorTest` 12 +
+`BulkOfferStatusServiceTest` 4 + `BulkOfferStatusControllerIT` 7). Run:
+`./mvnw test -Dtest=ChangeOfferStatusValidatorTest,BulkOfferStatusServiceTest,BulkOfferStatusControllerIT -Dspring.profiles.active=pg-test`.
+No new migration — reuses `pws.offer` / `pws."order"` + the V56
+`pws.admin_audit_log` table.
+
+> **Schema-vs-brief note:** the brief's metadata-only path assumed
+> `pws.order.has_shipment_details` + `legacy_order` columns exist (they do not —
+> confirmed in the migrations **and** the live dev DB) under a "no migration"
+> lock. Legacy set `LegacyOrder` to its own value (a no-op); the modern metadata
+> path therefore touches `updated_date` on the resolved orders and records the
+> requested `hasShipmentDetails` in the audit `reason`. Persisting the flag itself
+> would need a schema column (deferred — no migration in this chunk).

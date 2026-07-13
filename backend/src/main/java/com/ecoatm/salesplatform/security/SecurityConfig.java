@@ -125,6 +125,13 @@ public class SecurityConfig {
                     .hasAnyRole("Administrator", "Co-Admin")
                 .requestMatchers("/api/v1/admin/partial-credit/**")
                     .hasAnyRole("PartialCredit_SalesOps", "PartialCredit_Admin", "SalesOps", "Administrator")
+                // PWS admin ops actions incl. the bulk offer-status change tool
+                // (gap 2.3 sub-feature 3) — Administrator only. Same effective role
+                // as the "/api/v1/admin/**" catch-all below, but Security Rules
+                // mandate an explicit matcher (defense-in-depth) for each new admin
+                // namespace rather than relying on the catch-all. Mirrored by
+                // @PreAuthorize on BulkOfferStatusController.
+                .requestMatchers("/api/v1/admin/pws/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/admin/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/inventory/sync/**").hasRole("Administrator")
                 .requestMatchers("/api/v1/bidder/**").hasAnyRole("Bidder", "Administrator")

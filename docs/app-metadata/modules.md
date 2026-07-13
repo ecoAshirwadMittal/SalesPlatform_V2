@@ -568,3 +568,33 @@ Inventory of major modules and their primary entities.
   pre-exist)
 - Admin surface: `/api/v1/users/direct-users` (`POST` create, `PUT` update) —
   unchanged; the guard is a service-layer addition
+
+## Bulk Offer-Status Change (gap 2.3 sub-feature 3, 2026-07-13)
+- Source module: `EcoATM_PWS` (`ACT_ChangeOfferStatus_Proceed`,
+  `SUB_ChangeOfferStatus_GetOrderList`, `VAL_ChargeOfferStatusHelper_IsValid`)
+- Primary tables: `pws.offer` (`status` free-form String — the mutated column),
+  `pws."order"` (`order_date` resolver + metadata-path `updated_date` touch),
+  `pws.admin_audit_log` (V56 — **reused**; one audit row per invocation). **No
+  new migration**
+- Purpose: an Administrator-only ops-correction lever to bulk-change offer
+  status across a date range (or an explicitly-selected set of orders) — used to
+  fix offers after a bad Oracle sync
+- Admin surface: `POST /api/v1/admin/pws/bulk-status` (`Administrator` only —
+  explicit `/api/v1/admin/pws/**` SecurityConfig matcher, defense-in-depth,
+  precedes the `/api/v1/admin/**` catch-all + class `@PreAuthorize`)
+- Service: `service/pws/BulkOfferStatusService.changeStatus(req, actor)` — one
+  `@Transactional`. `service/pws/ChangeOfferStatusValidator` is the input guard
+- Locked decisions (user): **permissive any→any** (NO transition allowlist —
+  guarded only by the from-status match on the date-range path + a valid date
+  range); **Administrator-only**; **audit-logged**; **side-effect-free** (NO
+  Oracle re-send / email / inventory reservation). Identity is JWT-derived
+  (audit `actor`), never a request field
+- Apply logic: `allPeriod` → the selected `orderIds`, change **every** linked
+  offer; date-range → orders by day-truncated `order_date`, change **only**
+  offers whose current `status == fromOfferStatus` (the safety guard). Metadata
+  path (`notOrderStatusChange`): the legacy `HasShipmentDetails`/`LegacyOrder`
+  columns do not exist on the modern `pws.order` and `LegacyOrder` was a legacy
+  self-no-op, so it touches `updated_date` on the resolved orders (the "commit
+  order list" analog) and records the requested `hasShipmentDetails` in the audit
+  row — documented deviation (no migration this chunk)
+- Snowflake sync: none. Email: none
