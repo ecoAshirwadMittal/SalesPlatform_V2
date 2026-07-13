@@ -220,6 +220,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push('/login');
   };
 
+  // Mendix SNP_UserInfoDisplay on ecoAtm_Atlas_Default — the SAME layout the
+  // legacy bidder dashboard uses (verified: ai_knowledge_base_Release10,
+  // ReserveBid_Overview + PG_Bidder_Dashboard_DG2 both cite it). Display
+  // name = FullName || Name; initials render inside the green circle. When
+  // the account has no display name (the legacy-local admin), the widget
+  // degrades to a bare green circle — the "green dot" in the evidence capture
+  // is this widget with empty account data, not a distinct admin treatment.
+  const displayName = user?.fullName || user?.email || '';
+  const initials = user?.initials || (displayName ? displayName.slice(0, 2).toUpperCase() : '');
+
   return (
     <div className={styles.dashboardContainer}>
       {/* Sidebar */}
@@ -291,21 +301,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Main content */}
       <div className={styles.mainArea}>
         {/* Top chrome — legacy parity (ruling 2): the ecoATM DIRECT logo sits in
-            the content area top-left; a green status dot sits top-right. No
-            white bar. The dot doubles as the (click-to-open) user menu so
-            logout stays reachable — legacy shows no name/initials for admins. */}
+            the content area top-left; the SNP_UserInfoDisplay identity (name +
+            green initials circle, click-to-open menu) sits top-right. No white
+            bar. Accounts without a display name render a bare green circle —
+            exactly what the legacy-local admin capture shows. */}
         <header className={styles.topBar}>
           <div className={styles.topBarLogo}>
             <Image src="/images/ecoatm-direct-logo.png" alt="ecoATM DIRECT" width={119} height={46} priority />
           </div>
           <div className={styles.topBarRight} ref={dropdownRef}>
+            {displayName && <span className={styles.userName}>{displayName}</span>}
             <button
-              className={styles.statusDot}
+              className={styles.userIconWrapper}
               onClick={() => setDropdownOpen(prev => !prev)}
-              aria-label={user ? `User menu for ${user.fullName || user.email}` : 'User menu'}
+              aria-label={displayName ? `User menu for ${displayName}` : 'User menu'}
               aria-haspopup="true"
               aria-expanded={dropdownOpen}
-            />
+            >
+              {initials && <span aria-hidden="true">{initials}</span>}
+            </button>
 
             {/* Mendix: .usericon_settings_dropdown — appears on click */}
             {dropdownOpen && (

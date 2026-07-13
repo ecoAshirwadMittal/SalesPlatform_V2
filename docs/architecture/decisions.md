@@ -30,13 +30,22 @@ must match the legacy Mendix chrome exactly**, superseding those divergences.
 
 2. **Top bar — match legacy; remove the white bar.** The ecoATM DIRECT logo
    moves into the content area top-left (was a white "ecoATM" ghost wordmark in
-   the sidebar header). Top-right shows a **green status dot** (28px, `#14AC36`).
-   The admin shell shows **no name/initials** (legacy renders only the dot —
-   confirmed from the evidence capture); the dot stays click-to-open so Logout
-   remains reachable. The buyer shell shows the **person's full name + a green
-   initials avatar** (`#14AC36` fill, white initials). **This explicitly
-   supersedes the 2026-05-08 ADR's RB-26** ("Local exposes user identity … QA
-   renders only a status indicator … we keep the divergence").
+   the sidebar header). Top-right shows the legacy `SNP_UserInfoDisplay`
+   identity: the **person's full name + a green initials circle** (28px,
+   `#14AC36` fill, white initials), click-to-open user menu. **Refinement
+   (user clarification, same day):** the evidence capture's admin side shows a
+   bare green dot with no name — that is the *same widget* rendering an
+   account with **no display name**, not a distinct admin treatment. Verified
+   in `ai_knowledge_base_Release10`: the admin reserve-bids page and the
+   bidder dashboard use the **same layout** (`ecoAtm_Atlas_Default`), so the
+   chrome is identical per role. Both shells therefore render name + initials
+   when the account has them and degrade to a bare green circle when it
+   doesn't (the new app's dev admin "Admin User" shows `Admin User (AU)` — a
+   per-side account-data difference for the harness to mask, same class as
+   the BDD-P3 identity-chip note). **This explicitly supersedes the
+   2026-05-08 ADR's RB-26** ("Local exposes user identity … QA renders only a
+   status indicator … we keep the divergence") — identity is now the legacy
+   widget's own behaviour, not a divergence.
 
 3. **Admin sidebar section — collapsed + single highlight.** "Admin"/"Reports"/
    "Settings" are collapsed by default and expand only on click (the prior
@@ -46,7 +55,10 @@ must match the legacy Mendix chrome exactly**, superseding those divergences.
    `/admin/auctions-data-center/reserve-bids` only "Reserved Bids (EB)"
    highlights, not the "Auctions Data Center" submenu child). This **amends the
    2026-05-08 ADR's RB-25**: the collapsible Admin section is *kept*, but its
-   default-expanded + double-highlight behaviour is corrected.
+   default-expanded + double-highlight behaviour is corrected. Note: the
+   legacy capture itself shows TWO simultaneously-highlighted items
+   (Inventory + Reserved Bids (EB)) — **user-confirmed to be a legacy bug**;
+   the single-highlight rule deliberately does not reproduce it.
 
 4. **Switch-Buyer-Code widget — in-content card.** The top-bar pill is removed;
    a "Switch Buyer Code" block renders in-content below the chrome band —

@@ -16,7 +16,7 @@ Reserve Bids ADR).
 | # | Ruling | Admin shell | Buyer (auction) shell |
 |---|--------|-------------|-----------------------|
 | 1 | **Credit Requests nav — add to both** | item between "Auction" and "Reports" → `/admin/auctions-data-center/partial-credit` | item between "Auction" and "Buyer User Guide" → `/wholesale/partial-credit` |
-| 2 | **Top bar → match legacy (remove white bar)** | ecoATM DIRECT logo in content top-left; **green status dot** top-right, **no name/initials** (dot stays click-to-open for Logout) | logo in content top-left; person **full name + green initials avatar** top-right |
+| 2 | **Top bar → match legacy (remove white bar)** | ecoATM DIRECT logo in content top-left; `SNP_UserInfoDisplay` identity top-right — **name + green initials circle**, degrading to a **bare green dot** when the account has no display name (see §2 refinement) | logo in content top-left; person **full name + green initials avatar** top-right (same widget) |
 | 3 | **Admin section collapsed + single highlight** | Admin/Reports/Settings collapsed by default (expand on click only); single highlight = longest-prefix leaf (no submenu+item double-highlight) | n/a (flat 3-item sidebar) |
 | 4 | **Switch-Buyer-Code → in-content card** | n/a | top-bar pill removed; in-content block: "Switch" (green) + "Buyer Code" (dark) label over a bordered card (buyer name small over CODE large) |
 
@@ -36,7 +36,7 @@ and `…-bidder-dashboard__default.png` (PIL pixel sampling).
 - Admin nav item height 64px; 13-item order: Users · Buyers · Inventory · Purchase Order · Reserved Bids (EB) · Auction Scheduling · Bid as Bidder · Auction · **Credit Requests** · Reports› · Settings› · Admin› · Buyer User Guide.
 - Buyer nav order: Auction · **Credit Requests** · Buyer User Guide.
 - Collapse toggle at the top-right of the sidebar.
-- **Note (legacy quirk):** the reserve-bids capture actually shows *two* dark-highlighted items (Inventory **and** Reserved Bids (EB)). The user's ruling 3 explicitly overrides this in favour of a **single** highlight on the relevant top-level item — implemented as a longest-prefix match, so on `/…/reserve-bids` only "Reserved Bids (EB)" lights up.
+- **Note (legacy quirk):** the reserve-bids capture actually shows *two* dark-highlighted items (Inventory **and** Reserved Bids (EB)). **User-confirmed 2026-07-12: this is a bug in legacy.** Ruling 3's **single** highlight deliberately does not reproduce it — implemented as a longest-prefix match, so on `/…/reserve-bids` only "Reserved Bids (EB)" lights up.
 
 ### Logo (in content, both shells)
 - Two-tone "ecoATM DIRECT" — green `#14AC36` + teal `#00969F`.
@@ -44,8 +44,9 @@ and `…-bidder-dashboard__default.png` (PIL pixel sampling).
 - Not reachable via an unauthenticated GET on `:8082` (it is a Mendix static-image widget in the content layout, not a theme-CSS asset). **Extracted from the DPR-1 legacy capture** and shipped as a transparent PNG (`public/images/ecoatm-direct-logo.png`, 119×46, background keyed to alpha at ≤8 delta from `#F7F7F7`).
 
 ### Top-right identity
-- **Admin:** solid green (`#14AC36`) circle, **28×28**, bbox x=[1860,1887] y=[23,50]. No name, no initials.
-- **Buyer:** "{full name}" (dark `#3C3C3C`, ~14px) + green (`#14AC36`) **28×28** circle with **white** initials. Avatar right edge x=1887.
+- **Admin capture:** solid green (`#14AC36`) circle, **28×28**, bbox x=[1860,1887] y=[23,50]. No name, no initials *visible*.
+- **Buyer capture:** "{full name}" (dark `#3C3C3C`, ~14px) + green (`#14AC36`) **28×28** circle with **white** initials. Avatar right edge x=1887.
+- **Refinement (user clarification + KB verification, 2026-07-12):** both pages use the **same layout** — `ecoAtm_Atlas_Default` (`ai_knowledge_base_Release10/Pages_Page/ReserveBid_Overview.md` and `PG_Bidder_Dashboard_DG2.md` both cite it; `Pages_Snippet/SNP_UserInfoDisplay.md` is the identity DataView with the Switch-to-Premium / Submit-Feedback / SignOut actions). The admin capture's bare dot is this same widget rendering an account with **no display name** — not a distinct admin treatment. Implemented accordingly: both shells render name + white initials in the 28px green circle, degrading to a bare green circle when the account has neither (the new dev admin "Admin User" therefore shows `Admin User (AU)` — a per-side account-data difference for the harness identity mask, same class as the buyer side's nadia-vs-bidder note).
 
 ### Switch-Buyer-Code block (buyer only)
 - Label y=[90,105] (~15px): **"Switch"** = green `#14AC36`, **"Buyer Code"** = dark `#3C3C3C`. (Mission said "teal" — evidence corrected it to **green**.)
@@ -59,8 +60,8 @@ and `…-bidder-dashboard__default.png` (PIL pixel sampling).
 ## 3. Files changed (shell only)
 
 ### Admin shell
-- `frontend/src/app/(dashboard)/layout.tsx` — added Credit Requests nav item; removed sidebar logo; added `SidebarToggle` (functional whole-sidebar collapse, session-only state); removed auto-expand-on-path; single-highlight via `computeActiveHref` (longest-prefix leaf); top bar → logo-left + green status dot (click-to-open dropdown, no name/initials).
-- `frontend/src/app/(dashboard)/dashboard.module.css` — transparent 74px top band (no border), `.topBarLogo`, `.statusDot` (28px `#14AC36`), collapse-toggle header, `.sidebarCollapsed` rail styles.
+- `frontend/src/app/(dashboard)/layout.tsx` — added Credit Requests nav item; removed sidebar logo; added `SidebarToggle` (functional whole-sidebar collapse, session-only state); removed auto-expand-on-path; single-highlight via `computeActiveHref` (longest-prefix leaf); top bar → logo-left + `SNP_UserInfoDisplay` identity right (name + white initials in the green circle when the account has them, bare green circle otherwise; click-to-open dropdown).
+- `frontend/src/app/(dashboard)/dashboard.module.css` — transparent 74px top band (no border), `.topBarLogo`, `.userName` + `.userIconWrapper` (28px `#14AC36`, white 11px initials), collapse-toggle header, `.sidebarCollapsed` rail styles.
 
 ### Buyer (auction) shell
 - `frontend/src/components/bidder/BidderSidebar.tsx` — added Credit Requests item (`/wholesale/partial-credit`) between Auction and Buyer User Guide.
@@ -106,5 +107,6 @@ and `…-bidder-dashboard__default.png` (PIL pixel sampling).
 ## 5. Verification
 
 - **Visual:** throwaway Next dev server on `:13000` (killed after), rendered with the exact harness rasterization args (`--force-color-profile=srgb --disable-lcd-text --font-render-hinting=none --hide-scrollbars`, DPR 1, 1920×1080). Buyer shell + admin chrome + collapsed admin sidebar all match legacy. Screenshots: `docs/tasks/parity/evidence/shell-parity-2026-07-12/new-{buyer-shell,admin-chrome,admin-collapsed}-impl.png` (note: these are throwaway renders on the pre-BDD-P1 base — "Loading dashboard…" / Next dev "1 Issue" overlay are dev artifacts, not chrome).
+- **Admin identity, both states:** `new-admin-identity-named.png` (dev "Admin User" → name + white `AU` initials in the green circle) and `new-admin-identity-nameless.png` (account with no display name → bare green dot, pixel-matching the legacy capture's admin corner) — proves the §2 refinement's degradation behaviour.
 - **Types:** `npx tsc --noEmit` — 31 pre-existing errors (unrelated files: `wholesale-submit-bids.spec.ts`, `admin-purchase-orders.spec.ts`, `AdminReviewClient.tsx`, `partial-credit/new`), **0 in touched files**.
 - **Unit/RTL:** `npx vitest run` — **286/288 pass, 32/33 files**. The 2 failures are the known pre-existing `apiFetch-guard.test.ts` cases (violation list is all `lib/*` files, none touched here). Chrome+bidder targeted run: **28/28**.

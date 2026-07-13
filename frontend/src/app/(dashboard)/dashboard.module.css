@@ -206,13 +206,24 @@
 .topBarRight {
   display: flex;
   align-items: center;
+  gap: 12px;
   position: relative;
 }
 
-/* Green status dot — 28px solid green circle (Mendix .usericon_settings,
-   bg #14AC36). No initials/name for admins (legacy parity). Clickable so the
-   user dropdown (incl. Logout) stays reachable. */
-.statusDot {
+/* Mendix SNP_UserInfoDisplay username — 14px Brandon, body dark. Not
+   rendered at all when the account has no display name. */
+.userName {
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: #3C3C3C;
+  white-space: nowrap;
+}
+
+/* Mendix .usericon_settings — 28px solid green circle (#14AC36) with white
+   initials. An account with no name renders a bare green circle — the
+   legacy-local admin capture's "green dot". Click opens the user menu. */
+.userIconWrapper {
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -220,14 +231,22 @@
   border: none;
   padding: 0;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
   transition: background-color 0.15s;
 }
 
-.statusDot:hover {
+.userIconWrapper:hover {
   background-color: #10912D;
 }
 
-.statusDot:focus-visible {
+.userIconWrapper:focus-visible {
   outline: 2px solid #00969F;
   outline-offset: 2px;
 }

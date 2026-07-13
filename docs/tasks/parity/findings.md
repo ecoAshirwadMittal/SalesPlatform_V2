@@ -140,10 +140,15 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   Prior audits called some of these "intentional (token brief)" — each needs an ADR ref to move to
   `acceptedDivergences`, else it's a fix.
 - **RULED 2026-07-12 (user, all four):** match legacy exactly — (1) add Credit Requests nav, (2)
-  remove the white top bar (logo in content, green dot; admin shows no name/initials), (3) Admin
-  section collapsed + single highlight, (4) in-content Switch-Buyer-Code card.
+  remove the white top bar (logo in content; SNP_UserInfoDisplay identity top-right — the admin
+  capture's bare green dot is the **same widget on an account with no display name**, per the
+  user's clarification + KB proof that both pages share `ecoAtm_Atlas_Default`), (3) Admin
+  section collapsed + single highlight (the capture's Inventory+EB double-highlight is a
+  **legacy bug**, user-confirmed — deliberately not reproduced), (4) in-content
+  Switch-Buyer-Code card.
 - **Status:** **FIXED 2026-07-12** — all four implemented + visually verified against the legacy
-  captures (throwaway `:13000` render, harness rasterization args). Logo extracted to
+  captures (throwaway `:13000` render, harness rasterization args); both identity states proven
+  (named → name+initials, nameless → bare green dot matching the capture). Logo extracted to
   `public/images/ecoatm-direct-logo.png`. ADR "2026-07-12 — Shell chrome matches legacy exactly"
   (supersedes RB-26, amends RB-25). Impl: `docs/tasks/parity/impl/shell-legacy-parity.md`.
 
