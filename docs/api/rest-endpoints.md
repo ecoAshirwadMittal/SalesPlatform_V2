@@ -1652,3 +1652,59 @@ Re-runs the Oracle create for an RMA whose prior create failed
   the resubmit ran but Oracle rejected it; the admin can retry.
 - **Errors**: `404` if the RMA does not exist; `401` unauthenticated; `403`
   wrong role.
+
+## Bulk Offer-Status Change (PWS Admin, gap 2.3 sub-feature 3)
+
+Base URL: `/api/v1/admin/pws`
+Role: **`Administrator` only** (explicit `/api/v1/admin/pws/**` matcher +
+class-level `@PreAuthorize`). An ops-correction lever — a faithful port of the
+legacy Mendix `ACT_ChangeOfferStatus_Proceed` — used to fix offer status in bulk
+after a bad Oracle sync.
+
+**Locked behaviour:** permissive **any→any** (no transition allowlist);
+**side-effect-free** (NO Oracle re-send, email, or inventory reservation);
+**audit-logged** (one `pws.admin_audit_log` row per invocation, `actor`
+JWT-derived, never a request field).
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/bulk-status` | Bulk-change offer status (or metadata) → `200` + `ChangeOfferStatusResult` |
+
+**Request body** `ChangeOfferStatusRequest`:
+
+```json
+{
+  "allPeriod": false,
+  "startingDate": "2026-01-01",
+  "endingDate": "2026-01-31",
+  "fromOfferStatus": "SALES_REVIEW",
+  "toOrderStatus": "CANCELLED",
+  "notOrderStatusChange": false,
+  "hasShipmentDetails": false,
+  "orderIds": []
+}
+```
+
+- `allPeriod=true` → operate on the explicitly-selected `orderIds` only.
+- `allPeriod=false` → resolve orders whose `order_date` (day-truncated) falls in
+  the inclusive `[startingDate, endingDate]` range.
+- Status change (`notOrderStatusChange=false`): `allPeriod` changes **every**
+  linked offer; date-range changes **only** offers whose current status equals
+  `fromOfferStatus` (the safety guard) → `offer.status = toOrderStatus`.
+- Metadata-only (`notOrderStatusChange=true`): touches the resolved orders'
+  `updated_date` (the legacy `HasShipmentDetails`/`LegacyOrder` columns do not
+  exist on the modern `pws.order`; no migration in this chunk — the requested
+  `hasShipmentDetails` is captured in the audit row).
+
+**Response** `ChangeOfferStatusResult { matchedOrders, changedOffers, metadataOnly }`.
+
+**Validation (port of `VAL_ChargeOfferStatusHelper_IsValid`) — 400 when:**
+
+- `allPeriod` with an empty `orderIds`;
+- not `allPeriod` without both dates, or with `endingDate <= startingDate`;
+- a status change without `toOrderStatus`;
+- a date-range status change without `fromOfferStatus`.
+
+**Errors**: `400` invalid request; `401` unauthenticated; `403` non-Administrator
+(Bidder/SalesOps). **Schema**: reuses `pws.offer` / `pws."order"` + the V56
+`pws.admin_audit_log` table (no new migration).
