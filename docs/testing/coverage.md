@@ -220,6 +220,31 @@ deletion left no dangling import).
 
 ---
 
+## partialcredit.single-request-export (new 2026-07-12 · gap 2.5 · ACT_DownloadCreditRequest)
+Target 85%+. Adds `PartialCreditExcelExportService.exportSingle(Long)` + the
+admin `GET /api/v1/admin/partial-credit/{id}/export.xlsx` endpoint — a
+per-request review packet reusing the bulk export's two-sheet
+`writeRequestsSheet`/`writeLinesSheet` scoped to one request (no `ROW_CAP`).
+Load-bearing branches: the single-request scoping (Requests sheet = one row,
+Lines sheet = only that request's lines via the per-request finders, never the
+bulk `...In...` queries), the missing-id not-found path, and the sanitized
+`ContentDisposition` filename (`CR-<orderNumber-or-id>.xlsx`, built via
+`ContentDisposition.builder`).
+
+| Surface | Key tests |
+|---|---|
+| `PartialCreditExcelExportService.exportSingle` | `PartialCreditExcelExportServiceTest` (+2, now 9) — mixed-reason single request → 2-sheet workbook with exactly that request on the Requests sheet + only its missing/wrong lines on the Lines sheet (asserts cell content), and `verify(never())` on `adminService.listForAdmin` + the bulk `...In...` finder (proves the scoped path); missing id → `EntityNotFoundException` with `verifyNoInteractions` on the three line repos |
+| `AdminPartialCreditController` `GET /{id}/export.xlsx` | `AdminPartialCreditControllerIT` (+4, now 26, `@WebMvcTest` + imported `SecurityConfig`, mocked `exportService`/`creditRequestRepository`) — 200 with xlsx content-type + `Content-Disposition: attachment; ... CR-SO-1.xlsx` (names the order); missing id → 404 (`NOT_FOUND` body, service throws `EntityNotFoundException`); Bidder → 403 (SecurityConfig matcher); unauthenticated → 401 |
+
+Partial-credit export sweep: **35/35 green** (`PartialCreditExcelExportServiceTest`
+9 + `AdminPartialCreditControllerIT` 26). Run:
+`./mvnw test -Dtest=PartialCreditExcelExportServiceTest,AdminPartialCreditControllerIT -Dspring.profiles.active=pg-test`.
+No migration, no email, no Snowflake. (The controller IT is a `@WebMvcTest`
+slice that mocks `PartialCreditExcelExportService` — the `pg-test` profile is
+harmless/ignored for that slice; the service test is pure Mockito.)
+
+---
+
 ## email.admin-smtp (new 2026-07-11, Task 7)
 Target 85%+. First admin surface of the unified email module — the
 security-critical assertions carry the weight.
