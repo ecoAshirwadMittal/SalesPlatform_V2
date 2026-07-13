@@ -145,7 +145,29 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   BOTH shells, (2) remove the white top bar (logo in content, green dot, person identity per
   legacy), (3) Admin section collapsed + single highlight, (4) in-content Switch-Buyer-Code card.
   ADR superseding the token-brief divergences to be written by the impl agent.
-- **Status:** in-progress — shell-parity agent dispatched 2026-07-12 (also covers BDD-P2/BDD-P3)
+- **Status:** **FIXED + VERIFIED (structure + geometry) 2026-07-12** — pass 1 (a6485aab +
+  8a0df628: structure, ADR, SNP_UserInfoDisplay identity incl. bare-dot-when-nameless; legacy
+  double-highlight recorded as a legacy bug per user) + pass 2 (0ee3f038: sidebar 232px, 64px
+  item pitch, 16px/500 labels, switch-card/heading/panel x-exact on both shells; admin 13 item
+  bands exact). Bidder full-frame diff ≈1%. Residuals split out as SHELL-P2 + BDD-P1 addendum.
+
+### SHELL-P2 — shell text renders in a different typeface than legacy (hollow-outline ghosting)
+- **Date:** 2026-07-12 (post pass-2 overlay) · **Page:** both shells + ended-panel text · **Layer:** pixel · **Severity:** MEDIUM · **Class:** style-fix → frontend
+- Sidebar labels, page heading, ended-copy, and button labels ghost as hollow outlines at exact
+  positions — the glyph faces differ. Suspect: shell text uses `--font-family-primary` (Brandon)
+  while legacy Atlas/EcoAtm renders these in another face (check `.confirmationheader` /
+  sidebar `.mx-navigationtree` families in theme.compiled.css — same trap as LOGIN-P2 where the
+  render, not the theme source, is the spec).
+- **Also in this band:** ended-panel inner content sits ~10px high (subtitle + download button
+  y-offset — inner spacing of `endOfBiddingPanel.module.css` content block); 1px hairline double
+  on the panel border; logo slight ghost (raster PNG vs legacy asset rendering).
+- **Status:** open (next shell pass)
+
+### BDD-P3 addendum — identity chip env difference (harness mask needed)
+The chip now renders real display names in legacy's style (widget parity done), but the two
+sides authenticate different accounts (nadia vs dev-seed "Bidder User"/"Admin User") — the name
+text will always differ. Author per-side masks for the identity chip once selectors are pinned;
+until then it contributes a small constant diff on every page.
 
 ### POL-D1 — purchase-order data parity verified at count level
 - **Date:** 2026-07-12 · **Page:** admin-purchase-orders-list · **Layer:** data · **Severity:** — · **Class:** verification note
