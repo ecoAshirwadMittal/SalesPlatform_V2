@@ -1,22 +1,33 @@
 package com.ecoatm.salesplatform.service;
 
 import com.ecoatm.salesplatform.dto.*;
+import com.ecoatm.salesplatform.exception.RoleGrantNotPermittedException;
 import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
+import com.ecoatm.salesplatform.repository.GrantableRoleRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class DirectUserService {
 
+    private static final String ROLE_PREFIX = "ROLE_";
+
     private final EcoATMDirectUserRepository directUserRepository;
+    private final GrantableRoleRepository grantableRoleRepository;
     private final EntityManager em;
 
     // ── List (existing) ──────────────────────────────────────────────
@@ -102,6 +113,9 @@ public class DirectUserService {
 
     @Transactional
     public DirectUserDetailResponse createDirectUser(DirectUserSaveRequest req) {
+        // Reject before any write if the caller may not grant a requested role.
+        enforceGrantableRoles(req.getRoleIds());
+
         String fullName = (req.getFirstName() + " " + req.getLastName()).trim();
         boolean isLocal = req.getEmail() != null && !req.getEmail().endsWith("@ecoatm.com");
 
@@ -167,6 +181,9 @@ public class DirectUserService {
 
     @Transactional
     public DirectUserDetailResponse updateDirectUser(Long userId, DirectUserSaveRequest req) {
+        // Reject before any write if the caller may not grant a requested role.
+        enforceGrantableRoles(req.getRoleIds());
+
         String fullName = (req.getFirstName() + " " + req.getLastName()).trim();
         boolean hasBidderRole = hasBidderRole(req.getRoleIds());
 
@@ -229,6 +246,61 @@ public class DirectUserService {
         em.flush();
         em.clear();
         return getDirectUserDetail(userId);
+    }
+
+    // ── Grantable-roles guard ────────────────────────────────────────
+
+    /**
+     * Enforces {@code identity.grantable_roles}: the authenticated caller may only
+     * assign roles that at least one of their OWN roles is permitted to grant.
+     *
+     * <p>The authority to grant is derived exclusively from the verified JWT
+     * principal (the SecurityContext authorities), NEVER from the request — the
+     * requested {@code roleIds} are the roles being assigned, not proof of any
+     * permission to assign them. Caller roles are resolved by NAME → {@code
+     * user_roles.id} so a seeded {@code Administrator} always maps to the grantor
+     * row that owns the grantable matrix, regardless of dev/QA role-id skew.
+     *
+     * <p>Since the seeded matrix grants {@code Administrator} every role and this
+     * surface is Administrator-only, this rejects nothing today — it is pure
+     * defense-in-depth against a future lower-privilege grant path.
+     *
+     * @throws RoleGrantNotPermittedException (→ HTTP 403) if any requested role is
+     *         outside the caller's permitted grantee set; the message is generic
+     *         and never names the disallowed role.
+     */
+    private void enforceGrantableRoles(List<Long> requestedRoleIds) {
+        if (requestedRoleIds == null || requestedRoleIds.isEmpty()) {
+            return; // no roles being assigned → nothing to authorize
+        }
+
+        Set<String> callerRoleNames = resolveCallerRoleNames();
+        List<Long> grantorRoleIds = callerRoleNames.isEmpty()
+                ? List.of()
+                : grantableRoleRepository.findRoleIdsByNames(callerRoleNames);
+        Set<Long> allowedGranteeIds = grantorRoleIds.isEmpty()
+                ? Set.of()
+                : new HashSet<>(grantableRoleRepository.findGranteeRoleIds(grantorRoleIds));
+
+        if (!allowedGranteeIds.containsAll(requestedRoleIds)) {
+            throw new RoleGrantNotPermittedException();
+        }
+    }
+
+    /**
+     * The caller's role names from the verified JWT authorities (the {@code ROLE_}
+     * prefix stripped). Fails closed (empty set) when unauthenticated.
+     */
+    private Set<String> resolveCallerRoleNames() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return Set.of();
+        }
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .filter(a -> a != null && a.startsWith(ROLE_PREFIX))
+                .map(a -> a.substring(ROLE_PREFIX.length()))
+                .collect(Collectors.toSet());
     }
 
     // ── Helpers ──────────────────────────────────────────────────────
