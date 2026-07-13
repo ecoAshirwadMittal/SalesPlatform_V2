@@ -74,6 +74,17 @@ public class Offer {
     @Column(name = "visible_in_history", nullable = false)
     private boolean visibleInHistory = true;
 
+    // SLA + counter-offer reminder flags (V103). One-shot: default false,
+    // flipped true once the SLA-tag / reminder job acts on the offer.
+    @Column(name = "offer_beyond_sla", nullable = false)
+    private boolean offerBeyondSla = false;
+
+    @Column(name = "first_reminder_sent", nullable = false)
+    private boolean firstReminderSent = false;
+
+    @Column(name = "second_reminder_sent", nullable = false)
+    private boolean secondReminderSent = false;
+
     @Column(name = "created_date", updatable = false)
     private LocalDateTime createdDate;
 
@@ -167,6 +178,15 @@ public class Offer {
 
     public boolean isVisibleInHistory() { return visibleInHistory; }
     public void setVisibleInHistory(boolean visibleInHistory) { this.visibleInHistory = visibleInHistory; }
+
+    public boolean isOfferBeyondSla() { return offerBeyondSla; }
+    public void setOfferBeyondSla(boolean offerBeyondSla) { this.offerBeyondSla = offerBeyondSla; }
+
+    public boolean isFirstReminderSent() { return firstReminderSent; }
+    public void setFirstReminderSent(boolean firstReminderSent) { this.firstReminderSent = firstReminderSent; }
+
+    public boolean isSecondReminderSent() { return secondReminderSent; }
+    public void setSecondReminderSent(boolean secondReminderSent) { this.secondReminderSent = secondReminderSent; }
 
     public List<OfferItem> getItems() { return items; }
     public void setItems(List<OfferItem> items) { this.items = items; }

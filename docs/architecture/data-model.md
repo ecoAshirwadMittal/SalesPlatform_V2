@@ -114,3 +114,24 @@ sequence + column `DEFAULT nextval(...)` to the previously seed-only `id`
 update tx — only when an admin edit actually changes the type (old != new);
 the changer is JWT-derived (`changed_by_id`/`edited_by`), never a request
 field.
+
+---
+
+## pws.offer (V103 SLA + counter-offer-reminder flags — gap 2.3 prerequisite)
+**V103** (`pws_offer_sla_and_reminder_flags`) adds three one-shot boolean
+flags to `pws.offer`, all `BOOLEAN NOT NULL DEFAULT false`, idempotent
+`ADD COLUMN IF NOT EXISTS`:
+- `offer_beyond_sla` — set by the SLA-tag job. `PWSAdminController.setSLATags`
+  / `removeSLATags` already write this column, so **before V103 those endpoints
+  threw `column "offer_beyond_sla" does not exist` at runtime** — V103 fixes
+  them with no behaviour change beyond the schema + mapping.
+- `first_reminder_sent` / `second_reminder_sent` — the counter-offer reminder
+  job's first/second-reminder gates.
+Mapped on the `Offer` entity (`offerBeyondSla` / `firstReminderSent` /
+`secondReminderSent`, each `boolean … = false`, mirroring the existing
+`visible_in_history` boolean). A `BEFORE UPDATE` trigger
+(`R__apply_triggers.sql` → `trg_update_updated_date`) resets
+`pws.offer.updated_date = NOW()` on every UPDATE, so the SLA-tag overdue window
+cannot be back-dated via a plain UPDATE. No Snowflake, no email, no endpoint
+change — the SLA-job / reminder-job logic that consumes these flags is a later
+gap-2.3 chunk.
