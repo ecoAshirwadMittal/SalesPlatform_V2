@@ -19,14 +19,16 @@
   display: flex;
   align-items: center;
   gap: 8px;                 /* ~8px gap between heading text and the divider */
-  margin: 0 0 8px;
+  /* Legacy heading→panel gap is ~12px wider (shell pass-2: panel top landed
+     y=254 vs legacy 265 with 8px here). */
+  margin: 0 0 20px;
 }
 
 .auctionTitle {
   margin: 0;
   font-family: var(--font-family-primary);
   color: var(--color-text-body);          /* #3C3C3C */
-  font-size: 32px;
+  font-size: 35px;          /* .confirmationheader — legacy renders 35px */
   font-weight: 500;
   line-height: 1.1;
 }
