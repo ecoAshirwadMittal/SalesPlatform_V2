@@ -192,6 +192,21 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   it can log the intent — flipping the flag does not require a bean restart.
   Overridable via env: `PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED=false`.
 
+## Partial credit accounting-notification email config (gap 2.5 Task 4)
+- `partial-credit.accounting-email.recipients` — comma-separated distribution
+  list for the **manual** admin action
+  `POST /api/v1/admin/partial-credit/{id}/send-accounting-email`
+  (`AccountingEmailService`, legacy `ACT_SendCreditRequestAccountingEmail`).
+  **No shipped default** — the accounting address is not in any migrated Mendix
+  source. Bound as a `List<String>` via `@Value`. When unset/empty the action
+  **fails safe**: it returns `409` "recipients are not configured" rather than
+  sending to nobody or a hard-coded address. Set per environment via
+  `PARTIAL_CREDIT_ACCOUNTING_EMAIL_RECIPIENTS` (e.g.
+  `accounting@ecoatm.com,ap@ecoatm.com`). There is **no** enable flag — the
+  template's own `email.template.enabled` column (V102 seeds it `true`) and the
+  dev `LoggingEmailSender` gate delivery, same as the RMA/manual-qualification
+  emails.
+
 ## JPA / Hibernate config
 - `spring.jpa.open-in-view: false` — added in sub-project 6 (Task 16).
   Disables the Open-Session-In-View anti-pattern. Without this setting,

@@ -1399,6 +1399,33 @@ UI can render a "narrow your filters" toast. The single-request
 plus the controller's class-level `@PreAuthorize` (`SalesOps` / `SalesRep` /
 `Administrator` / `CoAdministrator`) — admin-only, no buyer-code gate.
 
+### Admin surface — accounting notification email (gap 2.5 Task 4)
+
+| Method | Path | Purpose |
+|---|---|---|
+| `POST` | `/api/v1/admin/partial-credit/{id}/send-accounting-email` | **Manual** admin action (NOT auto-fired) that emails the accounting distribution list the sales-approved summary for one request — legacy `ACT_SendCreditRequestAccountingEmail` (template `CreditRequestSalesApproved`, seeded by V102). Synchronous. Returns `200 {success, logId, status}` |
+
+- **Outcomes:** `200` sent (a transport failure still returns `200` with
+  `success=false` / `status=FAILED` — `EmailService.sendTemplated` records the
+  outcome on the `email.log` row and does not rethrow); `409` `INVALID_STATE`
+  when the request is **not APPROVED** (message contains "not APPROVED") or when
+  **no recipients are configured** (message contains "not configured"); `404`
+  `NOT_FOUND` when the request is missing; `429` when the per-user rate limit is
+  hit; `403` non-admin; `401` unauthenticated.
+- **Authz:** the `/api/v1/admin/partial-credit/**` matcher plus a method-level
+  `@PreAuthorize('SalesOps','Administrator')` (tighter than the class default —
+  this is an outbound-email trigger). Identity is JWT-derived.
+- **Rate limit:** user-keyed `UploadRateLimiter` (bucket prefix
+  `partial-credit-accounting-email:`), checked before anything is loaded —
+  mirrors the unified email `send-test` / `resend` precedent.
+- **Recipients:** config-only, `partial-credit.accounting-email.recipients`
+  (comma-separated, **no shipped default**). Unset/empty → `409` (fail-safe; no
+  hard-coded address, no silent no-op).
+- **Template vars:** `requestNumber` (`CR`+orderNumber), `weekNumber`
+  (`W`+order's calendar week, or empty when unresolved), `buyerName` (order
+  party/company), `buyerCode`, `requestReasons`, `totalDevicesApproved`
+  (`approvedQty`), `totalAmountApproved` (`$`+`approvedTotal`).
+
 ### Admin surface — email templates — RETIRED (Task 11, 2026-07-11)
 
 The PC-specific email-template editor endpoints

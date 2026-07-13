@@ -247,6 +247,38 @@ Submitted-email sweep: **28/28 green** (`CreditRequestSubmittedEmailListenerTest
 `CreditRequestSubmittedEmailMigrationIT` 2). Run:
 `./mvnw test -Dtest=CreditRequestSubmittedEmailListenerTest,CreditRequestServiceTest,V101MigrationIT,CreditRequestSubmittedEmailMigrationIT -Dspring.profiles.active=pg-test`.
 
+## partialcredit.accounting-email (new 2026-07-12 · gap 2.5 Task 4 · ACT_SendCreditRequestAccountingEmail)
+Target 85%+. The manual admin action
+`POST /api/v1/admin/partial-credit/{id}/send-accounting-email` dispatches
+`AccountingEmailService.sendAccountingEmail`, which emails the config-supplied
+accounting distribution list the sales-approved summary via
+`EmailService.sendTemplated` (template `CreditRequestSalesApproved`, seeded by
+V102). Load-bearing branches: the exact `eq("CreditRequestSalesApproved")` +
+`SendOverrides(configRecipients,null,null)` + `SourceRef("PARTIAL_CREDIT", id)`
+shape and the full `vars` map (`requestNumber`/`weekNumber`/`buyerName`/
+`buyerCode`/`requestReasons`/`totalDevicesApproved`/`totalAmountApproved`); the
+**APPROVED-required** guard (409) and the **no-recipients fail-safe** (409, the
+`@Value` list is empty by default — no shipped address); the missing-request 404;
+recipient trimming/blank-dropping; the `weekNumber`/`buyerName` fallbacks
+(no order date → empty week; blank company → contact name); and — at the
+controller layer — the user-keyed rate-limit gate (429, checked before the
+service is touched) plus the authz matrix.
+
+| Surface | Key tests |
+|---|---|
+| `AccountingEmailService` (Mockito) | `AccountingEmailServiceTest` (7) — approved + recipients → `sendTemplated` once with `ArgumentCaptor` proof of key + `SendOverrides` (trimmed recipients) + `SourceRef` + every var (`requestNumber=="CRSO-1"`/`weekNumber=="W18"`/`buyerName=="Acme Corp"`/`buyerCode=="NB_PWS"`/`requestReasons=="Missing, Wrong"`/`totalDevicesApproved=="3"`/`totalAmountApproved=="$1234.50"`); empty + all-blank recipients → `AccountingRecipientsNotConfiguredException` + `verifyNoInteractions(emailService)`; UNDER_REVIEW + DECLINED → `CreditRequestNotApprovedException` + no send; missing → `EntityNotFoundException` + no send; no-order-date/unknown-code → `weekNumber`/`buyerCode` empty + `buyerName` falls back to contact |
+| `AdminPartialCreditController` endpoint (`@WebMvcTest` + `SecurityConfig`) | `AdminPartialCreditControllerIT` (+8, now 34) — 200 `{success,logId,status}` as SalesOps **and** Administrator; 409 `INVALID_STATE` for no-recipients (msg "not configured") and not-approved (msg "not APPROVED"); 404 `NOT_FOUND` missing; 403 Bidder (+`verify(never)` on the service); 401 unauth; 429 when the user-keyed `UploadRateLimiter` denies (+`verify(never)` — gate precedes the service) |
+| V102 seed | `V102MigrationIT` (1, real Postgres) — one enabled `CreditRequestSalesApproved` `email.template` row whose subject + HTML + plain bodies carry every `{{var}}` the service supplies |
+
+Accounting-email sweep: **42/42 green** (`AccountingEmailServiceTest` 7 +
+`AdminPartialCreditControllerIT` 34 + `V102MigrationIT` 1). Run:
+`./mvnw test -Dtest=AccountingEmailServiceTest,AdminPartialCreditControllerIT,V102MigrationIT -Dspring.profiles.active=pg-test`.
+Design note: **APPROVED is required** — the template is the sales-approved
+summary carrying the approved-only snapshot (`approvedQty`/`approvedTotal`) and
+the legacy button lived on the review page for approved requests only; a
+non-approved request → 409. Recipients are config-only with **no shipped
+default** (fail-safe: unset → 409, never a hard-coded address).
+
 ## partialcredit.single-request-export (new 2026-07-12 · gap 2.5 · ACT_DownloadCreditRequest)
 Target 85%+. Adds `PartialCreditExcelExportService.exportSingle(Long)` + the
 admin `GET /api/v1/admin/partial-credit/{id}/export.xlsx` endpoint — a

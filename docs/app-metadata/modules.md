@@ -195,6 +195,45 @@ Inventory of major modules and their primary entities.
   regardless of the value
 - Snowflake sync: none
 
+## Partial Credit — Accounting Notification Email (gap 2.5 Task 4, 2026-07-12)
+- Source module: `ecoatm_partialcredit` (Mendix `ACT_SendCreditRequestAccountingEmail`,
+  template `CreditRequestSalesApproved`)
+- Primary tables: `email.template` (V102 seeds one row,
+  `template_key='CreditRequestSalesApproved'`, `enabled=true`), `email.log`
+  (one row per send, `source_module='PARTIAL_CREDIT'`)
+- Purpose: a **manual** admin action that emails the accounting distribution
+  list the sales-approved summary for a credit request. **Not** event-driven /
+  auto-fired — it fires only when an admin clicks "Send accounting email" on the
+  review page for an already-approved request
+- Surface: `POST /api/v1/admin/partial-credit/{id}/send-accounting-email` —
+  method-level `@PreAuthorize('SalesOps','Administrator')` on top of the existing
+  `/api/v1/admin/partial-credit/**` matcher; user-keyed `UploadRateLimiter` gate
+  (bucket `partial-credit-accounting-email:`) checked first → `429`; identity
+  JWT-derived. Synchronous — returns `200 {success, logId, status}`
+- Service: `service/partialcredit/AccountingEmailService.sendAccountingEmail(id)`
+  — `@Transactional` (**not** `readOnly` — `sendTemplated` writes `email.log`).
+  Loads the request (`404` if missing), **requires APPROVED** state
+  (`CreditRequestNotApprovedException` → `409`; the template is the
+  sales-approved summary and carries the approved-only snapshot), then requires
+  configured recipients (`AccountingRecipientsNotConfiguredException` → `409`).
+  Dispatches `EmailService.sendTemplated("CreditRequestSalesApproved", vars,
+  SendOverrides(configRecipients, null, null), SourceRef("PARTIAL_CREDIT", id))`.
+  `vars`: `requestNumber` (`'CR'+orderNumber`), `weekNumber`
+  (`'W'+`order's calendar week via `WeekRepository.findByDate(orderCreatedDate)`,
+  empty when unresolved), `buyerName` (order party/company, `partyName`),
+  `buyerCode` (via `BuyerCodeLookupService.findCodeById`), `requestReasons`
+  (comma-joined Missing/Wrong/Encumbered), `totalDevicesApproved` (`approvedQty`),
+  `totalAmountApproved` (`'$'+approvedTotal`)
+- Recipients: **config-only**, `partial-credit.accounting-email.recipients`
+  (comma-separated, **no shipped default** — the address is not in any migrated
+  source; env `PARTIAL_CREDIT_ACCOUNTING_EMAIL_RECIPIENTS`). Unset/empty →
+  fail-safe `409` "recipients are not configured", never a hard-coded address or
+  silent no-op
+- Config: no local enable flag (like the RMA / manual-qualification emails) —
+  dev routes through `LoggingEmailSender` and the template's own `enabled` column
+  gates production delivery
+- Snowflake sync: none
+
 ## Unified Email Management (Tasks 1-11 complete — Partial Credit migrated onto this module 2026-07-11)
 - Schema: `email` (V92)
 - Primary tables: `smtp_config` (singleton id=1 row — server host/port/
