@@ -865,3 +865,30 @@ repointed onto `SlaTagService` (2 SLA cases now stub the service instead of
 **Holiday seed source:** US-federal best-effort (the legacy
 `ecoatm_mdm$companyholiday` data rows were not in `migration_context/`); see
 `docs/architecture/data-model.md` § `pws.company_holiday`.
+
+---
+
+## pws.counter-offer-reminders (new 2026-07-13 · gap 2.3 sub-feature 1 · chunks C+D)
+Target 85%+. Hourly scheduled `CounterOfferReminderService` emailing buyers a
+1st/2nd counter-offer reminder for offers left in `Buyer_Acceptance` past the
+`pws_constants` hour thresholds — port of `ACT_SendCounterOfferReminderEmails` /
+`SUB_SendCounterOfferReminderEmail`. Load-bearing branches: the SECOND-precedence
++ windowed-FIRST decision tree, the `send_first/second_reminder` toggles, the
+one-shot `first/second_reminder_sent` guard, the null-second-threshold open-ended
+first, per-row exception isolation, buyer-only recipients, and the exact
+`SendOverrides`/`SourceRef`/template-key passed to `EmailService.sendTemplated`.
+V105 seeds the two `email.template` rows (best-effort copy — the reminder-email
+microflow bodies are not in `migration_context`).
+
+| Surface | Key tests |
+|---|---|
+| `CounterOfferReminderService` decision tree (Mockito, Clock-injected) | `CounterOfferReminderServiceTest` (12) — below-first → no send; [first,second) & first-unsent → FIRST + flag (ArgumentCaptor proves key `PwsCounterOfferFirstReminder` / `SendOverrides([buyer],null,null)` / `SourceRef("PWS_COUNTER_REMINDER",offerId)` / vars `buyerName`/`companyName`/`offerNumber`/`counterOfferUrl`); ≥second & second-unsent → SECOND + flag (precedence — first stays unsent); null second threshold → open-ended FIRST; `send_first`/`send_second`=false suppress; second-already-sent + first-already-sent one-shot guards; per-row isolation (one send throws → the other still sends + flags); no-recipients → skip without flagging; missing anchor → skip (no NPE); `enabled=false` → scheduled tick `verifyNoInteractions` |
+| V105 template seed (real Postgres) | `V105MigrationIT` (2, `pg-test`, mirrors `V99MigrationIT`) — both `PwsCounterOffer{First,Second}Reminder` rows exist, `enabled=true`, with every `{{var}}` (`buyerName`/`companyName`/`offerNumber`/`counterOfferUrl`) present in both HTML + plain bodies |
+| End-to-end (real Postgres) | `CounterOfferReminderEndToEndIT` (2, `@Transactional`, `pg-test`) — a seeded 50h-old `Buyer_Acceptance` offer drives `runOnce()` → one `email.log` row (`source_module='PWS_COUNTER_REMINDER'`, `template_key='PwsCounterOfferSecondReminder'`, `status='SENT'` via `LoggingEmailSender`) + `second_reminder_sent` flipped; a 50h-old offer already `second_reminder_sent=true` writes no new row (one-shot). `EcoATMDirectUserRepository` swapped for a `@Primary`/`@TestConfiguration` Mockito mock; `entityManager.flush()` surfaces the in-tx JPA writes to the raw-JDBC assertions before rollback |
+
+Counter-offer-reminder sweep: **16/16 green** (`CounterOfferReminderServiceTest`
+12 + `V105MigrationIT` 2 + `CounterOfferReminderEndToEndIT` 2). Run:
+`./mvnw test -Dtest=CounterOfferReminderServiceTest,V105MigrationIT,CounterOfferReminderEndToEndIT -Dspring.profiles.active=pg-test`.
+No DB recreate/ALTER; V105 applies out-of-order after V103 (Chunk B's V104 is a
+sibling in flight). The e2e sweep touches the shared dev DB's pre-existing
+`Buyer_Acceptance` offers but `@Transactional` rolls every write back.

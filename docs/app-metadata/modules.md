@@ -99,6 +99,56 @@ Inventory of major modules and their primary entities.
   row makes `sendTemplated` throw, which is swallowed
 - Snowflake sync: none
 
+## PWS Counter-Offer Reminders (gap 2.3 sub-feature 1, 2026-07-13)
+- Source module: `ecoatm_pws` (`ACT_SendCounterOfferReminderEmails`,
+  `SUB_SendCounterOfferReminderEmail`, calling `SUB_SendFirstReminderEmail` /
+  `SUB_SendSecondReminderEmail`)
+- Primary tables: `pws.offer` (`status`, `sales_review_completed_on` age anchor,
+  `first_reminder_sent` / `second_reminder_sent` one-shot flags from V103),
+  `pws.pws_constants` (`send_first_reminder` / `send_second_reminder` toggles +
+  `hours_first_counter_reminder` / `hours_second_counter_reminder` thresholds),
+  `email.template` (V105 seeds two rows — `PwsCounterOfferFirstReminder` +
+  `PwsCounterOfferSecondReminder`, `enabled=true`), `email.log` (one row per
+  send, `source_module='PWS_COUNTER_REMINDER'`)
+- Purpose: email buyers a 1st / 2nd counter-offer reminder when an offer sits in
+  `Buyer_Acceptance` past the configured hours, so a pending counter offer does
+  not silently expire
+- Service: `service/pws/CounterOfferReminderService` —
+  `@Scheduled(fixedDelayString="${pws.counter-reminder.fixed-delay-ms:3600000}")`
+  (hourly) + `@SchedulerLock(name="pwsCounterOfferReminder")` + injected `Clock`
+  + `@Value("${pws.counter-reminder.enabled:false}")` short-circuit. The
+  scheduled `sendCounterOfferReminders()` delegates to public `runOnce()` (the
+  gate-free work method, mirroring `RmaDeposcoSyncService.pollDeposco`/`sync`).
+  Reads the `pws_constants` singleton via `PwsConstantsReader` (JdbcTemplate — no
+  entity, matching `PWSAdminController.getPWSConstants`) into the immutable
+  `PwsCounterReminderSettings` record
+- Decision tree (faithful legacy port): SECOND — only when `send_second_reminder`
+  — fires at `hours >= hours_second && !second_reminder_sent` and takes
+  precedence (no first sent at/after the second threshold); FIRST — only when
+  `send_first_reminder && !first_reminder_sent` — fires at `hours >= hours_first`,
+  bounded by `hours < hours_second` whenever a second threshold is configured
+  (the legacy `HoursSecond != empty` branch; a null second threshold makes the
+  first reminder open-ended). One-shot via the two V103 flags; the candidate
+  query is `status='Buyer_Acceptance' AND (first_reminder_sent=false OR
+  second_reminder_sent=false)`
+- Recipients: **buyer-only** (user-locked — no CC sales), resolved via
+  `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId` (the shared PWS / RMA
+  / partial-credit resolver). Dispatches
+  `EmailService.sendTemplated(templateKey, vars, SendOverrides(recipients, null,
+  null), SourceRef("PWS_COUNTER_REMINDER", offerId))`. `vars`: `buyerName`,
+  `companyName`, `offerNumber`, `counterOfferUrl`. Per-row try/catch isolation
+  (one bad offer never aborts the tick); the one-shot flag is flipped + persisted
+  only after `sendTemplated` returns without throwing (a transport failure
+  records a FAILED `email.log` row and returns — redelivery is owned by
+  `EmailRetryWorker`, never by re-running this job)
+- Config: `pws.counter-reminder.enabled` (default `false`; env
+  `PWS_COUNTER_REMINDER_ENABLED`) — inert until ops reviews the best-effort V105
+  copy; `pws.counter-reminder.fixed-delay-ms` (default `3600000`, hourly)
+- Email copy: **best-effort** — the `SUB_SendFirstReminderEmail` /
+  `SUB_SendSecondReminderEmail` bodies are not in `migration_context`; the V105
+  seed carries reasonable copy for ops to review before enabling
+- Snowflake sync: none
+
 ## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12; email migrated onto the unified module by Task 11, 2026-07-11)
 - Source module: `ecoatm_partialcredit` (Mendix)
 - Schema: `partial_credit` (V89 + V90)

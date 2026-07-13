@@ -251,3 +251,16 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   today (injected `Clock`), skipping weekends + `pws.company_holiday` dates.
   Requires the `pws.company_holiday` table (V104) to be seeded for holiday
   parity; without holiday rows it degrades to a weekends-only business-day walk.
+
+## PWS counter-offer reminder config (gap 2.3 sub-feature 1)
+- `pws.counter-reminder.enabled` — default `false`; when `false`, the
+  `CounterOfferReminderService` scheduled tick short-circuits before any DB read.
+  Flip `true` in QA/prod only after ops reviews the best-effort V105 email copy
+  (`PwsCounterOfferFirstReminder` / `PwsCounterOfferSecondReminder`). Env
+  override: `PWS_COUNTER_REMINDER_ENABLED=true`.
+- `pws.counter-reminder.fixed-delay-ms` — default `3600000` (hourly); the sweep
+  cadence. Each tick evaluates every `Buyer_Acceptance` offer with a reminder
+  still unsent, applies the `pws_constants` thresholds/toggles, and sends the
+  1st/2nd reminder to buyer users via `EmailService.sendTemplated`. Single-leader
+  via `@SchedulerLock` (`infra.shedlock`), per-row exception isolation, one-shot
+  via the V103 `first_reminder_sent`/`second_reminder_sent` flags.

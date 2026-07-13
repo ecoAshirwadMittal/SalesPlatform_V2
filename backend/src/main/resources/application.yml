@@ -180,6 +180,14 @@ pws:
     enabled: ${PWS_SLA_TAG_ENABLED:false}
     fixed-delay-ms: ${PWS_SLA_TAG_FIXED_DELAY_MS:900000}
 
+  # Counter-offer reminder cron (gap 2.3 sub-feature 1). Hourly sweep that emails
+  # buyers a 1st/2nd reminder when an offer sits in Buyer_Acceptance past the
+  # pws_constants hour thresholds. Disabled by default until ops reviews the
+  # best-effort V105 email copy; flip enabled=true in QA/prod after that review.
+  counter-reminder:
+    enabled: ${PWS_COUNTER_REMINDER_ENABLED:false}
+    fixed-delay-ms: 3600000          # hourly poll cadence
+
 # ─────────────────────────────────────
 # Buyer Snowflake sync (PWS Data Center Phase 3.3)
 # enabled=false → BuyerSnowflakeListener bean is not registered; events are
