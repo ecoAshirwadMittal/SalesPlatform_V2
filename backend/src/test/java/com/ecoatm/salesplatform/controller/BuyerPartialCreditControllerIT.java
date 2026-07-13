@@ -44,6 +44,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -208,6 +209,52 @@ class BuyerPartialCreditControllerIT {
     void unauthenticated_returns401() throws Exception {
         mvc.perform(get("/api/v1/buyer/partial-credit?buyerCodeId=100"))
            .andExpect(status().isUnauthorized());
+    }
+
+    // ─── delete draft (gap 2.5) ─────────────────────────────────────────
+
+    @Test
+    void deleteDraft_returns204_andDerivesIdentityFromPrincipal() throws Exception {
+        // Void service call — default mock does nothing. Assert the endpoint
+        // forwards the JWT-derived userId (1) + isAdmin (false for a Bidder),
+        // never a request field.
+        mvc.perform(delete("/api/v1/buyer/partial-credit/55").with(bidder()))
+           .andExpect(status().isNoContent());
+        verify(service).deleteDraft(eq(55L), eq(1L), eq(false));
+    }
+
+    @Test
+    void deleteDraft_foreignOwnership_returns403() throws Exception {
+        doThrow(new SecurityException("User does not own buyer_code_id=999"))
+                .when(service).deleteDraft(eq(55L), anyLong(), anyBoolean());
+
+        mvc.perform(delete("/api/v1/buyer/partial-credit/55").with(bidder()))
+           .andExpect(status().isForbidden())
+           .andExpect(jsonPath("$.error").value("FORBIDDEN"));
+    }
+
+    @Test
+    void deleteDraft_nonDraft_returns409() throws Exception {
+        doThrow(new IllegalStateException("Credit request 55 is not in DRAFT — current status: PENDING_APPROVAL"))
+                .when(service).deleteDraft(eq(55L), anyLong(), anyBoolean());
+
+        mvc.perform(delete("/api/v1/buyer/partial-credit/55").with(bidder()))
+           .andExpect(status().isConflict())
+           .andExpect(jsonPath("$.error").value("INVALID_STATE"));
+    }
+
+    @Test
+    void deleteDraft_unauthenticated_returns401() throws Exception {
+        mvc.perform(delete("/api/v1/buyer/partial-credit/55"))
+           .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void deleteDraft_salesOpsRole_returns403() throws Exception {
+        // SalesOps is outside the buyer namespace's SecurityConfig matcher
+        // (Bidder / Administrator / PartialCredit_Buyer) — blocked at the URL gate.
+        mvc.perform(delete("/api/v1/buyer/partial-credit/55").with(salesOps()))
+           .andExpect(status().isForbidden());
     }
 
     // ─── photo endpoints (Chunk 4 — SPKB-3662) ─────────────────────────

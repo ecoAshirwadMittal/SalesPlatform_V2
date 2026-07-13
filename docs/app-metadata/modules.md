@@ -117,8 +117,18 @@ Inventory of major modules and their primary entities.
   shipped order with reasons of MISSING / WRONG / ENCUMBERED; sales
   ops reviews per-line, sets a decision, and the system fires a
   buyer-facing email
-- Buyer surface: `/wholesale/partial-credit/**` — landing, 5-step
-  wizard, read-only detail with post-submit photo upload + gallery
+- Buyer surface: `/wholesale/partial-credit/**` — landing (with a
+  DRAFT-only delete affordance, gap 2.5), 5-step wizard, read-only
+  detail with post-submit photo upload + gallery
+- Buyer draft delete (gap 2.5): `DELETE /api/v1/buyer/partial-credit/{id}`
+  → `CreditRequestService.deleteDraft` reuses the existing `loadForUser`
+  (ownership → 403 on a foreign request) + `ensureDraft` (→ 409 once
+  submitted/terminal) guards, then a plain `deleteById` (child rows
+  cascade via V89 `ON DELETE CASCADE`). Identity is JWT-derived. The
+  legacy Mendix flow (`NF_DeleteDraftCreditRequest` /
+  `ACT_DeleteCreditRequest`) gated DRAFT-only in the UI alone; the modern
+  port enforces ownership **and** DRAFT-only server-side. No migration,
+  Snowflake, or email
 - Admin surface: `/admin/auctions-data-center/partial-credit/**` —
   landing with filters + status counters + xlsx export (filtered bulk
   `GET /export.xlsx`, 5,000-row cap; plus per-request

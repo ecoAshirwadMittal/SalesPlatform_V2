@@ -275,6 +275,19 @@ export async function listRequests(
 }
 
 /**
+ * Hard-deletes a DRAFT credit request (gap 2.5). The server enforces
+ * ownership (403 on a foreign request) and DRAFT-only (409 once submitted);
+ * the UI only ever offers this on DRAFT rows the buyer owns. Mirrors
+ * {@link deletePhoto}: 204 is the success shape.
+ */
+export async function deleteRequest(id: number): Promise<void> {
+  const r = await apiFetch(`${BASE}/${id}`, { method: 'DELETE' });
+  if (!r.ok && r.status !== 204) {
+    throw new Error(`deleteRequest failed: HTTP ${r.status}`);
+  }
+}
+
+/**
  * Splits a buyer-pasted blob into trimmed barcodes. Accepts the comma-
  * and newline-separated formats the Figma textarea shows.
  */
