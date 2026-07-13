@@ -171,6 +171,13 @@ pws:
     from: ${PWS_EMAIL_FROM:noreply@ecoatmdirect.com}
     sales-address: ${PWS_EMAIL_SALES:sales@ecoatmdirect.com}
     counter-offer-url: ${PWS_EMAIL_COUNTER_OFFER_URL:https://buy.ecoatmdirect.com/p/counter-offer}
+  # Counter-offer reminder cron (gap 2.3 sub-feature 1). Hourly sweep that emails
+  # buyers a 1st/2nd reminder when an offer sits in Buyer_Acceptance past the
+  # pws_constants hour thresholds. Disabled by default until ops reviews the
+  # best-effort V105 email copy; flip enabled=true in QA/prod after that review.
+  counter-reminder:
+    enabled: ${PWS_COUNTER_REMINDER_ENABLED:false}
+    fixed-delay-ms: 3600000          # hourly poll cadence
 
 # ─────────────────────────────────────
 # Buyer Snowflake sync (PWS Data Center Phase 3.3)

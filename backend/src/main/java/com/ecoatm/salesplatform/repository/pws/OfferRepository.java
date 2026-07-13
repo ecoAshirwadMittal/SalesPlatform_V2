@@ -37,6 +37,22 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
     List<Offer> findByStatusAndBuyerCodeIdOrderByUpdatedDateDesc(String status, Long buyerCodeId);
 
     /**
+     * Candidate offers for the counter-offer reminder job: those still sitting
+     * in the given status ({@code Buyer_Acceptance}) with at least one reminder
+     * not yet sent. Faithful port of the legacy
+     * {@code SUB_SendCounterOfferReminderEmail} filter
+     * {@code [OfferStatus='Buyer_Acceptance'] [FirstReminderSent=false or SecondReminderSent=false]}.
+     * Ordered by id for a deterministic, stable per-tick sweep.
+     */
+    @Query("""
+            SELECT o FROM Offer o
+            WHERE o.status = :status
+              AND (o.firstReminderSent = false OR o.secondReminderSent = false)
+            ORDER BY o.id
+            """)
+    List<Offer> findCounterReminderCandidates(@Param("status") String status);
+
+    /**
      * Aggregate offer summary by status: count offers, active SKUs, total qty, total price.
      * "Active SKUs" = offer_items with quantity > 0.
      * Returns Object[] rows: [status, offerCount, activeSkuCount, totalQty, totalPrice].
