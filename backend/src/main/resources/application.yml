@@ -438,6 +438,18 @@ partial-credit:
   submitted-email:
     enabled: ${PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED:true}
   # ─────────────────────────────────────
+  # Accounting-notification email (gap 2.5 Task 4). Distribution list for the
+  # manual admin action POST /api/v1/admin/partial-credit/{id}/send-accounting-email
+  # (legacy ACT_SendCreditRequestAccountingEmail). Comma-separated; NO shipped
+  # default — the accounting address is not in any migrated Mendix source, so an
+  # unconfigured environment fails safe: the action returns 409 "recipients are
+  # not configured" rather than sending to nobody or a hard-coded address. Set
+  # per environment via PARTIAL_CREDIT_ACCOUNTING_EMAIL_RECIPIENTS. Bound as a
+  # List<String> on AccountingEmailService via @Value.
+  # ─────────────────────────────────────
+  accounting-email:
+    recipients: ${PARTIAL_CREDIT_ACCOUNTING_EMAIL_RECIPIENTS:}
+  # ─────────────────────────────────────
   # Buyer photo-upload limits (Sprint 4 chunk 4). The service enforces
   # these on every POST /photos request — they shadow the global
   # spring.servlet.multipart.max-file-size ceiling but produce typed
