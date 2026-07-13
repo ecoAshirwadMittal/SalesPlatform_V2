@@ -5,9 +5,12 @@
    (.confirmationheader = 35px/500; .confirmationheadercolor = #14AC36). */
 
 .endedRoot {
-  /* Centered column reproduces legacy's ~249px symmetric content margins:
-     the panel spans x481..1670 (1189px) inside the 232..1920 content area. */
-  max-width: 1189px;
+  /* Centered 1198px column = legacy's 245px symmetric content margins in the
+     [232,1920] region → container left x=477, where the legacy heading ink
+     and the switch-code card sit. The panel is 4px narrower on each side
+     (legacy borders x=481/x=1670) — see .panel margin below. Pass 2 replaced
+     the old 1189px value, which was tuned against the 220px sidebar. */
+  max-width: 1198px;
   margin: 0 auto;
   padding: 24px 0 0;
 }
@@ -40,6 +43,9 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
+  /* Legacy panel borders sit at x=481/x=1670 — 4px inside the 1198px
+     content column (width 1190 border-box). */
+  margin: 0 4px;
   min-height: 592px;                       /* legacy panel y265..857 */
   padding: 24px;
   background: #f2f1f0;                      /* legacy panel fill */
