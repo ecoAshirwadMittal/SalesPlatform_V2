@@ -93,3 +93,24 @@ rewrites these columns on retry. The RMA lifecycle status
 (`rma_status`/`system_status`) is set by the review itself and is not changed
 by the Oracle create (an Approved RMA carrying an `oracle_number` is what the
 Deposco status sync polls).
+
+---
+
+## buyer_mgmt.buyer_code_change_logs (compliance type-change audit — V100 makes it app-writable)
+The audit log of buyer-code **type** changes. The table already existed
+(created in V8, seeded in V18) as the collapsed legacy
+`ecoatm_buyermanagement$buyercodechangelog` — it is the faithful target of the
+Mendix `BCO_LogBuyerCodeChange` / `SUB_LogBuyerCodeTypeChange_Compliance`
+microflow, so gap-2.4 sub-feature 3 **reuses it, not a new table**. Columns:
+`id`, `buyer_code_id` (FK → `buyer_mgmt.buyer_codes`), `old_buyer_code_type` /
+`new_buyer_code_type` (VARCHAR(200)), `edited_by` (editor email),
+`edited_on`, `created_date`, `changed_date`, `owner_id` / `changed_by_id`
+(FK → `identity.users`). **V100** (`buyer_code_change_log_id_sequence`) adds a
+sequence + column `DEFAULT nextval(...)` to the previously seed-only `id`
+(mirroring V66 for buyers/buyer_codes) plus `idx_bccl_buyer_code` /
+`idx_bccl_edited_on`, so the modern app can INSERT rows via the
+`BuyerCodeChangeLog` entity (JPA `IDENTITY`, same as `BuyerCode`).
+`BuyerEditService.updateBuyerCodes` writes exactly one row — inside the buyer
+update tx — only when an admin edit actually changes the type (old != new);
+the changer is JWT-derived (`changed_by_id`/`edited_by`), never a request
+field.
