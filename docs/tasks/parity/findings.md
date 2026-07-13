@@ -194,7 +194,15 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
   bolder clock/people/briefcase/cube). A true fix = bespoke redraw of ~11 glyphs + matched rings
   + nulling a pre-existing 3.5px admin icon-column offset (geometry recorded in the shell impl
   doc Pass 4). Alternative: accept plain icons as an intentional divergence (ADR).
-- **Status:** open — awaiting user ruling (bespoke redraw vs accept+ADR)
+- **RULED 2026-07-12 (user): bespoke redraw to match legacy.**
+- **Status:** **FIXED 2026-07-13** (4fbb0c3f merged) — legacy's ringed nav icons turned out to be
+  IMAGE SVGs with the ring baked in, found on disk
+  (`Auctions UI-Release10\deployment\web\img\AuctionUI$Image_collection$*.svg`); 12 real assets
+  shipped via a shared `SidebarIcon`, filename mislabels caught by pixel-match. Admin icon band
+  6010→3193 (−46%, 6 slots pixel-identical incl. Users/Buyers/ReserveBids/AuctionSched/Auction/
+  Reports), bidder 795→343 (−56%, Auction = 0). Every slot improved, zero regressions. Residuals
+  = AA/shape floor on the font-extracted/redrawn few (PO/Settings/Admin/BidAsBidder/Guide) +
+  the ADR'd legacy double-highlight bg on Inventory. Full table: shell impl doc Pass 5.
 
 ### BDD-P3 addendum — identity chip env difference (harness mask needed)
 The chip now renders real display names in legacy's style (widget parity done), but the two
