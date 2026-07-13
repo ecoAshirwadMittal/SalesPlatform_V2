@@ -173,6 +173,23 @@ public class BuyerPartialCreditController {
         return ResponseEntity.ok(toDetail(cr));
     }
 
+    /**
+     * Hard-delete a DRAFT credit request (gap 2.5). Buyers may delete only
+     * their own drafts — ownership is enforced server-side in
+     * {@link CreditRequestService#deleteDraft} (foreign → 403); a
+     * submitted/terminal request is frozen (409). Identity is taken from the
+     * JWT principal, never a request field. Method-level {@code @PreAuthorize}
+     * mirrors the class gate (defense-in-depth).
+     */
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('Bidder','SalesRep','Administrator')")
+    public ResponseEntity<Void> delete(@PathVariable Long id, Authentication auth) {
+        Long userId = principalUserId(auth);
+        boolean admin = isAdmin(auth);
+        service.deleteDraft(id, userId, admin);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping
     public ResponseEntity<List<CreditRequestSummary>> list(
             @RequestParam Long buyerCodeId,
