@@ -118,14 +118,17 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 - **Date:** 2026-07-12 · **Page:** admin-reserve-bids-list · **Layer:** pixel+function · **Severity:** HIGH · **Class:** feature-gap/product → decide match-legacy vs ADR
 - Legacy: one eye icon per row (opens audit/view modal; RB-14 lineage). New: Edit + Audit + Delete
   text links under an "Audit" header column.
-- **Status:** open
+- **RULED 2026-07-12 (user): match legacy — eye icon only, audit as modal (RB-14 pattern).**
+- **Status:** in-progress — reserve-bids page agent dispatched 2026-07-12 (also RBL-P2/P4/P5)
 
 ### RBL-P4 — toolbar composition/order differs
 - **Date:** 2026-07-12 · **Page:** admin-reserve-bids-list · **Layer:** pixel · **Severity:** MEDIUM · **Class:** style-fix + product
 - Legacy: `[Download] [Upload EB Price]` + in-grid column-chooser eye. New:
   `[Upload EB Price] [Download] [New] [Columns]` — order flipped; **`New` is the RB-21 unowned
   addition, still unresolved** (remove or ADR); `Columns` replaces the in-grid chooser.
-- **Status:** open
+- **RULED 2026-07-12 (user): remove the New button + `/new` route** — preserves the legacy
+  invariant "EB authored only via Excel upload" (closes RB-21/RB-3 per the original audit).
+- **Status:** in-progress — same agent as RBL-P3
 
 ### RBL-P5 — grid density/pagination below the fold at 1080p
 - **Date:** 2026-07-12 · **Page:** admin-reserve-bids-list (likely all new grids) · **Layer:** pixel · **Severity:** MEDIUM · **Class:** style-fix → frontend
@@ -234,6 +237,21 @@ until then it contributes a small constant diff on every page.
   wrong-tenant → 403). Notes: subtitle copy + per-round visibility rule are inferred (not in the
   extracted microflows — matches the HN evidence; revisit if a multi-round auction surfaces).
   Residual pixel deltas on this page belong to BDD-P2/BDD-P3.
+
+### RBL-D3 — reserve-bid Last Updated instants differ by ~6 hours (data, not format)
+- **Date:** 2026-07-12 (post RBL-P2 — the format is now legacy-exact, exposing the value gap) · **Layer:** data · **Severity:** MEDIUM · **Class:** data-fix → backend
+- Same rows, ~6h-shifted display: product 73 `02:17 PM EST` (legacy) vs `08:16 PM EST` (new);
+  products 76/78 `10:53 AM` vs `04:52 PM` — a consistent ≈6h signature ⇒ timezone
+  interpretation of the stored timestamp differs (suspects: V77 seed wrote naive timestamps that
+  V50's TIMESTAMP→TIMESTAMPTZ conversion re-interpreted, or the API/entity assumes UTC where
+  legacy stored local). Diagnose against `"ecoatm_eb$reservebid".lastupdatedatetime` raw values.
+- **Status:** open
+
+### RBL-P6 — reserve-bids page heading renders ~28px vs legacy ~44px
+- **Date:** 2026-07-12 · **Layer:** pixel · **Severity:** MEDIUM · **Class:** style-fix → frontend
+- RB-1 lineage (banked audit). Title text matches; size/weight don't. Fix alongside the grid
+  fine-geometry pass (column widths + filter-row height also ghost by a few px).
+- **Status:** open
 
 ### SEC-1 — authenticated wrong-role on bidder endpoints returns 401, not 403
 - **Date:** 2026-07-12 (found during BDD-P1 verification) · **Layer:** function/security-hygiene · **Severity:** LOW (denial holds either way) · **Class:** route → SecurityConfig owner
