@@ -17,6 +17,8 @@ import com.ecoatm.salesplatform.dto.partialcredit.SectionDecisionResponse;
 import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigPatch;
 import com.ecoatm.salesplatform.dto.partialcredit.StatusConfigRow;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
+import com.ecoatm.salesplatform.model.email.EmailLog;
+import com.ecoatm.salesplatform.model.email.EmailStatus;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
@@ -27,6 +29,8 @@ import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestStatusRepo
 import com.ecoatm.salesplatform.repository.partialcredit.EncumberedDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.MissingDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.WrongDeviceLineRepository;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
+import com.ecoatm.salesplatform.service.partialcredit.AccountingEmailService;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.AdminListFilter;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.CompleteReviewResult;
@@ -104,6 +108,14 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('SalesOps','SalesRep','Administrator','CoAdministrator')")
 public class AdminPartialCreditController {
 
+    /**
+     * Prefix for the accounting-email rate-limit bucket key. This endpoint is
+     * a real outbound-email trigger, so it is rate-limited like the unified
+     * email admin's {@code /send-test} / {@code /log/{id}/resend} — user-keyed
+     * (the caller always has a verified JWT principal), not IP-keyed.
+     */
+    private static final String ACCOUNTING_EMAIL_RATE_LIMIT_PREFIX = "partial-credit-accounting-email:";
+
     private final AdminCreditRequestService adminService;
     private final CreditRequestRepository creditRequestRepository;
     private final CreditRequestStatusRepository statusRepository;
@@ -114,6 +126,8 @@ public class AdminPartialCreditController {
     private final BuyerCodeRepository buyerCodeRepository;
     private final StatusConfigService statusConfigService;
     private final PartialCreditExcelExportService exportService;
+    private final AccountingEmailService accountingEmailService;
+    private final UploadRateLimiter uploadRateLimiter;
 
     public AdminPartialCreditController(
             AdminCreditRequestService adminService,
@@ -125,7 +139,9 @@ public class AdminPartialCreditController {
             CreditRequestPhotoRepository photoRepository,
             BuyerCodeRepository buyerCodeRepository,
             StatusConfigService statusConfigService,
-            PartialCreditExcelExportService exportService) {
+            PartialCreditExcelExportService exportService,
+            AccountingEmailService accountingEmailService,
+            UploadRateLimiter uploadRateLimiter) {
         this.adminService = adminService;
         this.creditRequestRepository = creditRequestRepository;
         this.statusRepository = statusRepository;
@@ -136,6 +152,8 @@ public class AdminPartialCreditController {
         this.buyerCodeRepository = buyerCodeRepository;
         this.statusConfigService = statusConfigService;
         this.exportService = exportService;
+        this.accountingEmailService = accountingEmailService;
+        this.uploadRateLimiter = uploadRateLimiter;
     }
 
     /**
@@ -461,6 +479,56 @@ public class AdminPartialCreditController {
             }
         }
         return String.valueOf(cr.getId());
+    }
+
+    // -------------------------------------------------------------------
+    // POST /{id}/send-accounting-email  —  manual accounting notification
+    // -------------------------------------------------------------------
+
+    /**
+     * Manually emails the accounting distribution list the sales-approved
+     * summary for one credit request — the modern port of legacy
+     * {@code ACT_SendCreditRequestAccountingEmail} (template
+     * {@code CreditRequestSalesApproved}), gap 2.5 Task 4. An explicit admin
+     * action, NOT auto-fired on approval.
+     *
+     * <p>Synchronous: the admin gets the sent/failed outcome back
+     * ({@code {success, logId, status}}, mirroring the unified email
+     * {@code send-test}). {@link EmailService#sendTemplated} records the
+     * transport outcome on the {@code email.log} row and does not rethrow a
+     * transport failure, so a delivery failure still returns {@code 200} with
+     * {@code success=false} / {@code status=FAILED}.
+     *
+     * <p><b>Authz:</b> the class-level {@code @PreAuthorize} + the
+     * {@code /api/v1/admin/partial-credit/**} SecurityConfig matcher, tightened
+     * here to {@code SalesOps}/{@code Administrator} at the method level
+     * (defense-in-depth) since this is an outbound-email trigger, not a
+     * read/review action.
+     *
+     * <p><b>Rate limit:</b> user-keyed via {@link UploadRateLimiter}, checked
+     * FIRST (before loading anything) — same treatment as the email admin's
+     * {@code send-test}/{@code resend}. Denied → {@code 429}.
+     *
+     * <p><b>Outcomes:</b> {@code 200} sent; {@code 409} when the request is not
+     * APPROVED or when no recipients are configured (both via
+     * {@code IllegalStateException} → the class 409 handler); {@code 404} when
+     * the request is missing.
+     */
+    @PostMapping("/{id}/send-accounting-email")
+    @PreAuthorize("hasAnyRole('SalesOps','Administrator')")
+    public ResponseEntity<AccountingEmailResult> sendAccountingEmail(
+            @PathVariable Long id, Authentication auth) {
+        if (!uploadRateLimiter.tryAcquire(ACCOUNTING_EMAIL_RATE_LIMIT_PREFIX + principalUserId(auth))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        EmailLog sent = accountingEmailService.sendAccountingEmail(id);
+        boolean success = sent.getStatus() == EmailStatus.SENT;
+        return ResponseEntity.ok(
+                new AccountingEmailResult(success, sent.getId(), sent.getStatus().name()));
+    }
+
+    /** {@code POST /{id}/send-accounting-email} response body. */
+    public record AccountingEmailResult(boolean success, Long logId, String status) {
     }
 
     // -------------------------------------------------------------------

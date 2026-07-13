@@ -1,5 +1,7 @@
 package com.ecoatm.salesplatform.controller.admin;
 
+import com.ecoatm.salesplatform.model.email.EmailLog;
+import com.ecoatm.salesplatform.model.email.EmailStatus;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
 import com.ecoatm.salesplatform.model.partialcredit.MissingDeviceLine;
@@ -14,7 +16,11 @@ import com.ecoatm.salesplatform.repository.partialcredit.WrongDeviceLineReposito
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.security.UploadRateLimiter;
+import com.ecoatm.salesplatform.service.partialcredit.AccountingEmailService;
+import com.ecoatm.salesplatform.service.partialcredit.AccountingRecipientsNotConfiguredException;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService;
+import com.ecoatm.salesplatform.service.partialcredit.CreditRequestNotApprovedException;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.AdminStatusCounters;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.CompleteReviewResult;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.EncumberedLineEntry;
@@ -51,8 +57,11 @@ import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -81,6 +90,8 @@ class AdminPartialCreditControllerIT {
     @MockBean BuyerCodeRepository buyerCodeRepository;
     @MockBean StatusConfigService statusConfigService;
     @MockBean com.ecoatm.salesplatform.service.partialcredit.PartialCreditExcelExportService exportService;
+    @MockBean AccountingEmailService accountingEmailService;
+    @MockBean UploadRateLimiter uploadRateLimiter;
 
     CreditRequestStatus underReviewRow;
 
@@ -91,6 +102,11 @@ class AdminPartialCreditControllerIT {
         underReviewRow.setSystemStatus(SystemStatus.UNDER_REVIEW);
         underReviewRow.setExternalStatusText("Pending Approval");
         underReviewRow.setColorHex("#F1C40F");
+
+        // Allow every request through the rate limiter by default; the 429 test
+        // overrides this. @MockBean mocks are lenient, so this is harmless for
+        // tests that never touch the accounting-email endpoint.
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(true);
 
         when(statusRepository.findById(anyLong())).thenReturn(Optional.of(underReviewRow));
         when(statusRepository.findAll()).thenReturn(List.of(underReviewRow));
@@ -511,8 +527,100 @@ class AdminPartialCreditControllerIT {
     }
 
     // -------------------------------------------------------------------
+    // POST /{id}/send-accounting-email  (gap 2.5 Task 4)
+    // -------------------------------------------------------------------
+
+    @Test
+    void sendAccountingEmail_asSalesOps_returns200_withResult() throws Exception {
+        when(accountingEmailService.sendAccountingEmail(100L)).thenReturn(sentLog(77L));
+
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(salesOps()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.success").value(true))
+           .andExpect(jsonPath("$.logId").value(77))
+           .andExpect(jsonPath("$.status").value("SENT"));
+    }
+
+    @Test
+    void sendAccountingEmail_asAdministrator_returns200() throws Exception {
+        when(accountingEmailService.sendAccountingEmail(100L)).thenReturn(sentLog(78L));
+
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(administrator()))
+           .andExpect(status().isOk())
+           .andExpect(jsonPath("$.success").value(true));
+    }
+
+    @Test
+    void sendAccountingEmail_noRecipientsConfigured_returns409() throws Exception {
+        when(accountingEmailService.sendAccountingEmail(100L))
+                .thenThrow(new AccountingRecipientsNotConfiguredException(
+                        "Accounting email recipients are not configured "
+                                + "(set partial-credit.accounting-email.recipients)."));
+
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(salesOps()))
+           .andExpect(status().isConflict())
+           .andExpect(jsonPath("$.error").value("INVALID_STATE"))
+           .andExpect(jsonPath("$.message").value(
+                   org.hamcrest.Matchers.containsString("not configured")));
+    }
+
+    @Test
+    void sendAccountingEmail_notApproved_returns409() throws Exception {
+        when(accountingEmailService.sendAccountingEmail(100L))
+                .thenThrow(new CreditRequestNotApprovedException(
+                        "Credit request 100 is not APPROVED (status=UNDER_REVIEW); "
+                                + "the accounting email can only be sent for an approved request."));
+
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(salesOps()))
+           .andExpect(status().isConflict())
+           .andExpect(jsonPath("$.error").value("INVALID_STATE"))
+           .andExpect(jsonPath("$.message").value(
+                   org.hamcrest.Matchers.containsString("not APPROVED")));
+    }
+
+    @Test
+    void sendAccountingEmail_missingRequest_returns404() throws Exception {
+        when(accountingEmailService.sendAccountingEmail(999L))
+                .thenThrow(new jakarta.persistence.EntityNotFoundException("CreditRequest 999"));
+
+        mvc.perform(post("/api/v1/admin/partial-credit/999/send-accounting-email").with(salesOps()))
+           .andExpect(status().isNotFound())
+           .andExpect(jsonPath("$.error").value("NOT_FOUND"));
+    }
+
+    @Test
+    void sendAccountingEmail_asBidder_returns403() throws Exception {
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(bidder()))
+           .andExpect(status().isForbidden());
+        verify(accountingEmailService, never()).sendAccountingEmail(anyLong());
+    }
+
+    @Test
+    void sendAccountingEmail_unauthenticated_returns401() throws Exception {
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email"))
+           .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void sendAccountingEmail_rateLimited_returns429() throws Exception {
+        when(uploadRateLimiter.tryAcquire(anyString())).thenReturn(false);
+
+        mvc.perform(post("/api/v1/admin/partial-credit/100/send-accounting-email").with(salesOps()))
+           .andExpect(status().isTooManyRequests());
+        // The rate-limit gate runs before the service is ever touched.
+        verify(accountingEmailService, never()).sendAccountingEmail(anyLong());
+    }
+
+    // -------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------
+
+    private static EmailLog sentLog(Long id) {
+        EmailLog logRow = new EmailLog();
+        logRow.setId(id);
+        logRow.setStatus(EmailStatus.SENT);
+        return logRow;
+    }
 
     private static RequestPostProcessor salesOps() {
         return authentication(asAuth(2L, "ops@test.com", "SalesOps"));
