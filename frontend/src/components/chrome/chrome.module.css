@@ -127,10 +127,12 @@
 }
 
 .switchCardCompany {
-  /* 18px — legacy name ink is 146px wide / 18px tall for this string
-     (a 14px render measures 113px wide) */
+  /* 18px/500 — legacy name ink is 146px wide / 18px tall. A harness-raster
+     shape overlay pins the WEIGHT: Brandon 18px/500 aligns to the legacy crop at
+     residual 0 (pixel-identical); 18px/400 leaves a 462-px structured residual
+     at the same box. So the company name is Brandon 18px medium, not regular. */
   font-size: 18px;
-  font-weight: 400;
+  font-weight: 500;
   line-height: 1.1;
   color: var(--color-text-body, #3C3C3C);
   white-space: nowrap;

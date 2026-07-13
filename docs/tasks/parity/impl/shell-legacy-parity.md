@@ -223,3 +223,148 @@ and the logged-in user's name differing between environments
 - Gates: `npx tsc --noEmit` — same 31 pre-existing errors, 0 in touched
   files. Targeted `npx vitest run src/components/chrome
   src/components/bidder` — 28/28.
+
+---
+
+## Pass 3 (2026-07-12) — typeface verification + panel/switch/sidebar convergence (SHELL-P2)
+
+Pass 2 left the shell TEXT ghosting as hollow outlines at exact positions on
+`bidder-dashboard__default` — the finding (SHELL-P2) **hypothesised the glyph
+faces differed** (legacy Founders/Open Sans vs new Brandon via
+`--font-family-primary`). Pass 3 tested that hypothesis under the harness raster
+and **disproved it**: every shell-text element already renders in the correct
+face (Brandon Grotesque). The ghosts were **size, weight, and 1px positional**
+deltas, not face. Same lesson as LOGIN-P2, inverted — there the render was
+Founders (theme was wrong); here the render is Brandon (the theme's dominant
+Founders declarations + the `.confirmationSubHeader {font-family:"Brandon"…14px}`
+rule are NOT what actually applies — `.confirmationheader` inherits Brandon from
+the Atlas `body {font-family:"Brandon Grotesque"}` base, and the subtitle renders
+16px).
+
+### Method — the render IS the harness, proven (loop fidelity 0 px)
+
+Throwaway `next dev -p 13000` (Turbopack) on this branch, captured with the exact
+harness launch args + context (`--force-color-profile=srgb --disable-lcd-text
+--font-render-hinting=none --hide-scrollbars`; DPR1, 1920×1080, light,
+reduced-motion, en-US, America/New_York, fixed clock, kill-motion CSS, 750ms
+settle) via the same pinned `@playwright/test` 1.59.1 the harness uses. The
+baseline render is **byte-identical** to the harness's own
+`tools/parity/out/new/bidder-dashboard__default.png` (`0` diff px at every
+threshold) — so every number below is measured against the true ground truth.
+The backend CORS allow-list admits `localhost:3000` only, so `/api/v1/**` was
+proxied **Node-side** to `:8080` in the capture script (the browser's
+`Origin: :13000` header is stripped/rewritten so the shared backend answers 200);
+capture-script-only, no app/backend/DB change, `:3000/:8080/:8082` untouched.
+
+Face determination used three converging harness-raster measurements, never a
+CSS re-read: (a) **ink-width probe** — the test string rendered in Brandon vs
+Founders at candidate px/weights and compared to the legacy ink width; (b)
+**cross-correlation alignment** — legacy vs new crop diff over a (dx,dy) grid
+(residual→0 at a pure shift ⇒ same face, only positional); (c) **shape overlay**
+of a probe render on the legacy crop.
+
+### Face table (element → legacy RENDERED face/weight/size → what the new app was → fix)
+
+| Shell element (class) | Legacy rendered | New (before) | Face verdict | Fix |
+|---|---|---|---|---|
+| Sidebar nav labels, both shells (`.navItem`) | **Brandon 16px/500** | Brandon 16px/500 | ✅ already correct (Founders 16px = 52/106/115 ink vs legacy 49/100/109) | buyer 1px x-align only (`gap 19→20`) |
+| Page heading "Auction 2026 / Wk13" (`.auctionTitle`) | **Brandon 500 35px** | Brandon 500 35px | ✅ correct (Brandon & Founders both 298 ink; align residual **0** at pure +1px = same face) | +1px vertical (see panel geometry) |
+| Ended headline "Bidding has ended." (`.endedHeading` / legacy `.confirmationheader`) | **Brandon 500 35px** | Brandon 500 35px | ✅ correct (Brandon 35px = 253 ink = legacy; **Founders = 270, ruled out**; align residual 0 at +4px) | vertical only (panel spacing) |
+| Subtitle "Your bids…" (`.subtitle` / legacy `.confirmationSubHeader`) | Brandon 400 **16px** | Brandon 400 **14px** | ✅ face correct, **size wrong** (legacy 264w/12h = Brandon 16px; 14px = 232/10; Founders 16px = 268/10) | **14→16px** |
+| Download label "Download your Round N Bids" (`.downloadButton`) | Brandon 500 **18px** | Brandon 500 **14px** | ✅ face correct, **size wrong** (legacy 199w/18h = Brandon 18/500; Founders 17px = 196/14, too short) | **14→18px** + pill geometry |
+| Switch-card label "Switch Buyer Code" (`.switchLabel`) | **Brandon 500 16px** | Brandon 500 16px | ✅ correct (119 ink = Brandon 16px; Founders = 126) | none |
+| Switch-card company name (`.switchCardCompany`) | Brandon **500** 18px | Brandon **400** 18px | ✅ face correct, **weight wrong** (18/500 overlay = residual **0**; 18/400 = 462) | **weight 400→500** |
+| Switch-card code "HN" (`.switchCardCode`) | Brandon 700 26px | Brandon 700 26px | ✅ correct (36 ink; overlay residual 0) | none |
+| Identity name (`.avatarFullName`) | Brandon 400 16px | Brandon 400 16px | ✅ correct (text differs by ENV, not face — harness mask) | none |
+| In-content logo PNG | 119×46, rendered 1:1 | 119×46, 1:1 | ✅ pixel-identical (align residual **0**, natural size 119×46) | none |
+
+**Net: no `--font-family-*` token or `@font-face` change was needed or made.**
+The SHELL-P2 "typeface" premise is a false alarm; the real deltas were subtitle
+size, download size, switch-name weight, and ended-panel vertical spacing.
+
+### Ended-panel geometry (SHELL-P2 items 2–4)
+
+- **Item 2 (inner ~10px offset):** the subtitle+button block sat low. Trued via
+  `.endedRoot` padding-top 24→23 (heading cap-top y217→**y216**), `.headingRow`
+  margin-bottom 20→16 (panel top y270→**y265**), `.panel` dropped its uniform
+  `gap:16` for per-child margins (`.subtitle` `margin-top:9` → legacy's 12px
+  Bidding→subtitle ink gap; `.actionRow` `margin-top:23` → legacy's 31px
+  subtitle→button gap) and an asymmetric `padding:22px 24px 26px` that nudges the
+  vertically-centred block onto legacy's y. Result: "Bidding has ended." and the
+  subtitle now land at **dY 0** (were +4 / +12).
+- **Item 3 (panel border "hairline double"):** was **not** a border-width bug —
+  it was the panel sitting 5px low, so the two 1px `#D0D0D0` frames didn't
+  overlap. Fixing the panel top (now y265, bottom y856 vs legacy 857) collapses
+  the double line.
+- **Item 4 (logo ghost):** the in-content PNG is already **119×46 natural,
+  rendered 1:1**, bbox pixel-identical to legacy (align residual 0). No change —
+  the original "ghost" was pre-Pass-3 state.
+- **Download pill:** legacy 268×43 label 199×18. Rebuilt to Brandon 18px/500,
+  `padding:12px 29px 12px 37px` (asymmetric sides reproduce legacy's Mendix
+  `.btn` label-right-of-centre offset — a harness sweep bottomed the button
+  region at label-right +4), `margin-left:3px`, kept at 44px (an explicit
+  `height:43px` shrinks the flex block 1px and re-ghosts the whole dense panel).
+
+### Per-band before→after (diff>60 px vs the harness legacy PNG, by region)
+
+| Region | Baseline (== harness `out/new`) | Pass 3 |
+|---|---|---|
+| in-content logo | 0 | **0** |
+| sidebar nav labels (+circled icons) | 841 | **372** (label text now dX0; residue = same-face AA + the pre-existing circled-icon treatment, out of ruled scope) |
+| switch-code card | 413 | **62** (name weight fix) |
+| page heading | 822 | **0** ✓ |
+| ended headline "Bidding has ended." | 2035 | **0** ✓ |
+| subtitle | 1117 | **0** ✓ |
+| download button | 1637 | **1038** (Brandon-18px label hinting drift 198-vs-199 + 1px pill edge — AA/hinting floor) |
+| identity chip (ENV — masked) | 585 | 585 |
+| **TOTAL excl-identity** | **8066** | **1980** (−75%) |
+
+Per-element final (harness legacy vs this branch, all at 1920×1080):
+sidebar/switch-label/switch-name/switch-HN/heading/Bidding/subtitle all **dW0
+dX0 dY0**; panel frame top 265 (=), bottom 856 (−1); download label dX−3/dW−1
+(hinting), pill 269×44 vs 268×43 (+1/+1). Evidence:
+`docs/tasks/parity/evidence/shell-pass3-2026-07-12/{new,diff}-bidder-dashboard.png`.
+
+### Identity-chip mask selectors (for the orchestrator's harness — BDD-P3)
+
+The chip text will always differ (legacy "Nadia GmailOne" vs new dev-seed
+"Bidder User" / admin "Admin User") — mask per side:
+
+| Side | Selector | Notes |
+|---|---|---|
+| **New, buyer shell** (bidder-dashboard) | `[class*="avatarWrapper"]` | `UserAvatarPopover` root (`chrome.module.css .avatarWrapper`) wrapping `.avatarFullName` + `.avatarButton`. No `data-testid` exists; the CSS-module class embeds the literal `avatarWrapper`, so the `*=` attribute match is build-stable. |
+| **New, admin shell** | `[class*="topBarRight"]` | `dashboard.module.css .topBarRight` (`.userName` + `.userIconWrapper`). |
+| **Legacy, both shells** (SNP_UserInfoDisplay) | `.mx-dataview:has(.usericon_settings)` | STRUCTURAL, never `mx-name-*`. The top-right user-info DataView containing the 28px avatar circle `.usericon_settings` (+ name + `.usericon_settings_dropdown`/`_logout` sign-out menu) — classes confirmed in `theme.compiled.css`; widget = `SNP_UserInfoDisplay` DataView (KB `Pages_Snippet/SNP_UserInfoDisplay.md`, MF `ACT_GetCurrentUser` → SignOut). Live-DOM `:has()` verification was blocked by a stale cached `legacy-buyer` session and I did not re-login to `:8082` (read-only-GET rule); a harness run trivially confirms it. |
+
+### Files changed (Pass 3)
+
+- `frontend/src/app/(dashboard)/bidder/dashboard/endOfBiddingPanel.module.css` —
+  subtitle 16px + margin-top 9; download 18px/500 + 268×43 pill (asymmetric
+  padding + margin-left); panel per-child margins + asymmetric padding; endedRoot
+  23 / headingRow 16 (panel frame to y265).
+- `frontend/src/components/chrome/chrome.module.css` — `.switchCardCompany`
+  weight 400→500.
+- `frontend/src/components/bidder/bidderSidebar.module.css` — `.navItem` gap
+  19→20 (buyer label ink x55→x56).
+- `docs/tasks/parity/evidence/shell-pass3-2026-07-12/` — final new capture + diff
+  overlay.
+
+### Residuals left faithful (measured, not chased)
+
+1. **Download button ~1038 px** — Brandon 18px label renders 198 vs legacy 199
+   (a 1px width drift → progressive glyph AA across 26 chars) + the pill's odd
+   43px height (padding lands 41/44, and an explicit height:43 destabilises the
+   centred block). AA/hinting floor.
+2. **Sidebar ~372 px** — same-face AA on the labels (position now exact) + the
+   legacy circled-nav-icon treatment (the new app uses stroke icons; a
+   pre-existing systemic delta explicitly out of the ruled shell scope, see §3
+   "Out of scope").
+3. **Identity chip 585 px** — env (different account); harness-masked per the
+   selectors above.
+
+### Gates
+`npx tsc --noEmit` — 31 pre-existing errors, **0 in touched files** (all three
+are CSS modules — no TS surface). `npx vitest run src/components/chrome
+src/components/bidder src/app/(dashboard)/bidder` — **102/102 pass, 14/14 files**
+(the `EndOfBiddingPanel`, `SwitchBuyerCodeCard`, `BuyerPortalChrome`, and sidebar
+suites all green — the CSS-only changes touch no asserted DOM/structure).
