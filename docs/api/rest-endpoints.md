@@ -1702,7 +1702,7 @@ JWT-derived, never a request field).
 
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/bulk-status` | Bulk-change offer status (or metadata) → `200` + `ChangeOfferStatusResult` |
+| POST | `/bulk-status` | Bulk-change offer status → `200` + `ChangeOfferStatusResult` |
 
 **Request body** `ChangeOfferStatusRequest`:
 
@@ -1725,15 +1725,21 @@ JWT-derived, never a request field).
 - Status change (`notOrderStatusChange=false`): `allPeriod` changes **every**
   linked offer; date-range changes **only** offers whose current status equals
   `fromOfferStatus` (the safety guard) → `offer.status = toOrderStatus`.
-- Metadata-only (`notOrderStatusChange=true`): touches the resolved orders'
-  `updated_date` (the legacy `HasShipmentDetails`/`LegacyOrder` columns do not
-  exist on the modern `pws.order`; no migration in this chunk — the requested
-  `hasShipmentDetails` is captured in the audit row).
+- Metadata-only (`notOrderStatusChange=true`): **rejected with `400`**. The
+  legacy `HasShipmentDetails`/`LegacyOrder` columns do not exist on the modern
+  `pws.order` and this feature ships no migration, so the requested flag cannot
+  be persisted. Rather than pretend success (an earlier build bumped the resolved
+  orders' `updated_date` and returned `metadataOnly:true` without persisting
+  anything), the request is refused until a schema-prep migration adds a
+  `has_shipment_details` column.
 
-**Response** `ChangeOfferStatusResult { matchedOrders, changedOffers, metadataOnly }`.
+**Response** `ChangeOfferStatusResult { matchedOrders, changedOffers, metadataOnly }`
+(`metadataOnly` is always `false` — the metadata-only path is rejected up front).
 
 **Validation (port of `VAL_ChargeOfferStatusHelper_IsValid`) — 400 when:**
 
+- `notOrderStatusChange=true` (metadata-only — unsupported until `pws.order` has
+  a `has_shipment_details` column);
 - `allPeriod` with an empty `orderIds`;
 - not `allPeriod` without both dates, or with `endingDate <= startingDate`;
 - a status change without `toOrderStatus`;

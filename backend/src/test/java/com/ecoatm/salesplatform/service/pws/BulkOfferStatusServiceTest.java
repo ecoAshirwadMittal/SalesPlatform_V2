@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.contains;
@@ -104,33 +105,25 @@ class BulkOfferStatusServiceTest {
         assertThat(offersCaptor.getValue()).containsExactly(matching);
     }
 
-    // ── metadata-only path (no status change) ───────────────────────────
+    // ── metadata-only path (now rejected — no schema column to persist) ──
 
     @Test
-    @DisplayName("metadata-only → no offer status change; resolved orders touched; audit written")
-    void metadataOnlyTouchesOrdersNoStatusChange() {
-        when(orderRepository.findByOrderDateWithinRange(any(), any()))
-                .thenReturn(List.of(order(10L, offer(1L, "SALES_REVIEW")),
-                                    order(11L, offer(2L, "SALES_REVIEW"))));
-
+    @DisplayName("metadata-only (notOrderStatusChange) → rejected 400; nothing resolved, touched, or audited")
+    void metadataOnlyRejected() {
+        // The metadata path is a pretend-success on the modern schema (pws.order
+        // has no has_shipment_details column), so it is rejected outright by the
+        // validator — before any order resolution or updated_date bump.
         ChangeOfferStatusRequest req = new ChangeOfferStatusRequest(
                 false, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 1, 31),
                 null, null, true, true, List.of());
 
-        ChangeOfferStatusResult result = service().changeStatus(req, ACTOR);
+        assertThatThrownBy(() -> service().changeStatus(req, ACTOR))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Metadata-only bulk update");
 
-        assertThat(result.matchedOrders()).isEqualTo(2);
-        assertThat(result.changedOffers()).isZero();
-        assertThat(result.metadataOnly()).isTrue();
-
-        // No offer read or write on the metadata path.
-        verifyNoInteractions(offerRepository);
-        // The resolved orders are touched (the faithful "commit order list" analog).
-        verify(jdbc).update(contains("pws.\"order\""), eq(10L), eq(11L));
-        // Exactly one audit row, metadata action, JWT actor, count captured.
-        verify(jdbc).update(contains("admin_audit_log"),
-                eq("Order"), eq(0L), eq("BULK_METADATA_UPDATE"),
-                contains("hasShipmentDetails=true"), eq(ACTOR), any(), any());
+        // Rejected before touching any collaborator — no order resolve, no
+        // updated_date bump, no audit row.
+        verifyNoInteractions(orderRepository, offerRepository, jdbc);
     }
 
     // ── audit row content (caller + count) ──────────────────────────────

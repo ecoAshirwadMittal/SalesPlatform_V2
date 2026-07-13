@@ -573,7 +573,7 @@ Inventory of major modules and their primary entities.
 - Source module: `EcoATM_PWS` (`ACT_ChangeOfferStatus_Proceed`,
   `SUB_ChangeOfferStatus_GetOrderList`, `VAL_ChargeOfferStatusHelper_IsValid`)
 - Primary tables: `pws.offer` (`status` free-form String — the mutated column),
-  `pws."order"` (`order_date` resolver + metadata-path `updated_date` touch),
+  `pws."order"` (`order_date` resolver only),
   `pws.admin_audit_log` (V56 — **reused**; one audit row per invocation). **No
   new migration**
 - Purpose: an Administrator-only ops-correction lever to bulk-change offer
@@ -591,10 +591,14 @@ Inventory of major modules and their primary entities.
   (audit `actor`), never a request field
 - Apply logic: `allPeriod` → the selected `orderIds`, change **every** linked
   offer; date-range → orders by day-truncated `order_date`, change **only**
-  offers whose current `status == fromOfferStatus` (the safety guard). Metadata
-  path (`notOrderStatusChange`): the legacy `HasShipmentDetails`/`LegacyOrder`
-  columns do not exist on the modern `pws.order` and `LegacyOrder` was a legacy
-  self-no-op, so it touches `updated_date` on the resolved orders (the "commit
-  order list" analog) and records the requested `hasShipmentDetails` in the audit
-  row — documented deviation (no migration this chunk)
+  offers whose current `status == fromOfferStatus` (the safety guard)
+- Metadata path (`notOrderStatusChange=true`): **rejected with `400`** by the
+  validator (2026-07-13 review fix). The legacy `HasShipmentDetails`/`LegacyOrder`
+  columns do not exist on the modern `pws.order` and this feature ships no
+  migration, so the flag write is impossible. An earlier build faked success —
+  it bumped `updated_date` on the resolved orders and returned
+  `metadataOnly:true` without persisting anything — which the ship-and-iterate
+  principle forbids; the request is now refused up front (before any order
+  resolution or `updated_date` bump) so the gap stays visible until a schema-prep
+  migration adds a `has_shipment_details` column
 - Snowflake sync: none. Email: none
