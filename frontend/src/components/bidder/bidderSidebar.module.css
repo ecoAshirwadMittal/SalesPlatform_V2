@@ -5,7 +5,7 @@
    Colors via CSS custom properties defined in globals.css.
 
    QA references:
-     qa-03-bidder-dashboard-ad.png  → expanded sidebar (~220px)
+     qa-03-bidder-dashboard-ad.png  → expanded sidebar (232px, legacy-parity Pass 2)
      qa-07-sidebar-collapsed.png    → collapsed sidebar (~54px)
    ================================================================= */
 
@@ -13,9 +13,12 @@
 
 .sidebar {
   /* Collapsed/expanded width is toggled via data-collapsed attribute
-     on the container. JS sets it; CSS reads it. */
-  width: 220px;
-  min-width: 220px;
+     on the container. JS sets it; CSS reads it.
+     232px = legacy sidebar width (Pass 2 geometry convergence — the harness
+     legacy capture measures exactly 232 on both shells; the old 220 displaced
+     all content ~12px left). */
+  width: 232px;
+  min-width: 232px;
   height: 100vh;
   background: var(--sidebar-gradient);
   display: flex;
@@ -38,7 +41,10 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding: 10px 12px 4px;
+  /* 20px top pad centers the 28px toggle on legacy's icon band (y24..43,
+     center 33.5) and, with the 8px navList pad, starts item 1 at y=60 —
+     the same line as the admin shell (legacy cap-top anchor y=85). */
+  padding: 20px 12px 4px;
   flex-shrink: 0;
 }
 
@@ -59,14 +65,18 @@
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 48px;
+  /* 19px gap lands the label text box at x=55 (ink x≈56, legacy 56-57);
+     64px height reproduces the legacy 64px item pitch (cap-top anchors
+     y=85/149/213 on BOTH legacy shells); 16px/500 matches the legacy label
+     ink height (12px caps) and width. */
+  gap: 19px;
+  height: 64px;
   padding: 0 16px;
   color: var(--color-text-inverse, #FFFFFF);
   text-decoration: none;
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
-  font-size: 14px;
-  font-weight: 400;
+  font-size: 16px;
+  font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
   border: none;

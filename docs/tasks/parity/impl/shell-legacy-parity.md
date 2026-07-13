@@ -110,3 +110,116 @@ and `…-bidder-dashboard__default.png` (PIL pixel sampling).
 - **Admin identity, both states:** `new-admin-identity-named.png` (dev "Admin User" → name + white `AU` initials in the green circle) and `new-admin-identity-nameless.png` (account with no display name → bare green dot, pixel-matching the legacy capture's admin corner) — proves the §2 refinement's degradation behaviour.
 - **Types:** `npx tsc --noEmit` — 31 pre-existing errors (unrelated files: `wholesale-submit-bids.spec.ts`, `admin-purchase-orders.spec.ts`, `AdminReviewClient.tsx`, `partial-credit/new`), **0 in touched files**.
 - **Unit/RTL:** `npx vitest run` — **286/288 pass, 32/33 files**. The 2 failures are the known pre-existing `apiFetch-guard.test.ts` cases (violation list is all `lib/*` files, none touched here). Chrome+bidder targeted run: **28/28**.
+
+---
+
+## Pass 2 (2026-07-12) — geometry convergence
+
+Pass 1 landed the right structure; the fresh harness overlay
+(`tools/parity/out/diff/bidder-dashboard__default.png`) showed uniform
+**displacement** ghosts. Pass 2 converges the shell geometry to the legacy
+captures at the band level (±1px per element), measured with PIL band
+profiling under the exact harness rasterization (pinned Chromium,
+`--force-color-profile=srgb --disable-lcd-text --font-render-hinting=none
+--hide-scrollbars`, DPR 1, 1920×1080, fixed clock, kill-motion CSS, 750ms
+settle) on a throwaway `:13000` render of this branch.
+
+### Root causes fixed
+
+1. **Buyer sidebar 220px → 232px.** The 12px delta displaced all page
+   content. The Pass-1 compensation (1189px centered content column tuned
+   against the 220 sidebar) was re-trued, not stacked: the legacy content
+   column is **1198px centered** in the `[232,1920]` region (left edge x=477
+   — card border/label/heading ink), and the legacy ended-panel is a
+   **1190px band inset 4px** inside it (borders x=481/x=1670).
+2. **Sidebar item rhythm.** Legacy = **64px item pitch** on *both* shells
+   (admin capture: 13 items span 770.5px → 64.04 pitch; the buyer capture's
+   3 item text bands are pixel-identical to the admin's first 3). Buyer items
+   were 48px/14px/gap-12; admin items sat 2px high with labels 8px right.
+3. **Switch-card text metrics.** Legacy name is **18px** (ink 146px wide vs
+   113px at 14px), card is exactly **54px** tall (y[113,166]), name/code ink
+   at y[117,134]/y[140,158], text at x528 (divider x=517 + 10px inset).
+4. **Identity chip.** Legacy name is **16px** (caps band y[30,41]) with a
+   **16px** gap to the avatar (ink gap 17); right-anchored at avatar
+   x[1860,1887].
+
+### Per-element before/after — bidder shell (legacy = `out/legacy-local`, before = `out/new`, after = this branch under identical raster)
+
+| Element | Legacy (target) | Before (Pass 1) | After (Pass 2) |
+|---|---|---|---|
+| Sidebar width | 232 | 220 | **232** ✓ |
+| Item text cap-tops | y85 / y149 / y213 (64px pitch) | y69 / y117 / y165 (48px pitch) | **y85 / y149 / y213** ✓ |
+| Item label font | 16px/500 (12px caps) | 14px/400 | **16px/500** ✓ |
+| Item label ink x | 56 | 52 | **56** ✓ (gap 12→19) |
+| Toggle center | y33.5 | y23.5 | **y33.5** ✓ |
+| Logo | x[248,366] y[14,59] | x[248,366] y[14,59] | same ✓ (pad-left 28→16 re-anchors after width change) |
+| Identity name | 16px, band y[30,41], right ink 1843, 17px ink gap | 14px, y[32,41], right 1847, 13px gap | **y[30,41], right 1843, 17px gap** ✓ |
+| Avatar | x[1860,1887] y[23,50] | same | same ✓ |
+| Switch label ink | y[90,106], x[478,596], 16px | y[96,110], x[476,588], 15px | **y[90,106], x[478,596]** ✓ |
+| Card border box | y[113,166] x[477,776] (54px) | y[119,178] x[476,775] (60px) | **y[113,166] x[477,776]** ✓ |
+| Card divider | x517 | x516 | **x517** ✓ |
+| Name ink | y[117,134] x528 (18px) | y[129,140] x532 (14px) | **y[117,134] x528** ✓ |
+| Code ink (26px) | y[140,158] | y[147,165] | **y[140,158]** ✓ |
+| Heading ink | cap-top 216, left x477 | 212, x476 | **216, x477** ✓ |
+| Panel borders | x[481,1670], y[265,857] | x[476,1664], y[250,841] | **x[481,1670]** ✓, y[254,845] (see residuals) |
+
+### Per-element before/after — admin shell (reserve-bids pair; purchase-orders pair verified identical)
+
+| Element | Legacy (target) | Before | After |
+|---|---|---|---|
+| All 13 item text bands | y[85,96] … y[853,869] (64px pitch) | each exactly 2px high (y[83,94] …) | **all 13 exact** ✓ (`.sidebarNav` padding-top 2px) |
+| Item label ink x | 57 | 65 | **57** ✓ (pad-left 20→16, `.navIcon` margin-right 4→0) |
+| Toggle center | y33.5 | y28.5 | **y33.5** ✓ (header padding-top 9px, height still 58) |
+| Logo / status dot | x[248,366] y[14,59] / x[1860,1887] y[23,50] | already exact | unchanged ✓ |
+
+Final pixel-diff vs the legacy capture: **1.01%** differing pixels
+(threshold >24), all attributable to the residuals below plus font-raster AA
+and the logged-in user's name differing between environments
+("Nadia GmailOne" legacy vs the dev-seed "Bidder User").
+
+### Files changed
+
+- `frontend/src/components/bidder/bidderSidebar.module.css` — width 232,
+  toggle-row pad 20px top, item height 64 / gap 19 / 16px 500.
+- `frontend/src/components/chrome/chrome.module.css` — chrome pad-left 16;
+  `.switchBlock` 1198px centered, padding 11/0/20; label 16px, margin-bottom
+  7; card fixed 54px; info top-anchored, padding 1px 16px 0 8px; company
+  18px/1.1; code margin-top 2; avatar gap 16; identity name 16px.
+- `frontend/src/app/(dashboard)/bidder/dashboard/endOfBiddingPanel.module.css`
+  — **container geometry only**: `.endedRoot` 1189→1198, `.panel` margin
+  0 4px.
+- `frontend/src/app/(dashboard)/dashboard.module.css` — `.sidebarNav`
+  padding-top 2; `.navItem` pad-left 16; `.navIcon` margin-right removed;
+  `.sidebarHeader` padding-top 9.
+
+### Content-CSS residuals (out of Pass 2 scope — flagged for a content pass)
+
+- **Dashboard heading font-size**: legacy renders "Auction 2026 / Wk13" at
+  **35px** (25px caps, ink to x774); `.auctionTitle` is 32px (23px caps, ink
+  to x748). Cap-top and left edge now match exactly; the ink bottom is -2 and
+  glyph x-positions diverge rightward.
+- **Panel top/bottom** sit ~11px high (y[254,845] vs legacy y[265,857]): the
+  gap between the heading and the panel is ~12px larger in legacy (35px
+  heading line box + its margins). The panel copy ("Bidding has ended." etc.)
+  cascades with the panel box. Both belong to
+  `endOfBiddingPanel.module.css` typography (BDD-P1's values), not the shell.
+- **Icon glyphs** (pre-existing Pass 1 flags, unchanged): admin 28px icon
+  boxes vs legacy ~20px circled glyphs (admin icon ink now [20,39] vs legacy
+  [18,35] after the pad fix); both shells' collapse toggle renders a small
+  chevron vs legacy's 20px bordered panel-collapse square (centers now match
+  exactly).
+
+### Method / verification notes
+
+- Every number above was measured under the harness rasterization; the
+  worktree backend was not needed — the `:13000` dev server proxied
+  `/api/v1` to the running backend on 8080, so all data-dependent regions
+  (buyer-select → HN journey, ended-panel, admin grids) rendered fully.
+  Nothing was left unverifiable.
+- The backend CORS allowlist admits `localhost:3000` only, so the capture
+  script authenticates directly against the backend from Node (no Origin
+  header) and injects the `auth_token` cookie + `auth_user` localStorage into
+  the browser context. Capture-script-side only; no app or backend change.
+- Gates: `npx tsc --noEmit` — same 31 pre-existing errors, 0 in touched
+  files. Targeted `npx vitest run src/components/chrome
+  src/components/bidder` — 28/28.

@@ -17,9 +17,9 @@
   align-items: center;
   justify-content: space-between;
   min-height: 74px;
-  /* left pad lands the logo at legacy x≈248 (bidder sidebar is 220px);
+  /* left pad lands the logo at legacy x=248 (bidder sidebar is 232px);
      right pad lands the avatar's right edge at legacy x≈1888 */
-  padding: 0 32px 0 28px;
+  padding: 0 32px 0 16px;
   background-color: var(--color-bg-body, #F7F7F7);
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
   position: relative;
@@ -48,13 +48,17 @@
 
 /* ── In-content Switch-Buyer-Code card ──────────────────────────── */
 
-/* Centered column reproduces legacy's ~249px symmetric content margins so the
-   card left-aligns with the page content (same max-width as the dashboard
-   ended-panel). */
+/* Centered 1198px column = legacy's 245px symmetric content margins in the
+   [232,1920] region → block left edge x=477, where the legacy card border and
+   "Switch" label ink sit. (The ended-panel is a separate, narrower 1190px
+   band inset 4px inside this same column — see endOfBiddingPanel.module.css.) */
 .switchBlock {
-  max-width: 1189px;
+  max-width: 1198px;
   margin: 0 auto;
-  padding: 16px 0 4px;
+  /* 11px top pad puts the 16px label's cap-top at legacy y=90; 20px bottom
+     pad reproduces the legacy gap from the card (border bottom y=166) to the
+     page content below (dashboard heading cap-top y=216). */
+  padding: 11px 0 20px;
 }
 
 /* "Switch Buyer Code" — the click target that opens the code picker.
@@ -64,9 +68,9 @@
   background: none;
   border: none;
   padding: 0;
-  margin: 0 0 8px;
+  margin: 0 0 7px;
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 500;
   line-height: 1.2;
   color: var(--color-text-body, #3C3C3C);
@@ -95,7 +99,8 @@
   align-items: stretch;
   min-width: 300px;
   width: fit-content;
-  min-height: 54px;
+  /* Fixed 54px — the legacy card is exactly y[113,166] (54px border-box). */
+  height: 54px;
   border: 1px solid var(--color-input-border, #D0D0D0);
   border-radius: 4px;
   background: transparent;
@@ -112,15 +117,21 @@
 .switchCardInfo {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 6px 16px 6px 14px;
+  /* Top-anchored: legacy name ink top y=117 sits 4px under the card border —
+     flex-centering the stack lands it 2px low. */
+  justify-content: flex-start;
+  /* 8px left pad lands the name/code ink at legacy x=528 (divider x=517);
+     1px top pad puts the name cap-top at legacy y=117 */
+  padding: 1px 16px 0 8px;
   min-width: 0;
 }
 
 .switchCardCompany {
-  font-size: 14px;
+  /* 18px — legacy name ink is 146px wide / 18px tall for this string
+     (a 14px render measures 113px wide) */
+  font-size: 18px;
   font-weight: 400;
-  line-height: 1.25;
+  line-height: 1.1;
   color: var(--color-text-body, #3C3C3C);
   white-space: nowrap;
   overflow: hidden;
@@ -131,6 +142,8 @@
   font-size: 26px;
   font-weight: 700;
   line-height: 1.1;
+  /* 2px lands the code cap-top at legacy y=140 (6px ink gap under the name) */
+  margin-top: 2px;
   color: var(--color-text-body, #3C3C3C);
   white-space: nowrap;
 }
@@ -234,13 +247,15 @@
 .avatarWrapper {
   display: flex;
   align-items: center;
-  gap: 12px;
+  /* 16px gap → legacy's 17px ink gap between the name and the avatar */
+  gap: 16px;
   position: relative;
 }
 
 /* User's full name — plain text, right-aligned before the avatar */
 .avatarFullName {
-  font-size: 14px;
+  /* 16px — legacy name caps measure ~11.5px tall (a 14px render caps at 10) */
+  font-size: 16px;
   font-weight: 400;
   color: var(--color-text-body, #3C3C3C);
   white-space: nowrap;
