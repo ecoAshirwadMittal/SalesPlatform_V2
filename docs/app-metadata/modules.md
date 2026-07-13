@@ -60,6 +60,44 @@ Inventory of major modules and their primary entities.
   lived in the legacy `_Legacy` path), **no** Snowflake push, **no** Flyway
   migration
 - Business-logic guide: legacy `NF_OnIncludedChanged_New` in `migration_context/`
+- Notification email: on a `Started` round + `included=true` override, see the
+  "Manual Qualification — Notification Email" module below
+
+## Manual Qualification — Notification Email (gap 2.4 sub-feature 2, the email half)
+- Source module: AuctionUI (`SUB_SendManualQualificationEmail`, called from the
+  `NF_OnIncludedChanged_New` `included=true` + `RoundStatus=Started` branch)
+- Primary tables: `email.template` (V99 seeds one row,
+  `template_key='ManualQualification'`, `enabled=true`), `email.log` (one row
+  per send, `source_module='QUALIFICATION'`)
+- Purpose: on a manual include that qualifies a buyer code for an **active**
+  (`Started`) auction round, email the buyer through the shipped unified-email
+  backbone so they know they can now bid
+- Event: subscribes to the same `event.buyermgmt.QualificationOverriddenEvent`
+  published by `QualifiedBuyerCodeAdminService.updateIncluded` (no change to that
+  module — the event is the seam, mirroring the RMA `RmaReviewCompletedEvent`
+  pattern)
+- Listener: `listener/buyermgmt/ManualQualificationEmailListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)` +
+  `@Transactional(REQUIRES_NEW)` and **not** `readOnly` (the send writes
+  `email.log`; a readOnly tx would fail the INSERT — same gotcha as the RMA /
+  partial-credit listeners). Applies the legacy gate itself: acts only when
+  `roundStatus == Started && included == true` (any other combination → no-op);
+  resolves buyer recipients via
+  `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId` (the shared
+  PWS/RMA/partial-credit resolver), and dispatches
+  `EmailService.sendTemplated("ManualQualification", vars,
+  SendOverrides(recipients, null, null), SourceRef("QUALIFICATION",
+  qualifiedBuyerCodeId))`. `vars`: `buyerCode` (via
+  `BuyerCodeLookupService.findCodeById`), `schedulingAuctionId`, and
+  `qualifiedAtDisplay` (the event's `occurredAt` formatted `yyyy-MM-dd HH:mm
+  'UTC'`). No entity reload — the event carries every fact. Swallows all send
+  exceptions — a failed email never rolls back or surfaces from the
+  already-committed override
+- Config: **no** local enable flag (like the RMA approval email) — dev/test route
+  through `LoggingEmailSender` (logs, never sends) and the template's own
+  `enabled` column gates production delivery; a disabled `ManualQualification`
+  row makes `sendTemplated` throw, which is swallowed
+- Snowflake sync: none
 
 ## Partial Credit Requests (Sprints 1-4 — Phase 1 complete 2026-05-12; email migrated onto the unified module by Task 11, 2026-07-11)
 - Source module: `ecoatm_partialcredit` (Mendix)

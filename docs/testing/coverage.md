@@ -510,3 +510,32 @@ field shape Task 4 depends on. **No** bid-data re-seed, Snowflake, or migration.
 QBC qualification-override sweep: **11/11 green** (`QualifiedBuyerCodeAdminServiceTest`
 9 + `QualifiedBuyerCodeAdminControllerIT` 2). Run:
 `./mvnw test -Dtest=QualifiedBuyerCodeAdminServiceTest,QualifiedBuyerCodeAdminControllerIT -Dspring.profiles.active=pg-test`.
+
+---
+
+## buyersusers.manual-qualification-email (new 2026-07-12 · gap 2.4 sub-feature 2 · SUB_SendManualQualificationEmail)
+Target 85%+. On a `Started`-round + `included=true`
+`QualificationOverriddenEvent` (Task 3's seam), the AFTER_COMMIT
+`ManualQualificationEmailListener` sends the buyer the manual-qualification email
+through the unified email backbone (`EmailService.sendTemplated`), seeded by V99
+`ManualQualification`. Attaches as a second AFTER_COMMIT listener to the Task-3
+event — `QualifiedBuyerCodeAdminService`/`updateIncluded` untouched. Load-bearing
+branches: the legacy `NF_OnIncludedChanged_New` gate (`roundStatus == Started &&
+included == true`; any other combination → no-op); the exact
+`SendOverrides(recipients,null,null)` / `SourceRef("QUALIFICATION",
+qualifiedBuyerCodeId)` shape and the `vars` map (`buyerCode` /
+`schedulingAuctionId` / `qualifiedAtDisplay`); the no-recipients guard; any
+`sendTemplated` exception swallowed; and — only a real-Postgres IT can prove —
+the listener's `@Transactional(REQUIRES_NEW)` is **not** `readOnly`, so the
+`email.log` INSERT commits. No entity reload (the event carries every fact); no
+Snowflake; no local enable flag (dev `LoggingEmailSender` + template `enabled`).
+
+| Surface | Key tests |
+|---|---|
+| `ManualQualificationEmailListener` → `EmailService` | `ManualQualificationEmailListenerTest` (5, Mockito) — Started+included: `sendTemplated` called once with `eq("ManualQualification")`, `eq(SendOverrides(recipients,null,null))`, `eq(SourceRef("QUALIFICATION", qbcId))`, vars via `ArgumentCaptor` (`buyerCode`/`schedulingAuctionId`/`qualifiedAtDisplay=="2026-07-12 14:30 UTC"`); Started+included=false → `verifyNoInteractions`; non-Started (Scheduled)+included → `verifyNoInteractions`; no-recipients → never called (+ warn logged); `sendTemplated` throwing → swallowed, never escapes |
+| V99 seed | `V99MigrationIT` (1, real Postgres) — one enabled `ManualQualification` `email.template` row whose `subject`/`content_html`/`content_plain` carry every `{{var}}` the listener supplies |
+| Real end-to-end wiring + non-readOnly tx | `ManualQualificationEmailMigrationIT` (2, real Postgres, mirrors `RmaApprovedEmailMigrationIT`) — publishing a Started+included event inside a committed `TransactionTemplate` tx drives the real listener → real `EmailService` → one `email.log` row (`source_module='QUALIFICATION'`, `template_key='ManualQualification'`, `status='SENT'` via `LoggingEmailSender`); a Scheduled round **and** an included=false override each write none. `EcoATMDirectUserRepository` swapped for a `@Primary`/`@TestConfiguration` Mockito mock so no buyer/account join chain is needed |
+
+Manual-qualification email sweep: **8/8 green** (`ManualQualificationEmailListenerTest`
+5 + `ManualQualificationEmailMigrationIT` 2 + `V99MigrationIT` 1). Run:
+`./mvnw test -Dtest=ManualQualificationEmailListenerTest,V99MigrationIT,ManualQualificationEmailMigrationIT -Dspring.profiles.active=pg-test`.
