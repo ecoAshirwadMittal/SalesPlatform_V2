@@ -12,16 +12,17 @@
      the old 1189px value, which was tuned against the 220px sidebar. */
   max-width: 1198px;
   margin: 0 auto;
-  padding: 24px 0 0;
+  /* 23px (was 24): lands the heading cap-top at legacy y=216 (was y=217). */
+  padding: 23px 0 0;
 }
 
 .headingRow {
   display: flex;
   align-items: center;
   gap: 8px;                 /* ~8px gap between heading text and the divider */
-  /* Legacy heading→panel gap is ~12px wider (shell pass-2: panel top landed
-     y=254 vs legacy 265 with 8px here). */
-  margin: 0 0 20px;
+  /* 16px (was 20): with the heading cap-top at y216, this lands the panel top
+     border at legacy y=265 (was y=270 with 20px). */
+  margin: 0 0 16px;
 }
 
 .auctionTitle {
@@ -44,12 +45,16 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  /* No flex gap: legacy's inner gaps are non-uniform (Bidding→subtitle 12px,
+     subtitle→button 31px), so each child owns its own top margin instead. */
   /* Legacy panel borders sit at x=481/x=1670 — 4px inside the 1198px
      content column (width 1190 border-box). */
   margin: 0 4px;
   min-height: 592px;                       /* legacy panel y265..857 */
-  padding: 24px;
+  /* Asymmetric (22 top / 26 bottom) nudges the vertically-centred content block
+     up ~2px so "Bidding has ended." lands on legacy's y=496 cap-top. The block
+     is position-sensitive: a 1px shift re-ghosts the whole dense panel. */
+  padding: 22px 24px 26px;
   background: #f2f1f0;                      /* legacy panel fill */
   border: 1px solid var(--color-input-border);  /* #D0D0D0 */
   text-align: center;
@@ -69,10 +74,15 @@
 }
 
 .subtitle {
-  margin: 0;
+  /* 9px top margin → legacy's 12px ink gap below "Bidding has ended." */
+  margin: 9px 0 0;
   font-family: var(--font-family-primary);
   color: var(--color-text-body);           /* legacy subtitle #3C3C3C */
-  font-size: 14px;                          /* .confirmationSubHeader */
+  /* 16px, NOT the theme's declared .confirmationSubHeader 14px: the live render
+     is the spec. A harness-raster PIL glyph-band probe measures the legacy ink
+     at 264px wide / 12px tall = Brandon 16px (14px = 232/10; Founders 16px =
+     268/10) — the .confirmationSubHeader 14px rule is not what actually applies. */
+  font-size: 16px;
   font-weight: 400;
 }
 
@@ -82,25 +92,44 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+  /* 23px top margin → legacy's 31px ink gap between the subtitle and the pill
+     (the pill's own top padding contributes the remaining ~8px). */
+  margin-top: 23px;
 }
 
 .downloadButton {
   /* Outline pill — legacy "Download your Round N Bids": white-ish fill,
-     #D0D0D0 border, dark text, fully rounded (measured ~267×42). */
+     #D0D0D0 border, dark text, fully rounded. Harness-raster PIL measurement of
+     the legacy pill = 268×43 with a 199×18 label = Brandon 18px/500 (Founders is
+     ruled out — its 17px gives a 14px-tall ink, too short). Exact padding/margin
+     values are documented inline below. */
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 8px;
-  padding: 11px 30px;
+  /* 12px vertical padding → a 44px pill (legacy 43 — the odd height can't be hit
+     with an 18px line-box; padding 12 lands 44, padding 11 lands 41). 44 is kept
+     over an explicit height:43px because the latter shrinks the flex block 1px,
+     and the vertically-centred block is position-sensitive (a 1px block shift
+     re-ghosts the whole dense panel — ~1200 diff px — dwarfing the 1px pill
+     edge). Asymmetric sides (37 left / 29 right, sum 66 = the 268px pill) shift
+     the centred label ~4px right within the pill: legacy's Mendix .btn renders
+     its label right-of-centre, and a harness sweep bottomed the button-region
+     diff out at this +4 offset (1038 vs 1601 centred). */
+  padding: 12px 29px 12px 37px;
   background: var(--color-bg-body);         /* #F7F7F7 */
   border: 1px solid var(--color-input-border);  /* #D0D0D0 */
   border-radius: var(--radius-pill);
   color: var(--color-text-body);            /* #3C3C3C */
   font-family: var(--font-family-primary);
-  font-size: 14px;
+  font-size: 18px;                          /* Brandon 18px/500 — harness-measured */
+  line-height: 1;
   font-weight: 500;
   cursor: pointer;
   transition: border-color 120ms ease, background 120ms ease;
+  /* 3px left margin — legacy centres its Mendix .btn slightly right of the panel
+     centre (a Bootstrap button-margin quirk). A harness-raster sweep found the
+     button-region diff bottoms out at margin-left:3 (1652 vs 1824 at 0). */
+  margin-left: 3px;
 }
 
 .downloadButton:hover {

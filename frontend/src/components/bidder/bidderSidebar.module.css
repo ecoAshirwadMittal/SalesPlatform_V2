@@ -65,11 +65,11 @@
 .navItem {
   display: flex;
   align-items: center;
-  /* 19px gap lands the label text box at x=55 (ink x≈56, legacy 56-57);
-     64px height reproduces the legacy 64px item pitch (cap-top anchors
-     y=85/149/213 on BOTH legacy shells); 16px/500 matches the legacy label
-     ink height (12px caps) and width. */
-  gap: 19px;
+  /* 20px gap lands the label ink at x=56 (legacy 56-57; 19px landed it at x=55,
+     1px left — a harness-raster band measurement). 64px height reproduces the
+     legacy 64px item pitch (cap-top anchors y=85/149/213 on BOTH legacy shells);
+     16px/500 matches the legacy label ink height (12px caps) and width. */
+  gap: 20px;
   height: 64px;
   padding: 0 16px;
   color: var(--color-text-inverse, #FFFFFF);
