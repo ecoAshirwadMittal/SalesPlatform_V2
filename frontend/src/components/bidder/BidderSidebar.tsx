@@ -5,11 +5,13 @@
  *
  * Renders:
  *   1. A SidebarToggle at the top-right corner of the sidebar
- *   2. Two nav items: Auction (gavel icon) and Buyer User Guide (book icon)
+ *   2. Three nav items: Auction, Credit Requests, and Buyer User Guide —
+ *      the legacy buyer sidebar order (BDD-P2 / SHELL-P1).
  *
- * The Buyer User Guide link is wired to the Phase 12 backend endpoint.
- * On mount a HEAD request checks whether a guide has been configured; if not,
- * the link is rendered disabled with a tooltip "No guide configured yet."
+ * Buyer User Guide navigates to the in-app `/buyer-user-guide` stub route
+ * (enabled, rendered identically to its siblings — NAV-1). Legacy renders this
+ * item enabled; the earlier HEAD-checked backend-PDF link dimmed it whenever no
+ * guide was configured, which never matched the legacy evidence.
  *
  * Collapse state is read from SidebarContext (populated by SidebarProvider
  * in the parent layout). The gradient background is applied to this container
@@ -18,41 +20,23 @@
  * QA references: qa-03-bidder-dashboard-ad.png (expanded), qa-07-sidebar-collapsed.png (collapsed)
  */
 
-import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import SidebarToggle from '@/components/chrome/SidebarToggle';
 import { useSidebar } from '@/components/chrome/SidebarContext';
-import { apiFetch } from '@/lib/apiFetch';
 import BidderSidebarItem from './BidderSidebarItem';
 import { GavelIcon, BookIcon, CreditRequestIcon } from './BidderSidebarIcons';
 import styles from './bidderSidebar.module.css';
 
-const BUYER_GUIDE_HREF = '/api/v1/bidder/docs/buyer-guide';
+const BUYER_GUIDE_HREF = '/buyer-user-guide';
 const CREDIT_REQUESTS_HREF = '/wholesale/partial-credit';
 
 export default function BidderSidebar() {
   const { collapsed, toggle } = useSidebar();
   const pathname = usePathname();
 
-  /**
-   * null  = not yet checked (link is enabled optimistically while checking)
-   * true  = guide exists
-   * false = guide does not exist (404)
-   */
-  const [guideAvailable, setGuideAvailable] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    // HEAD request — no body read, minimal overhead.
-    apiFetch(BUYER_GUIDE_HREF, { method: 'HEAD' })
-      .then((res) => setGuideAvailable(res.ok))
-      .catch(() => setGuideAvailable(false));
-  }, []);
-
   const isAuctionActive = pathname.startsWith('/bidder/dashboard');
   const isCreditRequestsActive = pathname.startsWith(CREDIT_REQUESTS_HREF);
-
-  // Disable the link while we haven't checked yet (null) OR when we know there's no guide.
-  const guideDisabled = guideAvailable === false;
+  const isBuyerGuideActive = pathname.startsWith(BUYER_GUIDE_HREF);
 
   return (
     <aside
@@ -89,16 +73,15 @@ export default function BidderSidebar() {
             />
           </li>
           <li>
-            {/* External PDF — opens in a new tab via the Phase 12 backend endpoint. */}
+            {/* Buyer User Guide — enabled, internal link to the in-app stub
+                (NAV-1). Legacy renders this item enabled with a plain book glyph,
+                identical treatment to its siblings. */}
             <BidderSidebarItem
               icon={<BookIcon />}
               label="Buyer User Guide"
               href={BUYER_GUIDE_HREF}
-              external={!guideDisabled}
-              disabled={guideDisabled}
-              tooltip={guideDisabled ? 'No guide configured yet.' : undefined}
               collapsed={collapsed}
-              isActive={false}
+              isActive={isBuyerGuideActive}
             />
           </li>
         </ul>
