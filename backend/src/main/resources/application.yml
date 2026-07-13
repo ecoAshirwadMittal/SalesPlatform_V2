@@ -427,6 +427,17 @@ partial-credit:
   review-completed-email:
     enabled: ${PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED:true}
   # ─────────────────────────────────────
+  # Submission-confirmation email listener (gap 2.5 Task 1). Fired when a
+  # buyer submits a credit request (DRAFT -> PENDING_APPROVAL) and dispatched
+  # asynchronously by CreditRequestSubmittedEmailListener. Default `true` so it
+  # works out of the box; the PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED override
+  # lets a dev / staging environment disable the listener without a code
+  # change. Consumed via @Value on the listener (not @ConditionalOnProperty) so
+  # the bean + its tests exist regardless of the value.
+  # ─────────────────────────────────────
+  submitted-email:
+    enabled: ${PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED:true}
+  # ─────────────────────────────────────
   # Buyer photo-upload limits (Sprint 4 chunk 4). The service enforces
   # these on every POST /photos request — they shadow the global
   # spring.servlet.multipart.max-file-size ceiling but produce typed
