@@ -793,20 +793,25 @@ invocation with the JWT-derived actor + counts; and the Administrator-only authz
 
 | Surface | Key tests |
 |---|---|
-| `ChangeOfferStatusValidator` | `ChangeOfferStatusValidatorTest` (12) — allPeriod-without-order → 400; date-range without dates / with `end ≤ start` → 400; status change without `toOrderStatus` → 400; date-range status change without `fromOfferStatus` → 400 (the guard); allPeriod + selected order + target, date-range + from + to, and both metadata-only combinations → pass |
-| `BulkOfferStatusService` (Mockito) | `BulkOfferStatusServiceTest` (4) — allPeriod → **every** linked offer flipped (no guard); date-range → **only** the `fromOfferStatus`-matching offer flipped (other untouched); metadata-only → no offer write (`verifyNoInteractions(offerRepository)`), resolved orders touched, one audit row; audit row carries the JWT actor + `changedOffers` count (`contains(...)` matchers on the `JdbcTemplate` audit insert) |
-| `BulkOfferStatusController` (real Postgres) | `BulkOfferStatusControllerIT` (7, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`, Long-principal auth) — 401 unauth; 403 Bidder; 403 SalesOps (Administrator-only); 400 bad date range; allPeriod happy (offer → `CANCELLED` + audit row present); date-range happy (far-future 2099 window → deterministic against the seeded dev DB); date-range guard blocks a non-matching `fromOfferStatus` (200, `changedOffers=0`, offer unchanged) |
+| `ChangeOfferStatusValidator` | `ChangeOfferStatusValidatorTest` (12) — allPeriod-without-order → 400; date-range without dates / with `end ≤ start` → 400; status change without `toOrderStatus` → 400; date-range status change without `fromOfferStatus` → 400 (the guard); **both metadata-only (`notOrderStatusChange=true`) combinations → 400 (unsupported — no schema column)**; allPeriod + selected order + target and date-range + from + to → pass |
+| `BulkOfferStatusService` (Mockito) | `BulkOfferStatusServiceTest` (4) — allPeriod → **every** linked offer flipped (no guard); date-range → **only** the `fromOfferStatus`-matching offer flipped (other untouched); **metadata-only → rejected 400 with `verifyNoInteractions(orderRepository, offerRepository, jdbc)` (nothing resolved, touched, or audited — the guard runs before order resolution)**; audit row carries the JWT actor + `changedOffers` count (`contains(...)` matchers on the `JdbcTemplate` audit insert) |
+| `BulkOfferStatusController` (real Postgres) | `BulkOfferStatusControllerIT` (8, extends `PostgresIntegrationTest`, `@AutoConfigureMockMvc` + `@Transactional`, Long-principal auth) — 401 unauth; 403 Bidder; 403 SalesOps (Administrator-only); 400 bad date range; **400 metadata-only (Administrator, `notOrderStatusChange=true`) — proves the rejection end-to-end through the controller + `GlobalExceptionHandler`**; allPeriod happy (offer → `CANCELLED` + audit row present); date-range happy (far-future 2099 window → deterministic against the seeded dev DB); date-range guard blocks a non-matching `fromOfferStatus` (200, `changedOffers=0`, offer unchanged) |
 
-Bulk offer-status sweep: **23/23 green** (`ChangeOfferStatusValidatorTest` 12 +
-`BulkOfferStatusServiceTest` 4 + `BulkOfferStatusControllerIT` 7). Run:
+Bulk offer-status sweep: **24/24 green** (`ChangeOfferStatusValidatorTest` 12 +
+`BulkOfferStatusServiceTest` 4 + `BulkOfferStatusControllerIT` 8). Run:
 `./mvnw test -Dtest=ChangeOfferStatusValidatorTest,BulkOfferStatusServiceTest,BulkOfferStatusControllerIT -Dspring.profiles.active=pg-test`.
 No new migration — reuses `pws.offer` / `pws."order"` + the V56
 `pws.admin_audit_log` table.
 
-> **Schema-vs-brief note:** the brief's metadata-only path assumed
-> `pws.order.has_shipment_details` + `legacy_order` columns exist (they do not —
-> confirmed in the migrations **and** the live dev DB) under a "no migration"
-> lock. Legacy set `LegacyOrder` to its own value (a no-op); the modern metadata
-> path therefore touches `updated_date` on the resolved orders and records the
-> requested `hasShipmentDetails` in the audit `reason`. Persisting the flag itself
-> would need a schema column (deferred — no migration in this chunk).
+> **Metadata-only path — rejected (2026-07-13 review fix):** the original chunk
+> shipped a metadata-only path (`notOrderStatusChange=true`) as a **pretend
+> success** — `pws.order` has no `has_shipment_details` / `legacy_order` column
+> (confirmed in the migrations **and** the live dev DB) and no migration ships,
+> so the path could not persist the requested flag, yet it bumped `updated_date`
+> on the resolved orders and returned `200` `metadataOnly:true`. The
+> ship-and-iterate principle forbids that silent no-op. The review fix rejects
+> `notOrderStatusChange=true` in `ChangeOfferStatusValidator` (→ 400, before any
+> order resolution or `updated_date` bump) and removes the dead `applyMetadata`
+> path from the service. The status-change path (the approved deliverable) is
+> unchanged. Persisting the flag remains a deferred schema-prep chunk (would need
+> a `has_shipment_details` column + migration).
