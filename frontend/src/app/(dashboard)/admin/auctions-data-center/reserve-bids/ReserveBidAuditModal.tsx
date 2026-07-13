@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidAuditRow } from "@/lib/reserveBidTypes";
+import { formatLegacyDateTime } from "@/lib/format/legacyDateTime";
 import styles from "./reserveBidsList.module.css";
 
 interface Props {
@@ -94,7 +95,7 @@ export default function ReserveBidAuditModal({ reserveBidId, productId, onClose 
                   <tr key={r.id}>
                     <td className={styles.numericCell}>{formatMoney(r.oldPrice)}</td>
                     <td className={styles.numericCell}>{formatMoney(r.newPrice)}</td>
-                    <td>{new Date(r.createdDate).toLocaleString()}</td>
+                    <td>{formatLegacyDateTime(r.createdDate)}</td>
                     <td>{r.changedByUsername ?? "—"}</td>
                   </tr>
                 ))}

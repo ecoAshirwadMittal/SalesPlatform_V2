@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import Link from "next/link";
 import { reserveBidClient } from "@/lib/reserveBidClient";
 import type { ReserveBidRow } from "@/lib/reserveBidTypes";
+import { formatLegacyDateTime } from "@/lib/format/legacyDateTime";
 import {
   type ColumnDef,
   type FetcherArgs,
@@ -18,12 +18,6 @@ export default function ReserveBidsPage() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [refreshNonce, setRefreshNonce] = useState(0);
 
-  const handleDelete = useCallback(async (id: number) => {
-    if (!confirm("Delete this reserve bid? This will drop its audit trail.")) return;
-    await reserveBidClient.remove(id);
-    setRefreshNonce((n) => n + 1);
-  }, []);
-
   const handleDownload = useCallback(async () => {
     const blob = await reserveBidClient.download();
     const url = URL.createObjectURL(blob);
@@ -35,8 +29,8 @@ export default function ReserveBidsPage() {
   }, []);
 
   // The fetcher is the only page-specific concern: serialise + send.
-  // refreshNonce is a dep so deletes / uploads re-fetch even when no
-  // grid state changed.
+  // refreshNonce is a dep so an upload re-fetches even when no grid state
+  // changed.
   const fetcher = useCallback(
     async ({ filters, sort, page, size, signal }: FetcherArgs) => {
       // signal not threaded into reserveBidClient.list yet — left as a
@@ -100,47 +94,50 @@ export default function ReserveBidsPage() {
       key: "updated",
       label: "Last Updated",
       sortKey: "last_update_datetime",
-      accessor: (r) => formatDateTime(r.lastUpdateDatetime),
+      // RBL-P2: legacy display convention MM/DD/YY at hh:mm A z (Eastern).
+      accessor: (r) => formatLegacyDateTime(r.lastUpdateDatetime),
       filter: { kind: "date", filterKey: "lastUpdateDatetime" },
     },
   ], []);
 
+  // RBL-P3: legacy ReserveBid_Overview exposes a single per-row eye that opens
+  // the audit view (a Mendix popup → modal here). It has NO Edit / Delete —
+  // those live on the separate Administrator-only ReserveBid_Admin_Overview
+  // page (KB), which the new app does not surface. So the row carries only the
+  // audit eye; the /[id] edit route is kept but no longer linked from here.
   const rowActions = useCallback((r: ReserveBidRow) => (
-    <>
-      <Link
-        href={`/admin/auctions-data-center/reserve-bids/${r.id}`}
-        className={styles.rowAction}
-      >
-        Edit
-      </Link>
-      <button
-        type="button"
-        className={styles.rowAction}
-        onClick={() => setAuditTarget({ id: r.id, productId: r.productId })}
-      >
-        Audit
-      </button>
-      <button
-        type="button"
-        className={`${styles.rowAction} ${styles.rowActionDanger}`}
-        onClick={() => handleDelete(r.id)}
-      >
-        Delete
-      </button>
-    </>
-  ), [handleDelete]);
+    <button
+      type="button"
+      className={styles.rowAuditButton}
+      onClick={() => setAuditTarget({ id: r.id, productId: r.productId })}
+      aria-label={`View audit history for product ${r.productId}`}
+      title="Audit"
+    >
+      <EyeIcon />
+    </button>
+  ), []);
 
+  // RBL-P4: legacy toolbar is [Download] [Upload EB Price], left-aligned. No
+  // "New" (EB is authored via Excel upload only) and no "Columns" button — the
+  // column-visibility eye lives in the grid header (variant="legacy").
   const topBar = (
     <>
-      <button className="btn-outline" type="button" onClick={() => setUploadOpen(true)}>
-        Upload EB Price
-      </button>
-      <button className="btn-outline" type="button" onClick={handleDownload}>
+      <button
+        type="button"
+        className={`${styles.toolbarBtn} ${styles.toolbarBtnSecondary}`}
+        onClick={handleDownload}
+      >
+        <DownloadIcon />
         Download
       </button>
-      <Link href="/admin/auctions-data-center/reserve-bids/new">
-        <button className="btn-outline" type="button">New</button>
-      </Link>
+      <button
+        type="button"
+        className={`${styles.toolbarBtn} ${styles.toolbarBtnPrimary}`}
+        onClick={() => setUploadOpen(true)}
+      >
+        <UploadIcon />
+        Upload EB Price
+      </button>
     </>
   );
 
@@ -155,7 +152,7 @@ export default function ReserveBidsPage() {
         fetcher={fetcher}
         rowKey={(r) => r.id}
         rowActions={rowActions}
-        rowActionsLabel="Audit"
+        variant="legacy"
         // RBL-P1: no forced default sort — the backend defaults an unsorted list
         // to legacy insertion order (legacy_id ASC), reproducing the legacy
         // grid's first screen (product 73, 76, 78, …). User-chosen sorts still win.
@@ -190,8 +187,33 @@ function formatMoney(value: string): string {
   return n.toFixed(2);
 }
 
-function formatDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString();
+// ── Icons ──────────────────────────────────────────────────────
+
+function EyeIcon() {
+  return (
+    <svg className={styles.rowAuditIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg className={styles.toolbarBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="7 10 12 15 17 10" />
+      <line x1="12" y1="15" x2="12" y2="3" />
+    </svg>
+  );
+}
+
+function UploadIcon() {
+  return (
+    <svg className={styles.toolbarBtnIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+      <polyline points="17 8 12 3 7 8" />
+      <line x1="12" y1="3" x2="12" y2="15" />
+    </svg>
+  );
 }

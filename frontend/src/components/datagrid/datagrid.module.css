@@ -504,3 +504,86 @@
   background: var(--color-bg-body);
   color: var(--color-brand-teal-dark);
 }
+
+/* ── Legacy Mendix DataGrid-2 variant (variant="legacy") ────────────────
+   Opt-in chrome for the reserve-bids parity page. ONLY adds classes — the
+   shared `.filterCell` / `.comparatorButton` / `.dateWrap` / calendar rules
+   above are consumed by PurchaseOrderEditor via <FilterCell> and must stay
+   byte-identical, as must every default-path grid class (inventory grid).
+   Measured off docs/tasks/parity/evidence/h1-2026-07-12/
+   legacy-local-admin-reserve-bids-list__default.png (PIL band profiling). */
+
+/* Toolbar buttons sit flush-left below the heading divider (legacy Download
+   x265, Upload EB Price x397 — left-aligned, not the app's flex-end). */
+.toolbarLegacy {
+  justify-content: flex-start;
+}
+
+/* Grid square-cornered like the Mendix card. */
+.gridWrapLegacy {
+  border-radius: 0;
+}
+
+/* Density: legacy fits 20 rows + the pager inside 1080p. Body cells are 16px
+   (legacy Brandon body size) on a tight 35px pitch — line-height 18 + 8px
+   top/bottom padding + the 1px row border = 35px (measured row pitch = 35). */
+.gridLegacy {
+  font-size: 16px;
+}
+
+.gridLegacy thead th {
+  font-size: 16px;
+}
+
+.gridLegacy tbody td {
+  padding: 8px 15px;
+  line-height: 18px;
+}
+
+/* Trailing action column is narrow (legacy eye column ~46px). Tighten its
+   padding and centre the single eye. */
+.gridLegacy thead th:last-child,
+.gridLegacy tbody td:last-child {
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+.gridLegacy .actionsCell {
+  justify-content: center;
+}
+
+/* Action-column header hosting the column-visibility eye (legacy header eye
+   sampled at x[1851..1866], vertically on the filter-row line). */
+.actionHeaderLegacy {
+  text-align: center;
+  vertical-align: middle;
+  width: 1%;
+  white-space: nowrap;
+}
+
+/* Icon-only column-visibility trigger — eye glyph only, no "Columns" label. */
+.columnSelectorEye {
+  background: transparent;
+  border: 0;
+  padding: 4px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-input);
+}
+
+.columnSelectorEye:hover {
+  color: var(--color-text-body);
+  background: #FFFFFF;
+}
+
+/* Pager: right-aligned + transparent (no gray footer bar / border-top) —
+   the legacy "1 to 20 of 14659" footer floats bottom-right of the grid. */
+.paginationLegacy {
+  justify-content: flex-end;
+  background: transparent;
+  border-top: 0;
+  padding: 12px 10px;
+}

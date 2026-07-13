@@ -113,6 +113,16 @@ export interface DataGridProps<TRow> {
    *  surface the active filters externally — typical use case is wiring
    *  an Export / Download button URL that mirrors the visible grid. */
   onAppliedFiltersChange?: (wire: Record<string, string>) => void;
+  /** Chrome variant. `"app"` (default) keeps the current look — toolbar
+   *  Columns button, gray full-width footer pager ("Showing N to M of
+   *  T,TTT"), comfortable row height. `"legacy"` matches the Mendix
+   *  DataGrid-2 chrome the reserve-bids parity page reproduces: compact
+   *  35px rows, a right-aligned transparent pager with the plain
+   *  "N to M of T" label (no "Showing", no thousands separator), a
+   *  left-aligned toolbar, and the column-visibility eye folded into the
+   *  row-actions header cell instead of a standalone toolbar button.
+   *  Additive and opt-in — every other consumer stays on `"app"`. */
+  variant?: "app" | "legacy";
 }
 
 // ── Component ──────────────────────────────────────────────────
@@ -148,7 +158,9 @@ export default function DataGrid<TRow>({
   emptyMessage = "No rows match the current filters.",
   className,
   onAppliedFiltersChange,
+  variant = "app",
 }: DataGridProps<TRow>) {
+  const isLegacy = variant === "legacy";
   // Filter state — input is what the user is typing; applied is what the
   // fetcher saw last. The debounce promotes input → applied so we don't
   // hit the backend on every keystroke.
@@ -229,6 +241,15 @@ export default function DataGrid<TRow>({
     setPage(0);
   }, []);
 
+  const handleColumnToggle = useCallback((key: string) => {
+    setHiddenColumns((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
   const visibleColumns = useMemo(
     () => columns.filter((c) => !hiddenColumns.has(c.key)),
     [columns, hiddenColumns],
@@ -244,30 +265,29 @@ export default function DataGrid<TRow>({
 
   const colSpan = visibleColumns.length + (rowActions ? 1 : 0);
 
+  // Legacy Mendix grids fold the column-visibility eye into the trailing
+  // (non-hidable) action column's header rather than a toolbar button.
+  const columnSelectorInHeader = isLegacy && !!rowActions;
+
   return (
     <div className={className}>
-      <div className={styles.toolbar}>
+      <div className={[styles.toolbar, isLegacy ? styles.toolbarLegacy : ""].join(" ").trim()}>
         {topBarSlot}
-        <ColumnSelector
-          columns={toggleableColumns}
-          hidden={hiddenColumns}
-          onToggle={(key) => {
-            setHiddenColumns((prev) => {
-              const next = new Set(prev);
-              if (next.has(key)) next.delete(key);
-              else next.add(key);
-              return next;
-            });
-          }}
-          open={columnMenuOpen}
-          setOpen={setColumnMenuOpen}
-        />
+        {!columnSelectorInHeader && (
+          <ColumnSelector
+            columns={toggleableColumns}
+            hidden={hiddenColumns}
+            onToggle={handleColumnToggle}
+            open={columnMenuOpen}
+            setOpen={setColumnMenuOpen}
+          />
+        )}
       </div>
 
       {error && <div role="alert" className={styles.errorBanner}>{error}</div>}
 
-      <div className={styles.gridWrap}>
-        <table className={styles.grid}>
+      <div className={[styles.gridWrap, isLegacy ? styles.gridWrapLegacy : ""].join(" ").trim()}>
+        <table className={[styles.grid, isLegacy ? styles.gridLegacy : ""].join(" ").trim()}>
           <thead>
             <tr>
               {visibleColumns.map((col) => (
@@ -306,7 +326,23 @@ export default function DataGrid<TRow>({
                 </th>
               ))}
               {rowActions && (
-                <th scope="col">{rowActionsLabel}</th>
+                <th
+                  scope="col"
+                  className={columnSelectorInHeader ? styles.actionHeaderLegacy : undefined}
+                >
+                  {columnSelectorInHeader ? (
+                    <ColumnSelector
+                      columns={toggleableColumns}
+                      hidden={hiddenColumns}
+                      onToggle={handleColumnToggle}
+                      open={columnMenuOpen}
+                      setOpen={setColumnMenuOpen}
+                      iconOnly
+                    />
+                  ) : (
+                    rowActionsLabel
+                  )}
+                </th>
               )}
             </tr>
           </thead>
@@ -340,7 +376,7 @@ export default function DataGrid<TRow>({
 
         {loading && <div className={styles.loadingOverlay}>Loading…</div>}
 
-        <div className={styles.pagination}>
+        <div className={[styles.pagination, isLegacy ? styles.paginationLegacy : ""].join(" ").trim()}>
           <button
             type="button"
             className={styles.paginationButton}
@@ -360,9 +396,13 @@ export default function DataGrid<TRow>({
             ‹
           </button>
           <span className={styles.paginationCount}>
-            {total === 0
-              ? "No matches"
-              : `Showing ${formatInt(startIdx)} to ${formatInt(endIdx)} of ${formatInt(total)}`}
+            {isLegacy
+              // Legacy label: plain integers, no "Showing", no thousands
+              // separator (matches the Mendix "1 to 20 of 14659" footer).
+              ? `${startIdx} to ${endIdx} of ${total}`
+              : total === 0
+                ? "No matches"
+                : `Showing ${formatInt(startIdx)} to ${formatInt(endIdx)} of ${formatInt(total)}`}
           </span>
           <button
             type="button"
@@ -445,12 +485,16 @@ function ColumnSelector<TRow>({
   onToggle,
   open,
   setOpen,
+  iconOnly = false,
 }: {
   columns: ColumnDef<TRow>[];
   hidden: Set<string>;
   onToggle: (key: string) => void;
   open: boolean;
   setOpen: (v: boolean) => void;
+  /** Render just the eye glyph (no "Columns" text) — used when the selector
+   *  lives inside the grid's action-column header (legacy variant). */
+  iconOnly?: boolean;
 }) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -472,13 +516,14 @@ function ColumnSelector<TRow>({
       <button
         ref={triggerRef}
         type="button"
-        className={styles.columnSelectorButton}
+        className={iconOnly ? styles.columnSelectorEye : styles.columnSelectorButton}
         onClick={() => setOpen(!open)}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Toggle column visibility"
+        title={iconOnly ? "Column options" : undefined}
       >
-        <EyeIcon /> Columns
+        {iconOnly ? <EyeIcon /> : <><EyeIcon /> Columns</>}
       </button>
       <Popover anchorRef={triggerRef} open={open} align="right">
         <div ref={menuRef} className={styles.columnSelectorMenu} role="menu">
