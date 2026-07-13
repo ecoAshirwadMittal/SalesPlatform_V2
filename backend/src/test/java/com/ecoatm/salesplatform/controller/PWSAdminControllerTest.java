@@ -3,6 +3,7 @@ package com.ecoatm.salesplatform.controller;
 import com.ecoatm.salesplatform.security.JwtAuthenticationFilter;
 import com.ecoatm.salesplatform.security.JwtService;
 import com.ecoatm.salesplatform.security.SecurityConfig;
+import com.ecoatm.salesplatform.service.pws.SlaTagService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,6 +37,7 @@ class PWSAdminControllerTest {
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtService jwtService;
     @MockBean private JdbcTemplate jdbc;
+    @MockBean private SlaTagService slaTagService;
 
     private String adminToken() {
         return jwtService.generateToken(1L, "admin@test.com", List.of("Administrator"), false);
@@ -522,23 +524,27 @@ class PWSAdminControllerTest {
 
         @Test
         void set_returns200() throws Exception {
-            when(jdbc.update(contains("offer_beyond_sla = true"))).thenReturn(3);
+            // Delegates to SlaTagService (business-day cutoff + configurable
+            // sla_days) — no longer the inline hardcoded 2-day JDBC UPDATE.
+            when(slaTagService.tagOverdueOffers()).thenReturn(3);
 
             mockMvc.perform(post("/api/v1/admin/sla-tags/set")
                             .header("Authorization", "Bearer " + adminToken()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.success").value(true))
                     .andExpect(jsonPath("$.message").value("SLA tags set on 3 overdue offer(s)."));
+            verify(slaTagService).tagOverdueOffers();
         }
 
         @Test
         void remove_returns200() throws Exception {
-            when(jdbc.update(contains("offer_beyond_sla = false"))).thenReturn(2);
+            when(slaTagService.removeAllSlaTags()).thenReturn(2);
 
             mockMvc.perform(post("/api/v1/admin/sla-tags/remove")
                             .header("Authorization", "Bearer " + adminToken()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("SLA tags removed from 2 offer(s)."));
+            verify(slaTagService).removeAllSlaTags();
         }
     }
 

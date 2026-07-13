@@ -171,6 +171,14 @@ pws:
     from: ${PWS_EMAIL_FROM:noreply@ecoatmdirect.com}
     sales-address: ${PWS_EMAIL_SALES:sales@ecoatmdirect.com}
     counter-offer-url: ${PWS_EMAIL_COUNTER_OFFER_URL:https://buy.ecoatmdirect.com/p/counter-offer}
+  # SLA-tag cron (gap 2.3 sub-feature 2). enabled=false → the scheduled tick
+  # short-circuits (the manual admin Set/Remove SLA-tag buttons still work).
+  # Flip enabled=true per environment to auto-flag overdue offers every
+  # fixed-delay-ms (15 min default). Business-day cutoff honors
+  # pws_constants.sla_days + pws.company_holiday.
+  sla-tag:
+    enabled: ${PWS_SLA_TAG_ENABLED:false}
+    fixed-delay-ms: ${PWS_SLA_TAG_FIXED_DELAY_MS:900000}
 
 # ─────────────────────────────────────
 # Buyer Snowflake sync (PWS Data Center Phase 3.3)

@@ -838,3 +838,30 @@ No new migration — reuses `pws.offer` / `pws."order"` + the V56
 > path from the service. The status-change path (the approved deliverable) is
 > unchanged. Persisting the flag remains a deferred schema-prep chunk (would need
 > a `has_shipment_details` column + migration).
+
+---
+
+## pws.sla-tag (new 2026-07-13 · gap 2.3 sub-feature 2 · SlaTagService + V104)
+Target 85%+. SLA-tag service (business-day + holiday parity) that both the
+manual admin buttons and the ~15-min cron call, plus the V104
+`pws.company_holiday` calendar. Load-bearing branches: the business-day cutoff
+back-walk (skip weekends **and** company holidays), honoring the configurable
+`pws_constants.sla_days` (default fallback when the row is missing / non-positive),
+the `enabled=false` scheduled short-circuit, and the `@SchedulerLock` presence.
+
+| Surface | Key tests |
+|---|---|
+| `SlaTagService` cutoff math + gating (Mockito, fixed `Clock` on Mon 2026-07-13) | `SlaTagServiceTest` (11) — 2-business-day cutoff skips weekends → Thu 07-09; a seeded holiday on 07-09 pushes it to Wed 07-08; honors `sla_days` (3 → Wed 07-08, 1 → Fri 07-10); default when no `pws_constants` row / non-positive `sla_days`; `tagOverdueOffers` delegates `SLA_STATUSES` + the computed cutoff (ArgumentCaptor) and returns the count; `removeAllSlaTags` delegates + returns cleared count; scheduled tick `enabled=false` → `verifyNoInteractions`, `enabled=true` → runs the pass; reflection asserts `@Scheduled` + `@SchedulerLock(name="pwsSlaTag")` present |
+| End-to-end tag/clear (real Postgres, `@Transactional` rollback) | `SlaTagServiceIT` (2) — seeds (via INSERT with a past `updated_date`, dodging the `trg_update_updated_date` UPDATE trigger) one overdue `Sales_Review` + one recent `Sales_Review` + one overdue `Ordered` offer → `tagOverdueOffers()` flags only the overdue review offer (asserted by id; global count not asserted since the shared dev DB holds other SLA-tracked offers); `removeAllSlaTags()` clears a pre-tagged review offer |
+| V104 migration | `V104MigrationIT` (3, real Postgres) — `pws.company_holiday` table + `id`/`holiday_date`/`name` columns exist; `holiday_date` is a NOT NULL `date`; the table is seeded (≥ 21 rows; Independence Day 2026-07-04 present) |
+
+SLA-tag sweep: **16/16 green** (`SlaTagServiceTest` 11 + `SlaTagServiceIT` 2 +
+`V104MigrationIT` 3). Run:
+`./mvnw test -Dtest=SlaTagServiceTest,SlaTagServiceIT,V104MigrationIT -Dspring.profiles.active=pg-test`.
+Regression: `PWSAdminControllerTest` 42/42 green after the SLA endpoints were
+repointed onto `SlaTagService` (2 SLA cases now stub the service instead of
+`JdbcTemplate`; a `@MockBean SlaTagService` was added).
+
+**Holiday seed source:** US-federal best-effort (the legacy
+`ecoatm_mdm$companyholiday` data rows were not in `migration_context/`); see
+`docs/architecture/data-model.md` § `pws.company_holiday`.

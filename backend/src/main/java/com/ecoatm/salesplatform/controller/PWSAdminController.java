@@ -1,5 +1,7 @@
 package com.ecoatm.salesplatform.controller;
 
+import com.ecoatm.salesplatform.service.pws.SlaTagService;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,6 +28,7 @@ import java.util.Map;
 public class PWSAdminController {
 
     private final JdbcTemplate jdbc;
+    private final SlaTagService slaTagService;
 
     // ── Feature Flags ──
 
@@ -286,22 +289,20 @@ public class PWSAdminController {
     }
 
     // ── SLA Tags Actions ──
+    // Both endpoints delegate to SlaTagService — the single implementation the
+    // ~15-min cron also calls. This replaced the hardcoded NOW() - INTERVAL
+    // '2 days' calendar interval with the business-day + company-holiday cutoff
+    // that honors the configurable pws_constants.sla_days (gap 2.3 sub-feature 2).
 
     @PostMapping("/sla-tags/set")
     public ResponseEntity<Map<String, Object>> setSLATags() {
-        int updated = jdbc.update(
-                "UPDATE pws.offer SET offer_beyond_sla = true, updated_date = NOW() " +
-                "WHERE status IN ('Sales_Review', 'SALES_REVIEW', 'Buyer_Acceptance', 'BUYER_ACCEPTANCE') " +
-                "AND updated_date < NOW() - INTERVAL '2 days' AND (offer_beyond_sla IS NULL OR offer_beyond_sla = false)");
+        int updated = slaTagService.tagOverdueOffers();
         return ResponseEntity.ok(Map.of("success", true, "message", "SLA tags set on " + updated + " overdue offer(s)."));
     }
 
     @PostMapping("/sla-tags/remove")
     public ResponseEntity<Map<String, Object>> removeSLATags() {
-        int updated = jdbc.update(
-                "UPDATE pws.offer SET offer_beyond_sla = false, updated_date = NOW() " +
-                "WHERE status IN ('Sales_Review', 'SALES_REVIEW', 'Buyer_Acceptance', 'BUYER_ACCEPTANCE') " +
-                "AND offer_beyond_sla = true");
+        int updated = slaTagService.removeAllSlaTags();
         return ResponseEntity.ok(Map.of("success", true, "message", "SLA tags removed from " + updated + " offer(s)."));
     }
 
