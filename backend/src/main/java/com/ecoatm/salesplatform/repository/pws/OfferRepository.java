@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.Collection;
@@ -86,6 +87,7 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
      * {@code offer_beyond_sla}.
      */
     @Modifying
+    @Transactional
     @Query(value = "UPDATE pws.offer SET offer_beyond_sla = true "
             + "WHERE status IN (:statuses) "
             + "AND CAST(updated_date AS date) <= :cutoff "
@@ -102,6 +104,7 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
      * number of rows cleared.
      */
     @Modifying
+    @Transactional
     @Query(value = "UPDATE pws.offer SET offer_beyond_sla = false "
             + "WHERE status IN (:statuses) AND offer_beyond_sla = true",
             nativeQuery = true)
