@@ -619,3 +619,33 @@ Grantable-roles sweep: **`DirectUserServiceTest` 14/14 green** (5 new guard +
 > → role **1**. The applied schema is therefore internally consistent —
 > Administrator is id 1 everywhere and the V15 ids never survive. The guard still
 > resolves **by role name** so it is robust even if that ever drifts.
+
+---
+
+## partialcredit.draft-delete (new 2026-07-12 · gap 2.5)
+Target 85%+. Lets a buyer hard-delete a DRAFT credit request via
+`DELETE /api/v1/buyer/partial-credit/{id}` →
+`CreditRequestService.deleteDraft`, reusing the existing `loadForUser`
+(ownership) + `ensureDraft` (DRAFT-only) guards then `deleteById` (child
+rows cascade via V89 `ON DELETE CASCADE`). Load-bearing branches: the
+owner-DRAFT happy path (row + cascade children actually gone), the
+foreign-caller 403 (no delete), the non-DRAFT 409 (no delete), the
+unknown-id 404, the admin ownership bypass, and identity derived from the
+JWT principal (never a request field). The legacy Mendix flow gated
+DRAFT-only in the UI alone — the modern port enforces ownership **and**
+DRAFT-only server-side.
+
+| Surface | Key tests |
+|---|---|
+| `CreditRequestService.deleteDraft` (Mockito) | `CreditRequestServiceTest` (+5, now 22) — owner-DRAFT → `verify(deleteById)`; foreign owner → `SecurityException`, `never(deleteById)`; non-DRAFT (PENDING_APPROVAL) → `IllegalStateException` "not in DRAFT", `never(deleteById)`; admin bypasses ownership (no JdbcTemplate stub) → deletes; unknown id → `EntityNotFoundException`, `never(deleteById)` |
+| `BuyerPartialCreditController` DELETE contract (`@WebMvcTest` slice) | `BuyerPartialCreditControllerIT` (+5, now 23) — 204 + `verify(service).deleteDraft(eq(55L), eq(1L), eq(false))` proving JWT-derived identity; `SecurityException`→403 `FORBIDDEN`; `IllegalStateException`→409 `INVALID_STATE`; no-token→401; SalesOps (outside the buyer SecurityConfig matcher)→403 |
+| Real-Postgres end-to-end + cascade (`pg-test`) | `BuyerPartialCreditDeleteIT` (4, `@AutoConfigureMockMvc` + `@Transactional`, extends `PostgresIntegrationTest`) — owner (resolved from a real `user_buyers → buyer_code_buyers` link) deletes a seeded DRAFT → 204, and after `em.flush()` (forces the pending JPA remove to Postgres so the DB cascade fires) the `credit_requests` row **and** its seeded `missing_device_lines` child are both gone; submitted request → 409, row survives; foreign caller (owns nothing) → 403, row survives; no auth → 401 |
+| Frontend landing affordance (RTL) | `page.test.tsx` (3, jsdom) — the delete control renders **only** on DRAFT rows (absent on PENDING_APPROVAL); confirm-accept calls `deleteRequest(id)` then reloads the list (`listRequests` called twice) and the draft row disappears; confirm-dismiss calls neither. Uses a **stable** `useRouter` mock so the `[router]` effect fires once |
+
+Draft-delete sweep: **backend 31** (`CreditRequestServiceTest` 5 new +
+`BuyerPartialCreditControllerIT` 5 new + `BuyerPartialCreditDeleteIT` 4 —
+plus the 17 pre-existing service cases still green) / **frontend RTL 3**.
+Run: `./mvnw test -Dtest=CreditRequestServiceTest,BuyerPartialCreditControllerIT,BuyerPartialCreditDeleteIT -Dspring.profiles.active=pg-test`
++ `npm test -- partial-credit/page.test.tsx`. No migration, Snowflake, or
+email. `deleteRequest` added to `frontend/src/lib/partialCreditClient.ts`
+(mirrors `deletePhoto` — 204 success shape).

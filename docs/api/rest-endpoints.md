@@ -1335,6 +1335,7 @@ re-introduce them with a future `role_assignments` seed.
 | `POST` | `/api/v1/buyer/partial-credit/{id}/submit` | Validate + flip status `DRAFT → PENDING_APPROVAL`. Returns 400 with `VALIDATION_FAILED` + `issues[]` on policy violations |
 | `GET` | `/api/v1/buyer/partial-credit/{id}` | Detail — header + line lists + `reviewCompletedOn` + `approvedTotal` |
 | `GET` | `/api/v1/buyer/partial-credit?buyerCodeId=X&status=Y&page=&size=` | Buyer's own request list |
+| `DELETE` | `/api/v1/buyer/partial-credit/{id}` | Delete a **DRAFT** credit request (gap 2.5). Owner-only — a foreign request → **403**; a submitted/terminal request is frozen → **409**. Identity is JWT-derived, never a request field. Child rows (missing/wrong/encumbered lines, photos, uploads) cascade at the DB level (V89 `ON DELETE CASCADE`). Returns **204** No Content |
 
 ### Buyer surface — photos (Sprint 4 chunk 4)
 
