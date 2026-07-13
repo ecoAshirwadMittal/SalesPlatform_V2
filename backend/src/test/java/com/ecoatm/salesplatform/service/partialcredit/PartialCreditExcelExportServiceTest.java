@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
@@ -18,16 +19,19 @@ import com.ecoatm.salesplatform.model.partialcredit.enums.ActionRecommendation;
 import com.ecoatm.salesplatform.model.partialcredit.enums.ReviewDecision;
 import com.ecoatm.salesplatform.model.partialcredit.enums.SystemStatus;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
+import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.CreditRequestStatusRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.EncumberedDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.MissingDeviceLineRepository;
 import com.ecoatm.salesplatform.repository.partialcredit.WrongDeviceLineRepository;
 import com.ecoatm.salesplatform.service.partialcredit.AdminCreditRequestService.AdminListFilter;
+import jakarta.persistence.EntityNotFoundException;
 import java.io.ByteArrayInputStream;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,6 +59,7 @@ class PartialCreditExcelExportServiceTest {
     @Mock private MissingDeviceLineRepository missingRepo;
     @Mock private WrongDeviceLineRepository wrongRepo;
     @Mock private EncumberedDeviceLineRepository encumberedRepo;
+    @Mock private CreditRequestRepository creditRequestRepository;
 
     private PartialCreditExcelExportService service;
 
@@ -62,7 +67,7 @@ class PartialCreditExcelExportServiceTest {
     void setUp() {
         service = new PartialCreditExcelExportService(
                 adminService, statusRepository, buyerCodeRepository,
-                missingRepo, wrongRepo, encumberedRepo);
+                missingRepo, wrongRepo, encumberedRepo, creditRequestRepository);
     }
 
     @Test
@@ -266,6 +271,96 @@ class PartialCreditExcelExportServiceTest {
         // Should not throw.
         byte[] xlsx = service.export(new AdminListFilter(null, null, null, null, null, null));
         assertThat(xlsx).isNotEmpty();
+    }
+
+    // ── exportSingle (gap 2.5 — per-request admin packet) ─────────────
+
+    @Test
+    @DisplayName("exportSingle — one request with mixed-reason lines → 2-sheet workbook scoped to that request")
+    void exportSingle_mixedReasons_scopedToOneRequest() throws Exception {
+        CreditRequest cr = request(100L, "PCR-1", "SO-1", 500L, 1L);
+        cr.setRequestedTotal(new BigDecimal("125.50"));
+        cr.setApprovedTotal(new BigDecimal("80.00"));
+        cr.setPartyName("Acme");
+        cr.setHasMissingDevice(true);
+        cr.setHasWrongDevice(true);
+        when(creditRequestRepository.findById(100L)).thenReturn(Optional.of(cr));
+        when(statusRepository.findAll()).thenReturn(List.of(statusRow(1L, SystemStatus.APPROVED, "Approved")));
+        BuyerCode bc = new BuyerCode();
+        bc.setId(500L);
+        bc.setCode("20399");
+        when(buyerCodeRepository.findAllById(anyList())).thenReturn(List.of(bc));
+
+        MissingDeviceLine missing = new MissingDeviceLine();
+        missing.setId(10L);
+        missing.setCreditRequestId(100L);
+        missing.setBarcodeSubmitted("BC-M-1");
+        missing.setBrand("Apple");
+        missing.setModel("iPhone 12");
+        missing.setGrade("A");
+        missing.setAmountPaid(new BigDecimal("50.00"));
+        missing.setAmountToCredit(new BigDecimal("50.00"));
+        missing.setReviewDecision(ReviewDecision.ACCEPTED);
+        when(missingRepo.findByCreditRequestIdOrderById(100L)).thenReturn(List.of(missing));
+
+        WrongDeviceLine wrong = new WrongDeviceLine();
+        wrong.setId(20L);
+        wrong.setCreditRequestId(100L);
+        wrong.setExpectedEcoatmCode("ECO-123");
+        wrong.setExpectedBrand("Apple");
+        wrong.setExpectedModel("iPhone XR");
+        wrong.setExpectedAmountPaid(new BigDecimal("70.00"));
+        wrong.setAmountToCredit(new BigDecimal("20.00"));
+        wrong.setReviewDecision(ReviewDecision.DECLINED);
+        wrong.setActionRecommendation(ActionRecommendation.DECLINE);
+        when(wrongRepo.findByCreditRequestIdOrderById(100L)).thenReturn(List.of(wrong));
+
+        when(encumberedRepo.findByCreditRequestIdOrderById(100L)).thenReturn(List.of());
+
+        byte[] xlsx = service.exportSingle(100L);
+
+        try (Workbook wb = new XSSFWorkbook(new ByteArrayInputStream(xlsx))) {
+            assertThat(wb.getNumberOfSheets()).isEqualTo(2);
+            // Requests sheet: header + exactly this ONE request's body row.
+            var requests = wb.getSheetAt(0);
+            assertThat(requests.getSheetName()).isEqualTo("Requests");
+            assertThat(requests.getLastRowNum()).isEqualTo(1);
+            var reqRow = requests.getRow(1);
+            assertThat(reqRow.getCell(0).getStringCellValue()).isEqualTo("PCR-1");
+            assertThat(reqRow.getCell(2).getStringCellValue()).isEqualTo("20399");
+            assertThat(reqRow.getCell(3).getStringCellValue()).isEqualTo("Acme");
+            assertThat(reqRow.getCell(4).getStringCellValue()).isEqualTo("SO-1");
+            assertThat(reqRow.getCell(5).getStringCellValue()).contains("Missing").contains("Wrong");
+            assertThat(reqRow.getCell(6).getStringCellValue()).isEqualTo("Approved");
+            assertThat(reqRow.getCell(7).getNumericCellValue()).isEqualTo(125.50);
+            assertThat(reqRow.getCell(8).getNumericCellValue()).isEqualTo(80.00);
+            // Lines sheet: header + only THIS request's lines (missing + wrong).
+            var lines = wb.getSheetAt(1);
+            assertThat(lines.getSheetName()).isEqualTo("Lines");
+            assertThat(lines.getLastRowNum()).isEqualTo(2);
+            assertThat(lines.getRow(1).getCell(1).getStringCellValue()).isEqualTo("MISSING");
+            assertThat(lines.getRow(1).getCell(2).getStringCellValue()).isEqualTo("BC-M-1");
+            assertThat(lines.getRow(1).getCell(9).getStringCellValue()).isEqualTo("ACCEPTED");
+            assertThat(lines.getRow(2).getCell(1).getStringCellValue()).isEqualTo("WRONG");
+            assertThat(lines.getRow(2).getCell(2).getStringCellValue()).isEqualTo("ECO-123");
+            assertThat(lines.getRow(2).getCell(10).getStringCellValue()).isEqualTo("DECLINE");
+        }
+        // Single-request path uses the scoped finders — never the bulk-list
+        // machinery (that is the filtered whole-set export's job).
+        verify(adminService, never()).listForAdmin(any(), any());
+        verify(missingRepo, never()).findByCreditRequestIdInOrderByCreditRequestIdAscIdAsc(anyList());
+    }
+
+    @Test
+    @DisplayName("exportSingle — missing id → EntityNotFoundException (not-found path), no lines fetched")
+    void exportSingle_missingId_throwsNotFound() {
+        when(creditRequestRepository.findById(999L)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.exportSingle(999L))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("999");
+
+        verifyNoInteractions(missingRepo, wrongRepo, encumberedRepo);
     }
 
     // ── helpers ──────────────────────────────────────────────────────
