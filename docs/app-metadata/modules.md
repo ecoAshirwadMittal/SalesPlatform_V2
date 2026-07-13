@@ -568,3 +568,34 @@ Inventory of major modules and their primary entities.
   pre-exist)
 - Admin surface: `/api/v1/users/direct-users` (`POST` create, `PUT` update) —
   unchanged; the guard is a service-layer addition
+
+## PWS SLA-tag service + cron (gap 2.3 sub-feature 2, 2026-07-13)
+- Source modules: `ecoatm_pws` (`SE_SetSLATag` scheduled event, `SUB_SetSLATag`,
+  `SUB_CalculateSLADate`, `SUB_RemoveSLATagsForAllOffers`)
+- Primary tables: `pws.offer` (`offer_beyond_sla` flag from V103),
+  `pws.company_holiday` (V104 — business-day calendar), `pws.pws_constants`
+  (`sla_days`, now mapped as the `PwsConstants` JPA read entity)
+- Purpose: flag offers sitting in `Sales_Review` / `Buyer_Acceptance` past their
+  SLA. **Business-day + holiday parity**: the overdue cutoff is
+  `sla_days` **business** days before today, skipping weekends and
+  `pws.company_holiday` dates (legacy `SUB_CalculateSLADate`) — replacing the
+  previous hardcoded `NOW() - INTERVAL '2 days'` calendar interval that ignored
+  both the configurable `sla_days` and weekends/holidays
+- Service: `service/pws/SlaTagService` — the single implementation BOTH the
+  manual admin buttons AND the cron call (DRY). `tagOverdueOffers()` computes the
+  cutoff (injected `Clock`) and flags overdue offers via
+  `OfferRepository.tagOverdueOffers(statuses, cutoff)`; `removeAllSlaTags()`
+  clears the flag on all SLA-tracked offers (legacy
+  `SUB_RemoveSLATagsForAllOffers`). Constructor injection, immutable collaborators
+- Scheduled tick: `@Scheduled(fixedDelayString="${pws.sla-tag.fixed-delay-ms:900000}")`
+  (15 min default) + `@SchedulerLock(name="pwsSlaTag", ...)` (single-leader,
+  reuses `SchedulingConfig` ShedLock) + `@Value("${pws.sla-tag.enabled:false}")`
+  short-circuit. The manual endpoints are unaffected by the flag
+- Admin surface: `POST /api/v1/admin/sla-tags/set` + `/api/v1/admin/sla-tags/remove`
+  (`Administrator`) — unchanged endpoints + authz; the bodies now delegate to
+  `SlaTagService`
+- Trigger caveat: `R__apply_triggers` `trg_update_updated_date` resets
+  `pws.offer.updated_date = NOW()` on every UPDATE (so tagging also bumps
+  `updated_date` — matching legacy + the one-shot flag). ITs seed overdue offers
+  via INSERT with a past `updated_date`, never a back-dating UPDATE
+- Snowflake sync: none. Email: none (that is a later gap-2.3 chunk)

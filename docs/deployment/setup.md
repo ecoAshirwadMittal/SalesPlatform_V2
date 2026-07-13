@@ -238,3 +238,16 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   `snowflakeJdbcTemplate` in prod. Mirrors `po.sync.writer` /
   `recalc.snowflake.*`. Independent of `rma.oracle-create.*` — Oracle create
   and Snowflake push are separate AFTER_COMMIT listeners on the same event.
+
+## PWS SLA-tag cron config (gap 2.3 sub-feature 2)
+- `pws.sla-tag.enabled` — default `false`; when `false`, `SlaTagService`'s
+  `@Scheduled` tick short-circuits before any DB read (the manual admin
+  `POST /api/v1/admin/sla-tags/{set,remove}` buttons still work — they call the
+  same service directly). Flip `true` per environment to auto-flag overdue
+  offers. Env override: `PWS_SLA_TAG_ENABLED=true`.
+- `pws.sla-tag.fixed-delay-ms` — default `900000` (15 min); scheduled-tick
+  cadence. Env override: `PWS_SLA_TAG_FIXED_DELAY_MS`.
+- The overdue cutoff walks back `pws_constants.sla_days` **business** days from
+  today (injected `Clock`), skipping weekends + `pws.company_holiday` dates.
+  Requires the `pws.company_holiday` table (V104) to be seeded for holiday
+  parity; without holiday rows it degrades to a weekends-only business-day walk.

@@ -135,3 +135,31 @@ Mapped on the `Offer` entity (`offerBeyondSla` / `firstReminderSent` /
 cannot be back-dated via a plain UPDATE. No Snowflake, no email, no endpoint
 change — the SLA-job / reminder-job logic that consumes these flags is a later
 gap-2.3 chunk.
+
+---
+
+## pws.company_holiday (V104 — SLA business-day calendar, gap 2.3 sub-feature 2)
+The holiday calendar consumed by the SLA-tag business-day math. **V104**
+(`V104__pws_company_holiday.sql`) creates `pws.company_holiday` — `id`
+PK/sequence, `holiday_date DATE NOT NULL` (`UNIQUE`, indexed), `name
+VARCHAR(200)`, `created_date` / `updated_date` audit cols. Modern port of the
+legacy Mendix `EcoATM_MDM.CompanyHoliday`; placed in the `pws` schema (not
+`mdm`) because the PWS `SlaTagService` is its only consumer. `SlaTagService`
+walks back `pws_constants.sla_days` **business** days from today, skipping
+Saturdays, Sundays, and every `holiday_date` in this table (legacy
+`SUB_CalculateSLADate`).
+
+**Seed source:** the legacy `ecoatm_mdm$companyholiday` DATA rows were not
+present in `migration_context/` (only the schema + three unaligned sample
+values), so V104 seeds a **documented best-effort**: the seven standard
+US-federal / corporate-observed holidays (New Year's Day, Memorial Day,
+Juneteenth, Independence Day, Labor Day, Thanksgiving, Christmas) for 2025–2027
+— matching the legacy set exactly where the samples were visible and the legacy
+row count (7). Idempotent (`CREATE TABLE IF NOT EXISTS` + `ON CONFLICT
+(holiday_date) DO NOTHING`).
+
+The `pws.pws_constants` singleton (V29 — `sla_days` default 2) is now also
+mapped as the `PwsConstants` JPA read entity so `SlaTagService` can honor the
+configurable `sla_days` (the pre-refactor SQL hardcoded a 2-calendar-day
+interval and ignored it). `PWSAdminController` still reads/writes
+`pws_constants` via `JdbcTemplate`; the two coexist.
