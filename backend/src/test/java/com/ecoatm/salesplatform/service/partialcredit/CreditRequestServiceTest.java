@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.service.partialcredit;
 
+import com.ecoatm.salesplatform.event.partialcredit.CreditRequestSubmittedEvent;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.math.BigDecimal;
@@ -61,6 +63,7 @@ class CreditRequestServiceTest {
     @Mock CreditRequestSnowflakeReader snowflakeReader;
     @Mock CreditRequestValidator validator;
     @Mock JdbcTemplate jdbcTemplate;
+    @Mock ApplicationEventPublisher eventPublisher;
 
     CreditRequestService service;
 
@@ -69,7 +72,7 @@ class CreditRequestServiceTest {
         service = new CreditRequestService(
                 creditRequestRepository, statusRepository,
                 missingDeviceLineRepository, wrongDeviceLineRepository, encumberedDeviceLineRepository,
-                buyerCodeRepository, snowflakeReader, validator, jdbcTemplate);
+                buyerCodeRepository, snowflakeReader, validator, jdbcTemplate, eventPublisher);
     }
 
     // ─── createDraft ───────────────────────────────────────────────────
@@ -345,6 +348,26 @@ class CreditRequestServiceTest {
         assertThat(submitted.getStatusId()).isEqualTo(2L);
         assertThat(submitted.getSubmittedById()).isEqualTo(USER_ID);
         assertThat(submitted.getSubmittedDate()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("submit publishes CreditRequestSubmittedEvent with the request id + submitter")
+    void submit_publishesSubmittedEvent() {
+        CreditRequest draft = newDraft();
+        draft.setHasMissingDevice(true);
+        primeForSubmit(draft);
+        // Empty manifest short-circuits denormalisation — line repos go unused.
+        when(snowflakeReader.getOrderLines(ORDER, BUYER_CODE)).thenReturn(List.of());
+
+        service.submit(draft.getId(), USER_ID, false);
+
+        ArgumentCaptor<CreditRequestSubmittedEvent> captor =
+                ArgumentCaptor.forClass(CreditRequestSubmittedEvent.class);
+        verify(eventPublisher).publishEvent(captor.capture());
+        CreditRequestSubmittedEvent event = captor.getValue();
+        assertThat(event.requestId()).isEqualTo(draft.getId());
+        assertThat(event.submittedByUserId()).isEqualTo(USER_ID);
+        assertThat(event.occurredAt()).isNotNull();
     }
 
     @Test

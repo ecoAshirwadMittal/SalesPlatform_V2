@@ -220,6 +220,35 @@ deletion left no dangling import).
 
 ---
 
+## partialcredit.submitted-email (new 2026-07-12 · gap 2.5 Task 1 · SUB_SendCreditRequestSubmittedEmail)
+Target 85%+. On a buyer submit (DRAFT → PENDING_APPROVAL),
+`CreditRequestService.submit` publishes `CreditRequestSubmittedEvent` and the
+AFTER_COMMIT `CreditRequestSubmittedEmailListener` sends the buyer the
+submission-confirmation email through the unified email backbone
+(`EmailService.sendTemplated`), seeded by V101 `CreditRequestSubmitted`.
+Load-bearing branches: the exact `SendOverrides(recipients,null,null)` /
+`SourceRef("PARTIAL_CREDIT", requestId)` shape and the `vars` map
+(`requestNumber`=`'CR'+orderNumber`, `buyerName`/company, `requestReasons`,
+`totalDevices`=requested total); the enabled-flag gate; the null-id /
+request-not-found / no-recipients guards; any `sendTemplated` exception
+swallowed; the publish-inside-the-committing-tx wiring on `submit`; and — only
+a real-Postgres IT can prove — the listener's `@Transactional(REQUIRES_NEW)` is
+**not** `readOnly`, so the `email.log` INSERT commits.
+
+| Surface | Key tests |
+|---|---|
+| `CreditRequestService.submit` publish | `CreditRequestServiceTest` (+1, now 18) — `ArgumentCaptor` asserts one `CreditRequestSubmittedEvent` with `requestId`/`submittedByUserId`/`occurredAt` |
+| `CreditRequestSubmittedEmailListener` → `EmailService` | `CreditRequestSubmittedEmailListenerTest` (7, Mockito) — enabled: `sendTemplated` called once with `eq("CreditRequestSubmitted")` + exact `SendOverrides`/`SourceRef` + vars via `ArgumentCaptor` (`requestNumber=="CRORD-123"`/`buyerName`/`requestReasons=="Missing, Wrong"`/`totalDevices=="125.50"`); reasons reflect only the flagged booleans + empty company → `""`; disabled flag / null-id / request-not-found / no-recipients → never called; `sendTemplated` throwing → swallowed, never escapes |
+| V101 seed | `V101MigrationIT` (1, real Postgres) — one enabled `CreditRequestSubmitted` `email.template` row whose subject/content carry every `{{var}}` the listener supplies |
+| Real end-to-end wiring + non-readOnly tx | `CreditRequestSubmittedEmailMigrationIT` (2, real Postgres, mirrors `PartialCreditEmailMigrationIT`) — the `CreditRequestSubmitted` key exists in `email.template` post-V101; publishing the event inside a committed `TransactionTemplate` tx drives the real listener → real `EmailService` → one `email.log` row (`source_module='PARTIAL_CREDIT'`, `template_key='CreditRequestSubmitted'`, `status='SENT'` via `LoggingEmailSender`). `EcoATMDirectUserRepository` swapped for a `@Primary`/`@TestConfiguration` Mockito mock so no buyer/account join chain is needed |
+
+Submitted-email sweep: **28/28 green** (`CreditRequestSubmittedEmailListenerTest`
+7 + `CreditRequestServiceTest` 18 + `V101MigrationIT` 1 +
+`CreditRequestSubmittedEmailMigrationIT` 2). Run:
+`./mvnw test -Dtest=CreditRequestSubmittedEmailListenerTest,CreditRequestServiceTest,V101MigrationIT,CreditRequestSubmittedEmailMigrationIT -Dspring.profiles.active=pg-test`.
+
+---
+
 ## email.admin-smtp (new 2026-07-11, Task 7)
 Target 85%+. First admin surface of the unified email module — the
 security-critical assertions carry the weight.

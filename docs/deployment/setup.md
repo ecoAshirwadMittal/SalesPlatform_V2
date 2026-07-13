@@ -183,6 +183,15 @@ These are defined in [application.yml](../../backend/src/main/resources/applicat
   log the intent — flipping the flag does not require a bean restart.
   Overridable via env: `PARTIAL_CREDIT_REVIEW_EMAIL_ENABLED=true`.
 
+## Partial credit submitted (confirmation) email config
+- `partial-credit.submitted-email.enabled` — default `true`; when `false`,
+  `CreditRequestSubmittedEmailListener` logs the intended send (slf4j INFO)
+  on every `CreditRequestSubmittedEvent` (published by
+  `CreditRequestService.submit` on DRAFT → PENDING_APPROVAL) but does NOT
+  call `EmailService`. The listener still subscribes when the flag is off so
+  it can log the intent — flipping the flag does not require a bean restart.
+  Overridable via env: `PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED=false`.
+
 ## JPA / Hibernate config
 - `spring.jpa.open-in-view: false` — added in sub-project 6 (Task 16).
   Disables the Open-Session-In-View anti-pattern. Without this setting,

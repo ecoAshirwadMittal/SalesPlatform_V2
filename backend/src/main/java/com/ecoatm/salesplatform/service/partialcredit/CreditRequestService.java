@@ -1,5 +1,6 @@
 package com.ecoatm.salesplatform.service.partialcredit;
 
+import com.ecoatm.salesplatform.event.partialcredit.CreditRequestSubmittedEvent;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequest;
 import com.ecoatm.salesplatform.model.partialcredit.CreditRequestStatus;
@@ -26,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -63,6 +65,7 @@ public class CreditRequestService {
     private final CreditRequestSnowflakeReader snowflakeReader;
     private final CreditRequestValidator validator;
     private final JdbcTemplate jdbcTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     public CreditRequestService(
             CreditRequestRepository creditRequestRepository,
@@ -73,7 +76,8 @@ public class CreditRequestService {
             BuyerCodeRepository buyerCodeRepository,
             CreditRequestSnowflakeReader snowflakeReader,
             CreditRequestValidator validator,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            ApplicationEventPublisher eventPublisher) {
         this.creditRequestRepository = creditRequestRepository;
         this.statusRepository = statusRepository;
         this.missingDeviceLineRepository = missingDeviceLineRepository;
@@ -83,6 +87,7 @@ public class CreditRequestService {
         this.snowflakeReader = snowflakeReader;
         this.validator = validator;
         this.jdbcTemplate = jdbcTemplate;
+        this.eventPublisher = eventPublisher;
     }
 
     @Transactional
@@ -189,7 +194,17 @@ public class CreditRequestService {
         cr.setSubmittedById(userId);
         cr.setChangedDate(Instant.now());
         cr.setChangedById(userId);
-        return creditRequestRepository.save(cr);
+        CreditRequest saved = creditRequestRepository.save(cr);
+
+        // Publish inside the committing transaction so the AFTER_COMMIT
+        // submission-confirmation email listener fires only on a real commit
+        // (gap 2.5 Task 1). Mirrors AdminCreditRequestService.completeReview's
+        // publish-after-save pattern; CreditRequestSubmittedEmailListener
+        // dispatches the buyer email asynchronously off the request thread.
+        eventPublisher.publishEvent(new CreditRequestSubmittedEvent(
+                saved.getId(), userId, Instant.now()));
+
+        return saved;
     }
 
     @Transactional(readOnly = true)
