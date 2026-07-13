@@ -1,10 +1,12 @@
 package com.ecoatm.salesplatform.controller;
 
+import com.ecoatm.salesplatform.dto.ActivateAccountRequest;
 import com.ecoatm.salesplatform.dto.BuyerCodeResponse;
 import com.ecoatm.salesplatform.dto.ForgotPasswordRequest;
 import com.ecoatm.salesplatform.dto.LoginRequest;
 import com.ecoatm.salesplatform.dto.LoginResponse;
 import com.ecoatm.salesplatform.dto.ResetPasswordRequest;
+import com.ecoatm.salesplatform.service.AccountActivationService;
 import com.ecoatm.salesplatform.service.AuthService;
 import com.ecoatm.salesplatform.service.BuyerCodeService;
 import com.ecoatm.salesplatform.security.AuthRateLimiter;
@@ -34,6 +36,7 @@ public class AuthController {
     private final AuthService authService;
     private final BuyerCodeService buyerCodeService;
     private final PasswordResetService passwordResetService;
+    private final AccountActivationService accountActivationService;
     private final AuthRateLimiter authRateLimiter;
 
     @Value("${auth.cookie.secure:true}")
@@ -128,6 +131,28 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
         }
         passwordResetService.confirmReset(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * Activate a newly-provisioned account from an emailed link: validate the
+     * one-time activation token, set the user's password, and flip their status
+     * to Active. Public endpoint (the caller has no session yet).
+     *
+     * <p>Returns {@code 200 OK} on success with an empty body — no PII or token is
+     * echoed. Any token failure returns a generic {@code 400} ("Invalid or expired
+     * activation link") that never reveals whether the token, user, or expiry was
+     * the cause; a weak password returns {@code 400} with the policy message.
+     * Rate-limited by IP like {@code /login} and {@code /forgot-password}.
+     */
+    @PostMapping("/activate")
+    public ResponseEntity<Void> activateAccount(
+            @Valid @RequestBody ActivateAccountRequest request,
+            HttpServletRequest httpRequest) {
+        if (!authRateLimiter.tryAcquire(clientKey(httpRequest))) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).build();
+        }
+        accountActivationService.activate(request.getToken(), request.getPassword());
         return ResponseEntity.ok().build();
     }
 
