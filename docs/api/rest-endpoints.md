@@ -990,6 +990,51 @@ Validate a reset token and update the user's BCrypt password.
 
 ---
 
+### POST /api/v1/auth/activate
+
+Activate a newly-provisioned account from an emailed link: validate the one-time
+activation token, set the user's BCrypt password, and flip their status to Active.
+Modern port of the legacy `ACT_ActivateNewUser` microflow.
+
+**Auth**: `permitAll` — no JWT required (the caller has no session yet).
+
+**Request body**:
+```json
+{ "token": "raw-token-from-activation-link", "password": "ValidPass1!" }
+```
+
+| Field | Constraint |
+|---|---|
+| `token` | Required, non-blank |
+| `password` | Required; min 8 chars **and** at least one uppercase letter **and** one special character (`!@#$%^&*()<>`) — legacy `ACT_CheckPasswordRequirements_activation` policy |
+
+**Response**: `200 OK` (empty body) on success — no PII or token is echoed.
+
+On success the service (within one transaction):
+- sets the BCrypt hash on `identity.users.password`,
+- sets `ecoatm_direct_users.user_status = 'Active'`, `overall_user_status = 'Active'`,
+  `inactive = false`, `activation_date = now()`,
+- consumes the token (`consumed_at` set — single-use).
+
+**Errors**:
+
+| Status | Cause |
+|---|---|
+| `400` | Token invalid, expired, already consumed, or with no live user — single generic message `"Invalid or expired activation link"` (never reveals which; no account enumeration) |
+| `400` | Password fails the policy — message states the length/uppercase/special-character rule |
+| `400` | `token` or `password` missing/blank — Bean Validation error |
+| `429` | Per-IP rate limit exceeded (shared `AuthRateLimiter`, same as `/login` and `/forgot-password`) |
+
+**Token semantics**: reuses the reset-token machinery
+(`identity.password_reset_tokens`, V75) — the same hashed, time-limited, one-time-use
+table the reset flow uses. Issuing the activation token (provisioning + email) and the
+legacy `SUB_SendUserToSnowflake` replication are **out of scope** here (Snowflake moves
+to the scheduled batch). The target user is derived from the token, never a request field.
+
+**Schema**: `identity.password_reset_tokens` (V75), `user_mgmt.ecoatm_direct_users` (V7).
+
+---
+
 ## Reserve Bids (EB)
 
 All endpoints: `/api/v1/admin/reserve-bids/**` — role `Administrator`.
