@@ -15,7 +15,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * Administrator-only bulk offer-status change tool — a faithful port of the
@@ -28,10 +27,9 @@ import java.util.stream.Collectors;
  *   <li><b>Permissive any-&gt;any</b> — no transition allowlist. The only guards
  *       are the {@link ChangeOfferStatusValidator} input check and, on the
  *       date-range path, the from-status match.</li>
- *   <li><b>Side-effect-free</b> — this changes offer status (and, for the
- *       metadata path, touches the resolved orders) and writes exactly one audit
- *       row. It deliberately performs <i>no</i> Oracle re-send, email, or
- *       inventory reservation.</li>
+ *   <li><b>Side-effect-free</b> — this changes offer status and writes exactly
+ *       one audit row. It deliberately performs <i>no</i> Oracle re-send, email,
+ *       or inventory reservation.</li>
  *   <li><b>Audit-logged</b> — one {@code pws.admin_audit_log} row per invocation,
  *       stamped with the JWT-derived caller (passed in as {@code actor}, never
  *       taken from the request) and the matched/changed counts. Reuses the
@@ -39,14 +37,16 @@ import java.util.stream.Collectors;
  *       {@code PricingService#softDeleteDevice}).</li>
  * </ul>
  *
- * <p><b>Metadata-only path note:</b> the legacy tool wrote
+ * <p><b>Metadata-only path — rejected:</b> the legacy tool wrote
  * {@code HasShipmentDetails} (and re-set {@code LegacyOrder} to its own value — a
  * no-op) on the resolved orders. The modern {@code pws.order} table has neither
- * column, and this chunk adds no migration (locked decision), so the metadata
- * path instead touches {@code updated_date} on the resolved orders (the faithful
- * analog of the legacy "commit the order list") and records the requested
- * {@code hasShipmentDetails} value in the audit row. See the 2.3.E report for
- * this documented deviation.
+ * column, and this feature adds no migration (locked decision), so the flag write
+ * is impossible. Rather than pretend success — an earlier {@code applyMetadata}
+ * path bumped {@code updated_date} and returned {@code metadataOnly:true} without
+ * persisting anything — a {@code notOrderStatusChange=true} request is now
+ * rejected up front by {@link ChangeOfferStatusValidator} (→ HTTP 400), keeping
+ * the gap visible until a schema-prep migration lands. See the 2.3.E
+ * metadata-fix report.
  */
 @Service
 public class BulkOfferStatusService {
@@ -77,29 +77,27 @@ public class BulkOfferStatusService {
     }
 
     /**
-     * Validate, resolve the target orders, apply the change (status or metadata),
-     * and write exactly one audit row.
+     * Validate, resolve the target orders, apply the status change, and write
+     * exactly one audit row.
      *
      * @param req   the (already {@code @Valid}-bound) change request
      * @param actor the JWT-derived caller identity for the audit row — the
      *              controller resolves this from {@code Authentication}; it must
      *              never come from the request body
      * @throws IllegalArgumentException when {@code req} is not a valid bulk
-     *         change (→ HTTP 400)
+     *         change — including a {@code notOrderStatusChange=true} metadata-only
+     *         request, which is unsupported on the modern schema (→ HTTP 400)
      */
     @Transactional
     public ChangeOfferStatusResult changeStatus(ChangeOfferStatusRequest req, String actor) {
         validator.validate(req);
 
         List<Order> orders = resolveOrders(req);
-
-        ChangeOfferStatusResult result = req.notOrderStatusChange()
-                ? applyMetadata(orders)
-                : applyStatusChange(req, orders, actor);
+        ChangeOfferStatusResult result = applyStatusChange(req, orders, actor);
 
         writeAudit(req, result, actor);
-        log.info("Bulk offer-status change applied: metadataOnly={}, matchedOrders={}, changedOffers={}",
-                result.metadataOnly(), result.matchedOrders(), result.changedOffers());
+        log.info("Bulk offer-status change applied: matchedOrders={}, changedOffers={}",
+                result.matchedOrders(), result.changedOffers());
         return result;
     }
 
@@ -149,26 +147,7 @@ public class BulkOfferStatusService {
         return new ChangeOfferStatusResult(orders.size(), target.size(), false);
     }
 
-    /**
-     * Metadata-only path. The legacy {@code HasShipmentDetails} / {@code
-     * LegacyOrder} columns do not exist on the modern {@code pws.order} and this
-     * chunk adds no migration, so we touch {@code updated_date} on the resolved
-     * orders — the faithful analog of the legacy "commit the order list" — and
-     * capture the intended {@code hasShipmentDetails} value in the audit row.
-     */
-    private ChangeOfferStatusResult applyMetadata(List<Order> orders) {
-        List<Long> orderIds = orders.stream().map(Order::getId).toList();
-        if (!orderIds.isEmpty()) {
-            String placeholders = orderIds.stream().map(id -> "?").collect(Collectors.joining(","));
-            jdbc.update("UPDATE pws.\"order\" SET updated_date = NOW() WHERE id IN (" + placeholders + ")",
-                    orderIds.toArray());
-        }
-        return new ChangeOfferStatusResult(orders.size(), 0, true);
-    }
-
     private void writeAudit(ChangeOfferStatusRequest req, ChangeOfferStatusResult result, String actor) {
-        String entityType = result.metadataOnly() ? "Order" : "Offer";
-        String action = result.metadataOnly() ? "BULK_METADATA_UPDATE" : "BULK_STATUS_CHANGE";
         String scope = req.allPeriod()
                 ? "allPeriod(orderIds=" + req.orderIds().size() + ")"
                 : "dateRange[" + req.startingDate() + ".." + req.endingDate() + "]";
@@ -179,13 +158,9 @@ public class BulkOfferStatusService {
                 + ", hasShipmentDetails=" + req.hasShipmentDetails()
                 + ", matchedOrders=" + result.matchedOrders()
                 + ", changedOffers=" + result.changedOffers();
-        String before = result.metadataOnly()
-                ? "orders=" + result.matchedOrders()
-                : "fromOfferStatus=" + req.fromOfferStatus();
-        String after = result.metadataOnly()
-                ? "hasShipmentDetails=" + req.hasShipmentDetails()
-                : "toOrderStatus=" + req.toOrderStatus() + ", changedOffers=" + result.changedOffers();
+        String before = "fromOfferStatus=" + req.fromOfferStatus();
+        String after = "toOrderStatus=" + req.toOrderStatus() + ", changedOffers=" + result.changedOffers();
 
-        jdbc.update(AUDIT_INSERT, entityType, BULK_ENTITY_ID, action, reason, actor, before, after);
+        jdbc.update(AUDIT_INSERT, "Offer", BULK_ENTITY_ID, "BULK_STATUS_CHANGE", reason, actor, before, after);
     }
 }

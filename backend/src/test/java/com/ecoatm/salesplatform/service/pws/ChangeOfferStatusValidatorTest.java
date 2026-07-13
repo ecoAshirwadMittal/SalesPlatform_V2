@@ -57,12 +57,14 @@ class ChangeOfferStatusValidatorTest {
     }
 
     @Test
-    @DisplayName("allPeriod + selected order + metadata-only → passes (no target status needed)")
-    void allPeriodMetadataOnlyValidPasses() {
+    @DisplayName("allPeriod + metadata-only (notOrderStatusChange) → 400 (unsupported — no schema column)")
+    void allPeriodMetadataOnlyRejected() {
         ChangeOfferStatusRequest req = new ChangeOfferStatusRequest(
                 true, null, null, null, null, true, true, List.of(5L));
 
-        assertThatCode(() -> validator.validate(req)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> validator.validate(req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Metadata-only bulk update");
     }
 
     // ── Date-range branch ──────────────────────────────────────────────
@@ -141,11 +143,13 @@ class ChangeOfferStatusValidatorTest {
     }
 
     @Test
-    @DisplayName("date-range metadata-only → passes (no from/to required)")
-    void dateRangeMetadataOnlyValidPasses() {
+    @DisplayName("date-range metadata-only (notOrderStatusChange) → 400 (unsupported — no schema column)")
+    void dateRangeMetadataOnlyRejected() {
         ChangeOfferStatusRequest req = new ChangeOfferStatusRequest(
                 false, D1, D31, null, null, true, true, List.of());
 
-        assertThatCode(() -> validator.validate(req)).doesNotThrowAnyException();
+        assertThatThrownBy(() -> validator.validate(req))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Metadata-only bulk update");
     }
 }

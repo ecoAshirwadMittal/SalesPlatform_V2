@@ -91,6 +91,19 @@ class BulkOfferStatusControllerIT extends PostgresIntegrationTest {
            .andExpect(status().isBadRequest());
     }
 
+    @Test
+    @DisplayName("Administrator + metadata-only (notOrderStatusChange) → 400 (unsupported — pws.order has no has_shipment_details column)")
+    void metadataOnlyReturns400() throws Exception {
+        // The metadata-only path cannot persist hasShipmentDetails on the modern
+        // schema, so it is rejected outright rather than pretending success.
+        String body = """
+                {"allPeriod":false,"startingDate":"2099-01-01","endingDate":"2099-01-31",
+                 "notOrderStatusChange":true,"hasShipmentDetails":true}
+                """;
+        mvc.perform(post(URL).with(admin()).contentType(MediaType.APPLICATION_JSON).content(body))
+           .andExpect(status().isBadRequest());
+    }
+
     // ── happy paths ─────────────────────────────────────────────────────
 
     @Test
