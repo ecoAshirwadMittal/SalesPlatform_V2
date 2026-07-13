@@ -291,3 +291,39 @@ Inventory of major modules and their primary entities.
   `enabled` column gates production delivery; a disabled `RMA_Approved` row
   makes `sendTemplated` throw, which is swallowed
 - Snowflake sync: none — RMA emails are not pushed to Snowflake
+
+## User Provisioning — Grantable-Roles Enforcement (gap 2.4, sub-feature 3)
+- Source: Mendix `system$grantableroles` (the "which roles can assign which
+  roles" model), enforced at the modern user-provisioning write site
+- Primary tables: `identity.grantable_roles`
+  (`(grantor_role_id, grantee_role_id)` matrix, seeded by V16 — grantor
+  `Administrator`(1) → all 11 roles; `Anonymous`(3) → `User`(2);
+  `SalesLeader`(7) → `SalesLeader`(7)), `identity.user_roles` (id ↔ name),
+  read via the new `GrantableRoleRepository`
+- Purpose: a user-provisioning caller may only assign roles that at least one
+  of the caller's OWN roles is permitted to grant (repo Security Rule —
+  "Privilege grants must be validated against what the caller may grant, never
+  blind-write a client-supplied role list"). Closes the gap where
+  `DirectUserService` wrote whatever `roleIds` arrived with no check
+- Guard: `DirectUserService.enforceGrantableRoles(roleIds)` runs as the FIRST
+  statement of both `createDirectUser` and `updateDirectUser` — before any
+  write. The caller's grantor role-ids are resolved from the **verified JWT
+  authorities** (`SecurityContextHolder` → role NAMES, `ROLE_` stripped) mapped
+  to `user_roles.id` **by name**, never from a request field. Resolution by
+  name is deliberately immune to any dev(V15)/QA(V16) role-id skew: V16 DELETEs
+  the V15 dev role rows (ids 1001-1006) and re-seeds `Administrator=1`, and V17
+  re-maps dev `admin@test.com`→role 1, so a seeded Administrator always lands on
+  grantor id 1 that owns the grantable matrix
+- Rejection: any requested `roleId` outside the caller's permitted grantee set
+  throws `RoleGrantNotPermittedException` → HTTP 403 (mapped in
+  `GlobalExceptionHandler`) with a **generic** message
+  ("Not permitted to grant one or more of the requested roles") — never
+  enumerates which role, to deny a role-probing oracle. Fails closed on an
+  unauthenticated caller
+- Scope note: enforces the SEEDED matrix as-is. Because the surface is already
+  `@PreAuthorize("hasRole('Administrator')")`-gated and Administrator grants
+  every role, this rejects nothing today — it is pure defense-in-depth for any
+  future lower-privilege grant path. **No Flyway migration** (table + seed
+  pre-exist)
+- Admin surface: `/api/v1/users/direct-users` (`POST` create, `PUT` update) —
+  unchanged; the guard is a service-layer addition
