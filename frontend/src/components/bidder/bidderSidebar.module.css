@@ -35,6 +35,12 @@
   min-width: 54px;
 }
 
+/* Collapsed: centre the 34px icon box in the 54px rail (ICON-1 Pass 5). */
+.sidebarCollapsed .navItem {
+  padding: 0 10px;
+  gap: 0;
+}
+
 /* ── Toggle row ────────────────────────────────────────────────── */
 
 .toggleRow {
@@ -65,13 +71,14 @@
 .navItem {
   display: flex;
   align-items: center;
-  /* 20px gap lands the label ink at x=56 (legacy 56-57; 19px landed it at x=55,
-     1px left — a harness-raster band measurement). 64px height reproduces the
-     legacy 64px item pitch (cap-top anchors y=85/149/213 on BOTH legacy shells);
-     16px/500 matches the legacy label ink height (12px caps) and width. */
-  gap: 20px;
+  /* ICON-1 Pass 5: 9.5px left pad + 34px icon box centres the glyph/ring at
+     x=26.5 (legacy icon-column centre); the 12.5px gap keeps the label box at
+     x=56 (unchanged from the prior 16/20/20 geometry). 64px height reproduces
+     the legacy 64px item pitch (cap-top anchors y=85/149/213 on BOTH legacy
+     shells); 16px/500 matches the legacy label ink height (12px caps). */
+  gap: 12.5px;
   height: 64px;
-  padding: 0 16px;
+  padding: 0 16px 0 9.5px;
   color: var(--color-text-inverse, #FFFFFF);
   text-decoration: none;
   font-family: var(--font-family-primary, 'Brandon Grotesque', 'Open Sans', Arial, sans-serif);
@@ -115,14 +122,22 @@
 
 /* ── Icon ──────────────────────────────────────────────────────── */
 
+/* ICON-1 Pass 5: 34px box = the legacy ring diameter; the bespoke SVG glyph
+   (ring baked in for Auction + Credit Requests) fills it exactly. */
 .navIcon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
   color: var(--color-text-inverse, #FFFFFF);
+}
+
+.navIcon img {
+  display: block;
+  width: 34px;
+  height: 34px;
 }
 
 /* ── Label — visible when expanded, hidden when collapsed ──────── */

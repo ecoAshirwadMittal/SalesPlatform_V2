@@ -576,6 +576,29 @@ tests are `test.fixme` and no `*-snapshots/` baselines are committed
 
 ---
 
+## shell.icon-parity (new 2026-07-13 · ICON-1 · Pass 5)
+Bespoke sidebar icons on both shells — the real legacy Mendix nav art shipped as
+`frontend/public/icons/sidebar/*.svg` and wired through a shared `SidebarIcon`
+`<img>` component (ringed set carries the ring baked into the SVG; plain set
+does not; 34px box centred at the legacy icon-column x=26.5). Component behaviour
+is the load-bearing surface (the pixel parity is measurement-gated in the impl
+doc, not a committed snapshot test).
+
+| Surface | Key tests |
+|---|---|
+| `SidebarIcon` | `SidebarIcon.test.tsx` (15) — resolves `name` → `/icons/sidebar/{name}.svg` for all 12 assets (parametrized); decorative (empty `alt` + `aria-hidden`); 34×34 box |
+
+Targeted `npx vitest run src/components/chrome src/components/bidder`: **43/43
+pass, 7/7 files** (the new `SidebarIcon` suite + the untouched chrome/bidder
+suites — labels/testids unchanged so `BidderSidebar` + `wholesale-bidder-shell`
+semantics still hold). `npx tsc --noEmit`: **0 errors in touched files** (same 31
+pre-existing unrelated). Harness-measured per-slot before/after (admin 6010→3193
+−46%, bidder 795→343 −56%, every slot improved, zero regressions, 7 slots
+pixel-identical) is recorded in `docs/tasks/parity/impl/shell-legacy-parity.md`
+"Pass 5 — bespoke icons".
+
+---
+
 ## buyersusers.qualification-override-guard (new 2026-07-12 · gap 2.4 sub-feature 2 · NF_OnIncludedChanged_New)
 Target 85%+. Adds the modern `_New` round-status guard to the QBC manual
 include-override plus a published `QualificationOverriddenEvent` for the Task 4
