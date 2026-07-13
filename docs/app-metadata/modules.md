@@ -156,6 +156,41 @@ Inventory of major modules and their primary entities.
   auto-creation for accepted encumbered lines, Oracle write-back,
   S3-backed photos, `PartialCredit_*` role-tier promotion
 
+## Partial Credit — Submission Confirmation Email (gap 2.5 Task 1, 2026-07-12)
+- Source module: `ecoatm_partialcredit` (Mendix `SUB_SendCreditRequestSubmittedEmail`)
+- Primary tables: `email.template` (V101 seeds one row,
+  `template_key='CreditRequestSubmitted'`, `enabled=true`), `email.log`
+  (one row per send, `source_module='PARTIAL_CREDIT'`)
+- Purpose: when a buyer submits a credit request (DRAFT →
+  PENDING_APPROVAL), email the buyer a submission confirmation through the
+  shipped unified-email backbone. Also establishes the submit-event +
+  template-seed pattern a later accounting-email task reuses
+- Event: `CreditRequestService.submit` publishes
+  `event.partialcredit.CreditRequestSubmittedEvent(requestId,
+  submittedByUserId, occurredAt)` inside the committing transaction (after
+  the save), mirroring `AdminCreditRequestService.completeReview`'s
+  publish-after-save pattern. Facts only — the listener owns recipient +
+  render decisions
+- Listener: `listener/partialcredit/CreditRequestSubmittedEmailListener` —
+  `@TransactionalEventListener(AFTER_COMMIT)` + `@Async(EMAIL_EXECUTOR)` +
+  `@Transactional(REQUIRES_NEW)` and **not** `readOnly` (the send writes
+  `email.log`; a readOnly tx would fail the INSERT — same gotcha as the RMA
+  / review-completed listeners). Reloads the `CreditRequest`, resolves buyer
+  recipients via `EcoATMDirectUserRepository.findActiveEmailsByBuyerCodeId`,
+  and dispatches `EmailService.sendTemplated("CreditRequestSubmitted", vars,
+  SendOverrides(recipients, null, null), SourceRef("PARTIAL_CREDIT",
+  requestId))`. `vars`: `requestNumber` (legacy `'CR'+orderNumber`),
+  `buyerName` (buyer company via `findBuyerCompanyNameByBuyerCodeId`),
+  `requestReasons` (comma-joined Missing/Wrong/Encumbered), `totalDevices`
+  (the requested total). Sends **once** to the recipient list — drops the
+  legacy per-user `Name` personalization. Swallows all send exceptions — a
+  failed email never rolls back the already-committed submit
+- Config: `partial-credit.submitted-email.enabled` — default `true`; env
+  `PARTIAL_CREDIT_SUBMITTED_EMAIL_ENABLED`. Consumed via `@Value` on the
+  listener (not `@ConditionalOnProperty`) so the bean + its tests exist
+  regardless of the value
+- Snowflake sync: none
+
 ## Unified Email Management (Tasks 1-11 complete — Partial Credit migrated onto this module 2026-07-11)
 - Schema: `email` (V92)
 - Primary tables: `smtp_config` (singleton id=1 row — server host/port/
