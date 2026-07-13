@@ -74,6 +74,16 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleRoleGrantNotPermitted_returns403WithGenericMessage() {
+        ResponseEntity<Map<String, Object>> response =
+                handler.handleRoleGrantNotPermitted(new RoleGrantNotPermittedException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().get("message"))
+                .isEqualTo("Not permitted to grant one or more of the requested roles");
+    }
+
+    @Test
     void handleRuntime_notFound_returns404() {
         ResponseEntity<Map<String, Object>> response =
                 handler.handleRuntime(new RuntimeException("User not found: 42"));
