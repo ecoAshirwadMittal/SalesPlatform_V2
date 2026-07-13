@@ -78,6 +78,17 @@ public class GlobalExceptionHandler {
                 .body(errorBody(HttpStatus.FORBIDDEN, "Access denied", null));
     }
 
+    /**
+     * A user-provisioning caller tried to assign a role their own roles are not
+     * permitted to grant (identity.grantable_roles). Surfaces as 403 with the
+     * exception's generic message — never enumerates which role was disallowed.
+     */
+    @ExceptionHandler(RoleGrantNotPermittedException.class)
+    public ResponseEntity<Map<String, Object>> handleRoleGrantNotPermitted(RoleGrantNotPermittedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(errorBody(HttpStatus.FORBIDDEN, ex.getMessage(), null));
+    }
+
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuthenticationException(AuthenticationException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)

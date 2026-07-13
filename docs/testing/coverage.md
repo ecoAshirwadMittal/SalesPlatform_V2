@@ -590,3 +590,32 @@ Buyer-code-type-change-audit sweep: **20/20 green** (`BuyerEditServiceTest` 18 �
 2). Table reused, not duplicated: `buyer_code_change_logs` is the faithful
 target of the legacy `BCO_LogBuyerCodeChange` (created V8, seeded V18); V100 only
 adds the id sequence + audit indexes.
+
+## identity.grantable-roles-enforcement (new 2026-07-12 · gap 2.4 sub-feature 3)
+Target 85%+. Enforces `identity.grantable_roles` at the `DirectUserService`
+user-provisioning write site so a caller may only assign roles their OWN roles
+may grant. Load-bearing branches: the guard resolves the caller's grantor roles
+from the **JWT principal** (never the request); rejects (403) before any write
+when a requested role is outside the permitted grantee set; a requested role can
+never self-authorize (permission is principal-derived); fails closed when
+unauthenticated; and — proven only against real Postgres — a seeded
+Administrator resolves to grantor id 1 and grants all 11 roles (defense-in-depth
+does not break the current admin flow).
+
+| Surface | Key tests |
+|---|---|
+| `DirectUserService` guard (Mockito) | `DirectUserServiceTest$GrantableRolesGuard` (5) — create + update reject an un-grantable role with `RoleGrantNotPermittedException` and `verifyNoInteractions(em)` (nothing written); a SalesRep caller requesting its own role 9 is still rejected (proves the request's roleIds never self-authorize — grantor 9 has no grantable entry); unauthenticated caller fails closed (`verifyNoInteractions` on both the grant repo and `em`); an Anonymous caller granting exactly its permitted `{User=2}` is allowed through to a completed create. The two pre-existing `CreateDirectUser`/`UpdateDirectUser` happy-path tests were re-pointed to run as an authenticated Administrator (grantor 1 → all 11), proving the guard does not break admin provisioning |
+| 403 mapping | `GlobalExceptionHandlerTest` (+1) — `RoleGrantNotPermittedException` → 403 with the generic, non-enumerating message |
+| Real seeded matrix (Postgres, `pg-test`) | `GrantableRoleRepositoryIT` (4, `@DataJpaTest` + `replace=NONE`, mirrors `BuyerCodeRepositoryIT`) — `findRoleIdsByNames("Administrator")` → grantor id 1 (name-resolution is immune to the V15→V16 id reseed); grantor 1 → all 11 grantee ids; SalesRep (9) grants nothing; Anonymous (3) grants only User (2) |
+
+Grantable-roles sweep: **`DirectUserServiceTest` 14/14 green** (5 new guard +
+2 re-pointed admin-flow + 7 untouched), **`GrantableRoleRepositoryIT` 4/4 green**
+(real Postgres), **`GlobalExceptionHandlerTest` 9/9 green**,
+**`DirectUserControllerTest` 8/8 green** (unchanged — `@MockBean` service).
+
+> **V15/V16/V17 role-id alignment (verified):** V16 `DELETE`s the V15 dev role
+> rows (ids 1001-1006) + assignments and re-seeds `Administrator=1` plus the
+> `grantable_roles` grantor-1→all matrix; V17 re-maps dev `admin@test.com`(9001)
+> → role **1**. The applied schema is therefore internally consistent —
+> Administrator is id 1 everywhere and the V15 ids never survive. The guard still
+> resolves **by role name** so it is robust even if that ever drifts.
