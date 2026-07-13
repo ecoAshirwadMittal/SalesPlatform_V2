@@ -164,6 +164,53 @@ class AccountActivationServiceTest {
         verify(tokenRepository, never()).save(any());
     }
 
+    @Test
+    @DisplayName("activate_directUserMissingForToken_genericReject_noEnumeration")
+    void activate_directUserMissingForToken_genericReject() {
+        // A valid identity user with no EcoATMDirectUser profile (e.g. an internal
+        // user) still collapses to the same generic error — no enumeration.
+        when(tokenRepository.findValidByHash(anyString(), any(Instant.class)))
+                .thenReturn(Optional.of(validTokenRow()));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(directUserRepository.findById(USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.activate(RAW_TOKEN, STRONG_PASSWORD))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(GENERIC_TOKEN_ERROR);
+
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+        verify(directUserRepository, never()).save(any());
+        verify(tokenRepository, never()).save(any());
+    }
+
+    @Test
+    @DisplayName("activate_alreadyActivatedAccount_genericReject_noReflip_tokenNotConsumed")
+    void activate_alreadyActivatedAccount_genericReject_noReflip() {
+        // Precondition guard: a non-null activation_date means the account already
+        // activated. This blocks a /forgot-password token (same token table, no
+        // purpose discriminator) from re-flipping a deactivated buyer back to Active.
+        directUser.setActivationDate(LocalDateTime.now(fixedClock).minusDays(30));
+        directUser.setUserStatus("Active");
+        directUser.setOverallUserStatus("Active");
+        directUser.setInactive(false);
+
+        when(tokenRepository.findValidByHash(anyString(), any(Instant.class)))
+                .thenReturn(Optional.of(validTokenRow()));
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+        when(directUserRepository.findById(USER_ID)).thenReturn(Optional.of(directUser));
+
+        assertThatThrownBy(() -> service.activate(RAW_TOKEN, STRONG_PASSWORD))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage(GENERIC_TOKEN_ERROR);
+
+        // No password change, no status re-flip, and the token stays live (not consumed)
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+        verify(directUserRepository, never()).save(any());
+        verify(tokenRepository, never()).save(any());
+    }
+
     // --- weak password (policy enforced before any DB work) ---
 
     @Test

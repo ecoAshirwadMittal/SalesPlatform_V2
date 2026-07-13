@@ -141,6 +141,33 @@ class AccountActivationControllerIT extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("POST /activate already-activated account → 400, no re-flip, token stays live")
+    void activate_alreadyActivatedAccount_returns400_noReflip() throws Exception {
+        // Promote the seeded row to an already-activated (then deactivated) state:
+        // activation_date set, but overall_user_status pushed to 'Disabled' — the
+        // exact scenario a /forgot-password token must not silently re-activate.
+        jdbc.update("""
+                UPDATE user_mgmt.ecoatm_direct_users
+                SET activation_date = now(), user_status = 'Disabled',
+                    overall_user_status = 'Disabled', inactive = false
+                WHERE user_id = ?
+                """, TEST_USER_ID);
+
+        mvc.perform(post("/api/v1/auth/activate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body(RAW_TOKEN, STRONG_PASSWORD)))
+                .andExpect(status().isBadRequest());
+
+        // Status is NOT re-flipped back to Active.
+        EcoATMDirectUser directUser = directUserRepository.findById(TEST_USER_ID).orElseThrow();
+        assertThat(directUser.getOverallUserStatus()).isEqualTo("Disabled");
+
+        // Token was not consumed — a legitimately-issued reset token stays usable.
+        Optional<?> stillValid = tokenRepository.findValidByHash(sha256Hex(RAW_TOKEN), Instant.now());
+        assertThat(stillValid).isPresent();
+    }
+
+    @Test
     @DisplayName("POST /activate is reachable without authentication (public matcher)")
     void activate_isPublic_reachableWithoutAuth() throws Exception {
         // No cookie / Authorization header. A bad token yields 400 (business

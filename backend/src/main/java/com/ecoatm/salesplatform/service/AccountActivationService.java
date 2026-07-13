@@ -6,6 +6,7 @@ import com.ecoatm.salesplatform.model.User;
 import com.ecoatm.salesplatform.repository.EcoATMDirectUserRepository;
 import com.ecoatm.salesplatform.repository.PasswordResetTokenRepository;
 import com.ecoatm.salesplatform.repository.UserRepository;
+import com.ecoatm.salesplatform.security.TokenHasher;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,13 +14,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HexFormat;
 import java.util.regex.Pattern;
 
 /**
@@ -61,8 +58,15 @@ public class AccountActivationService {
     /** Status string stored in ecoatm_direct_users.user_status / overall_user_status. */
     private static final String STATUS_ACTIVE = "Active";
 
-    // Legacy password policy from ACT_CheckPasswordRequirements_activation:
-    // min 8 chars + at least one uppercase letter + at least one special character.
+    // Password policy: min 8 chars + at least one uppercase letter + at least one
+    // special character. This enforces the *intent* of legacy
+    // ACT_CheckPasswordRequirements_activation (which surfaced length / uppercase /
+    // special-character requirements to the user) while fixing a legacy defect: its
+    // special-char regex `.*([!@#$%^&*()<>])*` has a trailing `*` on the group, so
+    // it matched every string and never actually enforced the special char. We keep
+    // the stricter, correct rule to satisfy the repo's mandatory "password policy
+    // enforced" requirement for public auth endpoints — it is a deliberate, more
+    // secure interpretation, not a byte-for-byte port of that one buggy check.
     private static final int MIN_PASSWORD_LENGTH = 8;
     private static final Pattern UPPERCASE = Pattern.compile("[A-Z]");
     private static final Pattern SPECIAL_CHARACTER = Pattern.compile("[!@#$%^&*()<>]");
@@ -92,8 +96,10 @@ public class AccountActivationService {
         validatePasswordPolicy(rawPassword);
 
         // Resolve the token (findValidByHash already excludes expired + consumed rows).
+        // TokenHasher is shared with PasswordResetService so the digest stays
+        // byte-identical to what issued the token.
         PasswordResetToken token = tokenRepository
-                .findValidByHash(sha256Hex(rawToken), Instant.now(clock))
+                .findValidByHash(TokenHasher.sha256Hex(rawToken), Instant.now(clock))
                 .orElseThrow(() -> new IllegalArgumentException(GENERIC_TOKEN_ERROR));
 
         // Target user is derived from the token — never from a request field.
@@ -101,6 +107,20 @@ public class AccountActivationService {
                 .orElseThrow(() -> new IllegalArgumentException(GENERIC_TOKEN_ERROR));
         EcoATMDirectUser directUser = directUserRepository.findById(token.getUserId())
                 .orElseThrow(() -> new IllegalArgumentException(GENERIC_TOKEN_ERROR));
+
+        // Precondition: activation is a one-time provisioned -> Active transition
+        // (legacy ACT_ActivateNewUser only ran for freshly-provisioned invited
+        // users). A non-null activation_date means the account has already been
+        // activated, so refuse to re-run. This is load-bearing security: the
+        // reused password_reset_tokens table carries no purpose discriminator, so
+        // without this guard a token minted by the public /forgot-password endpoint
+        // would be redeemable here and could silently re-flip a deactivated buyer
+        // back to Active (re-entering order/counter-offer email fan-out). The
+        // generic error keeps it enumeration-resistant, and the token is NOT
+        // consumed — a legitimately-issued reset token stays usable at /reset-password.
+        if (directUser.getActivationDate() != null) {
+            throw new IllegalArgumentException(GENERIC_TOKEN_ERROR);
+        }
 
         // Set the BCrypt hash where login validates it (identity.users).
         user.setPassword(passwordEncoder.encode(rawPassword));
@@ -127,21 +147,6 @@ public class AccountActivationService {
                 && SPECIAL_CHARACTER.matcher(password).find();
         if (!valid) {
             throw new IllegalArgumentException(PASSWORD_POLICY_MESSAGE);
-        }
-    }
-
-    /**
-     * SHA-256 hex digest — mirrors {@link PasswordResetService}'s hashing so a
-     * token issued through the shared reset-token machinery resolves here.
-     */
-    private static String sha256Hex(String input) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(input.getBytes(StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is mandated by the JVM spec — unreachable.
-            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 }

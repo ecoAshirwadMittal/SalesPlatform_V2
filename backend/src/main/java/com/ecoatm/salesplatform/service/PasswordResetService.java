@@ -4,6 +4,7 @@ import com.ecoatm.salesplatform.model.PasswordResetToken;
 import com.ecoatm.salesplatform.model.User;
 import com.ecoatm.salesplatform.repository.PasswordResetTokenRepository;
 import com.ecoatm.salesplatform.repository.UserRepository;
+import com.ecoatm.salesplatform.security.TokenHasher;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,14 +12,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.Base64;
-import java.util.HexFormat;
 import java.util.Optional;
 
 /**
@@ -83,7 +81,7 @@ public class PasswordResetService {
         tokenRepository.deleteActiveTokensForUser(user.getId());
 
         String rawToken = generateSecureToken();
-        String tokenHash = sha256Hex(rawToken);
+        String tokenHash = TokenHasher.sha256Hex(rawToken);
 
         PasswordResetToken token = new PasswordResetToken();
         token.setUserId(user.getId());
@@ -118,7 +116,7 @@ public class PasswordResetService {
      */
     @Transactional
     public void confirmReset(String rawToken, String newPassword) {
-        String tokenHash = sha256Hex(rawToken);
+        String tokenHash = TokenHasher.sha256Hex(rawToken);
 
         PasswordResetToken token = tokenRepository
                 .findValidByHash(tokenHash, Instant.now())
@@ -145,16 +143,5 @@ public class PasswordResetService {
         new SecureRandom().nextBytes(bytes);
         // Base64URL without padding — safe in URLs, no padding characters
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-    }
-
-    private static String sha256Hex(String input) {
-        try {
-            byte[] digest = MessageDigest.getInstance("SHA-256")
-                    .digest(input.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-            return HexFormat.of().formatHex(digest);
-        } catch (NoSuchAlgorithmException e) {
-            // SHA-256 is mandated by the JVM spec — this branch is unreachable
-            throw new IllegalStateException("SHA-256 not available", e);
-        }
     }
 }
