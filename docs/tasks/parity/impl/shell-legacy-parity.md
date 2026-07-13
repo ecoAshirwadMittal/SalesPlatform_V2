@@ -368,3 +368,133 @@ are CSS modules — no TS surface). `npx vitest run src/components/chrome
 src/components/bidder src/app/(dashboard)/bidder` — **102/102 pass, 14/14 files**
 (the `EndOfBiddingPanel`, `SwitchBuyerCodeCard`, `BuyerPortalChrome`, and sidebar
 suites all green — the CSS-only changes touch no asserted DOM/structure).
+
+---
+
+## Pass 4 (2026-07-12) — quick wins (NAV-1, ICON-1, ended-panel 1px)
+
+Three small parity findings, each **measurement-gated** (kept only when a harness
+band-profile showed a net improvement vs the legacy PNG). Two shipped; one is
+reverted with a corrected premise.
+
+### Method (same rig as Pass 3, re-validated to 0 px)
+
+Throwaway `next dev -p 13000` on this branch, captured with the exact harness
+launch args + context (`--force-color-profile=srgb --disable-lcd-text
+--font-render-hinting=none --hide-scrollbars`; DPR 1, 1920×1080, light,
+reduced-motion, en-US, America/New_York, fixed clock `2026-07-11T12:00-05:00`,
+kill-motion CSS, 750 ms settle) via the pinned `@playwright/test` 1.59.1. The
+"before" render was **byte-identical** to `tools/parity/out/new/{bidder-dashboard,
+admin-reserve-bids-list}__default.png` (**0 diff px** in the sidebar-icon and
+panel bands) — so every number below is measured against the true harness legacy
+capture. Diff metric: per-pixel `max|Δchannel| > 24`, counted per region.
+
+**CORS note:** `next.config.ts` already server-side-rewrites `/api/v1/* → :8080`,
+but the browser's same-origin **POST** to `/auth/login` carries `Origin: :13000`,
+which the shared backend's CORS filter (allowlist `:3000`) 403s even through the
+rewrite. Worked around exactly as Pass 2/3 documented: authenticate **Node-side**
+(no Origin → 200), then inject the `auth_token` cookie + `auth_user` localStorage
+into the context; the dashboard's own calls are same-origin GETs (no Origin) and
+proxy fine. Capture-script only; `:3000/:8080/:8082` untouched, no app/DB change.
+
+### NAV-1 — "Buyer User Guide" dimmed in the buyer shell → **FIXED**
+
+The **admin** shell's Buyer User Guide already pointed at the `/buyer-user-guide`
+stub (enabled). The **buyer (bidder)** shell's item instead pointed at the backend
+PDF endpoint `/api/v1/bidder/docs/buyer-guide` and dimmed itself (`opacity:0.45`,
+rendered as a non-interactive `<span>`) whenever a mount-time `HEAD` check 404'd —
+which it always did in dev. Legacy renders the item **enabled**.
+
+- **Fix** (`BidderSidebar.tsx`): the item now links to the in-app
+  `/buyer-user-guide` stub via a normal `<Link>` (enabled, same-tab), and the
+  `guideAvailable` state + `useEffect` HEAD probe + `apiFetch` import are gone.
+  The book glyph stays plain (legacy renders it plain, un-ringed).
+- **Measured** (bidder, "Buyer User Guide" label band x[50,240] y[205,235] vs
+  legacy): **648 → 315** diff px (−333). The now-enabled label/icon renders full
+  white like legacy instead of the dimmed grey; residual 315 is glyph/font AA.
+- **Test:** `wholesale-bidder-shell.spec.ts` §3b rewritten — was
+  `target=_blank` + href `…/bidder/docs/buyer-guide`; now asserts `href ===
+  '/buyer-user-guide'`, `target` null, `aria-disabled` null. (Stub page body left
+  untouched, as scoped.)
+
+### Ended-panel bottom border +1px → **FIXED (kept — net improvement)**
+
+`endOfBiddingPanel.module.css` `.panel` `min-height: 592 → 593`.
+
+- **Measured** (bidder, vs legacy): bottom-border row (x[475,1672] y[850,862])
+  **2372 → 2**; whole panel band (y[250,860]) **4236 → 1866** (−2370, the entire
+  improvement is the border landing on legacy's y857 row).
+- The Pass-3 worry ("a 1px block shift re-ghosts ~1200 px") **did not
+  materialise**: `min-height` grows the panel box *downward* (top is pinned by
+  the heading row above), so the `justify-content:center` content block moves
+  only ~0.5 px — below the AA threshold, 0 re-ghost (the −2370 came entirely from
+  the border row, with the rest of the band unchanged at 1866). Kept.
+
+### ICON-1 — sidebar icon glyph treatment → **PREMISE CORRECTED; ring-add REVERTED (regresses)**
+
+**The finding's premise is inverted** (the third such case in this program, cf.
+LOGIN-P2, SHELL-P2). The finding/mission read "new sidebar icons render with a
+circled treatment; legacy uses plain glyphs." The fresh harness captures show the
+**opposite**:
+
+- **Legacy = circled.** Bidder rings Auction + Credit Requests (the Buyer User
+  Guide book is plain). Admin rings 9 of 13 — Users · Buyers · Inventory · PO ·
+  RB · Auction Scheduling · Auction · Credit Requests · Reports — and leaves
+  **Bid as Bidder · Settings · Admin · Buyer User Guide** plain.
+- **New = plain.** Every SVG glyph is a bare stroke icon; only the PO/RB *text
+  badges* carry a circle.
+
+Ring geometry (harness-measured, for the record): outer **≈34 px** diameter,
+centre **x≈26.5**, thin (~1 px) dim stroke (peak Δ≈119 vs a bright glyph stroke
+Δ≈120–290); identical for the icon rings and the PO/RB badge rings.
+
+To match legacy we therefore had to **add** rings (not remove them). Two attempts,
+both **measured worse** vs legacy and reverted:
+
+| Attempt | bidder icon band x[0,50] | admin icon band x[0,50] |
+|---|---|---|
+| before (plain, no ring) | **763** | **7002** |
+| 33 px ring, 1.5 px / rgba .7 + PO·RB badge 28→33 | 957 (+194) | 8129 (+1127) |
+| 33 px ring, 1 px / rgba .45 (tuned to legacy) | 906 (+143) | 7745 (+743) |
+
+Per-item the story is uniform: Users +113, Buyers +114, PO badge +31, RB badge
++25, … every ringed item regressed. **Root cause:** the dominant delta is glyph
+**shape + weight**, which a ring cannot touch — legacy's are thin Mendix
+icon-font glyphs of different designs (gavel vs the app's clock, 3-people vs
+2-people, building vs briefcase, clipboard vs cube, podium vs wrench, …). Adding a
+ring lays *more* white ink at a radius that overlaps legacy's glyph edges and
+mis-registers against legacy's thinner/dimmer ring, so it adds mismatch faster
+than the ring-overlap resolves it. A secondary factor on admin: the new icon
+column sits ~3.5 px right of legacy (glyph centre x30 vs 26.5 — a pre-existing
+Pass-2 residual), so an admin ring centred on the glyph is 3.5 px off legacy's.
+
+**Decision: reverted** (icons stay plain, == the before state). A faithful match
+is a **dedicated bespoke pass**, not a Pass-4 quick win: redraw ~11 thin-stroke
+glyphs to the legacy shapes, add matched concentric ~34 px rings **only** on the
+ringed set above (never double-ring PO/RB; leave Bid-as-Bidder/Settings/Admin/
+Buyer-User-Guide plain), and null the 3.5 px admin icon-column offset. ICON-1
+stays **open** with this evidence + geometry recorded for that pass. (`:8082` was
+down during Pass 4, so mirroring the legacy icon-font asset directly was not
+possible; the recreate-to-match path is the remaining option.)
+
+### Files changed (Pass 4)
+
+- `frontend/src/components/bidder/BidderSidebar.tsx` — NAV-1 (internal enabled
+  `/buyer-user-guide` link; dropped the HEAD-check dimming + `apiFetch`/effect/state).
+- `frontend/src/app/(dashboard)/bidder/dashboard/endOfBiddingPanel.module.css` —
+  `.panel` `min-height 592 → 593`.
+- `frontend/tests/e2e/wholesale-bidder-shell.spec.ts` — §3b assertion updated to
+  the NAV-1 behaviour.
+- (ICON-1 ring edits to `dashboard.module.css`, `bidderSidebar.module.css`,
+  `layout.tsx`, `BidderSidebarItem.tsx`, `lib/types.ts` were made, measured, and
+  fully reverted — **no** net change to those files.)
+
+### Gates (Pass 4)
+`npx tsc --noEmit` — **0 errors in touched files** (31 pre-existing, unchanged).
+`npx vitest run src/components/chrome src/components/bidder
+src/app/(dashboard)/bidder` — **102/102 pass, 14/14 files**.
+
+> **findings.md follow-up (owned by the register agent, not touched here):**
+> NAV-1 → `fixed`; ICON-1 → keep `open` but correct the premise (legacy is
+> circled, new is plain) and note that a ring-only fix measurably regresses —
+> it needs the bespoke glyph+ring redraw described above.

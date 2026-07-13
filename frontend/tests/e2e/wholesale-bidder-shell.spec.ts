@@ -360,10 +360,10 @@ test('Auction sidebar item links to /bidder/dashboard', async ({ page }) => {
 });
 
 // ---------------------------------------------------------------------------
-// 3b. Buyer User Guide item opens in a new tab
+// 3b. Buyer User Guide item is an enabled in-app link to the stub (NAV-1)
 // ---------------------------------------------------------------------------
 
-test('Buyer User Guide sidebar item has target=_blank and correct href', async ({ page }) => {
+test('Buyer User Guide sidebar item links to the in-app /buyer-user-guide stub', async ({ page }) => {
   await seedAuth(page);
   await mockBuyerCodes(page);
   await mockDashboard(page);
@@ -377,14 +377,17 @@ test('Buyer User Guide sidebar item has target=_blank and correct href', async (
   const guideItem = page.getByTestId('sidebar-item-buyer-user-guide');
   await expect(guideItem).toBeVisible();
 
-  const target = await guideItem.getAttribute('target');
-  expect(target).toBe('_blank');
-
-  const rel = await guideItem.getAttribute('rel');
-  expect(rel).toContain('noopener');
-
+  // NAV-1: legacy renders this item enabled. It is now a normal in-app
+  // Next.js <Link> to the stub route — not the old dimmed, HEAD-checked,
+  // new-tab backend-PDF link.
   const href = await guideItem.getAttribute('href');
-  expect(href).toContain('/api/v1/bidder/docs/buyer-guide');
+  expect(href).toBe('/buyer-user-guide');
+
+  // Same-tab navigation (no target=_blank) and not disabled.
+  const target = await guideItem.getAttribute('target');
+  expect(target).toBeNull();
+  const ariaDisabled = await guideItem.getAttribute('aria-disabled');
+  expect(ariaDisabled).toBeNull();
 });
 
 // ---------------------------------------------------------------------------

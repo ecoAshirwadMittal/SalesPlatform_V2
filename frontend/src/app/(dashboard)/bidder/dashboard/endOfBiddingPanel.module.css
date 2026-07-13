@@ -50,7 +50,11 @@
   /* Legacy panel borders sit at x=481/x=1670 — 4px inside the 1198px
      content column (width 1190 border-box). */
   margin: 0 4px;
-  min-height: 592px;                       /* legacy panel y265..857 */
+  /* 593 (was 592): the panel bottom sat at y856 vs legacy y857; +1px lands the
+     bottom border on legacy's row. Kept only because the harness overlay showed
+     a net improvement on the bidder panel band (Pass 4) — the content block is
+     position-sensitive, so this was verified, not assumed. */
+  min-height: 593px;                       /* legacy panel y265..857 */
   /* Asymmetric (22 top / 26 bottom) nudges the vertically-centred content block
      up ~2px so "Bidding has ended." lands on legacy's y=496 cap-top. The block
      is position-sensitive: a 1px shift re-ghosts the whole dense panel. */
