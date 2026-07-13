@@ -50,11 +50,12 @@
 .navItem {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 12.5px;
   height: 64px;
-  /* 16px left pad (with the 28px icon box + 12px gap) lands the label text
-     box at x=56 — legacy label ink starts x=57. */
-  padding: 0 20px 0 16px;
+  /* ICON-1 Pass 5: 9.5px left pad + 34px icon box centres the glyph/ring at
+     x=26.5 (legacy icon-column centre — nulls the pre-existing 3.5px offset);
+     the 12.5px gap keeps the label box at x=56 (ink x=57), unchanged. */
+  padding: 0 20px 0 9.5px;
   color: #fff;
   text-decoration: none;
   font-size: 16px;
@@ -72,33 +73,21 @@
   background-color: rgba(0, 0, 0, 0.3);
 }
 
+/* ICON-1 Pass 5: 34px box = the legacy ring diameter; the bespoke SVG glyph
+   (ring baked in for ringed items) fills it exactly. */
 .navIcon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   flex-shrink: 0;
 }
 
-.navIcon svg {
+.navIcon img {
   display: block;
-}
-
-/* Text badge icons (PO, RB) — matches Mendix circle badges */
-.textBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.7);
-  font-size: 10px;
-  font-weight: 700;
-  color: #fff;
-  font-family: 'Brandon Grotesque', 'Open Sans', Arial, sans-serif;
-  letter-spacing: 0.5px;
+  width: 34px;
+  height: 34px;
 }
 
 .navLabel {
@@ -169,7 +158,8 @@
 }
 
 .sidebarCollapsed .navItem {
-  padding: 0 16px;
+  /* centre the 34px icon box in the 60px rail */
+  padding: 0 13px;
   gap: 0;
 }
 

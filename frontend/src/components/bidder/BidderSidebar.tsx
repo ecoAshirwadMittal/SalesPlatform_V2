@@ -24,7 +24,7 @@ import { usePathname } from 'next/navigation';
 import SidebarToggle from '@/components/chrome/SidebarToggle';
 import { useSidebar } from '@/components/chrome/SidebarContext';
 import BidderSidebarItem from './BidderSidebarItem';
-import { GavelIcon, BookIcon, CreditRequestIcon } from './BidderSidebarIcons';
+import SidebarIcon from '@/components/chrome/SidebarIcon';
 import styles from './bidderSidebar.module.css';
 
 const BUYER_GUIDE_HREF = '/buyer-user-guide';
@@ -54,7 +54,7 @@ export default function BidderSidebar() {
         <ul className={styles.navList} role="list">
           <li>
             <BidderSidebarItem
-              icon={<GavelIcon />}
+              icon={<SidebarIcon name="auction" />}
               label="Auction"
               href="/bidder/dashboard"
               collapsed={collapsed}
@@ -65,7 +65,7 @@ export default function BidderSidebar() {
             {/* Credit Requests — buyer-shell counterpart of the admin item
                 (SHELL-P1 / BDD-P2). Routes to the partial-credit buyer surface. */}
             <BidderSidebarItem
-              icon={<CreditRequestIcon />}
+              icon={<SidebarIcon name="credit-requests" />}
               label="Credit Requests"
               href={CREDIT_REQUESTS_HREF}
               collapsed={collapsed}
@@ -77,7 +77,7 @@ export default function BidderSidebar() {
                 (NAV-1). Legacy renders this item enabled with a plain book glyph,
                 identical treatment to its siblings. */}
             <BidderSidebarItem
-              icon={<BookIcon />}
+              icon={<SidebarIcon name="buyer-guide" />}
               label="Buyer User Guide"
               href={BUYER_GUIDE_HREF}
               collapsed={collapsed}

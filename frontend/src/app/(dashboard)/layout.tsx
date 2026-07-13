@@ -9,118 +9,40 @@ import { API_BASE } from '@/lib/apiRoutes';
 import { getAuthUser, type AuthUser } from '@/lib/session';
 import type { NavItem } from '@/lib/types';
 import SidebarToggle from '@/components/chrome/SidebarToggle';
+import SidebarIcon from '@/components/chrome/SidebarIcon';
 import styles from './dashboard.module.css';
 
+// Sidebar glyphs are the real legacy Mendix nav assets (ICON-1, Pass 5):
+// ringed items carry the thin dim ~34px ring baked into the SVG exactly as
+// legacy renders it; plain items (Bid as Bidder, Settings, Admin, Buyer User
+// Guide) have no ring. See frontend/public/icons/sidebar/*.svg and
+// docs/tasks/parity/impl/shell-legacy-parity.md "Pass 5 — bespoke icons".
 const navItems: NavItem[] = [
-  {
-    label: 'Users', href: '/users',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-        <circle cx="9" cy="7" r="4"/>
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Buyers', href: '/buyers',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-        <path d="M16 3h-8l-2 4h12z"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Inventory', href: '/admin/auctions-data-center/inventory',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-        <line x1="12" y1="22.08" x2="12" y2="12"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Purchase Order', href: '/admin/auctions-data-center/purchase-orders',
-    icon: <span className={styles.textBadge}>PO</span>,
-  },
-  {
-    label: 'Reserved Bids (EB)', href: '/admin/auctions-data-center/reserve-bids',
-    icon: <span className={styles.textBadge}>RB</span>,
-  },
-  {
-    label: 'Auction Scheduling', href: '/admin/auctions-data-center/schedule-auction',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-        <line x1="16" y1="2" x2="16" y2="6"/>
-        <line x1="8" y1="2" x2="8" y2="6"/>
-        <line x1="3" y1="10" x2="21" y2="10"/>
-        <circle cx="12" cy="16" r="2"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Bid as Bidder', href: '/bid-as-bidder',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-      </svg>
-    ),
-  },
-  {
-    label: 'Auction', href: '/auction',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10"/>
-        <polyline points="12 6 12 12 16 14"/>
-      </svg>
-    ),
-  },
+  { label: 'Users', href: '/users', icon: <SidebarIcon name="users" /> },
+  { label: 'Buyers', href: '/buyers', icon: <SidebarIcon name="buyers" /> },
+  { label: 'Inventory', href: '/admin/auctions-data-center/inventory', icon: <SidebarIcon name="inventory" /> },
+  { label: 'Purchase Order', href: '/admin/auctions-data-center/purchase-orders', icon: <SidebarIcon name="purchase-order" /> },
+  { label: 'Reserved Bids (EB)', href: '/admin/auctions-data-center/reserve-bids', icon: <SidebarIcon name="reserve-bids" /> },
+  { label: 'Auction Scheduling', href: '/admin/auctions-data-center/schedule-auction', icon: <SidebarIcon name="auction" /> },
+  { label: 'Bid as Bidder', href: '/bid-as-bidder', icon: <SidebarIcon name="bid-as-bidder" /> },
+  { label: 'Auction', href: '/auction', icon: <SidebarIcon name="auction" /> },
   // Credit Requests — legacy admin sidebar item between Auction and Reports
-  // (SHELL-P1, ruling 1). Routes to the partial-credit admin surface. The
-  // reply/return arrow mirrors the legacy Mendix glyph; rendered as a plain
-  // stroke icon to match the sibling nav items' style.
-  {
-    label: 'Credit Requests', href: '/admin/auctions-data-center/partial-credit',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="9 10 4 15 9 20"/>
-        <path d="M20 4v7a4 4 0 0 1-4 4H4"/>
-      </svg>
-    ),
-  },
+  // (SHELL-P1, ruling 1). Routes to the partial-credit admin surface.
+  { label: 'Credit Requests', href: '/admin/auctions-data-center/partial-credit', icon: <SidebarIcon name="credit-requests" /> },
   {
     label: 'Reports', href: '/reports', expandable: true,
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10"/>
-        <line x1="12" y1="20" x2="12" y2="4"/>
-        <line x1="6" y1="20" x2="6" y2="14"/>
-      </svg>
-    ),
+    icon: <SidebarIcon name="reports" />,
   },
   {
     label: 'Settings', href: '/settings', expandable: true,
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="3"/>
-        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    ),
+    icon: <SidebarIcon name="settings" />,
     children: [
       { label: 'PWS Control Center', href: '/settings/pws-control-center' },
     ],
   },
   {
     label: 'Admin', href: '/admin', expandable: true,
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M12 2 4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6l-8-4z"/>
-      </svg>
-    ),
+    icon: <SidebarIcon name="admin" />,
     children: [
       { label: 'Application Control Center', href: '/admin/app-control-center' },
       { label: 'Auction Control Center', href: '/admin/auction-control-center' },
@@ -130,15 +52,7 @@ const navItems: NavItem[] = [
   },
   // M12a — QA admin sidebar exposes a "Buyer User Guide" link at the bottom.
   // The route hosts a stub page until real documentation lands.
-  {
-    label: 'Buyer User Guide', href: '/buyer-user-guide',
-    icon: (
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-      </svg>
-    ),
-  },
+  { label: 'Buyer User Guide', href: '/buyer-user-guide', icon: <SidebarIcon name="buyer-guide" /> },
 ];
 
 /**

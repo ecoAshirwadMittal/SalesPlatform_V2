@@ -498,3 +498,131 @@ src/app/(dashboard)/bidder` — **102/102 pass, 14/14 files**.
 > NAV-1 → `fixed`; ICON-1 → keep `open` but correct the premise (legacy is
 > circled, new is plain) and note that a ring-only fix measurably regresses —
 > it needs the bespoke glyph+ring redraw described above.
+
+---
+
+## Pass 5 (2026-07-13) — bespoke icons (ICON-1, both shells)
+
+Executes the Pass-4 decision: replace all 16 sidebar glyphs (admin 13 +
+bidder 3) with the **real legacy Mendix nav art**, add the ring to exactly the
+ringed set, and null the 3.5px admin icon-column offset. The prior ring-only
+attempt regressed because the dominant delta is glyph **shape/weight**; Pass 5
+fixes that by shipping the actual legacy vectors, not redraws, wherever they
+exist on disk.
+
+### Glyph source — the assets ARE the legacy art
+
+The legacy sidebar uses **image-based nav items** (custom SVGs), not an icon
+font, for the ringed set. Found on disk (read-only) at
+`C:\Users\Ashirwad.Mittal\Mendix\Auctions UI-Release10\deployment\web\img\`.
+Each ringed SVG is a 34×34 white glyph with the ring **baked in** exactly as
+legacy authored it: `<circle opacity="0.33" cx="17" cy="17" r="16.5"
+stroke="white"/>` (34px dia, ~1px dim stroke — the geometry Pass 4 measured).
+The 4 plain glyphs came from the Atlas / FontAwesome-Pro fonts (extracted to
+SVG via `fontTools` `SVGPathPen`) or, where no asset matched, one bespoke redraw.
+
+| # | Admin item | Legacy glyph | Ring | `public/icons/sidebar/…` provenance |
+|---|---|---|---|---|
+| 1 | Users | 3-person group | ● | `users.svg` — **verbatim** `AuctionUI$…$UserManagement_3.svg` |
+| 2 | Buyers | office building | ● | `buyers.svg` — **verbatim** `…$BuyerManagement.svg` (building — filenames mislead; the *Buyers* slot pixel-matches BuyerManagement, the *Inventory* slot matches InventoryManagement — verified, a latent swap avoided) |
+| 3 | Inventory | clipboard + clip | ● | `inventory.svg` — **verbatim** `…$InventoryManagement_2.svg` (clipboard) |
+| 4 | Purchase Order | "PO" letters | ● | `purchase-order.svg` — **verbatim** `…$PurchaseOrderLogo.svg` (34×35 art scaled into the 34-box, exactly as legacy's slot does) |
+| 5 | Reserved Bids (EB) | "RB" letters | ● | `reserve-bids.svg` — **verbatim** `…$ReservedBidsLogo.svg` |
+| 6 | Auction Scheduling | gavel + block | ● | `auction.svg` — **verbatim** `…$AuctionScheduling.svg` |
+| 7 | Bid as Bidder | dome/podium lamp | ○ | `bid-as-bidder.svg` — **bespoke redraw** (no matching asset; FA `lamp-desk`/`lamp-floor`/`lamp-street` all measured wrong) |
+| 8 | Auction | gavel + block | ● | `auction.svg` (reused) |
+| 9 | Credit Requests | ↵ enter-arrow | ● | `credit-requests.svg` — FA-Pro **`arrow-turn-down-left`** (U+E2E1) extracted white + the legacy ring (reply_email was the wrong weight/shape) |
+| 10 | Reports | bars + up-arrow | ● | `reports.svg` — **verbatim** `…$Reports.svg` |
+| 11 | Settings | filled gear | ○ | `settings.svg` — `Email_Connector$…$settings_solid.svg` recolored white |
+| 12 | Admin | filled chess king | ○ | `admin.svg` — FA-Pro **`chess-king`** (U+F43F) extracted white |
+| 13 | Buyer User Guide | open book | ○ | `buyer-guide.svg` — Atlas **`book-open`** (`mx-icon-book-open`, U+E92F) extracted white, sized 16.5px |
+
+**Bidder shell (3):** Auction → `auction.svg` (gavel, ●), Credit Requests →
+`credit-requests.svg` (arrow, ●), Buyer User Guide → `buyer-guide.svg` (book,
+○) — the same assets. `●` = ringed (9 admin / 2 bidder), `○` = plain.
+
+### Geometry (offset null)
+
+Shared `SidebarIcon` renders `<img src="/icons/sidebar/{name}.svg" width=34
+height=34 alt="" aria-hidden>`. Both shells' `.navIcon` is now a **34×34** box
+(= the legacy ring diameter); `.navItem` `padding-left: 9.5px` + `gap: 12.5px`
+centres the glyph/ring at **x=26.5** (the legacy icon-column centre — nulls the
+pre-existing 3.5px admin offset, glyph centre was x=30) while keeping the label
+box at **x=56** (unchanged — labels do not move). Bidder was 20px @ centre 26 /
+admin 28px @ centre 30 → both now 34px @ centre 26.5.
+
+### Per-slot before/after — icon band x[0,50], diff-px vs the legacy PNG (`max|Δ| > 24`)
+
+Measured under the harness rasterization (see Method). `before` = plain icons
+(git-stashed this branch, identical rig); `after` = bespoke.
+
+| Admin slot | before | after | | Bidder slot | before | after |
+|---|---|---|---|---|---|---|
+| Users | 357 | **0** | | Auction · | 274 | **0** |
+| Buyers | 379 | **0** | | Credit Requests | 255 | **118** |
+| Inventory · | 2199 | 2138 | | Buyer User Guide | 266 | **225** |
+| Purchase Order | 335 | **185** | | **TOTAL** | **795** | **343** (−56%) |
+| Reserved Bids | 334 | **0** | | | | |
+| Auction Scheduling | 373 | **0** | | | | |
+| Bid as Bidder | 223 | **188** | | | | |
+| Auction | 326 | **0** | | | | |
+| Credit Requests | 275 | **122** | | | | |
+| Reports | 287 | **0** | | | | |
+| Settings | 292 | **157** | | | | |
+| Admin | 306 | **174** | | | | |
+| Buyer User Guide | 324 | **229** | | | | |
+| **TOTAL** | **6010** | **3193** (−46%) | | | | |
+
+**Every slot improved; zero regressions** (inverts Pass 4's ring-only regress:
+bidder 763→906, admin 7002→7745). 7 slots hit **0** (pixel-identical — the
+verbatim assets). `·` Inventory (admin) + Auction (bidder) carry a **constant
+highlight-background** mismatch — legacy's reserve-bids capture double-highlights
+Inventory (a legacy bug we deliberately don't reproduce, ruling 3) and our
+bidder capture is on the active Auction route — so that residual is nav-state,
+not the icon (the `before→after` delta isolates the glyph, which still improved).
+Excluding Inventory's bg artifact, admin pure-icon deltas fell ~72%. Remaining
+non-zero residuals (PO 185, plain Settings/Admin/Bid-as-Bidder, book 225-229,
+arrow 118-122) are AA/shape floor for the font-extracted + squished-PO +
+redrawn glyphs — closest available real art, all net improvements.
+
+Iteration notes (measurement-gated): PO first shipped viewBox-normalized (222);
+**reverted to verbatim** → 185. Book first at 20px (265) → **16.5px** (229/225,
+the measured best; 15px was worse at 231/230).
+
+### Files changed (Pass 5)
+
+- `frontend/public/icons/sidebar/*.svg` — **new**, 12 assets (7 verbatim legacy
+  SVGs, `settings.svg` recolored, 3 font-extracted `credit-requests`/`admin`/
+  `buyer-guide`, 1 redrawn `bid-as-bidder`).
+- `frontend/src/components/chrome/SidebarIcon.tsx` — **new** shared `<img>`
+  component (+ `SidebarIcon.test.tsx`, 15 RTL cases).
+- `frontend/src/app/(dashboard)/layout.tsx` — admin nav uses `<SidebarIcon>`
+  (dropped 11 inline SVGs + the 2 PO/RB text badges).
+- `frontend/src/app/(dashboard)/dashboard.module.css` — `.navIcon` 34×34,
+  `.navItem` pad-left 9.5 / gap 12.5 (centre 26.5), `.navIcon img`, dropped the
+  orphaned `.textBadge`, collapsed rail re-centred.
+- `frontend/src/components/bidder/BidderSidebar.tsx` — uses `<SidebarIcon>`.
+- `frontend/src/components/bidder/BidderSidebarIcons.tsx` — **deleted**
+  (orphaned; only BidderSidebar imported it).
+- `frontend/src/components/bidder/bidderSidebar.module.css` — same 34px /
+  centre-26.5 geometry + collapsed centring.
+
+### Method / verification
+
+Same rig as Pass 3/4, re-validated: throwaway `next dev -p 13000` on this
+branch, captured with the exact harness launch args (`--force-color-profile=srgb
+--disable-lcd-text --font-render-hinting=none --hide-scrollbars`; DPR 1,
+1920×1080, light, reduced-motion, en-US, America/New_York, kill-motion CSS,
+750ms settle) via pinned `@playwright/test` 1.59.1. `/api/v1` proxies Node-side
+to `:8080` (auth POST done Node-side — no `Origin` → CORS-clean — then the
+`auth_token` cookie + `auth_user` localStorage injected); bidder uses the HN
+deep-link `?buyerCodeId=84` (resolved from `/auth/buyer-codes`). Before/after
+from a `git stash` of this branch under the identical rig. `:3000/:8080/:8082`
+untouched; no app/backend/DB change.
+
+### Gates (Pass 5)
+
+`npx tsc --noEmit` — **0 errors in touched files** (same 31 pre-existing
+unrelated errors). `npx vitest run src/components/chrome src/components/bidder`
+— **43/43 pass, 7/7 files** (incl. the new `SidebarIcon` suite; the bidder-shell
++ chrome suites unaffected — labels/testids unchanged).
