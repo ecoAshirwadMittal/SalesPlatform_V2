@@ -2,9 +2,12 @@ package com.ecoatm.salesplatform.repository.pws;
 
 import com.ecoatm.salesplatform.model.pws.Offer;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -67,4 +70,40 @@ public interface OfferRepository extends JpaRepository<Offer, Long> {
             LEFT JOIN sku_agg sa ON sa.status = oa.status
             """, nativeQuery = true)
     List<Object[]> getStatusSummaries(@Param("statuses") List<String> statuses);
+
+    /**
+     * SLA-tag write: flags every offer sitting in an SLA-tracked status
+     * ({@code Sales_Review} / {@code Buyer_Acceptance}) whose {@code updated_date}
+     * (day-truncated) is on or before {@code cutoff} — the date {@code sla_days}
+     * business days ago computed by {@code SlaTagService}. Only untagged rows are
+     * touched so the returned count reflects newly-tagged offers. Modern port of
+     * legacy {@code SUB_SetSLATag}'s {@code trimToDays(UpdateDate) <=
+     * trimToDays(ResultDate)} filter.
+     *
+     * <p>A {@code BEFORE UPDATE} trigger on {@code pws.offer} resets
+     * {@code updated_date = NOW()}, so this write also bumps {@code updated_date}
+     * as a side effect — matching the legacy commit and the one-shot nature of
+     * {@code offer_beyond_sla}.
+     */
+    @Modifying
+    @Query(value = "UPDATE pws.offer SET offer_beyond_sla = true "
+            + "WHERE status IN (:statuses) "
+            + "AND CAST(updated_date AS date) <= :cutoff "
+            + "AND (offer_beyond_sla IS NULL OR offer_beyond_sla = false)",
+            nativeQuery = true)
+    int tagOverdueOffers(@Param("statuses") Collection<String> statuses,
+                         @Param("cutoff") LocalDate cutoff);
+
+    /**
+     * SLA-tag clear: resets {@code offer_beyond_sla = false} on every SLA-tracked
+     * offer currently flagged. Modern port of legacy
+     * {@code SUB_RemoveSLATagsForAllOffers} (which likewise scopes to the
+     * {@code Sales_Review} / {@code Buyer_Acceptance} statuses). Returns the
+     * number of rows cleared.
+     */
+    @Modifying
+    @Query(value = "UPDATE pws.offer SET offer_beyond_sla = false "
+            + "WHERE status IN (:statuses) AND offer_beyond_sla = true",
+            nativeQuery = true)
+    int clearAllSlaTags(@Param("statuses") Collection<String> statuses);
 }
