@@ -18,5 +18,9 @@ masks:
     new: 'time, [data-testid="last-updated"]'
     reason: TIMESTAMP
     note: Timestamps may drift if V81 provenance != qa-0327 (verify)
+  - legacy: '.mx-dataview:has(.usericon_settings)'
+    new: '[class*="topBarRight"]'
+    reason: DATA
+    note: identity chip — different accounts per side (BDD-P3)
 findings: [POL-D1, RBL-P2, RBL-P5, SHELL-P1]   # + PO walkthrough import pending
 status: diffing

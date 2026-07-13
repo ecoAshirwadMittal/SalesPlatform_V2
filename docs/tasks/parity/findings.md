@@ -161,7 +161,28 @@ then `npx reg-cli tools/parity/out/new tools/parity/out/legacy-local ... -M 0.1`
 - **Also in this band:** ended-panel inner content sits ~10px high (subtitle + download button
   y-offset — inner spacing of `endOfBiddingPanel.module.css` content block); 1px hairline double
   on the panel border; logo slight ghost (raster PNG vs legacy asset rendering).
-- **Status:** open (next shell pass)
+- **Status:** **RESOLVED 2026-07-12 (premise corrected + fixed, commit 30f5eeb1 merged).**
+  Render-verified: every shell text element was ALREADY Brandon — the ghosts were size/weight
+  deltas (subtitle 14→16px, download label 14→18px, switch-name weight 400→500) + the panel
+  sitting 5px low. Shell diff −75% (8,066 → 1,980 px excl. identity). Remaining floor, all
+  documented in impl doc Pass 3: download-button label 1px hinting drift over 26 chars + odd
+  43px legacy pill height; panel bottom border 856 vs 857; logo/heading AA. Identity masks
+  authored in all page manifests (legacy `.mx-dataview:has(.usericon_settings)`, new
+  `[class*="avatarWrapper"]` / `[class*="topBarRight"]`) — note: the two mask BOXES differ in
+  size per side, so the painted rectangles themselves contribute a small constant diff strip
+  (harness artifact; candidate H2 fix = same-region rectangle masking).
+
+### NAV-1 — "Buyer User Guide" renders dimmed in the new buyer shell
+- **Date:** 2026-07-12 (typeface-pass observation) · **Layer:** pixel+function · **Severity:** LOW · **Class:** feature-gap → frontend
+- Legacy renders the item enabled; the new shell dims it (route `/buyer-user-guide` exists as a
+  stub but the nav marks it unimplemented). Enable the nav state (and verify the stub page).
+- **Status:** open
+
+### ICON-1 — sidebar icon glyph treatment differs (circled vs plain)
+- **Date:** 2026-07-12 · **Layer:** pixel · **Severity:** LOW · **Class:** style-fix → frontend
+- Pre-existing, explicitly outside the four SHELL rulings: new sidebar icons render with a
+  circled treatment vs legacy's plain glyphs (visible as icon ghosts on both shells).
+- **Status:** open
 
 ### BDD-P3 addendum — identity chip env difference (harness mask needed)
 The chip now renders real display names in legacy's style (widget parity done), but the two

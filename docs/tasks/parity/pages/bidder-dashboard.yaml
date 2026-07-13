@@ -25,5 +25,10 @@ masks:
     new: '.countdown-timer, [data-testid="server-time"]'
     reason: TIMESTAMP
     note: round countdown ticks every second
+  - legacy: '.mx-dataview:has(.usericon_settings)'
+    new: '[class*="avatarWrapper"]'
+    reason: DATA
+    note: identity chip renders the logged-in account's name — the two sides authenticate
+      different accounts (nadia vs dev-seed bidder), so the text always differs (BDD-P3)
 findings: [BDD-D1, BDD-P1, BDD-P2, BDD-P3]   # + BD-24 import pending
 status: diffing

@@ -18,6 +18,10 @@ masks:
     new: '[data-testid="last-updated"], time'
     reason: TIMESTAMP
     note: Last-updated column values may drift if V77 provenance != qa-0327 (verify)
+  - legacy: '.mx-dataview:has(.usericon_settings)'
+    new: '[class*="topBarRight"]'
+    reason: DATA
+    note: identity chip — different accounts per side (BDD-P3)
 findings: [RBL-D1, RBL-D2, RBL-P1, RBL-P2, RBL-P3, RBL-P4, RBL-P5, SHELL-P1]
 # RB-1..RB-27 import still pending (findings.md import queue)
 status: diffing
