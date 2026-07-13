@@ -8,8 +8,10 @@ import com.ecoatm.salesplatform.dto.BuyerUpsertRequest;
 import com.ecoatm.salesplatform.dto.SalesRepSummary;
 import com.ecoatm.salesplatform.model.buyermgmt.Buyer;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
+import com.ecoatm.salesplatform.model.buyermgmt.BuyerCodeChangeLog;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerStatus;
 import com.ecoatm.salesplatform.model.buyermgmt.SalesRepresentative;
+import com.ecoatm.salesplatform.repository.BuyerCodeChangeLogRepository;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.BuyerRepository;
 import com.ecoatm.salesplatform.repository.SalesRepresentativeRepository;
@@ -22,11 +24,13 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -37,19 +41,25 @@ public class BuyerEditService {
     private final BuyerRepository buyerRepository;
     private final BuyerCodeRepository buyerCodeRepository;
     private final SalesRepresentativeRepository salesRepRepository;
+    private final BuyerCodeChangeLogRepository changeLogRepository;
     private final EntityManager em;
     private final ApplicationEventPublisher eventPublisher;
+    private final Clock clock;
 
     public BuyerEditService(BuyerRepository buyerRepository,
                             BuyerCodeRepository buyerCodeRepository,
                             SalesRepresentativeRepository salesRepRepository,
+                            BuyerCodeChangeLogRepository changeLogRepository,
                             EntityManager em,
-                            ApplicationEventPublisher eventPublisher) {
+                            ApplicationEventPublisher eventPublisher,
+                            Clock clock) {
         this.buyerRepository = buyerRepository;
         this.buyerCodeRepository = buyerCodeRepository;
         this.salesRepRepository = salesRepRepository;
+        this.changeLogRepository = changeLogRepository;
         this.em = em;
         this.eventPublisher = eventPublisher;
+        this.clock = clock;
     }
 
     @Transactional(readOnly = true)
@@ -146,7 +156,7 @@ public class BuyerEditService {
                 .orElseThrow(() -> new EntityNotFoundException("Buyer not found: id=" + id));
 
         boolean admin = isAdmin(auth);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(clock);
 
         buyer.setCompanyName(req.companyName().trim());
         buyer.setSpecialBuyer(req.isSpecialBuyer());
@@ -166,7 +176,7 @@ public class BuyerEditService {
         }
 
         if (req.buyerCodes() != null) {
-            updateBuyerCodes(id, req.buyerCodes(), admin, now);
+            updateBuyerCodes(id, req.buyerCodes(), admin, now, auth);
         }
 
         List<SalesRepresentative> salesReps = salesRepRepository.findByBuyerId(id);
@@ -212,7 +222,7 @@ public class BuyerEditService {
     }
 
     private void updateBuyerCodes(Long buyerId, List<BuyerCodeUpsertRequest> codeRequests,
-                                   boolean admin, LocalDateTime now) {
+                                   boolean admin, LocalDateTime now, Authentication auth) {
         List<BuyerCode> existing = buyerCodeRepository.findByBuyerId(buyerId);
         Map<Long, BuyerCode> existingById = existing.stream()
                 .filter(bc -> bc.getId() != null)
@@ -231,7 +241,15 @@ public class BuyerEditService {
                 bc.setChangedDate(now);
 
                 if (admin && codeReq.buyerCodeType() != null) {
-                    bc.setBuyerCodeType(codeReq.buyerCodeType());
+                    // Compliance audit (legacy SUB_LogBuyerCodeTypeChange_Compliance):
+                    // record one row ONLY when the type ACTUALLY changes, before the
+                    // new value overwrites the old on the entity.
+                    String oldType = bc.getBuyerCodeType();
+                    String newType = codeReq.buyerCodeType();
+                    if (!Objects.equals(oldType, newType)) {
+                        logBuyerCodeTypeChange(bc.getId(), oldType, newType, now, auth);
+                    }
+                    bc.setBuyerCodeType(newType);
                 }
 
                 buyerCodeRepository.save(bc);
@@ -295,6 +313,48 @@ public class BuyerEditService {
                 codeDetails,
                 permissions
         );
+    }
+
+    /**
+     * Writes one compliance audit row for a buyer-code-type change — the modern
+     * port of {@code BCO_LogBuyerCodeChange} / {@code BuyerCodeChangeLog}. Runs
+     * inside the caller's {@code update} transaction so the audit commits with
+     * the buyer-code change (or rolls back with it).
+     */
+    private void logBuyerCodeTypeChange(Long buyerCodeId, String oldType, String newType,
+                                         LocalDateTime now, Authentication auth) {
+        Long changerId = principalUserId(auth);
+
+        BuyerCodeChangeLog log = new BuyerCodeChangeLog();
+        log.setBuyerCodeId(buyerCodeId);
+        log.setOldBuyerCodeType(oldType);
+        log.setNewBuyerCodeType(newType);
+        log.setChangedById(changerId);
+        log.setOwnerId(changerId);
+        log.setEditedBy(principalEmail(auth));
+        log.setEditedOn(now);
+        log.setCreatedDate(now);
+        log.setChangedDate(now);
+
+        changeLogRepository.save(log);
+    }
+
+    /**
+     * Changer identity comes from the verified JWT only — JwtAuthenticationFilter
+     * sets principal=userId (Long), credentials=email. Never from a request field.
+     */
+    private static Long principalUserId(Authentication auth) {
+        if (auth != null && auth.getPrincipal() instanceof Long userId) {
+            return userId;
+        }
+        return null;
+    }
+
+    private static String principalEmail(Authentication auth) {
+        if (auth != null && auth.getCredentials() instanceof String email && !email.isBlank()) {
+            return email;
+        }
+        return null;
     }
 
     private boolean isAdmin(Authentication auth) {

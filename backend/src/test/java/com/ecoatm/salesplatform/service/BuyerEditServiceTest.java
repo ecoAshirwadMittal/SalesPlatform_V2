@@ -5,8 +5,10 @@ import com.ecoatm.salesplatform.dto.BuyerDetailResponse;
 import com.ecoatm.salesplatform.dto.BuyerUpsertRequest;
 import com.ecoatm.salesplatform.model.buyermgmt.Buyer;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerCode;
+import com.ecoatm.salesplatform.model.buyermgmt.BuyerCodeChangeLog;
 import com.ecoatm.salesplatform.model.buyermgmt.BuyerStatus;
 import com.ecoatm.salesplatform.model.buyermgmt.SalesRepresentative;
+import com.ecoatm.salesplatform.repository.BuyerCodeChangeLogRepository;
 import com.ecoatm.salesplatform.repository.BuyerCodeRepository;
 import com.ecoatm.salesplatform.repository.BuyerRepository;
 import com.ecoatm.salesplatform.repository.SalesRepresentativeRepository;
@@ -18,6 +20,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.context.ApplicationEventPublisher;
@@ -25,6 +28,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -48,17 +55,28 @@ class BuyerEditServiceTest {
     @Mock private BuyerRepository buyerRepository;
     @Mock private BuyerCodeRepository buyerCodeRepository;
     @Mock private SalesRepresentativeRepository salesRepRepository;
+    @Mock private BuyerCodeChangeLogRepository changeLogRepository;
     @Mock private EntityManager em;
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private Authentication adminAuth;
     @Mock private Authentication complianceAuth;
     @Mock private Query nativeQuery;
 
+    // Fixed clock so audit-row timestamps are deterministic.
+    private static final Instant FIXED_INSTANT = Instant.parse("2026-07-12T10:15:30Z");
+    private static final LocalDateTime EXPECTED_NOW =
+            LocalDateTime.ofInstant(FIXED_INSTANT, ZoneOffset.UTC);
+    // JWT principal (userId) and credentials (email) that JwtAuthenticationFilter sets.
+    private static final Long ADMIN_USER_ID = 42L;
+    private static final String ADMIN_EMAIL = "admin@test.com";
+
     private BuyerEditService service;
 
     @BeforeEach
     void setUp() {
-        service = new BuyerEditService(buyerRepository, buyerCodeRepository, salesRepRepository, em, eventPublisher);
+        Clock clock = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
+        service = new BuyerEditService(buyerRepository, buyerCodeRepository, salesRepRepository,
+                changeLogRepository, em, eventPublisher, clock);
 
         Collection<GrantedAuthority> adminAuthorities = List.of(
                 new SimpleGrantedAuthority("ROLE_Administrator"));
@@ -67,6 +85,9 @@ class BuyerEditServiceTest {
 
         lenient().doReturn(adminAuthorities).when(adminAuth).getAuthorities();
         lenient().doReturn(complianceAuthorities).when(complianceAuth).getAuthorities();
+        // JWT-derived changer identity — never a request field.
+        lenient().when(adminAuth.getPrincipal()).thenReturn(ADMIN_USER_ID);
+        lenient().when(adminAuth.getCredentials()).thenReturn(ADMIN_EMAIL);
     }
 
     private Buyer makeBuyer(Long id, String name, BuyerStatus status) {
@@ -385,6 +406,90 @@ class BuyerEditServiceTest {
             service.update(1L, req, complianceAuth);
 
             verify(em, never()).createNativeQuery("DELETE FROM buyer_mgmt.buyer_sales_reps WHERE buyer_id = :buyerId");
+        }
+    }
+
+    @Nested
+    @DisplayName("buyer-code-type-change compliance audit")
+    class TypeChangeAuditTests {
+
+        private void stubUpdate(BuyerCode existingCode) {
+            Buyer buyer = makeBuyer(1L, "Acme", BuyerStatus.Active);
+            when(buyerRepository.findById(1L)).thenReturn(Optional.of(buyer));
+            when(buyerRepository.save(any())).thenReturn(buyer);
+            when(buyerCodeRepository.findByBuyerId(1L)).thenReturn(List.of(existingCode));
+            when(buyerCodeRepository.save(any())).thenReturn(existingCode);
+            lenient().when(buyerCodeRepository.existsByCodeIgnoreCaseAndNotSoftDeleted(anyString(), anyLong()))
+                    .thenReturn(false);
+            when(salesRepRepository.findByBuyerId(1L)).thenReturn(List.of());
+        }
+
+        @Test
+        @DisplayName("admin type change writes exactly one audit row with old/new/changedBy/changedAt")
+        void adminTypeChange_writesAuditRow() {
+            BuyerCode existingCode = makeCode(100L, "AC001", "Wholesale", 5000);
+            stubUpdate(existingCode);
+
+            BuyerCodeUpsertRequest codeReq = new BuyerCodeUpsertRequest(
+                    100L, "AC001", "Data_Wipe", 5000, false);
+            BuyerUpsertRequest req = new BuyerUpsertRequest(
+                    "Acme", null, false, null, List.of(codeReq));
+
+            service.update(1L, req, adminAuth);
+
+            ArgumentCaptor<BuyerCodeChangeLog> captor = ArgumentCaptor.forClass(BuyerCodeChangeLog.class);
+            verify(changeLogRepository).save(captor.capture());
+            BuyerCodeChangeLog log = captor.getValue();
+
+            assertThat(log.getBuyerCodeId()).isEqualTo(100L);
+            assertThat(log.getOldBuyerCodeType()).isEqualTo("Wholesale");
+            assertThat(log.getNewBuyerCodeType()).isEqualTo("Data_Wipe");
+            // Changer is the JWT principal, never a request field.
+            assertThat(log.getChangedById()).isEqualTo(ADMIN_USER_ID);
+            assertThat(log.getOwnerId()).isEqualTo(ADMIN_USER_ID);
+            assertThat(log.getEditedBy()).isEqualTo(ADMIN_EMAIL);
+            assertThat(log.getEditedOn()).isEqualTo(EXPECTED_NOW);
+            assertThat(log.getChangedDate()).isEqualTo(EXPECTED_NOW);
+            assertThat(log.getCreatedDate()).isEqualTo(EXPECTED_NOW);
+
+            // The new value is still applied to the buyer code.
+            assertThat(existingCode.getBuyerCodeType()).isEqualTo("Data_Wipe");
+        }
+
+        @Test
+        @DisplayName("admin update with unchanged type writes NO audit row")
+        void adminSameType_noAuditRow() {
+            BuyerCode existingCode = makeCode(100L, "AC001", "Wholesale", 5000);
+            stubUpdate(existingCode);
+
+            // Same type, different budget — a real edit, but not a type change.
+            BuyerCodeUpsertRequest codeReq = new BuyerCodeUpsertRequest(
+                    100L, "AC001", "Wholesale", 9000, false);
+            BuyerUpsertRequest req = new BuyerUpsertRequest(
+                    "Acme", null, false, null, List.of(codeReq));
+
+            service.update(1L, req, adminAuth);
+
+            verify(changeLogRepository, never()).save(any());
+            assertThat(existingCode.getBudget()).isEqualTo(9000);
+        }
+
+        @Test
+        @DisplayName("compliance user cannot change type, so writes NO audit row")
+        void complianceTypeChange_noAuditRow() {
+            BuyerCode existingCode = makeCode(100L, "AC001", "Wholesale", 5000);
+            stubUpdate(existingCode);
+
+            BuyerCodeUpsertRequest codeReq = new BuyerCodeUpsertRequest(
+                    100L, "AC001", "Data_Wipe", 5000, false);
+            BuyerUpsertRequest req = new BuyerUpsertRequest(
+                    "Acme", null, false, null, List.of(codeReq));
+
+            service.update(1L, req, complianceAuth);
+
+            verify(changeLogRepository, never()).save(any());
+            // Compliance edit must not change the type.
+            assertThat(existingCode.getBuyerCodeType()).isEqualTo("Wholesale");
         }
     }
 }

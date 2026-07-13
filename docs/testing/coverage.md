@@ -571,3 +571,22 @@ Snowflake; no local enable flag (dev `LoggingEmailSender` + template `enabled`).
 Manual-qualification email sweep: **8/8 green** (`ManualQualificationEmailListenerTest`
 5 + `ManualQualificationEmailMigrationIT` 2 + `V99MigrationIT` 1). Run:
 `./mvnw test -Dtest=ManualQualificationEmailListenerTest,V99MigrationIT,ManualQualificationEmailMigrationIT -Dspring.profiles.active=pg-test`.
+
+## buyermgmt.buyer-code-type-change-audit (new 2026-07-12 · gap 2.4 sub-feature 3 · SUB_LogBuyerCodeTypeChange_Compliance)
+Target 85%+. `BuyerEditService.updateBuyerCodes` now writes one
+`buyer_mgmt.buyer_code_change_logs` row (the reused legacy table; **V100** adds
+its id sequence) whenever an admin edit actually changes a buyer code's type.
+Load-bearing branches: the old-vs-new-type diff (row only when they differ), the
+JWT-derived changer (`changed_by_id`/`edited_by`, never a request field), the
+non-admin/compliance path writing nothing, and the injected-`Clock` timestamps.
+
+| Surface | Key tests |
+|---|---|
+| `BuyerEditService.updateBuyerCodes` audit write (Mockito) | `BuyerEditServiceTest$TypeChangeAuditTests` (3) — admin type change → exactly one `changeLogRepository.save` with `ArgumentCaptor` asserting `old`/`new`/`buyerCodeId`/`changedById`==principal/`ownerId`/`editedBy`==credentials email/`editedOn`==`createdDate`==`changedDate`==fixed-clock now, and the new type applied to the code; admin same-type edit (budget changed) → `never()` save; compliance type change → `never()` save + type unchanged |
+| Real-Postgres write + V100 sequence | `BuyerCodeTypeChangeAuditIT` (2, `pg-test` → Flyway applies V100) — seeds a linked buyer/code, calls `update` with a real admin `Authentication`; type change → one persisted `buyer_code_change_logs` row with the right old/new/`changed_by_id`/`owner_id`/`edited_by` and the code type actually flipped; same-type edit → zero rows. `@Transactional` rolls the seed + audit row back |
+
+Buyer-code-type-change-audit sweep: **20/20 green** (`BuyerEditServiceTest` 18 —
+3 new audit cases + 15 pre-existing regression — + `BuyerCodeTypeChangeAuditIT`
+2). Table reused, not duplicated: `buyer_code_change_logs` is the faithful
+target of the legacy `BCO_LogBuyerCodeChange` (created V8, seeded V18); V100 only
+adds the id sequence + audit indexes.

@@ -423,3 +423,24 @@ Inventory of major modules and their primary entities.
   **not** touch `identity.users.active`/`blocked` (matches legacy — provisioning
   is expected to create the user active; login gates on those flags)
 - Business-logic guide: `docs/business-logic/user-auth.md`
+
+## Buyer Code Type-Change Audit — Compliance (gap 2.4 sub-feature 3, 2026-07-12)
+- Source module: `EcoATM_BuyerManagement` (`BCO_LogBuyerCodeChange` /
+  `SUB_LogBuyerCodeTypeChange_Compliance`, called from `ACT_Buyer_EditSave`)
+- Primary table: `buyer_mgmt.buyer_code_change_logs` (the pre-existing
+  V8/V18 table — **reused, not duplicated**; **V100** adds an id sequence so
+  it is app-writable) via the `BuyerCodeChangeLog` entity +
+  `BuyerCodeChangeLogRepository`
+- Purpose: record a compliance audit row whenever a buyer code's **type**
+  actually changes (old != new) on an admin edit. Previously the type change
+  was admin-gated but recorded nothing
+- Write site: `BuyerEditService.updateBuyerCodes` — one row per real
+  type change, inside the buyer-update transaction, captured **before** the
+  new value overwrites the old. No row when the type is unchanged or the
+  caller is non-admin (compliance cannot change type)
+- Identity: `changed_by_id` / `owner_id` / `edited_by` are JWT-derived
+  (principal=userId Long, credentials=email from `JwtAuthenticationFilter`),
+  never a request field. Timestamps from an injected `Clock`
+- Snowflake sync: none. Email: none
+- Admin gate/authz: unchanged (the existing `admin && buyerCodeType != null`
+  guard)
