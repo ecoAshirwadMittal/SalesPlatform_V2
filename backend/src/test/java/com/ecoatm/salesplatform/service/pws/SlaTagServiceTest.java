@@ -48,6 +48,10 @@ class SlaTagServiceTest {
     private static final Clock MONDAY_2026_07_13 =
             Clock.fixed(Instant.parse("2026-07-13T10:00:00Z"), ZoneOffset.UTC);
 
+    /** 2026-07-11 is a Saturday — used to lock in the weekend start-day back-walk. */
+    private static final Clock SATURDAY_2026_07_11 =
+            Clock.fixed(Instant.parse("2026-07-11T10:00:00Z"), ZoneOffset.UTC);
+
     @Mock
     private OfferRepository offerRepository;
     @Mock
@@ -144,6 +148,22 @@ class SlaTagServiceTest {
 
         LocalDate cutoff = newService(false).calculateSlaCutoff();
 
+        assertThat(cutoff).isEqualTo(LocalDate.of(2026, 7, 9));
+    }
+
+    @Test
+    @DisplayName("cutoff from a Saturday start steps out of the weekend (decrement-then-check)")
+    void cutoff_from_a_weekend_start_day() {
+        stubSlaDays(2);
+        stubHolidays();
+
+        SlaTagService service = new SlaTagService(offerRepository, companyHolidayRepository,
+                pwsConstantsRepository, SATURDAY_2026_07_11, false);
+        LocalDate cutoff = service.calculateSlaCutoff();
+
+        // Today = Sat 2026-07-11. The back-walk decrements first, so Saturday is
+        // never counted as a business day: it steps to Fri 07-10 (business day 1),
+        // then Thu 07-09 (business day 2). Proves a weekend start-day is handled.
         assertThat(cutoff).isEqualTo(LocalDate.of(2026, 7, 9));
     }
 
