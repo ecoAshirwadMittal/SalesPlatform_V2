@@ -188,35 +188,82 @@
   width: 60px;
 }
 
-/* ── Row-level action buttons ──────────────────────────────── */
+/* ── Row-level audit action (RBL-P3) ───────────────────────────
+   Legacy ReserveBid_Overview exposes a single per-row eye that opens the
+   audit modal — no Edit / Delete here (those live on the separate
+   Administrator-only ReserveBid_Admin_Overview page). */
 
-.actionsCell {
-  display: flex;
+.rowAuditButton {
+  background: transparent;
+  border: 0;
+  padding: 1px;
+  /* Height must not exceed the 18px cell line-height, else the eye drives the
+     row past the legacy 35px pitch (RBL-P5). 16px icon + 1px padding = 18px. */
+  line-height: 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-input);
+}
+
+.rowAuditButton:hover {
+  color: var(--color-brand-teal);
+  background: var(--color-bg-body);
+}
+
+.rowAuditIcon {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Toolbar buttons (RBL-P4) ──────────────────────────────────
+   Legacy [Download] (secondary / outlined) + [Upload EB Price] (primary
+   teal). ~43px tall, 18px label + leading icon — measured off the legacy
+   capture (Upload teal is the rendered #009098 ≈ --color-brand-teal-mid). */
+
+.toolbarBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 8px;
+  height: 43px;
+  padding: 0 18px;
+  font-family: var(--font-family-primary);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+  border: 1px solid transparent;
+  border-radius: var(--radius-input);
+  cursor: pointer;
   white-space: nowrap;
 }
 
-.rowAction {
-  background: transparent;
-  border: 0;
-  padding: 4px 6px;
-  font-family: var(--font-family-primary);
-  font-size: 13px;
-  color: var(--color-brand-teal);
-  cursor: pointer;
-  text-decoration: underline;
+.toolbarBtnSecondary {
+  background: var(--color-bg-body);
+  color: var(--color-text-body);
+  border-color: var(--color-input-border);
 }
 
-.rowAction:hover {
-  color: var(--color-brand-teal-dark);
+.toolbarBtnSecondary:hover {
+  border-color: var(--color-text-muted);
 }
 
-.rowActionDanger {
-  color: #C0392B;
+.toolbarBtnPrimary {
+  background: var(--color-brand-teal-mid);
+  color: #FFFFFF;
+  border-color: var(--color-brand-teal-mid);
 }
 
-.rowActionDanger:hover {
-  color: #8e2a1f;
+.toolbarBtnPrimary:hover {
+  opacity: 0.92;
+}
+
+.toolbarBtnIcon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* ── Column selector dropdown ──────────────────────────────── */

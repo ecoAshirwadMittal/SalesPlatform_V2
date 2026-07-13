@@ -701,3 +701,27 @@ Run: `./mvnw test -Dtest=CreditRequestServiceTest,BuyerPartialCreditControllerIT
 + `npm test -- partial-credit/page.test.tsx`. No migration, Snowflake, or
 email. `deleteRequest` added to `frontend/src/lib/partialCreditClient.ts`
 (mirrors `deletePhoto` — 204 success shape).
+
+---
+
+## reservebids.page-parity (new 2026-07-12 · RBL-P2 / P3 / P4 / P5)
+Frontend coverage for the reserve-bids page-level parity fixes (legacy date
+format, single audit-eye row action, `[Download][Upload EB Price]` toolbar with
+no New, and the 35px-row + right-aligned-pager density). Load-bearing: the exact
+legacy date string across DST + boundaries, and that the DataGrid `variant`
+opt-in cannot regress the shared inventory grid.
+
+| Surface | Key tests |
+|---|---|
+| `formatLegacyDateTime` (RBL-P2) | `legacyDateTime.test.ts` (10) — exact `12/09/25 at 02:17 PM EST`; EDT switch; zero-pad month/day/hour; 12:00 AM/PM (not 00:00) boundaries; `Date` + epoch inputs; null/undefined/empty/unparseable → `""`; explicit-zone override (PST) |
+| `DataGrid variant` (RBL-P4/P5) | `DataGrid.legacy.test.tsx` (3) — legacy: plain `"1 to 20 of 1234"` pager (no "Showing", no comma) + the column-visibility eye inside a `<th>` + no toolbar `Columns` button; **default ("app") variant unchanged**: `"Showing 1 to 20 of 1,234"` + toolbar `Columns` + `Actions` header (pins that inventory is not regressed) |
+| `reserveBidClient` | `reserveBidClient.test.ts` (2, untouched) — list query-string + upload multipart, still green |
+| E2E (RBL-P3/P4) | `reserveBid.spec.ts` — overview lists rows; toolbar = `[Download][Upload EB Price]`, no `New`, `/new` 404s; per-row audit eye opens the `[role=dialog]` audit modal (no Edit link) |
+
+Targeted `npx vitest run` (the 3 files above): **15/15 green**. `npx tsc
+--noEmit`: **0 errors in touched files** (31 pre-existing unrelated errors
+remain — `admin-purchase-orders.spec.ts` / `wholesale-submit-bids.spec.ts` +
+partial-credit test files). Harness-faithful throwaway `:13007` render verified
+20 rows @ 35px + the pager on-screen, both toolbar buttons, the header/​row eyes,
+and the legacy date/​pager strings (`docs/tasks/parity/impl/reserve-bids-page-parity.md`
+§5). Final strict-pixel sign-off belongs to the orchestrator's harness.

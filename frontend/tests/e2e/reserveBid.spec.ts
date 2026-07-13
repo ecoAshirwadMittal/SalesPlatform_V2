@@ -20,15 +20,30 @@ test.describe("Reserve Bids admin", () => {
     await expect(page.locator("table tbody tr").first()).toBeVisible();
   });
 
-  test("edit + audit flow", async ({ page }) => {
+  test("toolbar matches legacy — [Download] [Upload EB Price], no New", async ({ page }) => {
+    // RBL-P4: EB is authored via Excel upload only. The toolbar is exactly
+    // Download + Upload EB Price; the legacy /new manual-create route is gone.
     await page.goto("/admin/auctions-data-center/reserve-bids");
-    const firstEdit = page.locator("table tbody tr").first().getByText("Edit");
-    await firstEdit.click();
-    await page.waitForURL(/\/reserve-bids\/\d+$/);
-    const bidInput = page.locator('input[type="number"]');
-    const old = await bidInput.inputValue();
-    await bidInput.fill((Number(old) + 1).toString());
-    await page.getByText("Save").click();
-    await page.waitForURL("**/reserve-bids");
+    await expect(page.getByRole("button", { name: "Download" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Upload EB Price" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "New", exact: true })).toHaveCount(0);
+    // The removed route 404s rather than rendering a create form.
+    await page.goto("/admin/auctions-data-center/reserve-bids/new");
+    await expect(page.getByText("New Reserve Bid")).toHaveCount(0);
+  });
+
+  test("per-row audit eye opens the audit modal", async ({ page }) => {
+    // RBL-P3: the only per-row affordance is a single eye that opens the audit
+    // view as a modal (no Edit / Audit / Delete text links).
+    await page.goto("/admin/auctions-data-center/reserve-bids");
+    await expect(page.locator("table tbody tr").first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Edit" })).toHaveCount(0);
+    const firstAuditEye = page
+      .getByRole("button", { name: /View audit history for product/ })
+      .first();
+    await firstAuditEye.click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("Audit");
   });
 });

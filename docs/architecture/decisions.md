@@ -5,6 +5,51 @@ ADR-style: context, decision, consequences. Newest first.
 
 ---
 
+## 2026-07-12 — Date/time display convention: legacy `MM/DD/YY at hh:mm A z`
+
+**Status:** Accepted (parity program H1, finding **RBL-P2**).
+
+**Context:** The legacy Mendix AuctionUI app rendered every user-facing
+timestamp with the `formatDateTime` pattern `MM/dd/yy 'at' hh:mm a z` in the
+application's business timezone — US Eastern, the default for every Mendix
+session in this app — e.g. `12/09/25 at 02:17 PM EST`. The rebuild had been
+hand-rolling `Date#toLocaleString()` per surface, which yields
+`12/3/2025, 11:16:37 AM` (no zero-pad, 4-digit year, seconds, no zone). The H1
+harness flagged this on the reserve-bids Last Updated column (RBL-P2) and noted
+it is **systemic** — every timestamp column across the app inherits the same
+divergence.
+
+**Decision:** One shared frontend formatter,
+`frontend/src/lib/format/legacyDateTime.ts` →
+`formatLegacyDateTime(value, timeZone?)`, implements the legacy pattern via
+`Intl.DateTimeFormat("en-US", { timeZone, year:"2-digit", month:"2-digit",
+day:"2-digit", hour:"2-digit", minute:"2-digit", hour12:true,
+timeZoneName:"short" })` re-assembled as `MM/DD/YY at hh:mm A z`. The zone is
+fixed to `America/New_York` by default (legacy showed Eastern to all users; the
+label flips EST↔EDT across DST). Applied in this task to the two reserve-bids
+surfaces driven to parity — the grid **Last Updated** column and the **audit
+modal** "Changed On" column. Every other page adopts the same util as it is
+driven to parity (do not mass-convert ahead of need; do not hand-roll
+`toLocaleString`).
+
+**Consequences:**
+- Timestamps render identically to legacy regardless of the viewer's own
+  locale/zone (Eastern + zone label), matching the QA captures.
+- Invalid / null / empty input returns `""` — callers choose their own
+  placeholder.
+- Covered by `legacyDateTime.test.ts` (10 cases: EST/EDT, AM/PM & noon/midnight
+  boundaries, zero-padding, `Date`/epoch inputs, invalid→`""`, zone override).
+- The **value** shown still comes from the backend; a per-row timestamp that
+  differs from legacy (e.g. reserve_bid product 73 = 08:16 PM new vs 02:17 PM
+  legacy) is a data-layer question, not a formatting one — outside RBL-P2's
+  scope.
+
+**References:** `docs/tasks/parity/findings.md` RBL-P2 ·
+`docs/tasks/parity/impl/reserve-bids-page-parity.md` ·
+`frontend/src/lib/format/legacyDateTime.ts`.
+
+---
+
 ## 2026-07-12 — Shell chrome matches legacy exactly (supersedes token-brief divergences)
 
 **Status:** Accepted (user ruling, parity program H1).
